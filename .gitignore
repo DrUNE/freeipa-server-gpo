@@ -197,3 +197,7 @@ plugin/dbus_handlers/gg.txt
 # Keep generated Python artifacts ignored after the source-suite exceptions.
 **/__pycache__/
 **/*.py[cod]
+
+# UI dev harness
+node_modules/
+tools/ui-dev/package-lock.json
