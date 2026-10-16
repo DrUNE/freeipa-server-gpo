@@ -31,6 +31,13 @@ npx --prefix tools/ui-dev playwright install chromium   # один раз для
 
 Без установленного Chromium браузерные тесты помечаются как пропущенные.
 
+`tests/ui/freeipa-plugin-menu.live.test.js` работает не с моками, а с настоящим
+FreeIPA (dev container из `.devcontainer/`): проверяет, что плагин подключён к
+приложению: модули отдаются, в меню **Policy → Group Policy** есть «Chains» и
+«Group Policy Objects», а их страницы открываются. Адрес и учётные данные берутся
+из `IPA_URL` (по умолчанию `https://server.ipa.test`), `IPA_ADMIN_USER` и
+`IPA_ADMIN_PASSWORD`. Если сервер недоступен, тест пропускается.
+
 ## Что покрывает стенд
 
 - редактор GPUI целиком: дерево, ADMX-политики, предпочтения, скрипты,
