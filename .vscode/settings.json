@@ -1,0 +1,27 @@
+{
+    // The dev container publishes the FreeIPA Web UI on
+    // https://server.ipa.test/ itself. VS Code would otherwise forward every
+    // port FreeIPA opens (88, 389, 636, ...) to random localhost ports that
+    // are not usable from a browser.
+    "remote.autoForwardPorts": false,
+
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": ["tests", "--ignore=tests/integration"],
+
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "tools/ui-dev/package-lock.json": true
+    }
+}

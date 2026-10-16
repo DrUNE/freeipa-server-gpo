@@ -42,16 +42,25 @@
     // re-attaches the live source mounts and refreshes the admin ticket.
     "postStartCommand": "/workspaces/freeipa-server-gpo/.devcontainer/scripts/setup-ipa.sh",
 
+    // FreeIPA listens on many ports (88, 389, 636, 8443, ...); none of them
+    // should be auto-forwarded. The Web UI is published on 443 above.
+    "otherPortsAttributes": {
+        "onAutoForward": "ignore"
+    },
+
+    // Workspace-level editor settings live in .vscode/settings.json; the
+    // extension list mirrors .vscode/extensions.json minus Dev Containers.
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "dbaeumer.vscode-eslint"
+                "charliermarsh.ruff",
+                "timonwong.shellcheck",
+                "redhat.vscode-yaml",
+                "mrorz.language-gettext"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/bin/python3",
-                "python.testing.pytestEnabled": true,
-                "python.testing.pytestArgs": ["--ignore=tests/integration"]
+                "python.defaultInterpreterPath": "/usr/bin/python3"
             }
         }
     }
