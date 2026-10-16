@@ -1,0 +1,10 @@
+#!/bin/bash
+# Reload Apache so FreeIPA re-imports the Python plugins from the workspace.
+set -euo pipefail
+service=$(python3 -c 'from ipaplatform.services import knownservices; print(knownservices.httpd.systemd_name)')
+find /workspaces/freeipa-server-gpo/plugin /workspaces/freeipa-server-gpo/ipa_gpo_install \
+    -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+# The ipa CLI caches the command schema; drop it so new commands show up.
+rm -rf /root/.cache/ipa
+systemctl restart "$service"
+echo "restarted $service"

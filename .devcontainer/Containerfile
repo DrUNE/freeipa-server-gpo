@@ -1,0 +1,26 @@
+# FreeIPA server + freeipa-server-gpo runtime dependencies for development.
+# Mirrors the image built in .forgejo/workflows/python-backend.yml and adds
+# the tools needed to work on the repository from VS Code.
+FROM registry.altlinux.org/sisyphus/alt:latest
+
+RUN apt-get update \
+    && apt-get install -y \
+         systemd dbus \
+         freeipa-server freeipa-server-trust-ad \
+         samba-common-tools \
+         admx-basealt sdmx-basealt sdmx-schemas \
+         python3-module-admix \
+         acl coreutils libgio oddjob util-linux \
+         python3-module-pytest python3-module-coverage \
+         python3-module-dbus python3-module-ldap \
+         gettext-tools make git rsync curl tar gzip less procps iproute2 \
+         node npm \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Services that cannot work inside a container or would only slow boot down.
+RUN systemctl mask systemd-logind.service getty.target console-getty.service \
+        systemd-udevd.service systemd-udev-trigger.service 2>/dev/null || true
+
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]

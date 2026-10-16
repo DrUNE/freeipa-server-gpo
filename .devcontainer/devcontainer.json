@@ -1,0 +1,58 @@
+{
+    "name": "FreeIPA GPO (server.ipa.test)",
+    "build": {
+        "dockerfile": "Containerfile",
+        "context": "."
+    },
+
+    // Host side: a dedicated network gives the server a stable IP, which
+    // FreeIPA bakes into its configuration during ipa-server-install.
+    "initializeCommand": "podman network exists ipa-gpo-dev || podman network create --subnet 10.89.77.0/24 ipa-gpo-dev",
+
+    "runArgs": [
+        "--name=freeipa-gpo-dev",
+        "--hostname=server.ipa.test",
+        "--network=ipa-gpo-dev",
+        "--ip=10.89.77.10",
+        // Do not inherit the host's /etc/hosts: it maps server.ipa.test to
+        // 127.0.0.1 for the browser, which breaks FreeIPA inside the container.
+        "--hosts-file=image",
+        "--privileged",
+        "--systemd=always",
+        "--publish=127.0.0.1:443:443"
+    ],
+
+    // Keep /sbin/init as PID 1: FreeIPA needs systemd.
+    "overrideCommand": false,
+    "remoteUser": "root",
+    "containerUser": "root",
+
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/freeipa-server-gpo,type=bind",
+    "workspaceFolder": "/workspaces/freeipa-server-gpo",
+
+    // Development-only credentials for the throwaway ipa.test realm.
+    "containerEnv": {
+        "IPA_DOMAIN": "ipa.test",
+        "IPA_REALM": "IPA.TEST",
+        "IPA_ADMIN_PASSWORD": "DevAdmin-Password-1!",
+        "IPA_DS_PASSWORD": "DevDirectory-Password-1!"
+    },
+
+    // Idempotent: installs IPA on first start (~10 min), afterwards only
+    // re-attaches the live source mounts and refreshes the admin ticket.
+    "postStartCommand": "/workspaces/freeipa-server-gpo/.devcontainer/scripts/setup-ipa.sh",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "dbaeumer.vscode-eslint"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/bin/python3",
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestArgs": ["--ignore=tests/integration"]
+            }
+        }
+    }
+}

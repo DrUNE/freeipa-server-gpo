@@ -201,3 +201,6 @@ plugin/dbus_handlers/gg.txt
 # UI dev harness
 node_modules/
 tools/ui-dev/package-lock.json
+
+# Dev container runtime state
+.devcontainer/.state/
