@@ -73,6 +73,9 @@
 
 ### Этап 6. Структура кода и стили (5-8 дней, итеративно)
 
+**Статус (выполнена первая часть).** Вынесены модульные функции, не зависящие от замыканий: из `preferences-view-template.js` (2108 → 1385 строк) в `preference/view/{common,field-control,field-dependencies,field-tabs}.js`, из `script-template.js` (1455 → 1411) в `script/helpers.js`. Это механический перенос по AST без изменения логики; тесты (280 из 280 в контейнере) и бандл подтверждают.
+**Осталось:** сами крупные функции — `renderPreferencesTemplate` (1222 строки, 74 общие переменные, 39 вложенных функций; `openForm` 378 строк), `renderScriptEventEditor` (1002 строки, 58 переменных, 30 вложенных функций, состояние в основном в одном объекте `state`; `openForm` 148, `renderAssets` 145, `openPicker` 87) и `renderScriptsTemplate` (285). Их разбиение требует общего контекста (`ctx`) и отдельных модулей по областям (таблица, форма, панель, дискард-диалог), то есть уже рефакторинг, а не перенос.
+
 - Разделить крупнейшие файлы по образцу `security/` (model + dialog + view): `preferences-view-template.js`, `script-template.js`, `chain.js`. Критерий: файл > 600 строк требует обоснования. Каждый шаг сопровождается существующими тестами.
 - CSS: вынести токены (цвета, отступы, радиусы, тени) в custom properties; `main.css` разбить по компонентам (`header`, `tree`, `dialogs`, `preferences`...). Подключение через `@import` на этапе сборки.
 - Визуальные регрессии: Playwright `toHaveScreenshot` для 6-8 ключевых экранов (дерево, ADMX, preferences, scripts, security, targeting), снимки фиксируются **до** этапа 6.

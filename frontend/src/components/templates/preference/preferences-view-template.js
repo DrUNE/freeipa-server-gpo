@@ -8,816 +8,93 @@ import * as listNavigation from '../../list-navigation';
 import * as translations from '../../../locales/translations';
 import * as preferenceLayouts from './layouts/index';
 import * as targetingEditor from './targeting-editor';
-
+import * as commonModule from './view/common';
+import * as fieldControlModule from './view/field-control';
+import * as fieldTabsModule from './view/field-tabs';
+import * as fieldDependenciesModule from './view/field-dependencies';
 
     "use strict";
 
     var createElement = elementCreator.createElement;
     var t = translations.t;
     var nextHeaderOwnerId = 1;
-    var nextFieldControlId = 1;
+
     var PREFERENCE_LAYOUTS = preferenceLayouts;
-
-    function pt(key) {
-        return t('preferences.editor.' + key);
-    }
-
-    function validationMessage(code) {
-        if (code === 'required') return pt('validationRequired');
-        if (code === 'invalid_number') return pt('validationInvalidNumber');
-        if (code === 'unsigned_byte_range') return pt('validationUnsignedByteRange');
-        var targetingCodes = { invalid_date: 'validationDate', invalid_time: 'validationTime',
-            invalid_ip: 'validationIp', invalid_ipv6: 'validationIpv6', invalid_mac: 'validationMac', invalid_version: 'validationVersion', invalid_guid: 'validationGuid',
-            invalid_range: 'validationRange', invalid_value: 'validationValue' };
-        if (targetingCodes[code]) return pt(targetingCodes[code]);
-        return pt('validationFixErrors');
-    }
-
-    function listFrom(result, key) {
-        if (Array.isArray(result)) return result;
-        return result && Array.isArray(result[key]) ? result[key] : [];
-    }
-
-    function parentCandidateLabel(candidate) {
-        var depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
-        var prefix = '';
-        for (var index = 0; index < depth; index += 1) prefix += '\u00a0\u00a0';
-        return prefix + String(candidate && candidate.label || '');
-    }
-
-    function scopeField(field, scope) {
-        var result = dto.clone(field);
-        if (!result || result.id !== 'metadata.userContext') return result;
-        if (scope === 'user') {
-            result.label = pt('userContext');
-        } else {
-            result.hidden = true;
-            result.editable = false;
-        }
-        return result;
-    }
-
-    function actionLabel(value) {
-        var key = ({ create: 'actionCreate', replace: 'actionReplace',
-            update: 'actionUpdate', delete: 'actionDelete' })[value];
-        return key ? pt(key) : (value === null || value === undefined ? '' : String(value));
-    }
-
-    function itemFieldValue(item, fieldId) {
-        if (!item || !fieldId) return '';
-        if (Array.isArray(item.fields)) {
-            for (var index = 0; index < item.fields.length; index++) {
-                if (item.fields[index] && item.fields[index].id === fieldId) {
-                    return dto.valuePayload(item.fields[index].value);
-                }
-            }
-        }
-        if (item.properties && typeof item.properties === 'object') {
-            var key = String(fieldId).indexOf('properties.') === 0
-                ? String(fieldId).slice('properties.'.length) : String(fieldId);
-            if (Object.prototype.hasOwnProperty.call(item.properties, key)) {
-                var raw = item.properties[key];
-                if (raw && typeof raw === 'object' && 'kind' in raw) return dto.valuePayload(raw);
-                return raw === null || raw === undefined ? '' : String(raw);
-            }
-        }
-        return '';
-    }
-
-    function tableColumns(kind) {
-        var layout = PREFERENCE_LAYOUTS[kind];
-        if (layout && Array.isArray(layout.columns) && layout.columns.length) {
-            return layout.columns;
-        }
-        return null;
-    }
-
-    function hiddenFieldControl(field) {
-        return {
-            id: field.id,
-            field: field,
-            read: function() { return dto.clone(field.value); },
-            setError: function() {},
-            setDynamicDisabled: function() { return false; },
-            focus: function() {}
-        };
-    }
-
-    function buildControlInput(field, forceReadonly, materializeOptionalDefault, textarea) {
-        var value = dto.clone(field.value || { kind: 'text', value: '' });
-        var disabled = Boolean(forceReadonly || field.editable === false);
-        var controlKind = field.control || '';
-        var input;
-        var inputElement = null;
-        var optionalBooleanTouched = false;
-        var checkboxValueKind = null;
-        var checkboxControlId = null;
-        function checkboxControl(checked) {
-            var controlId = 'gpo-preference-field-' + nextFieldControlId++;
-            checkboxControlId = controlId;
-            var checkbox = createElement('input', {
-                attrs: {
-                    id: controlId,
-                    type: 'checkbox',
-                    disabled: disabled ? 'disabled' : null
-                }
-            });
-            checkbox.getElement().checked = Boolean(checked);
-            checkbox.on('change', function() { optionalBooleanTouched = true; });
-            inputElement = checkbox.getElement();
-            return createElement('span', {
-                className: 'gpo-editor-boolean',
-                children: [
-                    checkbox,
-                    createElement('label', {
-                        attrs: { 'for': controlId, 'aria-label': field.label || field.id }
-                    })
-                ]
-            });
-        }
-        if (controlKind.indexOf('generated_') === 0) {
-            input = createElement('div', {
-                className: 'gpo-editor-field__generated',
-                text: value.value === null || value.value === undefined ? '' : String(value.value)
-            });
-        } else if (value.kind === 'boolean') {
-            input = checkboxControl(value.value);
-        } else if (value.kind === 'optional_boolean') {
-            checkboxValueKind = 'optional_boolean';
-            input = checkboxControl(value.value === true);
-        } else if (controlKind === 'optional_boolean_u8') {
-            checkboxValueKind = 'optional_boolean_u8';
-            input = checkboxControl(value.value === 1);
-        } else if (value.kind === 'action') {
-            input = createElement('select', {
-                attrs: { disabled: disabled ? 'disabled' : null },
-                children: ['create', 'replace', 'update', 'delete'].map(function(action) {
-                    return createElement('option', { attrs: { value: action }, text: action });
-                })
-            });
-            input.getElement().value = value.value;
-        } else if (value.kind === 'filter_combine') {
-            input = createElement('select', {
-                attrs: { disabled: disabled ? 'disabled' : null },
-                children: ['and', 'or'].map(function(combine) {
-                    return createElement('option', { attrs: { value: combine }, text: combine.toUpperCase() });
-                })
-            });
-            input.getElement().value = value.value;
-        } else if (controlKind === 'choice') {
-            input = createElement('select', {
-                attrs: { disabled: disabled ? 'disabled' : null },
-                children: (Array.isArray(field.choices) ? field.choices : []).map(function(choice) {
-                    return createElement('option', {
-                        attrs: { value: choice.key },
-                        text: choice.label
-                    });
-                })
-            });
-            input.getElement().value = value.value;
-        } else if (value.kind === 'text_list' || textarea) {
-            input = createElement('textarea', {
-                attrs: { disabled: disabled ? 'disabled' : null },
-                text: Array.isArray(value.value) ? value.value.join('\n')
-                    : (value.value === null || value.value === undefined ? '' : String(value.value))
-            });
-        } else if (value.kind === 'optional_text') {
-            input = createElement('input', {
-                attrs: {
-                    type: 'text',
-                    disabled: disabled ? 'disabled' : null,
-                    value: value.value === null ? '' : value.value
-                }
-            });
-        } else {
-            var numeric = value.kind === 'integer' || value.kind === 'unsigned_byte' || value.kind === 'optional_unsigned_byte';
-            input = createElement('input', {
-                attrs: {
-                    type: numeric ? 'number' : 'text',
-                    min: value.kind.indexOf('unsigned') !== -1 ? 0 : null,
-                    max: value.kind.indexOf('unsigned_byte') !== -1 ? 255 : null,
-                    required: field.required ? 'required' : null,
-                    disabled: disabled ? 'disabled' : null,
-                    value: value.value === null || value.value === undefined ? '' : value.value
-                }
-            });
-        }
-        if (!inputElement) inputElement = input.getElement();
-        var errorElement = createElement('span', { className: 'gpo-editor-field__error' });
-        var dynamicDisabled = false;
-        function applyBaselineToInput() {
-            if (checkboxValueKind === 'optional_boolean_u8') {
-                inputElement.checked = value.value === 1;
-            } else if (checkboxValueKind === 'optional_boolean') {
-                inputElement.checked = value.value === true;
-            } else if (value.kind === 'boolean') {
-                inputElement.checked = Boolean(value.value);
-            } else if (Array.isArray(value.value)) {
-                inputElement.value = value.value.join('\n');
-            } else {
-                inputElement.value = value.value === null || value.value === undefined
-                    ? '' : value.value;
-            }
-            optionalBooleanTouched = false;
-        }
-        return {
-            value: value,
-            disabled: disabled,
-            controlKind: controlKind,
-            input: input,
-            inputElement: inputElement,
-            errorElement: errorElement,
-            checkboxControlId: checkboxControlId,
-            read: function() {
-                if (disabled || dynamicDisabled
-                        || controlKind.indexOf('generated_') === 0) return dto.clone(value);
-                if (checkboxValueKind && value.value === null
-                        && !materializeOptionalDefault && !optionalBooleanTouched) {
-                    return dto.clone(value);
-                }
-                if (checkboxValueKind === 'optional_boolean_u8') {
-                    return { kind: value.kind, value: inputElement.checked ? 1 : 0 };
-                }
-                if (checkboxValueKind === 'optional_boolean') {
-                    return { kind: value.kind, value: Boolean(inputElement.checked) };
-                }
-                return dto.preferenceValueFromInput(value, inputElement.value, inputElement.checked);
-            },
-            setInputError: function(message) {
-                if (inputElement && typeof inputElement.setAttribute === 'function') {
-                    if (message) inputElement.setAttribute('aria-invalid', 'true');
-                    else inputElement.removeAttribute('aria-invalid');
-                }
-                errorElement.setText(message || '');
-            },
-            setDynamicDisabled: function(nextDisabled) {
-                if (controlKind.indexOf('generated_') === 0) return false;
-                var next = Boolean(nextDisabled);
-                if (next === dynamicDisabled) return false;
-                dynamicDisabled = next;
-                inputElement.disabled = Boolean(disabled || dynamicDisabled);
-                if (dynamicDisabled) applyBaselineToInput();
-                return true;
-            },
-            focus: function() {
-                if (inputElement && typeof inputElement.focus === 'function') inputElement.focus();
-            }
-        };
-    }
-
-    function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-        var opts = options || {};
-        var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
-        var wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
-        var wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-        var builderIsInput = builder.checkboxControlId === null
-                && builder.inputElement.tagName === 'INPUT';
-        var builderInputType = builderIsInput
-                ? String(builder.inputElement.getAttribute('type') || '').toLowerCase()
-                : '';
-        var wrapText = builderIsInput
-                && (builderInputType === 'number'
-                        || (Boolean(opts.wrapText) && builderInputType === 'text'));
-        var element;
-        if (wrapCheckbox) {
-            element = createElement('div', {
-                className: [
-                    'field',
-                    'field__checkbox',
-                    'gpo-editor-field',
-                    builder.disabled ? 'gpo-editor-field--readonly' : null
-                ],
-                attrs: { 'data-field-id': field.id },
-                children: [
-                    createElement('div', {
-                        className: 'field__label',
-                        children: [
-                            createElement('label', {
-                                className: 'gpo-editor-field__label',
-                                attrs: { 'for': builder.checkboxControlId },
-                                children: [
-                                    createElement('span', { text: field.label || field.id }),
-                                    field.required ? createElement('span', {
-                                        className: 'gpo-editor-field__required', text: '*'
-                                    }) : null
-                                ]
-                            })
-                        ]
-                    }),
-                    createElement('div', {
-                        className: 'field__element',
-                        children: [builder.input]
-                    }),
-                    builder.disabled ? createElement('span', {
-                        className: 'gpo-editor-field__hint', text: pt('readonly')
-                    }) : null,
-                    builder.errorElement
-                ]
-            });
-        } else if (wrapText) {
-            element = createElement('div', {
-                className: [
-                    'field',
-                    'field__input',
-                    'gpo-editor-field',
-                    builder.disabled ? 'gpo-editor-field--readonly' : null
-                ],
-                attrs: { 'data-field-id': field.id },
-                children: [
-                    createElement('div', {
-                        className: 'field__label',
-                        children: [
-                            createElement('span', {
-                                className: 'gpo-editor-field__label',
-                                children: [
-                                    createElement('span', { text: field.label || field.id }),
-                                    field.required ? createElement('span', {
-                                        className: 'gpo-editor-field__required', text: '*'
-                                    }) : null
-                                ]
-                            })
-                        ]
-                    }),
-                    createElement('div', {
-                        className: 'field__element',
-                        children: [builder.input, builder.errorElement]
-                    }),
-                    builder.disabled ? createElement('span', {
-                        className: 'gpo-editor-field__hint', text: pt('readonly')
-                    }) : null
-                ]
-            });
-        } else {
-            element = createElement('div', {
-                className: [
-                    'gpo-editor-field',
-                    wrapSelect ? 'field' : null,
-                    builder.disabled ? 'gpo-editor-field--readonly' : null
-                ],
-                attrs: { 'data-field-id': field.id },
-                children: wrapSelect ? [
-                    createElement('div', {
-                        className: 'field__label',
-                        children: [
-                            createElement('span', {
-                                className: 'gpo-editor-field__label',
-                                children: [
-                                    createElement('span', { text: field.label || field.id }),
-                                    field.required ? createElement('span', {
-                                        className: 'gpo-editor-field__required', text: '*'
-                                    }) : null
-                                ]
-                            })
-                        ]
-                    }),
-                    createElement('div', {
-                        className: 'field__element',
-                        children: [builder.input]
-                    }),
-                    builder.disabled ? createElement('span', {
-                        className: 'gpo-editor-field__hint', text: pt('readonly')
-                    }) : null,
-                    builder.errorElement
-                ] : [
-                    createElement('span', {
-                        className: 'gpo-editor-field__label',
-                        children: [
-                            createElement('span', { text: field.label || field.id }),
-                            field.required ? createElement('span', {
-                                className: 'gpo-editor-field__required', text: '*'
-                            }) : null
-                        ]
-                    }),
-                    builder.input,
-                    builder.disabled ? createElement('span', {
-                        className: 'gpo-editor-field__hint', text: pt('readonly')
-                    }) : null,
-                    builder.errorElement
-                ]
-            });
-        }
-        var lastError = '';
-        function applyError(message) {
-            lastError = message || '';
-            element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
-            builder.setInputError(message);
-        }
-        if (!builder.disabled) {
-            builder.inputElement.addEventListener('input', function() {
-                if (lastError) applyError('');
-            });
-        }
-        return {
-            id: field.id,
-            field: field,
-            element: element,
-            read: builder.read,
-            setError: applyError,
-            setDynamicDisabled: function(nextDisabled) {
-                if (!builder.setDynamicDisabled(nextDisabled)) return false;
-                element.getElement().classList.toggle(
-                    'gpo-editor-field--readonly', Boolean(nextDisabled));
-                if (nextDisabled) {
-                    lastError = '';
-                    element.getElement().classList.remove('gpo-editor-field--error');
-                    builder.setInputError('');
-                }
-                return true;
-            },
-            focus: builder.focus
-        };
-    }
-
-    function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-        var opts = options || {};
-        var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
-        var checkboxLike = builder.value.kind === 'boolean'
-            || builder.value.kind === 'optional_boolean'
-            || builder.controlKind === 'optional_boolean_u8';
-        var element;
-        if (checkboxLike) {
-            element = createElement('div', {
-                className: ['field', 'field__checkbox', builder.disabled ? 'field--readonly' : null],
-                attrs: { 'data-field-id': field.id },
-                children: [
-                    createElement('label', {
-                        children: [
-                            builder.input,
-                            createElement('span', {
-                                className: 'field__label-checkbox',
-                                text: field.label || field.id
-                            })
-                        ]
-                    }),
-                    builder.errorElement
-                ]
-            });
-        } else {
-            var fieldClasses = ['field', 'field__input'];
-            if (opts.textarea) {
-                fieldClasses.push('field__description', 'h-auto');
-            } else if (builder.controlKind === 'directory_path' || builder.controlKind === 'file_path') {
-                fieldClasses.push('field__input--path');
-            } else if (valueKindIsSelect(builder)) {
-                fieldClasses.push('select');
-            }
-            element = createElement('div', {
-                className: fieldClasses,
-                attrs: { 'data-field-id': field.id },
-                children: [
-                    createElement('div', {
-                        className: 'field__label',
-                        children: [
-                            createElement('span', { text: field.label || field.id }),
-                            field.required ? createElement('span', {
-                                className: 'gpo-editor-field__required', text: '*'
-                            }) : null
-                        ]
-                    }),
-                    createElement('div', {
-                        className: 'field__element',
-                        children: [builder.input, builder.errorElement]
-                    })
-                ]
-            });
-        }
-        var lastError = '';
-        function applyError(message) {
-            lastError = message || '';
-            element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
-            builder.setInputError(message);
-        }
-        if (!builder.disabled) {
-            builder.inputElement.addEventListener('input', function() {
-                if (lastError) applyError('');
-            });
-        }
-        return {
-            id: field.id,
-            field: field,
-            element: element,
-            read: builder.read,
-            setError: applyError,
-            setDynamicDisabled: function(nextDisabled) {
-                if (!builder.setDynamicDisabled(nextDisabled)) return false;
-                element.getElement().classList.toggle(
-                    'field--readonly', Boolean(nextDisabled));
-                if (nextDisabled) {
-                    lastError = '';
-                    element.getElement().classList.remove('gpo-editor-field--error');
-                    builder.setInputError('');
-                }
-                return true;
-            },
-            focus: builder.focus
-        };
-    }
-
-    function valueKindIsSelect(builder) {
-        return builder.value.kind === 'action'
-            || builder.value.kind === 'filter_combine'
-            || builder.controlKind === 'choice';
-    }
-
-    function dependencyRulesFor(kind) {
-        var layout = PREFERENCE_LAYOUTS[kind];
-        return layout && Array.isArray(layout.dependencies) ? layout.dependencies : [];
-    }
-
-    function conditionTextValue(raw) {
-        if (raw === null || raw === undefined) return '';
-        if (Array.isArray(raw)) return raw.join('\n');
-        return String(raw);
-    }
-
-    function conditionValueIsEmpty(raw) {
-        if (raw === null || raw === undefined) return true;
-        if (typeof raw === 'string') return raw.trim() === '';
-        if (Array.isArray(raw)) return raw.length === 0;
-        return false;
-    }
-
-    function conditionBooleanValue(raw) {
-        return raw === true || raw === 1 || raw === 'true';
-    }
-
-    function conditionCompare(expected, raw) {
-        if (expected === true) return conditionBooleanValue(raw);
-        if (expected === false) return raw === false || raw === 0;
-        return conditionTextValue(raw).toLowerCase()
-            === conditionTextValue(expected).toLowerCase();
-    }
-
-    function conditionHolds(condition, readSource) {
-        if (!condition) return true;
-        if (condition.anyOf !== undefined) {
-            return (Array.isArray(condition.anyOf) ? condition.anyOf : [])
-                .some(function(nested) { return conditionHolds(nested, readSource); });
-        }
-        if (condition.suffix !== undefined) {
-            return conditionTextValue(readSource(condition.source)).toLowerCase()
-                .endsWith(String(condition.suffix).toLowerCase());
-        }
-        if (Object.prototype.hasOwnProperty.call(condition, 'nonEmpty')) {
-            return Boolean(condition.nonEmpty) !== conditionValueIsEmpty(readSource(condition.source));
-        }
-        var raw = readSource(condition.source);
-        if (condition.in !== undefined) {
-            return (Array.isArray(condition.in) ? condition.in : [])
-                .some(function(item) { return conditionCompare(item, raw); });
-        }
-        if (condition.notIn !== undefined) {
-            return !(Array.isArray(condition.notIn) ? condition.notIn : [])
-                .some(function(item) { return conditionCompare(item, raw); });
-        }
-        if (condition.equals !== undefined) {
-            return conditionCompare(condition.equals, raw);
-        }
-        if (condition.notEquals !== undefined) {
-            return !conditionCompare(condition.notEquals, raw);
-        }
-        return true;
-    }
-
-    function ruleEnabled(rule, readSource) {
-        var conditions = Array.isArray(rule && rule.enabledWhen) ? rule.enabledWhen : [];
-        return conditions.every(function(condition) {
-            return conditionHolds(condition, readSource);
-        });
-    }
-
-    function attachFieldDependencies(formElement, controlsById, rules) {
-        var disabledIds = new Set();
-        function sourceValue(fieldId) {
-            var payload = null;
-            (controlsById.get(fieldId) || []).forEach(function(control) {
-                var current = control.read();
-                if (current !== undefined) payload = dto.valuePayload(current);
-            });
-            return payload;
-        }
-        function sync() {
-            var passes = Math.min(rules.length + 1, 12);
-            for (var pass = 0; pass < passes; pass += 1) {
-                var changed = false;
-                var cache = new Map();
-                var nextDisabled = [];
-                var readSource = function(fieldId) {
-                    if (!cache.has(fieldId)) cache.set(fieldId, sourceValue(fieldId));
-                    return cache.get(fieldId);
-                };
-                rules.forEach(function(rule) {
-                    if (!rule || !rule.field) return;
-                    var enabled = ruleEnabled(rule, readSource);
-                    if (!enabled) nextDisabled.push(rule.field);
-                    (controlsById.get(rule.field) || []).forEach(function(control) {
-                        if (control.setDynamicDisabled
-                                && control.setDynamicDisabled(!enabled)) {
-                            changed = true;
-                        }
-                    });
-                });
-                disabledIds.clear();
-                nextDisabled.forEach(function(id) { disabledIds.add(id); });
-                if (!changed) break;
-            }
-        }
-        formElement.addEventListener('input', sync);
-        formElement.addEventListener('change', sync);
-        return { sync: sync, disabledIds: disabledIds };
-    }
-
-    function buildPlaceholderCheckbox(entry) {
-        var label = (entry && entry.label)
-            || (entry && entry.labelKey ? pt(entry.labelKey) : '');
-        var controlId = 'gpo-preference-field-' + nextFieldControlId++;
-        var checkbox = createElement('input', {
-            attrs: {
-                id: controlId,
-                type: 'checkbox',
-                disabled: 'disabled'
-            }
-        });
-        return createElement('div', {
-            className: ['field', 'field__checkbox', 'field--readonly'],
-            children: [
-                createElement('label', {
-                    children: [
-                        createElement('span', {
-                            className: 'gpo-editor-boolean',
-                            children: [
-                                checkbox,
-                                createElement('label', {
-                                    attrs: { 'for': controlId, 'aria-label': label }
-                                })
-                            ]
-                        }),
-                        createElement('span', {
-                            className: 'field__label-checkbox',
-                            text: label
-                        })
-                    ]
-                })
-            ]
-        });
-    }
-
-    function isMetadataField(field) {
-        return String(field && field.id || '').indexOf('metadata.') === 0;
-    }
-
-    function isGeneralTabField(field) {
-        return isMetadataField(field)
-            || (Boolean(field) && field.id === 'properties.disabled');
-    }
-
-    function isBasicTabField(field) {
-        return !isGeneralTabField(field);
-    }
-
-    function orderedTabEntries(fields, layoutEntries, predicate) {
-        var layout = Array.isArray(layoutEntries) ? layoutEntries : [];
-        var belongs = typeof predicate === 'function' ? predicate : function() { return true; };
-        var result = [];
-        var placed = {};
-        layout.forEach(function(entry) {
-            var item = dto.clone(entry || {});
-            if (!item.field) {
-                if (item.line) result.push({ line: true });
-                if (item.placeholder) result.push(item);
-                return;
-            }
-            var field = fields.find(function(candidate) { return candidate.id === item.field; });
-            if (!field || !belongs(field)) return;
-            placed[item.field] = true;
-            result.push(item);
-        });
-        fields.forEach(function(field) {
-            if (placed[field.id] || !belongs(field)) return;
-            result.push({ field: field.id });
-        });
-        return result;
-    }
-
-    function buildFieldTabs(fields, options) {
-        var opts = options || {};
-        var layout = opts.layout || null;
-        var fieldsById = new Map();
-        fields.forEach(function(field) { fieldsById.set(field.id, field); });
-        var basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
-        var generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
-        var fieldOptions = {};
-        basicEntries.concat(generalEntries).forEach(function(entry) {
-            if (entry && entry.field && !fieldOptions[entry.field]) fieldOptions[entry.field] = entry;
-        });
-
-        fields.forEach(function(field) {
-            var control;
-            if (field.hidden) {
-                control = hiddenFieldControl(field);
-            } else if (layout) {
-                control = mockupFieldControl(field, opts.readonly, opts.creating, fieldOptions[field.id] || {});
-            } else {
-                control = fieldControl(field, opts.readonly, opts.creating);
-            }
-            opts.controls.push(control);
-            if (!opts.controlsById.has(field.id)) opts.controlsById.set(field.id, []);
-            opts.controlsById.get(field.id).push(control);
-        });
-
-        function renderable(entries) {
-            return entries.some(function(entry) {
-                if (entry.placeholder) return true;
-                if (!entry.field) return false;
-                var field = fieldsById.get(entry.field);
-                return Boolean(field && !field.hidden);
-            });
-        }
-
-        var basicHasFields = renderable(basicEntries);
-        var generalHasFields = renderable(generalEntries);
-        if (!basicHasFields && !generalHasFields) return null;
-
-        function buildContent(entries) {
-            var content = createElement('div', { className: 'tab-content' });
-            entries.forEach(function(entry) {
-                if (entry.line) {
-                    content.append(createElement('div', { className: 'field__line' }));
-                    return;
-                }
-                if (entry.placeholder) {
-                    content.append(buildPlaceholderCheckbox(entry));
-                    return;
-                }
-                if (!entry.field) return;
-                (opts.controlsById.get(entry.field) || []).forEach(function(control) {
-                    if (control.element) content.append(control.element);
-                });
-            });
-            return content;
-        }
-
-        var basicContent = buildContent(basicEntries);
-        var generalContent = buildContent(generalEntries);
-        basicContent.getElement().id = 'tab-basic';
-        generalContent.getElement().id = 'tab-general';
-        var activeTab = basicHasFields ? 'tab-basic' : 'tab-general';
-        if (activeTab === 'tab-basic') basicContent.getElement().classList.add('active');
-        else generalContent.getElement().classList.add('active');
-
-        var tabs = createElement('div', { className: 'preference__modal-tabs' });
-        var buttons = createElement('div', { className: 'tab-buttons' });
-        [
-            { id: 'tab-basic', enabled: basicHasFields, label: pt('tabBasic') },
-            { id: 'tab-general', enabled: generalHasFields, label: pt('tabGeneral') }
-        ].forEach(function(spec) {
-            if (!spec.enabled) return;
-            buttons.append(createElement('div', {
-                className: ['preference__tab-button', activeTab === spec.id ? 'active' : null],
-                attrs: { 'data-tab': spec.id },
-                text: spec.label,
-                events: { click: function() { activateTab(spec.id); } }
-            }));
-        });
-        tabs.append(buttons);
-        tabs.append(basicContent);
-        tabs.append(generalContent);
-
-        var filtersTab = opts.layout
-            ? (opts.layout.filters === 'basic' ? 'tab-basic'
-                : opts.layout.filters === 'general' ? 'tab-general' : null)
-            : null;
-        tabs.filtersSlot = filtersTab === 'tab-basic' && basicHasFields ? basicContent
-            : filtersTab === 'tab-general' && generalHasFields ? generalContent
-            : null;
-
-        function activateTab(id) {
-            Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.preference__tab-button'),
-                function(button) {
-                    button.classList.toggle('active', button.getAttribute('data-tab') === id);
-                });
-            Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.tab-content'),
-                function(content) {
-                    content.classList.toggle('active', content.id === id);
-                });
-        }
-
-        return tabs;
-    }
-
-    function editableFields(controls, baseline, changedOnly) {
-        var result = [];
-        controls.forEach(function(control, id) {
-            var field = baseline.get(id);
-            if (!field || !field.editable) return;
-            var value = control.read();
-            if (!changedOnly || !dto.equal(value, field.value)) result.push({ id: id, value: value });
-        });
-        return result;
-    }
+    var pt = commonModule.pt;
+    var tableColumns = commonModule.tableColumns;
+    var actionLabel = commonModule.actionLabel;
+    var itemFieldValue = commonModule.itemFieldValue;
+    var scopeField = commonModule.scopeField;
+    var listFrom = commonModule.listFrom;
+    var validationMessage = commonModule.validationMessage;
+    var parentCandidateLabel = commonModule.parentCandidateLabel;
+    var filterKey = commonModule.filterKey;
+    var editableFields = commonModule.editableFields;
+    var fieldControl = fieldControlModule.fieldControl;
+    var mockupFieldControl = fieldControlModule.mockupFieldControl;
+    var buildFieldTabs = fieldTabsModule.buildFieldTabs;
+    var orderedTabEntries = fieldTabsModule.orderedTabEntries;
+    var isMetadataField = fieldTabsModule.isMetadataField;
+    var dependencyRulesFor = fieldDependenciesModule.dependencyRulesFor;
+    var attachFieldDependencies = fieldDependenciesModule.attachFieldDependencies;
 
 
-    function filterKey(path) { return JSON.stringify(path || []); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     async function renderPreferencesTemplate(options) {
         var config = options || {};

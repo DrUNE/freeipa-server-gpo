@@ -42,7 +42,7 @@
 	//#region src/util/element-creator.js
 	var element_creator_exports = /* @__PURE__ */ __exportAll({
 		ElementCreator: () => ElementCreator,
-		createElement: () => createElement$16,
+		createElement: () => createElement$18,
 		default: () => ElementCreator,
 		fromHTML: () => fromHTML
 	});
@@ -267,7 +267,7 @@
 	* @param {Object} [options] Element creation options.
 	* @returns {GpuiCreator} ElementCreator instance.
 	*/
-	function createElement$16(tagName = "div", options = {}) {
+	function createElement$18(tagName = "div", options = {}) {
 		return new ElementCreator(tagName, options);
 	}
 	/**
@@ -279,7 +279,7 @@
 		return ElementCreator.fromHTML(html);
 	}
 	if (typeof window !== "undefined")
- /** @type {any} */ window.createElement = createElement$16;
+ /** @type {any} */ window.createElement = createElement$18;
 	//#endregion
 	//#region src/locales/en.js
 	var en_exports = /* @__PURE__ */ __exportAll({
@@ -1581,14 +1581,14 @@
 	var translations_exports = /* @__PURE__ */ __exportAll({
 		getLanguage: () => getLanguage,
 		setLanguage: () => setLanguage,
-		t: () => t$10
+		t: () => t$12
 	});
 	var translations = {
 		en: en_exports,
 		ru: ru_exports
 	};
 	var currentLang = "en";
-	function t$10(key) {
+	function t$12(key) {
 		const keys = key.split(".");
 		let value = translations[currentLang];
 		for (const k of keys) if (value && value[k] !== void 0) value = value[k];
@@ -1603,53 +1603,53 @@
 	}
 	//#endregion
 	//#region src/components/header/header.js
-	var { createElement: createElement$15 } = element_creator_exports;
-	var { t: t$9 } = translations_exports;
+	var { createElement: createElement$17 } = element_creator_exports;
+	var { t: t$11 } = translations_exports;
 	function renderHeader$1(container) {
-		const element = createElement$15("div", {
+		const element = createElement$17("div", {
 			className: "gp__header",
-			children: [createElement$15("div", {
+			children: [createElement$17("div", {
 				className: "gp__header-left",
 				children: [
-					createElement$15("div", { className: "gp__search" }),
-					createElement$15("div", { className: "gp__nav" }),
-					createElement$15("div", {
+					createElement$17("div", { className: "gp__search" }),
+					createElement$17("div", { className: "gp__nav" }),
+					createElement$17("div", {
 						className: "gp__control",
 						children: [
-							createElement$15("button", {
+							createElement$17("button", {
 								className: ["button", "preferences__btn-create"],
-								text: t$9("header.create")
+								text: t$11("header.create")
 							}),
-							createElement$15("button", {
+							createElement$17("button", {
 								className: ["button", "preferences__btn-edit"],
-								text: t$9("header.edit")
+								text: t$11("header.edit")
 							}),
-							createElement$15("button", {
+							createElement$17("button", {
 								className: ["button", "preferences__btn-delete"],
-								text: t$9("header.delete")
+								text: t$11("header.delete")
 							})
 						]
 					})
 				]
-			}), createElement$15("div", {
+			}), createElement$17("div", {
 				className: "gp__control-actions",
 				children: [
-					createElement$15("div", {
+					createElement$17("div", {
 						className: "gp__control-admx",
-						children: [createElement$15("button", {
+						children: [createElement$17("button", {
 							className: ["button", "admx__btn-apply"],
-							text: t$9("header.apply")
-						}), createElement$15("button", {
+							text: t$11("header.apply")
+						}), createElement$17("button", {
 							className: ["button", "admx__btn-cancel"],
-							text: t$9("header.cancel")
+							text: t$11("header.cancel")
 						})]
 					}),
-					createElement$15("div", { className: "gp__control-separator" }),
-					createElement$15("div", {
+					createElement$17("div", { className: "gp__control-separator" }),
+					createElement$17("div", {
 						className: "gp__control-help",
-						children: [createElement$15("button", {
+						children: [createElement$17("button", {
 							className: ["button", "btn-information"],
-							text: t$9("header.information")
+							text: t$11("header.information")
 						})]
 					})
 				]
@@ -1667,7 +1667,7 @@
 		setFolderOpenedState: () => setFolderOpenedState$1,
 		setTreeItemActive: () => setTreeItemActive$1
 	});
-	var createElement$14 = createElement$16;
+	var createElement$16 = createElement$18;
 	var expansionRuns = /* @__PURE__ */ new WeakMap();
 	var selectionScrollRuns = /* @__PURE__ */ new WeakMap();
 	function scrollTreeItemIntoView(element) {
@@ -1788,7 +1788,7 @@
 		switcher.setAttribute("tabindex", "-1");
 		switcher.setAttribute("aria-hidden", String(!expandable));
 		switcher.setAttribute("aria-expanded", String(Boolean(item.opened)));
-		switcher.setAttribute("aria-label", t$10(item.opened ? "tree.collapse" : "tree.expand") + ": " + item.title);
+		switcher.setAttribute("aria-label", t$12(item.opened ? "tree.collapse" : "tree.expand") + ": " + item.title);
 	}
 	function hasVisibleChildren(item) {
 		return Boolean(item && (item.lazy && !item.loaded || (item.children || []).some(function(child) {
@@ -1842,12 +1842,12 @@
 		(items || []).forEach(function(item) {
 			if (item.showInTree === false && treeViewState) treeViewState.registerTreeNode(item, { parentItem: parentItem || null });
 		});
-		return createElement$14("ul", {
+		return createElement$16("ul", {
 			className: "tree-view__list",
 			attrs: {
 				role: parentItem ? "group" : "tree",
-				"aria-label": parentItem ? null : t$10("navigation.tree"),
-				title: parentItem ? null : t$10("navigation.keyboardHelp")
+				"aria-label": parentItem ? null : t$12("navigation.tree"),
+				title: parentItem ? null : t$12("navigation.keyboardHelp")
 			},
 			children: (items || []).filter(function(item) {
 				return item.showInTree !== false;
@@ -1857,7 +1857,7 @@
 		});
 	}
 	function renderLoadError() {
-		return createElement$14("li", {
+		return createElement$16("li", {
 			className: ["view", "tree-view__lazy-error"],
 			text: "Не удалось загрузить раздел"
 		});
@@ -1881,7 +1881,7 @@
 			console.error("[tree-view] Failed to load children.", error);
 			var oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(createElement$14("ul", {
+			listItem.appendChild(createElement$16("ul", {
 				className: "tree-view__list",
 				children: [renderLoadError()]
 			}).getElement());
@@ -1897,7 +1897,7 @@
 		var isFolder = item.type === "folder";
 		var classes = ["view", isFolder ? "folder" : "file"];
 		if (isFolder) classes.push(item.opened ? "opened" : "closed");
-		var treeItem = createElement$14("span", {
+		var treeItem = createElement$16("span", {
 			className: "tree-item",
 			attrs: {
 				role: "treeitem",
@@ -1907,22 +1907,22 @@
 				"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
 			},
 			children: [
-				isFolder ? createElement$14("span", {
+				isFolder ? createElement$16("span", {
 					className: ["icon-switcher", hasVisibleChildren(item) ? null : "icon-switcher--empty"],
 					attrs: { role: "button" }
 				}) : null,
-				isFolder ? createElement$14("span", {
+				isFolder ? createElement$16("span", {
 					className: "tree-view__status-spinner",
 					attrs: { "aria-hidden": "true" }
 				}) : null,
-				item.icon ? createElement$14("span", { className: ["icon", item.icon] }) : null,
-				createElement$14("span", {
+				item.icon ? createElement$16("span", { className: ["icon", item.icon] }) : null,
+				createElement$16("span", {
 					className: "tree-item__title",
 					text: item.title
 				})
 			]
 		});
-		var listItem = createElement$14("li", {
+		var listItem = createElement$16("li", {
 			className: classes,
 			children: [treeItem]
 		});
@@ -2428,7 +2428,7 @@
 		var model = buildSecurityModel(response);
 		var nodes = categoryNodes(model, model.categories);
 		if (model.preserved.length || model.diagnostics.length) nodes.push({
-			title: translations_exports ? t$10("security.preservedTitle") : "Preserved and diagnostic records",
+			title: translations_exports ? t$12("security.preservedTitle") : "Preserved and diagnostic records",
 			type: "file",
 			icon: "ico-file",
 			template: "security",
@@ -2457,7 +2457,7 @@
 		audit_base_directories: "Audit: Audit the access of global directory service objects"
 	};
 	function tr$7(key, fallback) {
-		var value = translations_exports && t$10("security.advancedAudit." + key);
+		var value = translations_exports && t$12("security.advancedAudit." + key);
 		return value && value !== "security.advancedAudit." + key ? value : fallback;
 	}
 	function state(response) {
@@ -2706,7 +2706,7 @@
 		policyNode: () => policyNode,
 		preferenceCategories: () => preferenceCategories
 	});
-	var t$8 = t$10;
+	var t$10 = t$12;
 	function payloadList(result, key) {
 		if (Array.isArray(result)) return result;
 		return result && Array.isArray(result[key]) ? result[key] : [];
@@ -2749,13 +2749,13 @@
 	}
 	function administrativeTemplates(scope) {
 		return {
-			title: t$8("policies.adminTemplates"),
+			title: t$10("policies.adminTemplates"),
 			type: "folder",
 			opened: false,
 			icon: "ico-folder",
 			scope,
 			lazy: true,
-			help: t$8(scope === "computer" ? "policies.machineAdminTemplates" : "policies.userAdminTemplates"),
+			help: t$10(scope === "computer" ? "policies.machineAdminTemplates" : "policies.userAdminTemplates"),
 			children: [],
 			loadChildren: function() {
 				return children(scope, null).then(function(result) {
@@ -2778,7 +2778,7 @@
 	}
 	function scriptsNode(scope) {
 		return {
-			title: t$8(scope === "computer" ? "policies.scriptsComputer" : "policies.scriptsUser"),
+			title: t$10(scope === "computer" ? "policies.scriptsComputer" : "policies.scriptsUser"),
 			type: "file",
 			icon: __export_scripts(),
 			template: "scripts",
@@ -2790,7 +2790,7 @@
 		var children = [scriptsNode(scope)];
 		if (scope === "computer") children.push(securityNode());
 		return {
-			title: t$8("policies.windowsSettings"),
+			title: t$10("policies.windowsSettings"),
 			type: "folder",
 			opened: false,
 			icon: "ico-folder",
@@ -2800,7 +2800,7 @@
 	}
 	function securityNode() {
 		return {
-			title: t$8("security.title"),
+			title: t$10("security.title"),
 			type: "folder",
 			opened: false,
 			icon: "ico-folder",
@@ -2815,7 +2815,7 @@
 					var nodes = navigationNodes(responses[0]);
 					if (responses[1].value) nodes.push(navigationNode(responses[1].value));
 					else nodes.push({
-						title: t$8("security.auditUnavailable"),
+						title: t$10("security.auditUnavailable"),
 						type: "file",
 						icon: "ico-file",
 						showInTree: false,
@@ -2830,9 +2830,9 @@
 		};
 	}
 	function preferenceCategoryTitle(category) {
-		if (category.id === "system_settings") return t$8("preferences.windowsSettings");
-		if (category.id === "control_panel_settings") return t$8("preferences.controlPanelSettings");
-		if (category.id === "other_settings") return t$8("preferences.otherSettings");
+		if (category.id === "system_settings") return t$10("preferences.windowsSettings");
+		if (category.id === "control_panel_settings") return t$10("preferences.controlPanelSettings");
+		if (category.id === "other_settings") return t$10("preferences.otherSettings");
 		return category.label || category.id;
 	}
 	function preferenceOrder(value) {
@@ -2877,7 +2877,7 @@
 		var isComputer = scope === "computer";
 		var preferenceChildren = preferenceCategories(scope, documents);
 		var children = [{
-			title: t$8("policies.allPolicies"),
+			title: t$10("policies.allPolicies"),
 			type: "folder",
 			opened: false,
 			icon: "ico-folder",
@@ -2888,9 +2888,9 @@
 				return document.scope === scope;
 			}),
 			includePreferences: true,
-			help: t$8("policySearch.description")
+			help: t$10("policySearch.description")
 		}, {
-			title: t$8("policies.title"),
+			title: t$10("policies.title"),
 			type: "folder",
 			opened: false,
 			icon: "ico-folder",
@@ -2898,20 +2898,20 @@
 			children: [windowsPolicySettingsNode(scope), administrativeTemplates(scope)]
 		}];
 		if (preferenceChildren.length) children.push({
-			title: t$8("preferences.title"),
+			title: t$10("preferences.title"),
 			type: "folder",
 			opened: false,
 			icon: __export_preferencesRoot(),
 			scope,
 			children: preferenceChildren,
-			help: t$8("preferences.description")
+			help: t$10("preferences.description")
 		});
 		return {
-			title: isComputer ? t$8("policies.machine") : t$8("policies.user"),
+			title: isComputer ? t$10("policies.machine") : t$10("policies.user"),
 			type: "folder",
 			opened: false,
 			icon: isComputer ? "ico-computer" : "ico-user",
-			help: isComputer ? t$8("policies.machineLevelPolicies") : t$8("policies.userLevelPolicies"),
+			help: isComputer ? t$10("policies.machineLevelPolicies") : t$10("policies.userLevelPolicies"),
 			children
 		};
 	}
@@ -2919,10 +2919,10 @@
 		var result = openResult || {};
 		var documents = payloadList(result, "preference_documents");
 		return [{
-			title: (result.gpo || {}).displayname || __export_getDisplayName() || t$8("policies.localGroupPolicy"),
+			title: (result.gpo || {}).displayname || __export_getDisplayName() || t$10("policies.localGroupPolicy"),
 			type: "folder",
 			opened: true,
-			help: t$8("policies.localGroupPolicies"),
+			help: t$10("policies.localGroupPolicies"),
 			children: [scopeNode("computer", documents), scopeNode("user", documents)]
 		}];
 	}
@@ -2932,8 +2932,8 @@
 	//#endregion
 	//#region src/components/tree-view/tree-view.js
 	var tree_view_exports = /* @__PURE__ */ __exportAll({ renderTreeView: () => renderTreeView$1 });
-	var { createElement: createElement$13 } = element_creator_exports;
-	var { t: t$7 } = translations_exports;
+	var { createElement: createElement$15 } = element_creator_exports;
+	var { t: t$9 } = translations_exports;
 	var { renderTreeViewList } = tree_view_list_exports;
 	var { loadTreeViewList } = tree_view_list_data_exports;
 	var TREE_VIEW_MESSAGES = {
@@ -2943,15 +2943,15 @@
 	function renderTreeViewStatus(type = "loading") {
 		const isError = type === "error";
 		const children = [];
-		if (!isError) children.push(createElement$13("span", {
+		if (!isError) children.push(createElement$15("span", {
 			className: "tree-view__status-spinner",
 			attrs: { "aria-hidden": "true" }
 		}));
-		children.push(createElement$13("span", {
+		children.push(createElement$15("span", {
 			className: "tree-view__status-text",
-			text: isError ? t$7(TREE_VIEW_MESSAGES.error) : t$7(TREE_VIEW_MESSAGES.loading)
+			text: isError ? t$9(TREE_VIEW_MESSAGES.error) : t$9(TREE_VIEW_MESSAGES.loading)
 		}));
-		return createElement$13("div", {
+		return createElement$15("div", {
 			className: ["tree-view__status", isError ? "tree-view__status--error" : "tree-view__status--loading"],
 			attrs: {
 				role: isError ? "alert" : "status",
@@ -2991,30 +2991,30 @@
 	* @returns {ElementCreator} Tree container.
 	*/
 	function renderTreeView$1(workspace = null, treeViewState = null) {
-		const element = createElement$13("div", { className: "tree-view" });
+		const element = createElement$15("div", { className: "tree-view" });
 		initializeTreeView(element, workspace, treeViewState);
 		return element;
 	}
 	//#endregion
 	//#region src/components/divider/divider.js
 	var divider_exports = /* @__PURE__ */ __exportAll({ renderDivider: () => renderDivider$1 });
-	var { createElement: createElement$12 } = element_creator_exports;
+	var { createElement: createElement$14 } = element_creator_exports;
 	function renderDivider$1() {
-		return createElement$12("div", {
+		return createElement$14("div", {
 			className: "divider",
-			children: [createElement$12("div", { className: "divider__line" })]
+			children: [createElement$14("div", { className: "divider__line" })]
 		});
 	}
 	//#endregion
 	//#region src/components/workspace/workspace.js
 	var workspace_exports = /* @__PURE__ */ __exportAll({ renderWorkspace: () => renderWorkspace$1 });
-	var { createElement: createElement$11 } = element_creator_exports;
+	var { createElement: createElement$13 } = element_creator_exports;
 	function renderWorkspace$1() {
-		return createElement$11("div", { className: "workspace" });
+		return createElement$13("div", { className: "workspace" });
 	}
 	//#endregion
 	//#region src/components/main/main.js
-	var { createElement: createElement$10 } = element_creator_exports;
+	var { createElement: createElement$12 } = element_creator_exports;
 	var { renderTreeView } = tree_view_exports;
 	var { renderDivider } = divider_exports;
 	var { renderWorkspace } = workspace_exports;
@@ -3022,7 +3022,7 @@
 		const workspace = renderWorkspace();
 		const treeView = renderTreeView(workspace, treeViewState);
 		const divider = renderDivider();
-		const main = createElement$10("div", {
+		const main = createElement$12("div", {
 			className: "gp__main",
 			children: [
 				treeView,
@@ -3040,9 +3040,9 @@
 	}
 	//#endregion
 	//#region src/components/footer/footer.js
-	var { createElement: createElement$9 } = element_creator_exports;
+	var { createElement: createElement$11 } = element_creator_exports;
 	function renderFooter$1(container) {
-		const element = createElement$9("div", { className: "gp__footer" });
+		const element = createElement$11("div", { className: "gp__footer" });
 		container.appendChild(element.getElement());
 		return element.getElement();
 	}
@@ -3086,12 +3086,12 @@
 	}
 	//#endregion
 	//#region src/components/category-path.js
-	var create$11 = createElement$16;
+	var create$12 = createElement$18;
 	function render$4(segments, onNavigate) {
 		var parts = (segments || []).filter(function(segment) {
 			return segment && segment.title;
 		});
-		var list = create$11("ol", { className: "gpo-category-path__list" });
+		var list = create$12("ol", { className: "gpo-category-path__list" });
 		var focused = Math.max(0, parts.length - 1);
 		function syncFocus() {
 			var buttons = list.getElement().querySelectorAll("button");
@@ -3101,7 +3101,7 @@
 		}
 		parts.forEach(function(segment, index) {
 			var last = index === parts.length - 1;
-			var label = create$11(segment.item && onNavigate ? "button" : "span", {
+			var label = create$12(segment.item && onNavigate ? "button" : "span", {
 				className: "gpo-category-path__segment",
 				attrs: {
 					type: segment.item && onNavigate ? "button" : null,
@@ -3119,7 +3119,7 @@
 					syncFocus();
 				});
 			}
-			list.append(create$11("li", { children: [index ? create$11("span", {
+			list.append(create$12("li", { children: [index ? create$12("span", {
 				className: "gpo-category-path__separator",
 				attrs: { "aria-hidden": "true" },
 				text: " / "
@@ -3138,11 +3138,11 @@
 			buttons[focused].focus({ preventScroll: true });
 		});
 		syncFocus();
-		return create$11("nav", {
+		return create$12("nav", {
 			className: "gpo-category-path",
 			attrs: {
 				"data-category-path": "",
-				"aria-label": t$10("navigation.path")
+				"aria-label": t$12("navigation.path")
 			},
 			children: [list]
 		});
@@ -3161,15 +3161,15 @@
 	}
 	//#endregion
 	//#region src/components/templates/default-template.js
-	var { createElement: createElement$8 } = element_creator_exports;
+	var { createElement: createElement$10 } = element_creator_exports;
 	/**
 	* Renders the fallback template when no template is defined.
 	* @returns {ElementCreator} Element containing a template-not-defined message.
 	*/
 	function renderDefaultTemplate$1() {
-		return createElement$8("div", {
+		return createElement$10("div", {
 			className: "gp__default-template",
-			children: [createElement$8("div", {
+			children: [createElement$10("div", {
 				className: "default-template__message",
 				text: "Шаблон не определен"
 			})]
@@ -3756,7 +3756,7 @@
 	}
 	//#endregion
 	//#region src/components/editor-status.js
-	var createElement$7 = createElement$16;
+	var createElement$9 = createElement$18;
 	var DETAILS = {
 		"Security policy actions must be a list": "securityActionsList",
 		"Security element actions must be a list": "securityElementActionsList",
@@ -3765,11 +3765,11 @@
 		"Invalid collection entries": "collectionInvalidEntry"
 	};
 	function text$1(key) {
-		return t$10("editorStatus." + key);
+		return t$12("editorStatus." + key);
 	}
 	function messageForError(error) {
 		var key = "editorStatus.errors." + errorCategory(error).replace(/-/g, "_");
-		var prefix = t$10(key);
+		var prefix = t$12(key);
 		if (prefix === key) prefix = text$1("errors.operational");
 		var detail = DETAILS[(error && error.message ? String(error.message) : "").replace(/[.]$/, "")];
 		return detail ? prefix + " " + text$1("details." + detail) : prefix;
@@ -3778,19 +3778,19 @@
 		var config = options || {};
 		var category = errorCategory(error).replace(/-/g, "_");
 		var actions = [];
-		if (typeof config.onRefresh === "function") actions.push(createElement$7("button", {
+		if (typeof config.onRefresh === "function") actions.push(createElement$9("button", {
 			className: ["button", "gpo-editor-status__action"],
 			attrs: { type: "button" },
 			text: text$1("refresh"),
 			events: { click: config.onRefresh }
 		}));
-		if ((category.indexOf("publication") !== -1 || error && error.pendingPublication) && typeof config.onReconcile === "function") actions.push(createElement$7("button", {
+		if ((category.indexOf("publication") !== -1 || error && error.pendingPublication) && typeof config.onReconcile === "function") actions.push(createElement$9("button", {
 			className: ["button", "gpo-editor-status__action"],
 			attrs: { type: "button" },
 			text: text$1("reconcile"),
 			events: { click: config.onReconcile }
 		}));
-		return createElement$7("div", {
+		return createElement$9("div", {
 			className: [
 				"gpo-editor-status",
 				"gpo-editor-status--error",
@@ -3801,15 +3801,15 @@
 				"data-error-category": category
 			},
 			children: [
-				createElement$7("div", {
+				createElement$9("div", {
 					className: "gpo-editor-status__message",
 					text: messageForError(error)
 				}),
-				error && error.field ? createElement$7("div", {
+				error && error.field ? createElement$9("div", {
 					className: "gpo-editor-status__field",
 					text: text$1("field") + ": " + error.field
 				}) : null,
-				actions.length ? createElement$7("div", {
+				actions.length ? createElement$9("div", {
 					className: "gpo-editor-status__actions",
 					children: actions
 				}) : null
@@ -3818,13 +3818,13 @@
 	}
 	function renderPending(pending, onReconcile) {
 		if (!pending) return null;
-		return createElement$7("div", {
+		return createElement$9("div", {
 			className: ["gpo-editor-status", "gpo-editor-status--pending"],
 			attrs: { role: "status" },
-			children: [createElement$7("div", {
+			children: [createElement$9("div", {
 				className: "gpo-editor-status__message",
 				text: text$1("pending")
-			}), typeof onReconcile === "function" ? createElement$7("button", {
+			}), typeof onReconcile === "function" ? createElement$9("button", {
 				className: ["button", "gpo-editor-status__action"],
 				attrs: { type: "button" },
 				text: text$1("reconcile"),
@@ -3833,16 +3833,16 @@
 		});
 	}
 	function renderDiagnostics(diagnostics) {
-		return createElement$7("details", {
+		return createElement$9("details", {
 			className: "gpo-editor-status__diagnostics",
-			children: [createElement$7("summary", { text: text$1("technicalDetails") })].concat((diagnostics || []).map(function(diagnostic) {
-				return createElement$7("pre", { text: [diagnostic.code, diagnostic.message].filter(Boolean).join(": ") });
+			children: [createElement$9("summary", { text: text$1("technicalDetails") })].concat((diagnostics || []).map(function(diagnostic) {
+				return createElement$9("pre", { text: [diagnostic.code, diagnostic.message].filter(Boolean).join(": ") });
 			}))
 		});
 	}
 	//#endregion
 	//#region src/components/confirmation-dialog.js
-	var create$10 = createElement$16;
+	var create$11 = createElement$18;
 	var nextId = 0;
 	function open$3(host, options) {
 		var config = options || {};
@@ -3851,23 +3851,23 @@
 		var previous = document.activeElement;
 		var id = "gpo-confirmation-" + ++nextId;
 		var closed = false;
-		var no = create$10("button", {
+		var no = create$11("button", {
 			className: ["btn", "btn-no"],
 			attrs: { type: "button" },
-			text: config.cancelLabel || t$10("policyChangedModal.no")
+			text: config.cancelLabel || t$12("policyChangedModal.no")
 		});
-		var yes = create$10("button", {
+		var yes = create$11("button", {
 			className: ["btn", "btn-yes"],
 			attrs: { type: "button" },
-			text: config.confirmLabel || t$10("policyChangedModal.yes")
+			text: config.confirmLabel || t$12("policyChangedModal.yes")
 		});
-		var content = create$10("div", {
+		var content = create$11("div", {
 			id: id + "-message",
 			className: "policy-changed__modal-content",
 			text: config.message || ""
 		});
 		if (config.content) content.getElement().appendChild(config.content.getElement ? config.content.getElement() : config.content);
-		var modal = create$10("div", {
+		var modal = create$11("div", {
 			className: ["policy-changed__modal", "policy-changed__modal--discard"],
 			attrs: {
 				role: "alertdialog",
@@ -3875,19 +3875,19 @@
 				"aria-labelledby": id + "-title",
 				"aria-describedby": id + "-message"
 			},
-			children: [create$10("div", {
+			children: [create$11("div", {
 				className: "policy-changed__modal-wrapper",
 				children: [
-					create$10("div", {
+					create$11("div", {
 						className: "policy-changed__modal-header",
-						children: [create$10("div", {
+						children: [create$11("div", {
 							id: id + "-title",
 							className: "title",
-							text: config.title || t$10("confirmModal.title")
+							text: config.title || t$12("confirmModal.title")
 						})]
 					}),
 					content,
-					create$10("div", {
+					create$11("div", {
 						className: "policy-changed__modal-footer",
 						children: [no, yes]
 					})
@@ -3942,7 +3942,7 @@
 		open: () => open$2,
 		trapTab: () => trapTab
 	});
-	var create$9 = createElement$16;
+	var create$10 = createElement$18;
 	var sequence$4 = 0;
 	function trapTab(event, modal) {
 		if (event.key !== "Tab" || event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== modal) return;
@@ -3974,7 +3974,7 @@
 		var closed = false;
 		var applyDisabled = Boolean(options.applyDisabled);
 		var confirmation = null;
-		var body = create$9("div", {
+		var body = create$10("div", {
 			className: [
 				"preference__modal-content",
 				"gpo-editor-dialog__body",
@@ -3982,17 +3982,17 @@
 			],
 			children: [options.content]
 		});
-		var failure = create$9("div", {
+		var failure = create$10("div", {
 			className: ["gpo-editor-dialog__error", options.errorClassName],
 			attrs: { role: "alert" }
 		});
 		body.getElement().prepend(failure.getElement());
-		var cancel = create$9("button", {
+		var cancel = create$10("button", {
 			className: ["button", "btn-cancel"],
 			attrs: { type: "button" },
-			text: options.cancelLabel || t$10("collections.cancel")
+			text: options.cancelLabel || t$12("collections.cancel")
 		});
-		var apply = create$9("button", {
+		var apply = create$10("button", {
 			className: [
 				"button",
 				"btn-ok",
@@ -4000,10 +4000,10 @@
 				options.applyClassName
 			],
 			attrs: { type: "button" },
-			text: options.applyLabel || t$10("collections.ok")
+			text: options.applyLabel || t$12("collections.ok")
 		});
 		apply.getElement().disabled = applyDisabled;
-		var closeButton = create$9("button", {
+		var closeButton = create$10("button", {
 			className: [
 				"close",
 				"gpo-editor-dialog__close",
@@ -4011,10 +4011,10 @@
 			],
 			attrs: {
 				type: "button",
-				"aria-label": options.closeLabel || t$10("collections.close")
+				"aria-label": options.closeLabel || t$12("collections.close")
 			}
 		});
-		var modal = create$9("div", {
+		var modal = create$10("div", {
 			className: [
 				"preference__modal",
 				"active",
@@ -4026,26 +4026,26 @@
 				"aria-labelledby": titleId,
 				tabindex: "-1"
 			},
-			children: [create$9("div", {
+			children: [create$10("div", {
 				className: "preference__modal-wrapper",
 				children: [
-					create$9("div", {
+					create$10("div", {
 						className: "preference__modal-header",
-						children: [create$9("div", {
+						children: [create$10("div", {
 							id: titleId,
 							className: "title",
 							text: options.title
 						}), closeButton]
 					}),
 					body,
-					create$9("div", {
+					create$10("div", {
 						className: "preference__modal-footer",
 						children: [cancel, options.readOnly ? null : apply]
 					})
 				]
 			})]
 		});
-		var backdrop = create$9("div", {
+		var backdrop = create$10("div", {
 			className: [
 				"gp__preference",
 				"gpo-editor-preferences__modal-host",
@@ -4076,7 +4076,7 @@
 			modal.getElement().inert = true;
 			modal.getElement().classList.add("gpo-editor-dialog--confirming");
 			confirmation = open$3(backdrop, {
-				message: options.discardMessage || t$10("collections.discardQuestion"),
+				message: options.discardMessage || t$12("collections.discardQuestion"),
 				onConfirm: close,
 				onCancel: function() {
 					confirmation = null;
@@ -4320,10 +4320,10 @@
 	}
 	//#endregion
 	//#region src/components/collection-dialog.js
-	var create$8 = createElement$16;
+	var create$9 = createElement$18;
 	var sequence$2 = 0;
 	function tr$6(key, values) {
-		var text = t$10("collections." + key);
+		var text = t$12("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
 			text = text.replace("{" + name + "}", values[name]);
 		});
@@ -4343,7 +4343,7 @@
 		var drag = null;
 		var scrollFrame = null;
 		var dialog;
-		var add = create$8("button", {
+		var add = create$9("button", {
 			className: "button",
 			attrs: {
 				type: "button",
@@ -4351,7 +4351,7 @@
 			},
 			text: tr$6("add")
 		});
-		var remove = create$8("button", {
+		var remove = create$9("button", {
 			className: "button",
 			attrs: {
 				type: "button",
@@ -4359,12 +4359,12 @@
 			},
 			text: tr$6("remove")
 		});
-		var search = create$8("input", { attrs: {
+		var search = create$9("input", { attrs: {
 			type: "search",
 			placeholder: tr$6("search"),
 			"aria-label": tr$6("search")
 		} });
-		var toolbar = create$8("div", {
+		var toolbar = create$9("div", {
 			className: "gpo-collection-editor__toolbar",
 			children: [
 				readOnly ? null : add,
@@ -4372,12 +4372,12 @@
 				search
 			]
 		});
-		var errors = create$8("div", {
+		var errors = create$9("div", {
 			className: "gpo-collection-editor__validation",
 			attrs: { role: "alert" }
 		});
-		var count = create$8("div", { className: "gpo-collection-editor__count" });
-		var live = create$8("div", {
+		var count = create$9("div", { className: "gpo-collection-editor__count" });
+		var live = create$9("div", {
 			className: "gpo-collection-editor__live",
 			attrs: {
 				role: "status",
@@ -4385,8 +4385,8 @@
 				"aria-atomic": "true"
 			}
 		});
-		var body = create$8("tbody");
-		var table = create$8("table", {
+		var body = create$9("tbody");
+		var table = create$9("table", {
 			className: ["preference__table", "gpo-collection-table"],
 			attrs: {
 				"aria-label": options.parameter.label || options.parameter.id,
@@ -4394,21 +4394,21 @@
 				"data-collection-mode": state.mode
 			},
 			children: [
-				create$8("colgroup", { children: [
-					readOnly ? null : create$8("col", { className: "gpo-collection-table__handle-column" }),
-					create$8("col", { className: state.mode === "key_value" ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }),
-					create$8("col")
+				create$9("colgroup", { children: [
+					readOnly ? null : create$9("col", { className: "gpo-collection-table__handle-column" }),
+					create$9("col", { className: state.mode === "key_value" ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }),
+					create$9("col")
 				] }),
-				create$8("thead", { children: [create$8("tr", { children: [
-					readOnly ? null : create$8("th", { attrs: {
+				create$9("thead", { children: [create$9("tr", { children: [
+					readOnly ? null : create$9("th", { attrs: {
 						scope: "col",
 						"aria-label": tr$6("reorder")
 					} }),
-					create$8("th", {
+					create$9("th", {
 						attrs: { scope: "col" },
 						text: state.mode === "key_value" ? tr$6("key") : tr$6("index")
 					}),
-					create$8("th", {
+					create$9("th", {
 						attrs: { scope: "col" },
 						text: tr$6("value")
 					})
@@ -4416,11 +4416,11 @@
 				body
 			]
 		});
-		var scroll = create$8("div", {
+		var scroll = create$9("div", {
 			className: "gpo-collection-editor__table-scroll",
 			children: [table]
 		});
-		var content = create$8("div", {
+		var content = create$9("div", {
 			className: "gpo-collection-editor",
 			children: [
 				toolbar,
@@ -4484,7 +4484,7 @@
 				var input = cell.querySelector("[data-collection-input]");
 				if (problem) {
 					var errorId = prefix + "-" + id + "-" + field + "-error";
-					cell.appendChild(create$8("span", {
+					cell.appendChild(create$9("span", {
 						id: errorId,
 						className: "gpo-collection-cell__error",
 						text: tr$6("errors." + problem.code)
@@ -4508,7 +4508,7 @@
 		}
 		function showCell(cell, row, field) {
 			cell.classList.remove("gpo-collection-cell--editing");
-			cell.replaceChildren(create$8("span", {
+			cell.replaceChildren(create$9("span", {
 				className: "gpo-collection-cell__text",
 				text: row[field] || "\xA0"
 			}).getElement());
@@ -4549,7 +4549,7 @@
 			};
 			updateSelection();
 			var singleLine = field === "key" || state.mode === "list" && rules.unique_keys;
-			var input = create$8(singleLine ? "input" : "textarea", { attrs: {
+			var input = create$9(singleLine ? "input" : "textarea", { attrs: {
 				type: singleLine ? "text" : null,
 				rows: singleLine ? null : "1",
 				spellcheck: "false",
@@ -4665,18 +4665,18 @@
 				return row.id === activeCell.id;
 			})) activeCell.id = visible[0] && visible[0].id;
 			search.getElement().hidden = state.rows.length < 20 && !search.getElement().value;
-			if (!visible.length) body.append(create$8("tr", {
+			if (!visible.length) body.append(create$9("tr", {
 				className: "gpo-collection-table__empty",
-				children: [create$8("td", {
+				children: [create$9("td", {
 					attrs: { colspan: readOnly ? 2 : 3 },
 					text: tr$6(state.rows.length ? "noMatches" : "empty")
 				})]
 			}));
 			visible.forEach(function(row) {
 				var index = state.rows.indexOf(row);
-				var record = create$8("tr", { attrs: { "data-collection-row": row.id } });
+				var record = create$9("tr", { attrs: { "data-collection-row": row.id } });
 				if (!readOnly) {
-					var handle = create$8("button", {
+					var handle = create$9("button", {
 						className: "gpo-collection-table__handle",
 						attrs: {
 							type: "button",
@@ -4727,17 +4727,17 @@
 							announce(tr$6("moved", { index: state.rows.indexOf(row) }));
 						}
 					});
-					record.append(create$8("td", {
+					record.append(create$9("td", {
 						className: "gpo-collection-table__handle-cell",
 						children: [handle]
 					}));
 				}
-				if (state.mode === "list") record.append(create$8("td", {
+				if (state.mode === "list") record.append(create$9("td", {
 					className: "gpo-collection-table__index",
 					text: index
 				}));
 				fields.forEach(function(field) {
-					var cell = create$8("td", {
+					var cell = create$9("td", {
 						className: ["gpo-collection-cell", "field__element"],
 						attrs: {
 							"data-collection-field": field,
@@ -4911,7 +4911,7 @@
 				return row.id === id;
 			}) }));
 		});
-		content.append(create$8("span", {
+		content.append(create$9("span", {
 			id: prefix + "-reorder-help",
 			className: "gpo-collection-editor__live",
 			text: tr$6("reorderHelp")
@@ -4951,9 +4951,9 @@
 	}
 	//#endregion
 	//#region src/components/collection-control.js
-	var create$7 = createElement$16;
+	var create$8 = createElement$18;
 	function tr$5(key, values) {
-		var text = t$10("collections." + key);
+		var text = t$12("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
 			text = text.replace("{" + name + "}", values[name]);
 		});
@@ -4963,20 +4963,20 @@
 		var value = initial ? JSON.parse(JSON.stringify(initial)) : empty(parameter, initial);
 		var canEdit = Boolean(editable);
 		var modal = null;
-		var button = create$7("button", {
+		var button = create$8("button", {
 			className: ["button", "gpo-collection-control__button"],
 			attrs: { type: "button" }
 		});
-		var count = create$7("span", { className: "gpo-collection-control__count" });
-		var preview = create$7("span", {
+		var count = create$8("span", { className: "gpo-collection-control__count" });
+		var preview = create$8("span", {
 			className: "gpo-collection-control__preview",
 			attrs: { "aria-hidden": "true" }
 		});
-		var host = create$7("div", { className: "gpo-collection-control__dialog-host" });
-		var root = create$7("div", {
+		var host = create$8("div", { className: "gpo-collection-control__dialog-host" });
+		var root = create$8("div", {
 			className: "gpo-collection-control",
 			children: [
-				create$7("div", {
+				create$8("div", {
 					className: "gpo-collection-control__summary",
 					children: [count, preview]
 				}),
@@ -5034,10 +5034,10 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/dialog.js
-	var create$6 = createElement$16;
+	var create$7 = createElement$18;
 	var sequence$1 = 0;
 	function tr$4(key, fallback) {
-		var value = t$10("security." + key);
+		var value = t$12("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function tabs(settings, explanation) {
@@ -5055,7 +5055,7 @@
 			});
 			if (focus) buttons[index].getElement().focus();
 		}
-		var bar = create$6("div", {
+		var bar = create$7("div", {
 			className: "tab-buttons",
 			attrs: {
 				role: "tablist",
@@ -5063,7 +5063,7 @@
 			}
 		});
 		[tr$4("settingTab", "Security Policy Setting"), tr$4("explanationTab", "Explanation")].forEach(function(label, index) {
-			var button = create$6("button", {
+			var button = create$7("button", {
 				id: id + "-tab-" + index,
 				className: "preference__tab-button",
 				attrs: {
@@ -5096,7 +5096,7 @@
 			panel.classList.add("tab-content");
 		});
 		select(0);
-		return create$6("div", {
+		return create$7("div", {
 			className: ["preference__modal-tabs", "gpo-security-tabs"],
 			children: [
 				bar,
@@ -5121,8 +5121,8 @@
 	}
 	//#endregion
 	//#region src/components/templates/admx-template.js
-	var createElement$6 = createElement$16;
-	var t$6 = t$10;
+	var createElement$8 = createElement$18;
+	var t$8 = t$12;
 	var nextParameterControlId = 1;
 	function appendLines(container, text) {
 		String(text || "").split(/\r?\n/).forEach(function(line, index) {
@@ -5151,7 +5151,7 @@
 		var collectionControl = null;
 		var renderedValue = parameter.value === null || parameter.value === void 0 ? unsupportedDefault ? null : parameter.default_value : parameter.value;
 		var choices = parameter.choices || [];
-		if (unsupported) input = createElement$6("pre", {
+		if (unsupported) input = createElement$8("pre", {
 			className: ["gpo-editor-unsupported", "field__element"],
 			text: JSON.stringify(renderedValue && renderedValue.value !== void 0 ? renderedValue.value : {
 				kind: parameter.kind,
@@ -5160,28 +5160,28 @@
 		});
 		else if (parameter.kind === "boolean") {
 			var checkboxId = "gpo-editor-parameter-" + nextParameterControlId++;
-			var checkbox = createElement$6("input", { attrs: {
+			var checkbox = createElement$8("input", { attrs: {
 				id: checkboxId,
 				type: "checkbox",
 				disabled: disabled ? "disabled" : null
 			} });
 			inputElement = checkbox.getElement();
 			inputElement.checked = Boolean(inputValue(renderedValue));
-			input = createElement$6("span", {
+			input = createElement$8("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement$6("label", { attrs: {
+				children: [checkbox, createElement$8("label", { attrs: {
 					for: checkboxId,
 					"aria-label": parameter.label || parameter.id
 				} })]
 			});
 		} else if (parameter.kind === "enum") {
-			input = createElement$6("select", {
+			input = createElement$8("select", {
 				attrs: { disabled: disabled ? "disabled" : null },
-				children: [!parameter.required ? createElement$6("option", {
+				children: [!parameter.required ? createElement$8("option", {
 					attrs: { value: "" },
 					text: "—"
 				}) : null].concat(choices.map(function(choice, index) {
-					return createElement$6("option", {
+					return createElement$8("option", {
 						attrs: {
 							value: String(index),
 							disabled: choice.value && choice.value.kind === "unsupported" ? "disabled" : null
@@ -5198,7 +5198,7 @@
 			collectionControl = createControl(parameter, renderedValue, !disabled);
 			input = collectionControl.element;
 			inputElement = collectionControl.button;
-		} else input = createElement$6("input", { attrs: {
+		} else input = createElement$8("input", { attrs: {
 			type: parameter.kind === "decimal" ? "number" : "text",
 			min: parameter.min_value,
 			max: parameter.max_value,
@@ -5223,7 +5223,7 @@
 			return typedValueFromInput(parameter.value, parameter.kind, inputElement.value, inputElement.checked);
 		}
 		return {
-			element: createElement$6("div", {
+			element: createElement$8("div", {
 				className: [
 					"gp__admx-options",
 					collectionControl ? "gp__admx-options--collection" : null,
@@ -5231,9 +5231,9 @@
 					unsupportedDefault ? "gpo-editor-field--unsupported-default" : null
 				],
 				attrs: { "data-field-id": parameter.id },
-				children: [input, unsupportedDefault ? createElement$6("span", {
+				children: [input, unsupportedDefault ? createElement$8("span", {
 					className: "gpo-editor-field__diagnostic",
-					text: t$6("policies.unsupportedDefault")
+					text: t$8("policies.unsupportedDefault")
 				}) : null]
 			}),
 			read,
@@ -5258,22 +5258,22 @@
 		var unknown = policy.state === "unknown_raw_values";
 		var controls = /* @__PURE__ */ new Map();
 		var stateNames = {
-			not_configured: t$6("policies.notConfigured"),
-			enabled: t$6("policies.enabled"),
-			disabled: t$6("policies.disabled")
+			not_configured: t$8("policies.notConfigured"),
+			enabled: t$8("policies.enabled"),
+			disabled: t$8("policies.disabled")
 		};
 		var stateControls = Object.keys(stateNames).map(function(state) {
 			var allowed = canSelectPolicyState(policy, state);
-			var radio = createElement$6("input", { attrs: {
+			var radio = createElement$8("input", { attrs: {
 				type: "radio",
 				name: "admx-state",
 				value: state,
 				checked: policy.state === state ? "checked" : null,
 				disabled: allowed ? null : "disabled"
 			} });
-			return createElement$6("label", {
+			return createElement$8("label", {
 				className: ["gp__admx-radio", allowed ? null : "gpo-editor-control--disabled"],
-				children: [radio, createElement$6("span", { text: stateNames[state] })]
+				children: [radio, createElement$8("span", { text: stateNames[state] })]
 			});
 		});
 		var parameterRows = (capabilities.inspect_parameters ? policy.parameters || [] : []).map(function(parameter) {
@@ -5287,102 +5287,102 @@
 			var control = createParameterControl(parameter, Boolean(capabilities.edit_parameters) && !unknown);
 			if (handlers.modalLayout) control.element.addClass("field__element");
 			controls.set(parameter.id, control);
-			return createElement$6("div", {
+			return createElement$8("div", {
 				className: "gp__admx-item",
-				children: [createElement$6("div", {
+				children: [createElement$8("div", {
 					className: "gp__admx-description",
 					text: parameter.label || parameter.id
 				}), control.element]
 			});
 		});
-		var comment = createElement$6("textarea", {
+		var comment = createElement$8("textarea", {
 			attrs: {
 				name: "comment",
 				disabled: capabilities.edit_comments && !unknown ? null : "disabled"
 			},
 			text: policy.comment ? policy.comment.text : ""
 		});
-		var errorSlot = createElement$6("div", { className: "gpo-editor-form__error" });
-		var wrapper = createElement$6("div", {
+		var errorSlot = createElement$8("div", { className: "gpo-editor-form__error" });
+		var wrapper = createElement$8("div", {
 			className: "gp__admx-wrapper",
 			children: [
-				handlers.categoryPath ? createElement$6("div", {
+				handlers.categoryPath ? createElement$8("div", {
 					className: "gpo-security-workbench__toolbar",
-					children: [createElement$6("h2", {
+					children: [createElement$8("h2", {
 						text: handlers.categoryPath,
 						attrs: { "data-category-path": "" }
 					})]
 				}) : null,
 				errorSlot,
-				unknown ? createElement$6("div", {
+				unknown ? createElement$8("div", {
 					className: ["gpo-editor-status", "gpo-editor-status--unsupported"],
 					attrs: { role: "status" },
-					text: t$6("policies.unsupportedSource")
+					text: t$8("policies.unsupportedSource")
 				}) : null,
-				createElement$6("div", {
+				createElement$8("div", {
 					className: ["gp__admx", (policy.parameters || []).some(function(parameter) {
 						return parameter.kind === "list";
 					}) ? "gp__admx--collections" : null],
-					children: [createElement$6("div", {
+					children: [createElement$8("div", {
 						className: "gp__admx-settings",
 						children: [
-							createElement$6("div", {
+							createElement$8("div", {
 								className: "title",
-								children: [t$6("policies.policy") + " ", createElement$6("span", {
+								children: [t$8("policies.policy") + " ", createElement$8("span", {
 									className: "title__name",
 									text: policy.label || policy.policy_id
 								})]
 							}),
-							createElement$6("div", {
+							createElement$8("div", {
 								className: "gp__admx-state-policy-title",
-								text: t$6("policies.policyState")
+								text: t$8("policies.policyState")
 							}),
-							createElement$6("div", {
+							createElement$8("div", {
 								className: "gp__admx-state-policy",
 								children: stateControls
 							}),
-							createElement$6("div", { className: "field__line" })
+							createElement$8("div", { className: "field__line" })
 						]
-					}), createElement$6("div", {
+					}), createElement$8("div", {
 						className: "gp__admx-info",
-						children: parameterRows.length ? [createElement$6("div", {
+						children: parameterRows.length ? [createElement$8("div", {
 							className: "gp__admx-item",
-							children: [createElement$6("div", {
+							children: [createElement$8("div", {
 								className: "gp__admx-description",
-								text: t$6("common.description")
-							}), createElement$6("div", {
+								text: t$8("common.description")
+							}), createElement$8("div", {
 								className: "gp__admx-options",
-								text: t$6("common.options")
+								text: t$8("common.options")
 							})]
 						})].concat(parameterRows) : []
 					})]
 				}),
-				createElement$6("div", {
+				createElement$8("div", {
 					className: ["gp__admx-help", handlers.isHelpOpen ? "is-open" : null],
 					children: [
-						createElement$6("div", {
+						createElement$8("div", {
 							className: "gp__admx-supported",
-							children: [createElement$6("div", {
+							children: [createElement$8("div", {
 								className: "title",
-								text: t$6("policies.supportedOn")
-							}), createElement$6("div", {
+								text: t$8("policies.supportedOn")
+							}), createElement$8("div", {
 								className: "gp__admx-content",
 								text: policy.supported_on || ""
 							})]
 						}),
-						createElement$6("div", {
+						createElement$8("div", {
 							className: "gp__admx-comment",
-							children: [createElement$6("div", {
+							children: [createElement$8("div", {
 								className: "title",
-								text: t$6("common.comment")
+								text: t$8("common.comment")
 							}), comment]
 						}),
-						createElement$6("div", {
+						createElement$8("div", {
 							className: "gp__admx-text-help",
-							children: [createElement$6("div", {
+							children: [createElement$8("div", {
 								className: "title",
-								text: t$6("common.help")
-							}), createElement$6("div", { className: "gp__admx-content" })]
+								text: t$8("common.help")
+							}), createElement$8("div", { className: "gp__admx-content" })]
 						})
 					]
 				})
@@ -5390,51 +5390,51 @@
 		});
 		root.innerHTML = "";
 		if (handlers.modalLayout) {
-			var settings = createElement$6("div", {
+			var settings = createElement$8("div", {
 				className: "gpo-admx-dialog__settings",
 				children: [
 					errorSlot,
-					unknown ? createElement$6("div", {
+					unknown ? createElement$8("div", {
 						className: ["gpo-editor-status", "gpo-editor-status--unsupported"],
 						attrs: { role: "status" },
-						text: t$6("policies.unsupportedSource")
+						text: t$8("policies.unsupportedSource")
 					}) : null,
-					createElement$6("div", {
+					createElement$8("div", {
 						className: "gp__admx-settings",
-						children: [createElement$6("div", {
+						children: [createElement$8("div", {
 							className: "gp__admx-state-policy-title",
-							text: t$6("policies.policyState")
-						}), createElement$6("div", {
+							text: t$8("policies.policyState")
+						}), createElement$8("div", {
 							className: "gp__admx-state-policy",
 							children: stateControls
 						})]
 					})
-				].concat(parameterRows, [createElement$6("div", {
+				].concat(parameterRows, [createElement$8("div", {
 					className: "gpo-admx-dialog__comment",
-					children: [createElement$6("label", {
-						text: t$6("common.comment"),
+					children: [createElement$8("label", {
+						text: t$8("common.comment"),
 						attrs: { for: "admx-comment-" + nextParameterControlId }
-					}), createElement$6("div", {
+					}), createElement$8("div", {
 						className: "field__element",
 						children: [comment]
 					})]
 				})])
 			});
 			comment.getElement().id = "admx-comment-" + nextParameterControlId++;
-			var supported = createElement$6("p");
+			var supported = createElement$8("p");
 			appendLines(supported.getElement(), policy.supported_on || "—");
-			var help = createElement$6("p");
-			appendLines(help.getElement(), policy.explain_text || t$6("security.noExplanation"));
-			var tabs$1 = tabs(settings, createElement$6("div", {
+			var help = createElement$8("p");
+			appendLines(help.getElement(), policy.explain_text || t$8("security.noExplanation"));
+			var tabs$1 = tabs(settings, createElement$8("div", {
 				className: "gpo-admx-dialog__explanation",
 				children: [
-					createElement$6("h3", { text: t$6("policies.supportedOn") }),
+					createElement$8("h3", { text: t$8("policies.supportedOn") }),
 					supported,
-					createElement$6("h3", { text: t$6("security.explanationTab") }),
+					createElement$8("h3", { text: t$8("security.explanationTab") }),
 					help
 				]
 			}));
-			tabs$1.getElement().querySelector("[role=\"tab\"]").textContent = t$6("policies.parametersTab");
+			tabs$1.getElement().querySelector("[role=\"tab\"]").textContent = t$8("policies.parametersTab");
 			root.appendChild(tabs$1.getElement());
 		} else {
 			root.appendChild(wrapper.getElement());
@@ -5489,7 +5489,7 @@
 	async function renderAdmxTemplate(options) {
 		var config = options || {};
 		var item = config.item || {};
-		var root = createElement$6("div", { className: "gpo-editor-policy" });
+		var root = createElement$8("div", { className: "gpo-editor-policy" });
 		var headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
 		var actions = headerElement ? headerElement.querySelector(".gp__control-actions") : null;
 		var preferenceActions = headerElement ? headerElement.querySelector(".gp__control") : null;
@@ -5559,7 +5559,7 @@
 				}
 			} };
 			if (category === "storage_conflict" || category === "publication_conflict" || category === "not_found") errorActions.onRefresh = async function() {
-				if (!(config.confirmRefresh ? await config.confirmRefresh() : window.confirm(t$6("collections.discardQuestion")))) return;
+				if (!(config.confirmRefresh ? await config.confirmRefresh() : window.confirm(t$8("collections.discardQuestion")))) return;
 				try {
 					var response = await policyShow(item.scope, item.policyId);
 					policy = response.policy || response;
@@ -5652,12 +5652,12 @@
 	function openAdmxDialog(host, options) {
 		var config = options || {};
 		var item = config.item || {};
-		var content = createElement$6("div", {
+		var content = createElement$8("div", {
 			className: "gpo-admx-dialog__content",
-			children: [createElement$6("div", {
+			children: [createElement$8("div", {
 				className: "gpo-admx-dialog__loading",
 				attrs: { role: "status" },
-				text: t$6("treeView.loadingPolicies")
+				text: t$8("treeView.loadingPolicies")
 			})]
 		});
 		var currentEditor = null;
@@ -5701,8 +5701,8 @@
 			title: item.title || item.label || item.policyId,
 			className: ["gpo-admx-dialog"],
 			content,
-			applyLabel: t$6("security.apply"),
-			cancelLabel: t$6("security.cancel"),
+			applyLabel: t$8("security.apply"),
+			cancelLabel: t$8("security.cancel"),
 			applyDisabled: true,
 			restoreFocus: config.restoreFocus,
 			isDirty: editor.hasUnsavedChanges,
@@ -5725,7 +5725,7 @@
 					resolve(confirmed);
 				};
 				refreshConfirmation = open$3(modal.parentElement, {
-					message: t$6("collections.discardQuestion"),
+					message: t$8("collections.discardQuestion"),
 					onConfirm: function() {
 						finishRefreshConfirmation(true);
 					},
@@ -5753,10 +5753,10 @@
 					if (currentEditor && currentEditor.cleanup) currentEditor.cleanup();
 					currentEditor = null;
 					dialog.setApplyDisabled(true);
-					content.getElement().replaceChildren(createElement$6("div", {
+					content.getElement().replaceChildren(createElement$8("div", {
 						className: "gpo-admx-dialog__loading",
 						attrs: { role: "status" },
-						text: t$6("treeView.loadingPolicies")
+						text: t$8("treeView.loadingPolicies")
 					}).getElement());
 					editor.ready = load();
 				},
@@ -5789,16 +5789,16 @@
 	}
 	//#endregion
 	//#region src/components/templates/folder-template.js
-	var { createElement: createElement$5 } = element_creator_exports;
-	var { t: t$5 } = translations_exports;
+	var { createElement: createElement$7 } = element_creator_exports;
+	var { t: t$7 } = translations_exports;
 	function renderChildRow(item, onItemClick, onSelect) {
-		const row = createElement$5("span", {
+		const row = createElement$7("span", {
 			className: "workspace-list-item",
 			attrs: typeof onItemClick === "function" ? {
 				role: "button",
 				tabindex: "-1"
 			} : {},
-			children: [createElement$5("span", { className: ["icon", item.icon] }), createElement$5("span", {
+			children: [createElement$7("span", { className: ["icon", item.icon] }), createElement$7("span", {
 				className: "gp__list-children__item__title",
 				text: item.title
 			})]
@@ -5815,19 +5815,19 @@
 				}
 			});
 		}
-		return createElement$5("li", {
+		return createElement$7("li", {
 			className: ["gp__list-children__item", item.type],
 			children: [row]
 		});
 	}
 	function renderHelpBlock$1({ help = void 0, isOpen = false } = {}) {
 		if (!help) return null;
-		return createElement$5("div", {
+		return createElement$7("div", {
 			className: ["gp__list-children-help", isOpen ? "is-open" : null],
-			children: [createElement$5("div", {
+			children: [createElement$7("div", {
 				className: "title",
-				text: t$5("common.help")
-			}), createElement$5("div", {
+				text: t$7("common.help")
+			}), createElement$7("div", {
 				className: "content",
 				text: help
 			})]
@@ -5843,7 +5843,7 @@
 			help,
 			isOpen: isHelpOpen
 		});
-		const list = createElement$5("ul", { className: "gp__list-children__list" });
+		const list = createElement$7("ul", { className: "gp__list-children__list" });
 		let rowItems = /* @__PURE__ */ new Map();
 		let navigation = null;
 		function select(item) {
@@ -5853,15 +5853,15 @@
 			});
 			if (navigation) navigation.sync();
 		}
-		const search = createElement$5("input", { attrs: {
+		const search = createElement$7("input", { attrs: {
 			type: "search",
 			value: listState.query || "",
-			placeholder: t$5("policySearch.categoryPlaceholder"),
-			"aria-label": t$5("policySearch.categoryPlaceholder"),
+			placeholder: t$7("policySearch.categoryPlaceholder"),
+			"aria-label": t$7("policySearch.categoryPlaceholder"),
 			"data-policy-filter": ""
 		} });
-		const empty = createElement$5("p", {
-			text: t$5("policySearch.noMatches"),
+		const empty = createElement$7("p", {
+			text: t$7("policySearch.noMatches"),
 			attrs: { role: "status" }
 		});
 		function filter() {
@@ -5886,12 +5886,12 @@
 				filter();
 			}
 		});
-		const content = createElement$5("div", {
+		const content = createElement$7("div", {
 			className: "gp__list-children",
 			children: [
-				createElement$5("div", {
+				createElement$7("div", {
 					className: "gpo-security-workbench__toolbar",
-					children: [!hideHeading && categoryPath ? createElement$5("h2", {
+					children: [!hideHeading && categoryPath ? createElement$7("h2", {
 						text: categoryPath,
 						attrs: {
 							"data-category-path": "",
@@ -5903,7 +5903,7 @@
 				empty
 			]
 		});
-		const root = createElement$5("div", {
+		const root = createElement$7("div", {
 			className: "gp__list-children-wrapper",
 			children: [content, helpBlock]
 		});
@@ -5927,40 +5927,34 @@
 		return root;
 	}
 	//#endregion
-	//#region src/components/templates/script-template.js
-	var create$5 = createElement$16;
-	var t$4 = t$10;
-	var nextHeaderOwnerId$1 = 1;
-	var GROUPS = ["classic", "powershell"];
-	var EVENTS = {
-		computer: ["startup", "shutdown"],
-		user: ["logon", "logoff"]
-	};
-	function st(key) {
-		return t$4("systemSettings." + key);
+	//#region src/components/templates/script/helpers.js
+	var t$6 = t$12;
+	var create$6 = createElement$18;
+	function st$1(key) {
+		return t$6("systemSettings." + key);
 	}
-	function eventLabel(event) {
-		return st({
+	function eventLabel$1(event) {
+		return st$1({
 			startup: "startupScripts",
 			shutdown: "shutdownScripts",
 			logon: "logonScript",
 			logoff: "logoffScript"
 		}[event]);
 	}
-	function nameCell(label, icon) {
-		return create$5("td", { children: [create$5("span", {
+	function nameCell$1(label, icon) {
+		return create$6("td", { children: [create$6("span", {
 			className: "gpo-catalog-name",
-			children: [create$5("span", {
+			children: [create$6("span", {
 				className: ["icon", icon],
 				attrs: { "aria-hidden": "true" }
-			}), create$5("span", { text: label })]
+			}), create$6("span", { text: label })]
 		})] });
 	}
-	function assetIcon(name) {
+	function assetIcon$1(name) {
 		return __export_scriptFile(/\.ps(?:1|m1|d1)$/i.test(name) ? "powershell" : "classic");
 	}
-	function button(label, action, disabled, extraClass) {
-		return create$5("button", {
+	function button$1(label, action, disabled, extraClass) {
+		return create$6("button", {
 			className: [
 				"button",
 				disabled ? null : "active",
@@ -5974,7 +5968,7 @@
 			events: { click: action }
 		});
 	}
-	function fileBase64(file) {
+	function fileBase64$1(file) {
 		return new Promise(function(resolve, reject) {
 			var reader = new FileReader();
 			reader.onerror = function() {
@@ -5989,15 +5983,15 @@
 			reader.readAsDataURL(file);
 		});
 	}
-	function saveDownloadedAsset(asset) {
-		if (!asset || typeof asset.name !== "string" || !asset.name || asset.name === "." || asset.name === ".." || asset.name.trim() !== asset.name || /[\\/\u0000]/.test(asset.name) || typeof asset.content_base64 !== "string" || !Number.isSafeInteger(asset.byte_size) || asset.byte_size < 0) throw new Error(st("invalidDownload"));
+	function saveDownloadedAsset$1(asset) {
+		if (!asset || typeof asset.name !== "string" || !asset.name || asset.name === "." || asset.name === ".." || asset.name.trim() !== asset.name || /[\\/\u0000]/.test(asset.name) || typeof asset.content_base64 !== "string" || !Number.isSafeInteger(asset.byte_size) || asset.byte_size < 0) throw new Error(st$1("invalidDownload"));
 		var binary;
 		try {
 			binary = atob(asset.content_base64);
 		} catch (_error) {
-			throw new Error(st("invalidDownload"));
+			throw new Error(st$1("invalidDownload"));
 		}
-		if (binary.length !== asset.byte_size) throw new Error(st("invalidDownload"));
+		if (binary.length !== asset.byte_size) throw new Error(st$1("invalidDownload"));
 		var bytes = new Uint8Array(binary.length);
 		for (var index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
 		var url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
@@ -6011,6 +6005,23 @@
 			URL.revokeObjectURL(url);
 		}, 0);
 	}
+	//#endregion
+	//#region src/components/templates/script-template.js
+	var create$5 = createElement$18;
+	var t$5 = t$12;
+	var nextHeaderOwnerId$1 = 1;
+	var st = st$1;
+	var eventLabel = eventLabel$1;
+	var button = button$1;
+	var nameCell = nameCell$1;
+	var assetIcon = assetIcon$1;
+	var fileBase64 = fileBase64$1;
+	var saveDownloadedAsset = saveDownloadedAsset$1;
+	var GROUPS = ["classic", "powershell"];
+	var EVENTS = {
+		computer: ["startup", "shutdown"],
+		user: ["logon", "logoff"]
+	};
 	function renderScriptEventEditor(options) {
 		var config = options || {};
 		var scope = config.item && config.item.scope === "user" ? "user" : "computer";
@@ -6466,7 +6477,7 @@
 						}),
 						create$5("div", {
 							className: "preference__modal-footer",
-							children: [button(t$4("header.cancel"), closePicker, false, "btn-cancel"), selectButton]
+							children: [button(t$5("header.cancel"), closePicker, false, "btn-cancel"), selectButton]
 						})
 					]
 				})]
@@ -6622,7 +6633,7 @@
 						}),
 						create$5("div", {
 							className: "preference__modal-footer",
-							children: [button(t$4("header.cancel"), requestCloseForm, false, "btn-cancel"), button(t$4("header.apply"), function() {
+							children: [button(t$5("header.cancel"), requestCloseForm, false, "btn-cancel"), button(t$5("header.apply"), function() {
 								submit();
 							}, false, "btn-ok")]
 						})
@@ -10353,7 +10364,7 @@
 	};
 	//#endregion
 	//#region src/components/templates/preference/targeting-typed-input.js
-	var create$4 = createElement$16;
+	var create$4 = createElement$18;
 	var nextInputId$1 = 1;
 	var TYPES = {
 		ipv4: {
@@ -10726,7 +10737,7 @@
 	//#endregion
 	//#region src/components/templates/preference/targeting-operand-editor.js
 	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
-	var create$3 = createElement$16;
+	var create$3 = createElement$18;
 	var nextInputId = 1;
 	var COMMON = [
 		"filter.bool",
@@ -11928,7 +11939,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/targeting-editor.js
-	var create$2 = createElement$16;
+	var create$2 = createElement$18;
 	function render$1(options) {
 		var pt = options.pt;
 		var readonly = Boolean(options.readonly);
@@ -12714,19 +12725,16 @@
 		return container;
 	}
 	//#endregion
-	//#region src/components/templates/preference/preferences-view-template.js
-	var createElement$4 = createElement$16;
-	var t$3 = t$10;
-	var nextHeaderOwnerId = 1;
-	var nextFieldControlId = 1;
-	var PREFERENCE_LAYOUTS = layouts_exports;
-	function pt(key) {
-		return t$3("preferences.editor." + key);
+	//#region src/components/templates/preference/view/common.js
+	var t$4 = t$12;
+	var PREFERENCE_LAYOUTS$2 = layouts_exports;
+	function pt$3(key) {
+		return t$4("preferences.editor." + key);
 	}
-	function validationMessage(code) {
-		if (code === "required") return pt("validationRequired");
-		if (code === "invalid_number") return pt("validationInvalidNumber");
-		if (code === "unsigned_byte_range") return pt("validationUnsignedByteRange");
+	function validationMessage$1(code) {
+		if (code === "required") return pt$3("validationRequired");
+		if (code === "invalid_number") return pt$3("validationInvalidNumber");
+		if (code === "unsigned_byte_range") return pt$3("validationUnsignedByteRange");
 		var targetingCodes = {
 			invalid_date: "validationDate",
 			invalid_time: "validationTime",
@@ -12738,39 +12746,39 @@
 			invalid_range: "validationRange",
 			invalid_value: "validationValue"
 		};
-		if (targetingCodes[code]) return pt(targetingCodes[code]);
-		return pt("validationFixErrors");
+		if (targetingCodes[code]) return pt$3(targetingCodes[code]);
+		return pt$3("validationFixErrors");
 	}
-	function listFrom(result, key) {
+	function listFrom$1(result, key) {
 		if (Array.isArray(result)) return result;
 		return result && Array.isArray(result[key]) ? result[key] : [];
 	}
-	function parentCandidateLabel(candidate) {
+	function parentCandidateLabel$1(candidate) {
 		var depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
 		var prefix = "";
 		for (var index = 0; index < depth; index += 1) prefix += "\xA0\xA0";
 		return prefix + String(candidate && candidate.label || "");
 	}
-	function scopeField(field, scope) {
+	function scopeField$1(field, scope) {
 		var result = clone$2(field);
 		if (!result || result.id !== "metadata.userContext") return result;
-		if (scope === "user") result.label = pt("userContext");
+		if (scope === "user") result.label = pt$3("userContext");
 		else {
 			result.hidden = true;
 			result.editable = false;
 		}
 		return result;
 	}
-	function actionLabel(value) {
+	function actionLabel$1(value) {
 		var key = {
 			create: "actionCreate",
 			replace: "actionReplace",
 			update: "actionUpdate",
 			delete: "actionDelete"
 		}[value];
-		return key ? pt(key) : value === null || value === void 0 ? "" : String(value);
+		return key ? pt$3(key) : value === null || value === void 0 ? "" : String(value);
 	}
-	function itemFieldValue(item, fieldId) {
+	function itemFieldValue$1(item, fieldId) {
 		if (!item || !fieldId) return "";
 		if (Array.isArray(item.fields)) {
 			for (var index = 0; index < item.fields.length; index++) if (item.fields[index] && item.fields[index].id === fieldId) return valuePayload(item.fields[index].value);
@@ -12785,12 +12793,16 @@
 		}
 		return "";
 	}
-	function tableColumns(kind) {
-		var layout = PREFERENCE_LAYOUTS[kind];
+	function tableColumns$1(kind) {
+		var layout = PREFERENCE_LAYOUTS$2[kind];
 		if (layout && Array.isArray(layout.columns) && layout.columns.length) return layout.columns;
 		return null;
 	}
-	function hiddenFieldControl(field) {
+	//#endregion
+	//#region src/components/templates/preference/view/field-control.js
+	var createElement$6 = createElement$18;
+	var pt$2 = pt$3;
+	function hiddenFieldControl$1(field) {
 		return {
 			id: field.id,
 			field,
@@ -12817,9 +12829,9 @@
 		var checkboxValueKind = null;
 		var checkboxControlId = null;
 		function checkboxControl(checked) {
-			var controlId = "gpo-preference-field-" + nextFieldControlId++;
+			var controlId = nextControlId$1();
 			checkboxControlId = controlId;
-			var checkbox = createElement$4("input", { attrs: {
+			var checkbox = createElement$6("input", { attrs: {
 				id: controlId,
 				type: "checkbox",
 				disabled: disabled ? "disabled" : null
@@ -12829,15 +12841,15 @@
 				optionalBooleanTouched = true;
 			});
 			inputElement = checkbox.getElement();
-			return createElement$4("span", {
+			return createElement$6("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement$4("label", { attrs: {
+				children: [checkbox, createElement$6("label", { attrs: {
 					"for": controlId,
 					"aria-label": field.label || field.id
 				} })]
 			});
 		}
-		if (controlKind.indexOf("generated_") === 0) input = createElement$4("div", {
+		if (controlKind.indexOf("generated_") === 0) input = createElement$6("div", {
 			className: "gpo-editor-field__generated",
 			text: value.value === null || value.value === void 0 ? "" : String(value.value)
 		});
@@ -12849,7 +12861,7 @@
 			checkboxValueKind = "optional_boolean_u8";
 			input = checkboxControl(value.value === 1);
 		} else if (value.kind === "action") {
-			input = createElement$4("select", {
+			input = createElement$6("select", {
 				attrs: { disabled: disabled ? "disabled" : null },
 				children: [
 					"create",
@@ -12857,7 +12869,7 @@
 					"update",
 					"delete"
 				].map(function(action) {
-					return createElement$4("option", {
+					return createElement$6("option", {
 						attrs: { value: action },
 						text: action
 					});
@@ -12865,10 +12877,10 @@
 			});
 			input.getElement().value = value.value;
 		} else if (value.kind === "filter_combine") {
-			input = createElement$4("select", {
+			input = createElement$6("select", {
 				attrs: { disabled: disabled ? "disabled" : null },
 				children: ["and", "or"].map(function(combine) {
-					return createElement$4("option", {
+					return createElement$6("option", {
 						attrs: { value: combine },
 						text: combine.toUpperCase()
 					});
@@ -12876,26 +12888,26 @@
 			});
 			input.getElement().value = value.value;
 		} else if (controlKind === "choice") {
-			input = createElement$4("select", {
+			input = createElement$6("select", {
 				attrs: { disabled: disabled ? "disabled" : null },
 				children: (Array.isArray(field.choices) ? field.choices : []).map(function(choice) {
-					return createElement$4("option", {
+					return createElement$6("option", {
 						attrs: { value: choice.key },
 						text: choice.label
 					});
 				})
 			});
 			input.getElement().value = value.value;
-		} else if (value.kind === "text_list" || textarea) input = createElement$4("textarea", {
+		} else if (value.kind === "text_list" || textarea) input = createElement$6("textarea", {
 			attrs: { disabled: disabled ? "disabled" : null },
 			text: Array.isArray(value.value) ? value.value.join("\n") : value.value === null || value.value === void 0 ? "" : String(value.value)
 		});
-		else if (value.kind === "optional_text") input = createElement$4("input", { attrs: {
+		else if (value.kind === "optional_text") input = createElement$6("input", { attrs: {
 			type: "text",
 			disabled: disabled ? "disabled" : null,
 			value: value.value === null ? "" : value.value
 		} });
-		else input = createElement$4("input", { attrs: {
+		else input = createElement$6("input", { attrs: {
 			type: value.kind === "integer" || value.kind === "unsigned_byte" || value.kind === "optional_unsigned_byte" ? "number" : "text",
 			min: value.kind.indexOf("unsigned") !== -1 ? 0 : null,
 			max: value.kind.indexOf("unsigned_byte") !== -1 ? 255 : null,
@@ -12904,7 +12916,7 @@
 			value: value.value === null || value.value === void 0 ? "" : value.value
 		} });
 		if (!inputElement) inputElement = input.getElement();
-		var errorElement = createElement$4("span", { className: "gpo-editor-field__error" });
+		var errorElement = createElement$6("span", { className: "gpo-editor-field__error" });
 		var dynamicDisabled = false;
 		function applyBaselineToInput() {
 			if (checkboxValueKind === "optional_boolean_u8") inputElement.checked = value.value === 1;
@@ -12956,7 +12968,7 @@
 			}
 		};
 	}
-	function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
+	function fieldControl$2(field, forceReadonly, materializeOptionalDefault, options) {
 		var opts = options || {};
 		var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
 		var wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
@@ -12965,7 +12977,7 @@
 		var builderInputType = builderIsInput ? String(builder.inputElement.getAttribute("type") || "").toLowerCase() : "";
 		var wrapText = builderIsInput && (builderInputType === "number" || Boolean(opts.wrapText) && builderInputType === "text");
 		var element;
-		if (wrapCheckbox) element = createElement$4("div", {
+		if (wrapCheckbox) element = createElement$6("div", {
 			className: [
 				"field",
 				"field__checkbox",
@@ -12974,29 +12986,29 @@
 			],
 			attrs: { "data-field-id": field.id },
 			children: [
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__label",
-					children: [createElement$4("label", {
+					children: [createElement$6("label", {
 						className: "gpo-editor-field__label",
 						attrs: { "for": builder.checkboxControlId },
-						children: [createElement$4("span", { text: field.label || field.id }), field.required ? createElement$4("span", {
+						children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 							className: "gpo-editor-field__required",
 							text: "*"
 						}) : null]
 					})]
 				}),
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__element",
 					children: [builder.input]
 				}),
-				builder.disabled ? createElement$4("span", {
+				builder.disabled ? createElement$6("span", {
 					className: "gpo-editor-field__hint",
-					text: pt("readonly")
+					text: pt$2("readonly")
 				}) : null,
 				builder.errorElement
 			]
 		});
-		else if (wrapText) element = createElement$4("div", {
+		else if (wrapText) element = createElement$6("div", {
 			className: [
 				"field",
 				"field__input",
@@ -13005,27 +13017,27 @@
 			],
 			attrs: { "data-field-id": field.id },
 			children: [
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__label",
-					children: [createElement$4("span", {
+					children: [createElement$6("span", {
 						className: "gpo-editor-field__label",
-						children: [createElement$4("span", { text: field.label || field.id }), field.required ? createElement$4("span", {
+						children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 							className: "gpo-editor-field__required",
 							text: "*"
 						}) : null]
 					})]
 				}),
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__element",
 					children: [builder.input, builder.errorElement]
 				}),
-				builder.disabled ? createElement$4("span", {
+				builder.disabled ? createElement$6("span", {
 					className: "gpo-editor-field__hint",
-					text: pt("readonly")
+					text: pt$2("readonly")
 				}) : null
 			]
 		});
-		else element = createElement$4("div", {
+		else element = createElement$6("div", {
 			className: [
 				"gpo-editor-field",
 				wrapSelect ? "field" : null,
@@ -13033,37 +13045,37 @@
 			],
 			attrs: { "data-field-id": field.id },
 			children: wrapSelect ? [
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__label",
-					children: [createElement$4("span", {
+					children: [createElement$6("span", {
 						className: "gpo-editor-field__label",
-						children: [createElement$4("span", { text: field.label || field.id }), field.required ? createElement$4("span", {
+						children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 							className: "gpo-editor-field__required",
 							text: "*"
 						}) : null]
 					})]
 				}),
-				createElement$4("div", {
+				createElement$6("div", {
 					className: "field__element",
 					children: [builder.input]
 				}),
-				builder.disabled ? createElement$4("span", {
+				builder.disabled ? createElement$6("span", {
 					className: "gpo-editor-field__hint",
-					text: pt("readonly")
+					text: pt$2("readonly")
 				}) : null,
 				builder.errorElement
 			] : [
-				createElement$4("span", {
+				createElement$6("span", {
 					className: "gpo-editor-field__label",
-					children: [createElement$4("span", { text: field.label || field.id }), field.required ? createElement$4("span", {
+					children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 						className: "gpo-editor-field__required",
 						text: "*"
 					}) : null]
 				}),
 				builder.input,
-				builder.disabled ? createElement$4("span", {
+				builder.disabled ? createElement$6("span", {
 					className: "gpo-editor-field__hint",
-					text: pt("readonly")
+					text: pt$2("readonly")
 				}) : null,
 				builder.errorElement
 			]
@@ -13096,19 +13108,19 @@
 			focus: builder.focus
 		};
 	}
-	function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
+	function mockupFieldControl$1(field, forceReadonly, materializeOptionalDefault, options) {
 		var opts = options || {};
 		var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
 		var checkboxLike = builder.value.kind === "boolean" || builder.value.kind === "optional_boolean" || builder.controlKind === "optional_boolean_u8";
 		var element;
-		if (checkboxLike) element = createElement$4("div", {
+		if (checkboxLike) element = createElement$6("div", {
 			className: [
 				"field",
 				"field__checkbox",
 				builder.disabled ? "field--readonly" : null
 			],
 			attrs: { "data-field-id": field.id },
-			children: [createElement$4("label", { children: [builder.input, createElement$4("span", {
+			children: [createElement$6("label", { children: [builder.input, createElement$6("span", {
 				className: "field__label-checkbox",
 				text: field.label || field.id
 			})] }), builder.errorElement]
@@ -13118,16 +13130,16 @@
 			if (opts.textarea) fieldClasses.push("field__description", "h-auto");
 			else if (builder.controlKind === "directory_path" || builder.controlKind === "file_path") fieldClasses.push("field__input--path");
 			else if (valueKindIsSelect(builder)) fieldClasses.push("select");
-			element = createElement$4("div", {
+			element = createElement$6("div", {
 				className: fieldClasses,
 				attrs: { "data-field-id": field.id },
-				children: [createElement$4("div", {
+				children: [createElement$6("div", {
 					className: "field__label",
-					children: [createElement$4("span", { text: field.label || field.id }), field.required ? createElement$4("span", {
+					children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 						className: "gpo-editor-field__required",
 						text: "*"
 					}) : null]
-				}), createElement$4("div", {
+				}), createElement$6("div", {
 					className: "field__element",
 					children: [builder.input, builder.errorElement]
 				})]
@@ -13164,8 +13176,178 @@
 	function valueKindIsSelect(builder) {
 		return builder.value.kind === "action" || builder.value.kind === "filter_combine" || builder.controlKind === "choice";
 	}
-	function dependencyRulesFor(kind) {
-		var layout = PREFERENCE_LAYOUTS[kind];
+	var nextFieldControlId = 1;
+	function nextControlId$1() {
+		return "gpo-preference-field-" + nextFieldControlId++;
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/field-tabs.js
+	var createElement$5 = createElement$18;
+	var pt$1 = pt$3;
+	var nextControlId = nextControlId$1;
+	var hiddenFieldControl = hiddenFieldControl$1;
+	var mockupFieldControl = mockupFieldControl$1;
+	var fieldControl$1 = fieldControl$2;
+	function buildPlaceholderCheckbox(entry) {
+		var label = entry && entry.label || (entry && entry.labelKey ? pt$1(entry.labelKey) : "");
+		var controlId = nextControlId();
+		return createElement$5("div", {
+			className: [
+				"field",
+				"field__checkbox",
+				"field--readonly"
+			],
+			children: [createElement$5("label", { children: [createElement$5("span", {
+				className: "gpo-editor-boolean",
+				children: [createElement$5("input", { attrs: {
+					id: controlId,
+					type: "checkbox",
+					disabled: "disabled"
+				} }), createElement$5("label", { attrs: {
+					"for": controlId,
+					"aria-label": label
+				} })]
+			}), createElement$5("span", {
+				className: "field__label-checkbox",
+				text: label
+			})] })]
+		});
+	}
+	function isMetadataField(field) {
+		return String(field && field.id || "").indexOf("metadata.") === 0;
+	}
+	function isGeneralTabField(field) {
+		return isMetadataField(field) || Boolean(field) && field.id === "properties.disabled";
+	}
+	function isBasicTabField(field) {
+		return !isGeneralTabField(field);
+	}
+	function orderedTabEntries(fields, layoutEntries, predicate) {
+		var layout = Array.isArray(layoutEntries) ? layoutEntries : [];
+		var belongs = typeof predicate === "function" ? predicate : function() {
+			return true;
+		};
+		var result = [];
+		var placed = {};
+		layout.forEach(function(entry) {
+			var item = clone$2(entry || {});
+			if (!item.field) {
+				if (item.line) result.push({ line: true });
+				if (item.placeholder) result.push(item);
+				return;
+			}
+			var field = fields.find(function(candidate) {
+				return candidate.id === item.field;
+			});
+			if (!field || !belongs(field)) return;
+			placed[item.field] = true;
+			result.push(item);
+		});
+		fields.forEach(function(field) {
+			if (placed[field.id] || !belongs(field)) return;
+			result.push({ field: field.id });
+		});
+		return result;
+	}
+	function buildFieldTabs$1(fields, options) {
+		var opts = options || {};
+		var layout = opts.layout || null;
+		var fieldsById = /* @__PURE__ */ new Map();
+		fields.forEach(function(field) {
+			fieldsById.set(field.id, field);
+		});
+		var basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
+		var generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
+		var fieldOptions = {};
+		basicEntries.concat(generalEntries).forEach(function(entry) {
+			if (entry && entry.field && !fieldOptions[entry.field]) fieldOptions[entry.field] = entry;
+		});
+		fields.forEach(function(field) {
+			var control;
+			if (field.hidden) control = hiddenFieldControl(field);
+			else if (layout) control = mockupFieldControl(field, opts.readonly, opts.creating, fieldOptions[field.id] || {});
+			else control = fieldControl$1(field, opts.readonly, opts.creating);
+			opts.controls.push(control);
+			if (!opts.controlsById.has(field.id)) opts.controlsById.set(field.id, []);
+			opts.controlsById.get(field.id).push(control);
+		});
+		function renderable(entries) {
+			return entries.some(function(entry) {
+				if (entry.placeholder) return true;
+				if (!entry.field) return false;
+				var field = fieldsById.get(entry.field);
+				return Boolean(field && !field.hidden);
+			});
+		}
+		var basicHasFields = renderable(basicEntries);
+		var generalHasFields = renderable(generalEntries);
+		if (!basicHasFields && !generalHasFields) return null;
+		function buildContent(entries) {
+			var content = createElement$5("div", { className: "tab-content" });
+			entries.forEach(function(entry) {
+				if (entry.line) {
+					content.append(createElement$5("div", { className: "field__line" }));
+					return;
+				}
+				if (entry.placeholder) {
+					content.append(buildPlaceholderCheckbox(entry));
+					return;
+				}
+				if (!entry.field) return;
+				(opts.controlsById.get(entry.field) || []).forEach(function(control) {
+					if (control.element) content.append(control.element);
+				});
+			});
+			return content;
+		}
+		var basicContent = buildContent(basicEntries);
+		var generalContent = buildContent(generalEntries);
+		basicContent.getElement().id = "tab-basic";
+		generalContent.getElement().id = "tab-general";
+		var activeTab = basicHasFields ? "tab-basic" : "tab-general";
+		if (activeTab === "tab-basic") basicContent.getElement().classList.add("active");
+		else generalContent.getElement().classList.add("active");
+		var tabs = createElement$5("div", { className: "preference__modal-tabs" });
+		var buttons = createElement$5("div", { className: "tab-buttons" });
+		[{
+			id: "tab-basic",
+			enabled: basicHasFields,
+			label: pt$1("tabBasic")
+		}, {
+			id: "tab-general",
+			enabled: generalHasFields,
+			label: pt$1("tabGeneral")
+		}].forEach(function(spec) {
+			if (!spec.enabled) return;
+			buttons.append(createElement$5("div", {
+				className: ["preference__tab-button", activeTab === spec.id ? "active" : null],
+				attrs: { "data-tab": spec.id },
+				text: spec.label,
+				events: { click: function() {
+					activateTab(spec.id);
+				} }
+			}));
+		});
+		tabs.append(buttons);
+		tabs.append(basicContent);
+		tabs.append(generalContent);
+		var filtersTab = opts.layout ? opts.layout.filters === "basic" ? "tab-basic" : opts.layout.filters === "general" ? "tab-general" : null : null;
+		tabs.filtersSlot = filtersTab === "tab-basic" && basicHasFields ? basicContent : filtersTab === "tab-general" && generalHasFields ? generalContent : null;
+		function activateTab(id) {
+			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".preference__tab-button"), function(button) {
+				button.classList.toggle("active", button.getAttribute("data-tab") === id);
+			});
+			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".tab-content"), function(content) {
+				content.classList.toggle("active", content.id === id);
+			});
+		}
+		return tabs;
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/field-dependencies.js
+	var PREFERENCE_LAYOUTS$1 = layouts_exports;
+	function dependencyRulesFor$1(kind) {
+		var layout = PREFERENCE_LAYOUTS$1[kind];
 		return layout && Array.isArray(layout.dependencies) ? layout.dependencies : [];
 	}
 	function conditionTextValue(raw) {
@@ -13210,7 +13392,7 @@
 			return conditionHolds(condition, readSource);
 		});
 	}
-	function attachFieldDependencies(formElement, controlsById, rules) {
+	function attachFieldDependencies$1(formElement, controlsById, rules) {
 		var disabledIds = /* @__PURE__ */ new Set();
 		function sourceValue(fieldId) {
 			var payload = null;
@@ -13252,161 +13434,24 @@
 			disabledIds
 		};
 	}
-	function buildPlaceholderCheckbox(entry) {
-		var label = entry && entry.label || (entry && entry.labelKey ? pt(entry.labelKey) : "");
-		var controlId = "gpo-preference-field-" + nextFieldControlId++;
-		return createElement$4("div", {
-			className: [
-				"field",
-				"field__checkbox",
-				"field--readonly"
-			],
-			children: [createElement$4("label", { children: [createElement$4("span", {
-				className: "gpo-editor-boolean",
-				children: [createElement$4("input", { attrs: {
-					id: controlId,
-					type: "checkbox",
-					disabled: "disabled"
-				} }), createElement$4("label", { attrs: {
-					"for": controlId,
-					"aria-label": label
-				} })]
-			}), createElement$4("span", {
-				className: "field__label-checkbox",
-				text: label
-			})] })]
-		});
-	}
-	function isMetadataField(field) {
-		return String(field && field.id || "").indexOf("metadata.") === 0;
-	}
-	function isGeneralTabField(field) {
-		return isMetadataField(field) || Boolean(field) && field.id === "properties.disabled";
-	}
-	function isBasicTabField(field) {
-		return !isGeneralTabField(field);
-	}
-	function orderedTabEntries(fields, layoutEntries, predicate) {
-		var layout = Array.isArray(layoutEntries) ? layoutEntries : [];
-		var belongs = typeof predicate === "function" ? predicate : function() {
-			return true;
-		};
-		var result = [];
-		var placed = {};
-		layout.forEach(function(entry) {
-			var item = clone$2(entry || {});
-			if (!item.field) {
-				if (item.line) result.push({ line: true });
-				if (item.placeholder) result.push(item);
-				return;
-			}
-			var field = fields.find(function(candidate) {
-				return candidate.id === item.field;
-			});
-			if (!field || !belongs(field)) return;
-			placed[item.field] = true;
-			result.push(item);
-		});
-		fields.forEach(function(field) {
-			if (placed[field.id] || !belongs(field)) return;
-			result.push({ field: field.id });
-		});
-		return result;
-	}
-	function buildFieldTabs(fields, options) {
-		var opts = options || {};
-		var layout = opts.layout || null;
-		var fieldsById = /* @__PURE__ */ new Map();
-		fields.forEach(function(field) {
-			fieldsById.set(field.id, field);
-		});
-		var basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
-		var generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
-		var fieldOptions = {};
-		basicEntries.concat(generalEntries).forEach(function(entry) {
-			if (entry && entry.field && !fieldOptions[entry.field]) fieldOptions[entry.field] = entry;
-		});
-		fields.forEach(function(field) {
-			var control;
-			if (field.hidden) control = hiddenFieldControl(field);
-			else if (layout) control = mockupFieldControl(field, opts.readonly, opts.creating, fieldOptions[field.id] || {});
-			else control = fieldControl(field, opts.readonly, opts.creating);
-			opts.controls.push(control);
-			if (!opts.controlsById.has(field.id)) opts.controlsById.set(field.id, []);
-			opts.controlsById.get(field.id).push(control);
-		});
-		function renderable(entries) {
-			return entries.some(function(entry) {
-				if (entry.placeholder) return true;
-				if (!entry.field) return false;
-				var field = fieldsById.get(entry.field);
-				return Boolean(field && !field.hidden);
-			});
-		}
-		var basicHasFields = renderable(basicEntries);
-		var generalHasFields = renderable(generalEntries);
-		if (!basicHasFields && !generalHasFields) return null;
-		function buildContent(entries) {
-			var content = createElement$4("div", { className: "tab-content" });
-			entries.forEach(function(entry) {
-				if (entry.line) {
-					content.append(createElement$4("div", { className: "field__line" }));
-					return;
-				}
-				if (entry.placeholder) {
-					content.append(buildPlaceholderCheckbox(entry));
-					return;
-				}
-				if (!entry.field) return;
-				(opts.controlsById.get(entry.field) || []).forEach(function(control) {
-					if (control.element) content.append(control.element);
-				});
-			});
-			return content;
-		}
-		var basicContent = buildContent(basicEntries);
-		var generalContent = buildContent(generalEntries);
-		basicContent.getElement().id = "tab-basic";
-		generalContent.getElement().id = "tab-general";
-		var activeTab = basicHasFields ? "tab-basic" : "tab-general";
-		if (activeTab === "tab-basic") basicContent.getElement().classList.add("active");
-		else generalContent.getElement().classList.add("active");
-		var tabs = createElement$4("div", { className: "preference__modal-tabs" });
-		var buttons = createElement$4("div", { className: "tab-buttons" });
-		[{
-			id: "tab-basic",
-			enabled: basicHasFields,
-			label: pt("tabBasic")
-		}, {
-			id: "tab-general",
-			enabled: generalHasFields,
-			label: pt("tabGeneral")
-		}].forEach(function(spec) {
-			if (!spec.enabled) return;
-			buttons.append(createElement$4("div", {
-				className: ["preference__tab-button", activeTab === spec.id ? "active" : null],
-				attrs: { "data-tab": spec.id },
-				text: spec.label,
-				events: { click: function() {
-					activateTab(spec.id);
-				} }
-			}));
-		});
-		tabs.append(buttons);
-		tabs.append(basicContent);
-		tabs.append(generalContent);
-		var filtersTab = opts.layout ? opts.layout.filters === "basic" ? "tab-basic" : opts.layout.filters === "general" ? "tab-general" : null : null;
-		tabs.filtersSlot = filtersTab === "tab-basic" && basicHasFields ? basicContent : filtersTab === "tab-general" && generalHasFields ? generalContent : null;
-		function activateTab(id) {
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".preference__tab-button"), function(button) {
-				button.classList.toggle("active", button.getAttribute("data-tab") === id);
-			});
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".tab-content"), function(content) {
-				content.classList.toggle("active", content.id === id);
-			});
-		}
-		return tabs;
-	}
+	//#endregion
+	//#region src/components/templates/preference/preferences-view-template.js
+	var createElement$4 = createElement$18;
+	var t$3 = t$12;
+	var nextHeaderOwnerId = 1;
+	var PREFERENCE_LAYOUTS = layouts_exports;
+	var pt = pt$3;
+	var tableColumns = tableColumns$1;
+	var actionLabel = actionLabel$1;
+	var itemFieldValue = itemFieldValue$1;
+	var scopeField = scopeField$1;
+	var listFrom = listFrom$1;
+	var validationMessage = validationMessage$1;
+	var parentCandidateLabel = parentCandidateLabel$1;
+	var fieldControl = fieldControl$2;
+	var buildFieldTabs = buildFieldTabs$1;
+	var dependencyRulesFor = dependencyRulesFor$1;
+	var attachFieldDependencies = attachFieldDependencies$1;
 	async function renderPreferencesTemplate$1(options) {
 		var config = options || {};
 		var item = config.item || {};
@@ -14650,9 +14695,9 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/value-editor.js
-	var createElement$3 = createElement$16;
+	var createElement$3 = createElement$18;
 	function tr$3(key, fallback) {
-		var value = translations_exports && t$10("security." + key);
+		var value = translations_exports && t$12("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function clone$1(value) {
@@ -15274,7 +15319,7 @@
 		var controls = headerElement && headerElement.querySelector(".gp__control");
 		var local = !controls;
 		if (local) {
-			var wrapper = createElement$16("div", { className: "gp__control" });
+			var wrapper = createElement$18("div", { className: "gp__control" });
 			fallbackHost.append(wrapper);
 			controls = wrapper.getElement();
 		}
@@ -15289,7 +15334,7 @@
 		].forEach(function(action) {
 			var button = controls.querySelector(".preferences__btn-" + action);
 			if (!button) {
-				var element = createElement$16("button", {
+				var element = createElement$18("button", {
 					className: ["button", "preferences__btn-" + action],
 					attrs: { type: "button" }
 				});
@@ -15303,7 +15348,7 @@
 				active: button.classList.contains("active")
 			};
 			var handler = handlers[action];
-			button.textContent = t$10(action === "create" ? "security.addItem" : action === "delete" ? "security.remove" : "header.edit");
+			button.textContent = t$12(action === "create" ? "security.addItem" : action === "delete" ? "security.remove" : "header.edit");
 			button.style.display = handler ? "" : "none";
 			function click(event) {
 				if (!button.disabled && handler) handler(event);
@@ -15353,9 +15398,9 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/workbench.js
-	var create$1 = createElement$16;
+	var create$1 = createElement$18;
 	function tr$2(key, fallback) {
-		var text = t$10("security." + key);
+		var text = t$12("security." + key);
 		return text && text !== "security." + key ? text : fallback;
 	}
 	function typedSummary(definition, state) {
@@ -15828,9 +15873,9 @@
 	}
 	//#endregion
 	//#region src/components/templates/security-template.js
-	var createElement$2 = createElement$16;
+	var createElement$2 = createElement$18;
 	function tr$1(key, fallback) {
-		var translated = t$10(key);
+		var translated = t$12(key);
 		return translated && translated !== key ? translated : fallback;
 	}
 	function stateFor(policy, element) {
@@ -16450,7 +16495,7 @@
 	//#endregion
 	//#region src/components/templates/all-policies/model.js
 	function text(key, fallback) {
-		var value = translations_exports && t$10(key);
+		var value = translations_exports && t$12(key);
 		return value && value !== key ? value : fallback;
 	}
 	function language() {
@@ -16640,8 +16685,8 @@
 	}
 	//#endregion
 	//#region src/components/templates/advanced-audit-template.js
-	var createElement$1 = createElement$16;
-	var t$2 = t$10;
+	var createElement$1 = createElement$18;
+	var t$2 = t$12;
 	function tr(key, fallback) {
 		var value = t$2(key);
 		return value && value !== key ? value : fallback;
@@ -17151,8 +17196,8 @@
 	}
 	//#endregion
 	//#region src/components/templates/all-policies-template.js
-	var create = createElement$16;
-	var t$1 = t$10;
+	var create = createElement$18;
+	var t$1 = t$12;
 	var PAGE_SIZE = 100;
 	function format(key, values) {
 		var result = t$1("policySearch." + key);
@@ -17585,8 +17630,8 @@
 	var setTreeItemActive = setTreeItemActive$1;
 	var setFolderOpenedState = setFolderOpenedState$1;
 	var ensureLazyChildren = ensureLazyChildren$1;
-	var createElement = createElement$16;
-	var t = t$10;
+	var createElement = createElement$18;
+	var t = t$12;
 	function createTreeViewState() {
 		return {
 			selectedItem: null,
