@@ -87,3 +87,23 @@ def test_oddjob_config_exposes_expected_gpo_helpers():
             "argument_passing_method": "cmdline",
         },
     }
+
+
+def test_docs_state_the_admix_range_required_by_the_spec():
+    spec = (ROOT / "ipa-gpo-install.spec").read_text(encoding="utf-8")
+    lower = re.search(r"admix >= (\d+)\.(\d+)\.\d+", spec)
+    upper = re.search(r"admix < (\d+)\.(\d+)\.\d+", spec)
+    assert lower and upper
+    series = f"{lower.group(1)}.{lower.group(2)}.x"
+    bound = lower.group(0).split(">= ")[1]
+    docs = [
+        "README.md",
+        "README.ru.md",
+        "doc/ipa-gpo-install.8",
+        "doc/ru/ipa-gpo-install.8",
+    ]
+
+    for name in docs:
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert series in text, name
+        assert bound in text, name

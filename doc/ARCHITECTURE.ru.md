@@ -72,21 +72,21 @@ CLI-утилита (`/usr/bin/ipa-gpo-install`). Запускается на к�
 Три модуля в `/usr/lib64/python3/site-packages/ipaserver/plugins/`.
 Работают в процессе Apache/WSGI под пользователем `ipaapi`.
 
-**gpo.py** (~2900 строк) — CRUD GPO + редактор политик:
+**gpo.py** (~3900 строк) — CRUD GPO + редактор политик:
 - `gpo_add` / `gpo_del` / `gpo_show` / `gpo_find` / `gpo_mod`
-- `gpo_editor_*` (~20 команд) — управление ADMX-политиками,
+- `gpo_editor_*` (~30 команд) — управление ADMX-политиками,
   preferences, скриптами через libadmix
 - `_call_dbus_method()` — мост к oddjob для операций с SYSVOL
 - `_load_admix()` — загрузка Rust-биндинга libadmix
 
-**chain.py** (~1000 строк) — цепочки политик:
+**chain.py** (~1200 строк) — цепочки политик:
 - `chain_add` / `chain_del` / `chain_show` / `chain_find`
 - `chain_enable` / `chain_disable` — управление активностью
 - `chain_add_gpo` / `chain_remove_gpo` — привязка GPO к цепочке
 - `chain_resolve_for_user` / `chain_resolve_for_host` — определение
   применимых политик для клиента (вызывается gpupdate)
 
-**gpmaster.py** (~500 строк) — синглтон конфигурации:
+**gpmaster.py** (~600 строк) — синглтон конфигурации:
 - `gpmaster_show` — список активных цепочек (ipaGpoChainList)
 - `gpmaster_mod` — add/remove/move цепочек
 - `gpmaster_show_pdc` — PDC-эмулятор
@@ -120,7 +120,7 @@ JavaScript SPA в `/usr/share/ipa/ui/js/plugins/chain/`. Загружается
 как плагин FreeIPA Web UI.
 
 - `app.js` — главный модуль, роутинг, навигация по дереву
-- `API.js` — JSON-RPC клиент (~20 методов к gpo_editor_*)
+- `API.js` — JSON-RPC клиент (~29 методов к gpo_editor_*)
 - `preferences-view-template.js` — редактор preferences
 - `admx-template.js` — рендеринг ADMX-форм
 - `tree-view-list.js` / `tree-view-list-data.js` — дерево навигации

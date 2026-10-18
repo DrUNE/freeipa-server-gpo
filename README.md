@@ -178,8 +178,9 @@ This approach provides predictable and controlled policy inheritance with flexib
 ### Requirements
 
 - FreeIPA server
-- `python3-module-admix` 0.1.x (at least 0.1.0 and below 0.2.0)
+- `python3-module-admix` 0.3.x (at least 0.3.0 and below 0.4.0)
 - Administrative Templates provided by `admx-basealt`
+- `sdmx-basealt` (at least 1.0.0) and `sdmx-schemas` (at least 1.0.0)
 - Administrator rights
 - Valid Kerberos ticket
 
@@ -346,6 +347,7 @@ The extension includes a full-featured web interface integrated into the FreeIPA
 - **Priority management**: changing chain and GPO order
 - **GPO object management**: creation, editing, deletion with automatic file structure processing
 - **Group linking**: assigning chains to user and computer groups
+- **Policy editor (GPUI)**: opened from the GPO page; edits administrative templates (ADMX), preferences, scripts, security settings and advanced audit. It talks to the server only through typed `gpo_editor_*` RPC calls and never sees SYSVOL paths
 
 ### Integration
 
