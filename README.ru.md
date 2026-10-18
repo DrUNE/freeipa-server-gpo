@@ -4,6 +4,28 @@
 
 **ipa-gpo-install** — это инструмент для интеграции функций групповых политик в FreeIPA. Пакет расширяет схему LDAP необходимыми объектами и предоставляет CLI и WEB интефрейсы для управления групповыми политиками.
 
+## Документация
+
+Вся документация есть на русском и английском языках и находится в каталоге [doc/](./doc/README.ru.md) (оглавление: [doc/README.ru.md](./doc/README.ru.md), [English](./doc/README.md)):
+
+- [Архитектура](./doc/ARCHITECTURE.ru.md) ([English](./doc/ARCHITECTURE.md)) — серверные плагины, установщик, `libadmix`, схема LDAP, SYSVOL, веб-редактор
+- [Окружение разработчика](./doc/DEV-SETUP.ru.md) ([English](./doc/DEV-SETUP.md)) — dev-контейнер podman с живым FreeIPA, инструменты фронтенда, работа в VS Code и vim
+- [CI](./doc/CI.ru.md) ([English](./doc/CI.md)) — сборка, интеграционные тесты и публикация RPM
+- [Фронтенд](./frontend/README.ru.md) ([English](./frontend/README.md)) — исходники веб-редактора, тесты и стенд
+- [Планы](./doc/plans/README.ru.md) ([English](./doc/plans/README.md)) — предложения по улучшению опыта разработки фронтенда и по миграции в freeipa-webui
+
+## Разработка
+
+В репозитории есть dev-контейнер (`.devcontainer/`) с настоящим сервером FreeIPA, в который рабочая копия смонтирована поверх установленных плагинов, поэтому правки применяются сразу. Основные команды:
+
+    $ sudo .devcontainer/host-setup.sh       # один раз на машине
+    $ make test-python                        # Python-тесты (в контейнере, где есть библиотеки FreeIPA)
+    $ make ui-dev-install && make ui-dev      # веб-редактор на тестовых данных, FreeIPA не нужен
+    $ make test-ui                            # тесты фронтенда на моках
+    $ make test-ui-ipa                        # тесты фронтенда на живом dev-контейнере
+
+Подробности: [doc/DEV-SETUP.ru.md](./doc/DEV-SETUP.ru.md).
+
 ## Как это работает
 
 ### Концепция групповых политик
@@ -73,17 +95,17 @@ graph TD
     classDef gpcClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
     classDef resultClass fill:#e8f5e8,stroke:#2e7d32,stroke-width:3px
 
-    subgraph MasterLayer ["🏛️ MASTER LAYER"]
+    subgraph MasterLayer ["🏛️ УРОВЕНЬ МАСТЕРА"]
         Master["Group Policy Master<br/>ipaGpoChainList:<br/>1. dev-chain<br/>2. office-chain"]
     end
 
-    subgraph ChainLayer ["🔗 CHAIN LAYER"]
+    subgraph ChainLayer ["🔗 УРОВЕНЬ ЦЕПОЧЕК"]
         direction LR
         ChainDev["dev-chain<br/>ipaGpoUserGroup: developers<br/>ipaGpoComputerGroup: dev-workstations<br/>ipaGpoLink:<br/>1. policy-1<br/>2. policy-2"]
         ChainOffice["office-chain<br/>ipaGpoUserGroup: office-users<br/>ipaGpoComputerGroup: office-computers<br/>ipaGpoLink:<br/>1. policy-3<br/>2. policy-4"]
     end
 
-    subgraph GPCLayer ["📋 GPC LAYER"]
+    subgraph GPCLayer ["📋 УРОВЕНЬ ПОЛИТИК (GPC)"]
         direction LR
         GPC1["policy-1<br/>{GUID-1}"]
         GPC2["policy-2<br/>{GUID-2}"]
@@ -91,7 +113,7 @@ graph TD
         GPC4["policy-4<br/>{GUID-4}"]
     end
 
-    subgraph UserSide ["👤 User/Computer"]
+    subgraph UserSide ["👤 Пользователь/Компьютер"]
         User["Пользователь: john<br/>Группы:<br/>• developers<br/>• office-users"]
         Computer["Компьютер: ws001<br/>Группы:<br/>• dev-workstations<br/>• office-computers"]
     end
@@ -170,12 +192,12 @@ policy-1 → policy-2 → policy-3 → policy-4
 1. **Сначала все политики из dev-chain** - потому что эта цепочка идет первой в `ipaGpoChainList` мастера
 2. **Затем все политики из office-chain** - потому что эта цепочка идет второй в `ipaGpoChainList` мастера
 3. **Внутри каждой цепочки** политики находятся в порядке их следования в `ipaGpoLink`
-4. **При конфликте настроек** приоритетнее последняя политика (в данном случае из policy-1)
+4. **При конфликте настроек** приоритетнее политика с более высоким приоритетом, то есть расположенная выше в списке (в данном случае policy-1; `ipa chain-mod --moveup-gpc` повышает приоритет политики)
 
 Такой подход обеспечивает предсказуемое и контролируемое наследование политик с возможностью гибкого управления приоритетами на двух уровнях: уровне цепочек и уровне политик внутри цепочки.
 
 
-# Установка
+## Установка
 
 ### Требования
 
@@ -185,6 +207,8 @@ policy-1 → policy-2 → policy-3 → policy-4
 - `sdmx-basealt` (не ниже 1.0.0) и `sdmx-schemas` (не ниже 1.0.0)
 - Права администратора
 - Действующий Kerberos-билет
+
+RPM-пакет также зависит от `freeipa-server-core`, `freeipa-server-trust-ad`, `samba-common-tools` и `acl`.
 
 ## Установка RPM пакета
     # apt-get install freeipa-server-gpo
@@ -206,12 +230,18 @@ ipa-gpo-install [OPTIONS]
 
 ### Что делает установщик
 
-1. **Расширение схемы LDAP** — добавляет новые классы объектов для групповых политик
-2. **Создание структуры SYSVOL** — создает каталоги для хранения файлов политик
-3. **Настройка Samba** — создает общий ресурс SYSVOL
+1. **Проверка установленных файлов** — убеждается, что файлы обновления групповых политик на месте
+2. **Установка AD Trust** — только если он ещё не включён
+3. **Создание каталога и общего ресурса SYSVOL** — каталоги для файлов политик и ресурс Samba (только если их нет)
 4. **Подготовка веб-редактора** — выдаёт сервисному пользователю FreeIPA
    `ipaapi` ограниченный доступ к содержимому GPO и создаёт приватный каталог
    состояния публикации
+5. **Активация плагинов** — проверяет, что установлены Python-плагины, файлы UI, схема, файлы обновлений и обработчики D-Bus
+6. **Перезапуск oddjob** и, если схема LDAP или инфраструктура неполны,
+   **запуск `ipa-server-upgrade`** — расширяет схему LDAP классами объектов групповых политик
+7. **Проверка** схемы и инфраструктуры LDAP, затем перезагрузка Apache, чтобы он подхватил новые команды
+
+Опция `--check-only` показывает, что было бы сделано, без изменений.
 
 
 ## Техническая реализация
@@ -227,6 +257,18 @@ ipa-gpo-install [OPTIONS]
 - `ipaGpoMachineExtensionNames` — опубликованные расширения машинной части политики
 - `ipaGpoUserExtensionNames` — опубликованные расширения пользовательской части политики
 
+**ipaGpoChain**
+- `cn` — имя цепочки
+- `description` — описание цепочки
+- `ipaGpoUserGroup` — DN группы пользователей
+- `ipaGpoComputerGroup` — DN группы компьютеров
+- `ipaGpoLink` — упорядоченный список DN политик
+
+**ipaGpoMaster**
+- `cn` — имя мастер-объекта (`grouppolicymaster`)
+- `ipaGpoPdcEmulator` — имя сервера PDC эмулятора
+- `ipaGpoChainList` — упорядоченный список цепочек политик
+
 ### Архитектура веб-редактора
 
 Аутентифицированный серверный плагин FreeIPA напрямую использует Python binding
@@ -235,17 +277,8 @@ ipa-gpo-install [OPTIONS]
 файлов, после чего плагин условно публикует packed version и атрибуты расширений
 в LDAP и подтверждает публикацию.
 
-**ipaGpoChain**
-- `cn` — имя цепочки
-- `displayName` — отображаемое имя цепочки
-- `ipaGpoUserGroup` — DN группы пользователей
-- `ipaGpoComputerGroup` — DN группы компьютеров
-- `ipaGpoLink` — упорядоченный список DN политик
-
-**ipaGpoMaster**
-- `cn` — имя мастер-объекта
-- `ipaGpoPdcEmulator` — DN PDC эмулятора
-- `ipaGpoChainList` — упорядоченный список цепочек политик
+Фронтенд редактора собирается из `frontend/` в один бандл
+`plugin/ui/grouppolicy/js/app.js` (см. [frontend/README.md](./frontend/README.md)).
 
 ## Команды управления
 
@@ -276,7 +309,7 @@ ipa-gpo-install [OPTIONS]
 #### Создание цепочки
 
     # ipa chain-add it-chain \
-  --display-name="IT Department Chain" \
+  --desc="IT Department Chain" \
   --user-group=it-users \
   --computer-group=it-workstations \
   --gp-link=policy1
@@ -290,9 +323,10 @@ ipa-gpo-install [OPTIONS]
 **Базовые изменения:**
 
     # ipa chain-mod it-chain \
-  --display-name="New Display Name" \
+  --desc="New description" \
   --user-group=new-user-group \
   --computer-group=new-computer-group
+    # ipa chain-mod it-chain --rename=new-chain-name
 
 **Добавление групп:**
 
@@ -312,6 +346,10 @@ ipa-gpo-install [OPTIONS]
 
 ### Удаление политик
     # ipa chain-remove-gpo it-chain --gpos security-policy
+
+### Включение и отключение цепочки
+    # ipa chain-disable it-chain
+    # ipa chain-enable it-chain
 
 ### Удаление цепочки
     # ipa chain-del it-chain
@@ -335,6 +373,8 @@ ipa-gpo-install [OPTIONS]
 #### Просмотр мастера групповых политик
 
     # ipa gpmaster-show
+
+Мастер-объект называется `grouppolicymaster`; это имя подставляется вместо `master-name` ниже.
 
 #### Добавление цепочки в мастер
 
@@ -392,7 +432,7 @@ ipa-gpo-install [OPTIONS]
 ## Права доступа
 
 ### Роли и привилегии
-Система создает специальную роль **Group Policy Administrators** с правами:
+Система создаёт роль **Group Policy Administrators** (она включает одноимённую привилегию) с правами:
 - Чтение всех объектов групповых политик
 - Создание, изменение и удаление политик
 - Управление цепочками политик

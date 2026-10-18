@@ -1,0 +1,97 @@
+# Фронтенд (редактор GPUI)
+
+[English](./README.md) | **Русский**
+
+Исходники в виде ES-модулей лежат в `src/` и собираются **Vite** в один закоммиченный бандл:
+`../plugin/ui/grouppolicy/js/app.js` (UMD; под RequireJS FreeIPA регистрируется как AMD-модуль и
+зависит от его `freeipa/ipa` и `freeipa/rpc`). RPM устанавливает закоммиченный бандл, поэтому Node для сборки
+пакета не нужен. `chain.js`, `gpo.js`, `css/` и `img/` по-прежнему лежат в `../plugin/ui/grouppolicy/`;
+`gpo.js` и `chain.js` берут `translations` и `editorDialog` из бандла (`js/app`).
+
+Весь код в `frontend/` использует `import`/`export` (без CommonJS и без `.cjs`). Node управляется через fnm: `eval "$(fnm env)"` (или `fnm use`), Node ≥ 20.
+
+## Команды (из корня репозитория)
+
+| Команда | Назначение |
+|---|---|
+| `make ui-dev-install` | `npm install` в `frontend/` |
+| `make ui-dev` | Стенд Vite на http://127.0.0.1:8765/ipa/ui/ (`?gpo=Имя&lang=ru`), FreeIPA не нужен |
+| `make ui-build` | Пересобрать закоммиченный бандл (`npm run build`) |
+| `make ui-build-check` | Завершается ошибкой, если закоммиченный бандл отличается от свежей сборки |
+| `make ui-lint` | ESLint (`eslint.config.mjs`) |
+| `make ui-format` / `make ui-format-check` | Prettier (`.prettierrc.json`: 4 пробела, одинарные кавычки, ширина 120) форматирует / проверяет `src`, `dev`, `scripts`, `tests` и конфигурационные файлы; `*.md`, `*.html`, lock-файл и сгенерированный бандл не затрагиваются |
+| `npm run typecheck` (в `frontend/`) | `tsc --noEmit` по всему `src/` (JSDoc, `checkJs`, нестрогий режим). `types/globals.d.ts` описывает динамические члены редактора открытыми записями; прежние заглушки `@ts-expect-error` заменены точными аннотациями |
+
+Порядок работы: правка `src/`, проверка в стенде (перезагружается при сохранении), `make test-ui`, `make ui-build`,
+коммит `src/` вместе с пересобранным `js/app.js`.
+
+## Стенд (`dev/`)
+
+Vite раздаёт `src/` напрямую. `freeipa/ipa` и `freeipa/rpc` разрешаются в ES-шимы из `dev/shims/`;
+`vite.config.mjs` отвечает на `POST /ipa/session/json` из mock-бэкенда `dev/backend.mjs` и отдаёт `css/` и `img/` плагина
+по адресу `/ipa/ui/js/plugins/chain/`. Подробности — в `dev/README.ru.md`. `chain.js` и `gpo.js` в стенде не работают
+(им нужны собственные модули FreeIPA); проверяйте их на живом сервере (`.devcontainer/`).
+
+## Тесты
+
+Запускает тесты **Vitest** (`vitest.config.mjs`, три проекта: `unit`, `integration`, `e2e`). Две npm-задачи (обе доступны как цели make):
+
+| Задача | Make | Что запускает |
+|---|---|---|
+| `npm test` | `make test-ui` | `tests/unit` и `tests/integration` на моках; FreeIPA не нужен |
+| `npm run test:watch` | | юнит-тесты в режиме наблюдения |
+| `npm test -- --coverage` | | добавляет V8-покрытие `src/` (отчёт в `coverage/`); используется в CI |
+| `npm run test:ipa` | `make test-ui-ipa` | `tests/e2e` на настоящем сервере FreeIPA в dev-контейнере podman, а также тесты, которым нужно ПО серверной стороны FreeIPA (см. ниже) |
+
+Структура `tests/` (всё в `frontend/` — ES-модули с `import`; Node-овский `require` не используется. Оставшиеся в браузерных тестах вызовы `require(...)` — это RequireJS внутри тестируемой страницы; браузерные тесты управляются через Playwright):
+
+- `unit/` — импортируют модули из `src/` напрямую. Зависимости, одинаковые для всего файла, заменяются через
+  `vi.mock`; тесты, которым нужны новые подмены (или глобалы вроде `document`, `navigator`) на каждый тест, используют
+  `helpers/load-module.js`: `await loadModule('util/API.js', { 'freeipa/rpc': {...} }, { navigator })` загружает новый
+  экземпляр с этими подменами и по умолчанию подставляет заглушки `freeipa/ipa` и `freeipa/rpc`. Vitest выбрасывает ошибку, если код
+  читает экспорт, не определённый в подмене, поэтому такие экспорты нужно задавать явно (`getLanguage: undefined`).
+- `integration/` (`*.browser.test.js`) — настоящие Chromium и DOM, RPC на моках. Работают с
+  `frontend/.test-root/` (в `.gitignore`, пересоздаётся командой `npm test`): каждый модуль из `src` отдельным AMD-модулем
+  плюс ссылки на `css/`, `img/`, `chain.js`, `gpo.js`. `bundle.browser.test.js` вместо этого загружает
+  закоммиченный боевой бандл через RequireJS.
+- `scripts/read-amd.mjs` теперь используется только в `scripts/build-test-root.mjs` для создания дерева AMD-модулей для браузерных тестов.
+- `e2e/` — входит в настоящий Web UI, проверяет меню и фасеты, создаёт GPO через CLI `ipa` контейнера,
+  открывает редактор со страницы GPO и снова удаляет GPO.
+
+`npm run test:ipa` выполняет три шага:
+
+1. `scripts/ipa-up.sh` запускает контейнер `freeipa-gpo-dev`, если он остановлен, и повторно выполняет `.devcontainer/scripts/setup-ipa.sh`
+   (подключает исходники рабочей копии, перезапускает httpd). Нужно один раз выполнить `.devcontainer/host-setup.sh` и один раз создать
+   контейнер из VS Code.
+2. `tests/e2e` на хосте против живого Web UI. С `REQUIRE_IPA=1` (задаётся задачей) недоступный сервер приводит к ошибке,
+   а не к пропуску. Настройки: `IPA_URL`, `IPA_ADMIN_USER`, `IPA_ADMIN_PASSWORD`, `IPA_CONTAINER`.
+3. `scripts/ipa-native.sh` запускает весь набор на моках (unit + integration) **внутри контейнера**, где есть то, чего нет
+   на обычном хосте: настоящая libadmix, каталог SDMX, определения политик, jQuery FreeIPA и Chromium. Там ничего не
+   пропускается; `scripts/assert-no-skips.mjs` завершает запуск ошибкой, если что-то пропущено. Рабочая копия смонтирована в контейнер,
+   поэтому он использует `node_modules` хоста; браузер Playwright устанавливается в контейнер при первом использовании.
+
+Образ контейнера должен содержать `python3-module-admix` 0.3.x (как требует `ipa-gpo-install.spec`), `chromium` и TTF-шрифт
+(`fonts-ttf-open-sans`); их ставит `.devcontainer/Containerfile`. Скрипт проверяет admix и chromium и подсказывает исправление.
+Более старый образ можно обновить на месте, например командой
+`podman exec freeipa-gpo-dev bash -c 'mkdir -p /var/lib/apt/lists/partial && apt-get update && apt-get install -y python3-module-admix chromium'`.
+Chromium также нужны настоящий `/dev/shm` и высокий лимит процессов: `devcontainer.json` задаёт `--shm-size=2g --pids-limit=-1`
+(для контейнеров, созданных раньше, скрипт перемонтирует `/dev/shm`). По той же причине интеграционные тесты идут в 2 потока.
+
+На обычном хосте `npm test` пропускает тесты, которым нужно это ПО (20 тестов: нативный контракт, каталог SDMX, GUID аудита,
+jQuery FreeIPA, живые дескрипторы фильтров).
+
+Покрытие учитывает только юнит-тесты (интеграционные тесты выполняют код внутри Chromium, а V8-покрытие Node его не видит), поэтому
+порог в `vitest.config.mjs` — это нижняя граница, а не цель: поднимайте его, когда покрытие юнит-тестами растёт. Он рассчитан на обычный хост
+(около 17% операторов); в CI, где выполняются тесты нативного контракта, достигается около 19%.
+
+Браузер нужно установить один раз: `npx playwright install chromium` (в `frontend/`).
+
+## CI
+
+Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
+который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
+fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 280 тестов, и ни один не может быть пропущен**.
+
+fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
+отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

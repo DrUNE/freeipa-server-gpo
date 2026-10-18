@@ -6,6 +6,28 @@
 
 **ipa-gpo-install** is a tool for integrating group policy functionality into FreeIPA. The package extends the LDAP schema with necessary objects and provides CLI and WEB interfaces for managing group policies.
 
+## Documentation
+
+All documentation is available in English and Russian and lives in [doc/](./doc/README.md) (index: [doc/README.md](./doc/README.md), [Russian](./doc/README.ru.md)):
+
+- [Architecture](./doc/ARCHITECTURE.md) ([Russian](./doc/ARCHITECTURE.ru.md)) - server plugins, installer, `libadmix`, LDAP schema, SYSVOL, web editor
+- [Developer setup](./doc/DEV-SETUP.md) ([Russian](./doc/DEV-SETUP.ru.md)) - the podman dev container with a live FreeIPA server, frontend tooling, how to work in VS Code or vim
+- [CI](./doc/CI.md) ([Russian](./doc/CI.ru.md)) - build, integration and RPM publication pipeline
+- [Frontend](./frontend/README.md) ([Russian](./frontend/README.ru.md)) - the web editor sources, tests and dev stand
+- [Plans](./doc/plans/README.md) ([Russian](./doc/plans/README.ru.md)) - proposals for frontend developer experience and for a freeipa-webui migration
+
+## Development
+
+The repository ships a dev container (`.devcontainer/`) with a real FreeIPA server in which your working copy is mounted over the installed plugins, so edits take effect immediately. Typical commands:
+
+    $ sudo .devcontainer/host-setup.sh       # once per machine
+    $ make test-python                        # Python tests (inside the container, where FreeIPA libraries exist)
+    $ make ui-dev-install && make ui-dev      # web editor on mock data, no FreeIPA needed
+    $ make test-ui                            # frontend tests on mocks
+    $ make test-ui-ipa                        # frontend tests against the live dev container
+
+See [doc/DEV-SETUP.md](./doc/DEV-SETUP.md) for details.
+
 ## How it works
 
 ### Group Policy Concept
@@ -169,7 +191,7 @@ policy-1 → policy-2 → policy-3 → policy-4
 1. **First all policies from dev-chain** - because this chain is first in master's `ipaGpoChainList`
 2. **Then all policies from office-chain** - because this chain is second in master's `ipaGpoChainList`
 3. **Within each chain** policies are in the order of their sequence in `ipaGpoLink`
-4. **In case of setting conflicts** the last policy takes precedence (in this case from policy-1)
+4. **In case of setting conflicts** the policy with the higher priority takes precedence, i.e. the one higher in the list (in this case policy-1; `ipa chain-mod --moveup-gpc` raises a policy's priority)
 
 This approach provides predictable and controlled policy inheritance with flexible priority management at two levels: chain level and policy level within chain.
 
@@ -183,6 +205,8 @@ This approach provides predictable and controlled policy inheritance with flexib
 - `sdmx-basealt` (at least 1.0.0) and `sdmx-schemas` (at least 1.0.0)
 - Administrator rights
 - Valid Kerberos ticket
+
+The RPM package also depends on `freeipa-server-core`, `freeipa-server-trust-ad`, `samba-common-tools` and `acl`.
 
 ## Installing RPM package
     # apt-get install freeipa-server-gpo
@@ -204,12 +228,18 @@ Options:
 
 ### What the installer does
 
-1. **Extending LDAP schema** - adds new object classes for group policies
-2. **Creating SYSVOL structure** - creates directories for storing policy files
-3. **Configuring Samba** - creates SYSVOL share
+1. **Verifying the installed assets** - checks that the policy update files are in place
+2. **Installing AD Trust** - only if it is not enabled yet
+3. **Creating the SYSVOL directory and the SYSVOL share** - directories for policy files and the Samba share (only when missing)
 4. **Preparing the web editor** - grants the FreeIPA `ipaapi` service account
    controlled access to GPO payloads and creates its private publication state
    directory
+5. **Activating the plugins** - checks that the Python plugins, UI files, schema, update and D-Bus handler files are installed
+6. **Restarting oddjob** and, if the LDAP schema or infrastructure is incomplete,
+   **running `ipa-server-upgrade`** to extend the LDAP schema with the group policy object classes
+7. **Verifying** the schema and the LDAP infrastructure, then reloading Apache so that it picks up the new commands
+
+Use `--check-only` to see what would be done without changing anything.
 
 ## Technical implementation
 
@@ -224,6 +254,18 @@ Options:
 - `ipaGpoMachineExtensionNames` - Published machine-side policy extensions
 - `ipaGpoUserExtensionNames` - Published user-side policy extensions
 
+**ipaGpoChain**
+- `cn` - Chain name
+- `description` - Description of the chain
+- `ipaGpoUserGroup` - User group DN
+- `ipaGpoComputerGroup` - Computer group DN
+- `ipaGpoLink` - Ordered list of policy DNs
+
+**ipaGpoMaster**
+- `cn` - Master object name (`grouppolicymaster`)
+- `ipaGpoPdcEmulator` - PDC emulator server name
+- `ipaGpoChainList` - Ordered list of policy chains
+
 ### Web editor architecture
 
 The authenticated FreeIPA server plugin uses the `libadmix` Python binding
@@ -232,17 +274,8 @@ submits SYSVOL or registry paths. File changes are committed atomically by
 `libadmix`; the plugin publishes the resulting packed version and extension
 attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
-**ipaGpoChain**
-- `cn` - Chain name
-- `displayName` - Display name of chain
-- `ipaGpoUserGroup` - User group DN
-- `ipaGpoComputerGroup` - Computer group DN
-- `ipaGpoLink` - Ordered list of policy DNs
-
-**ipaGpoMaster**
-- `cn` - Master object name
-- `ipaGpoPdcEmulator` - PDC emulator DN
-- `ipaGpoChainList` - Ordered list of policy chains
+The editor frontend is built from `frontend/` into one bundle,
+`plugin/ui/grouppolicy/js/app.js` (see [frontend/README.md](./frontend/README.md)).
 
 ## Management commands
 
@@ -267,9 +300,9 @@ attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
 #### Creating chain
     # ipa chain-add it-chain \
-    --display-name="IT Department Chain"
-    --user-group=it-users
-    --computer-group=it-workstations
+    --desc="IT Department Chain" \
+    --user-group=it-users \
+    --computer-group=it-workstations \
     --gp-link=policy1
 
 #### Viewing chain
@@ -279,9 +312,10 @@ attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
 **Basic modifications:**
     # ipa chain-mod it-chain \
-    --display-name="New Display Name"
-    --user-group=new-user-group
+    --desc="New description" \
+    --user-group=new-user-group \
     --computer-group=new-computer-group
+    # ipa chain-mod it-chain --rename=new-chain-name
 
 **Adding groups:**
     # ipa chain-mod it-chain --add-user-group=developers
@@ -299,6 +333,10 @@ attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
 ### Removing policies
     # ipa chain-remove-gpo it-chain --gpos security-policy
+
+### Enabling and disabling a chain
+    # ipa chain-disable it-chain
+    # ipa chain-enable it-chain
 
 ### Deleting chain
     # ipa chain-del it-chain
@@ -321,6 +359,8 @@ attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
 #### Viewing Group Policy Master
     # ipa gpmaster-show
+
+The master object is named `grouppolicymaster`; use that name as `master-name` below.
 
 #### Adding chain to master
     # ipa gpmaster-mod master-name --add-chain=chain-name
@@ -379,7 +419,7 @@ Each policy creates structure in SYSVOL:
 ## Access rights
 
 ### Roles and privileges
-System creates special role **Group Policy Administrators** with rights:
+System creates the role **Group Policy Administrators** (it holds the privilege of the same name) with rights:
 - Read all group policy objects
 - Create, modify and delete policies
 - Manage policy chains

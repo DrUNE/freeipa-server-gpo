@@ -24,7 +24,8 @@ def test_semantic_icons_are_included_by_the_explicit_ui_installer_manifest():
     manifest = ast.literal_eval(assignment.value)
     assert len(manifest) == len(set(manifest))
     assert "css/icons.css" in manifest
-    assert "js/components/editor-icons.js" in manifest
+    # The editor ships as one generated bundle (frontend/ builds it into js/app.js).
+    assert "js/app.js" in manifest
     assert re.search(r'@import\s+url\(["\'](?:\./)?icons\.css["\']\);', (UI / "css/main.css").read_text())
     references = re.findall(r"url\(\.\./(img/svg/ico/[^)]+)\)", (UI / "css/icons.css").read_text())
     assert len(references) == 58

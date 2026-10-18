@@ -1,5 +1,7 @@
 # RPM release gate
 
+**English** | [Русский](./CI.ru.md)
+
 `.forgejo/workflows/python-backend.yml` owns the complete pipeline:
 
 1. Build one Sisyphus x86_64 RPM, including `%check` and Python coverage.
@@ -11,6 +13,8 @@ Integration verifies the build checksum before installation. Publication runs
 in a separate job, verifies the same checksum, requires HTTP 201 from the ALT
 registry, downloads the published RPM, and compares the bytes by SHA256.
 There is no second RPM build between testing and publication.
+
+A separate `frontend` job (lint, formatting, types, bundle check, frontend tests with coverage) runs in parallel and is described in [frontend/README.md](../frontend/README.md).
 
 ## Triggers
 

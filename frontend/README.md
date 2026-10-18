@@ -1,5 +1,7 @@
 # Frontend (GPUI editor)
 
+**English** | [Русский](./README.ru.md)
+
 ES-module sources in `src/`, built with **Vite** into one committed bundle:
 `../plugin/ui/grouppolicy/js/app.js` (UMD; registers as an AMD module under FreeIPA's RequireJS and
 depends on its `freeipa/ipa` and `freeipa/rpc`). The RPM installs the committed bundle, so Node is
@@ -27,7 +29,7 @@ commit `src/` together with the rebuilt `js/app.js`.
 
 Vite serves `src/` directly. `freeipa/ipa` and `freeipa/rpc` resolve to ES shims in `dev/shims/`;
 `vite.config.mjs` answers `POST /ipa/session/json` from the mock backend `dev/backend.mjs` and serves the plugin's
-`css/` and `img/` under `/ipa/ui/js/plugins/chain/`. See `dev/README.md`. `chain.js` and `gpo.js` do not run in the stand
+`css/` and `img/` under `/ipa/ui/js/plugins/chain/`. See `dev/README.md` ([Russian](./dev/README.ru.md)). `chain.js` and `gpo.js` do not run in the stand
 (they need FreeIPA's own modules); check them on a live server (`.devcontainer/`).
 
 ## Tests

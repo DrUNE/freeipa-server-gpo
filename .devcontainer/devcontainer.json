@@ -60,6 +60,8 @@
                 "charliermarsh.ruff",
                 "timonwong.shellcheck",
                 "redhat.vscode-yaml",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
                 "mrorz.language-gettext"
             ],
             "settings": {
