@@ -1,22 +1,16 @@
 'use strict';
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as enModule from '../../src/locales/en.js';
+import * as ruModule from '../../src/locales/ru.js';
+import * as translationsModule from '../../src/locales/translations.js';
+import * as modelModule from '../../src/components/templates/advanced-audit/model.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 const { execFileSync } = require('node:child_process');
-const root = path.resolve(__dirname, '../../src');
-function load(file, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, file)), {
-        define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }
-    });
-    return result;
-}
-const locales = { en: load('locales/en.js'), ru: load('locales/ru.js') };
-const translations = load('locales/translations.js', { './en': locales.en, './ru': locales.ru });
-const model = load('components/templates/advanced-audit/model.js', { '../../../locales/translations': translations });
+const locales = { en: enModule, ru: ruModule };
+const translations = translationsModule;
+const model = modelModule;
 const plain = value => JSON.parse(JSON.stringify(value));
 const guid = number => '0cce' + number.toString(16) + '-69ae-11d9-bed3-505054503030';
 const catalog = Array.from({ length: 58 }, (_, index) => ({

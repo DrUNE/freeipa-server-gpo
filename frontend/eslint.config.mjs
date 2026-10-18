@@ -28,7 +28,8 @@ export default [
     },
     {
         files: ['tests/**/*.js'],
-        languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } },
+        // Vitest transforms these files; they mix `import` with `require`.
+        languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
         rules: {
             // Functions passed to page.evaluate() run in the browser and use its globals.
             'no-undef': 'off',

@@ -1,25 +1,17 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-function loadApi(rpc) {
-    let api;
-    const filename = path.resolve(__dirname,
-        '../../src/util/API.js');
-    vm.runInNewContext(readAmd(filename), {
-        define: (names, factory) => {
-            api = factory({ api_version: '2.0' }, rpc, {
-                getLanguage: () => 'ru'
-            });
-        },
-        navigator: { language: 'ru-RU', languages: ['ru-RU'] }
-    });
-    return api;
+async function loadApi(rpc) {
+    return loadModule('util/API.js', {
+        'freeipa/ipa': { default: { api_version: '2.0' } },
+        'freeipa/rpc': { default: rpc },
+        '../locales/translations': { getLanguage: () => 'ru' }
+    }, { navigator: { language: 'ru-RU', languages: ['ru-RU'] } });
 }
 
 test('Security RPC preserves arrays and exposes structured FreeIPA validation errors', async () => {
@@ -30,7 +22,7 @@ test('Security RPC preserves arrays and exposes structured FreeIPA validation er
             data: { error_category: 'validation', field: 'request.policies' }
         }
     };
-    const api = loadApi({ command(spec) {
+    const api = await loadApi({ command(spec) {
         specs.push(spec);
         return { execute() {
             if (spec.method === 'editor_open') {
@@ -61,7 +53,7 @@ test('Security RPC preserves arrays and exposes structured FreeIPA validation er
 
 test('Advanced Audit RPC uses editor error rendering instead of FreeIPA retry dialog', async () => {
     const specs = [];
-    const api = loadApi({ command(spec) {
+    const api = await loadApi({ command(spec) {
         specs.push(spec);
         return { execute() {
             if (spec.method === 'editor_open') {

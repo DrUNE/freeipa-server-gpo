@@ -1,18 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as plannerModule from '../../src/components/templates/security/dependency-plan.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-let planner;
-vm.runInNewContext(readAmd(path.resolve(__dirname,
-    '../../src/components/templates/security/dependency-plan.js')), {
-    define: (_dependencies, factory) => { planner = factory(); },
-    Number, JSON, Math
-});
+const planner = plannerModule;
 
 const BASE = 'urn:altlinux:sdmx:policies:';
 const AGE = 'overwrite_events_older_than_the_retention_period';

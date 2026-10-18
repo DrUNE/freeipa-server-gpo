@@ -509,18 +509,16 @@ import * as confirmationDialog from '../confirmation-dialog';
             root.getElement().inert = true;
             refreshButtons();
             try {
+                /** @type {{ ok: boolean, response?: any, error?: any, draft?: any }} */
                 var outcome = await dto.submitPreservingDraft(draft, function() {
                     return API.policyUpdate(item.scope, item.policyId, request);
                 });
                 if (!outcome.ok) {
-                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     showError(outcome.error);
                     return false;
                 }
-                // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                 policy = outcome.response.policy || outcome.response;
                 render();
-                // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                 if (config.onSaved) config.onSaved(outcome.response);
                 return true;
             } finally {
@@ -615,7 +613,7 @@ import * as confirmationDialog from '../confirmation-dialog';
             if (!isCurrent() || refreshConfirmation) return Promise.resolve(false);
             return new Promise(function(resolve) {
                 var modal = dialog.root.getElement();
-                var previousFocus = document.activeElement;
+                var previousFocus = /** @type {HTMLElement | null} */ (document.activeElement);
                 modal.inert = true;
                 modal.classList.add('gpo-editor-dialog--confirming');
                 finishRefreshConfirmation = function(confirmed) {
@@ -623,7 +621,6 @@ import * as confirmationDialog from '../confirmation-dialog';
                     finishRefreshConfirmation = null;
                     modal.inert = false;
                     modal.classList.remove('gpo-editor-dialog--confirming');
-                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     if (!closed && previousFocus && previousFocus.isConnected) previousFocus.focus();
                     resolve(confirmed);
                 };

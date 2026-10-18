@@ -1,30 +1,13 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as targetingModule from '../../src/util/targeting-tree-draft.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-const sourceRoot = path.resolve(__dirname, '../../src');
-const cache = new Map();
-function load(file) {
-    file = path.posix.normalize(file);
-    if (cache.has(file)) return cache.get(file);
-    let exported;
-    vm.runInNewContext(readAmd(path.join(sourceRoot, file)), {
-        define: (dependencies, factory) => {
-            exported = factory(...dependencies.map(name => load(
-                path.posix.join(path.posix.dirname(file), name + '.js')
-            )));
-        }
-    }, { filename: file });
-    cache.set(file, exported);
-    return exported;
-}
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
-const targeting = load('util/targeting-tree-draft.js');
+const targeting = targetingModule;
 
 function field(value = '', extra = {}) {
     return { id: 'operand', editable: true, required: false, value: { kind: 'text', value }, ...extra };

@@ -14,7 +14,7 @@ import * as translations from '../locales/translations';
             throw new TypeError('A confirmation dialog host is required.');
         }
 
-        var previous = document.activeElement;
+        var previous = /** @type {HTMLElement | null} */ (document.activeElement);
         var id = 'gpo-confirmation-' + (++nextId);
         var closed = false;
         var no = create('button', {
@@ -66,7 +66,6 @@ import * as translations from '../locales/translations';
             if (closed) return;
             closed = true;
             modal.getElement().remove();
-            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             if (previous && previous.isConnected && previous.focus) previous.focus();
         }
 

@@ -1,30 +1,16 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
+import * as operandEditorModule from '../../src/components/templates/preference/targeting-operand-editor.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 const { spawnSync } = require('node:child_process');
 
-const sourceRoot = path.resolve(__dirname, '../../src');
-const cache = new Map();
-function load(file) {
-    file = path.posix.normalize(file);
-    if (cache.has(file)) return cache.get(file);
-    let result;
-    vm.runInNewContext(readAmd(path.join(sourceRoot, file)), {
-        define: (dependencies, factory) => {
-            result = factory(...dependencies.map(name => load(path.posix.join(path.posix.dirname(file), name + '.js'))));
-        }
-    }, { filename: file });
-    cache.set(file, result);
-    return result;
-}
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
-const presentation = load('components/templates/preference/targeting-presentations.js');
-const operandEditor = load('components/templates/preference/targeting-operand-editor.js');
+const presentation = presentationModule;
+const operandEditor = operandEditorModule;
 
 const probe = spawnSync(process.env.PYTHON || 'python3', ['-c', 'from admix import _native; print(_native.__file__)'], { encoding: 'utf8' });
 const skip = probe.error && probe.error.code === 'ENOENT' || /ModuleNotFoundError/.test(probe.stderr || '')

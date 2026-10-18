@@ -1,22 +1,17 @@
 'use strict';
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../../src/components/templates');
-function load(name, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, name)), { define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }, Map, Set, console });
-    return result;
-}
-const model = load('security/model.js');
-const values = load('security/value-editor.js', { '../../../util/element-creator': {} });
-const template = load('security-template.js', { '../../util/element-creator': {}, '../../locales/translations': { t: key => key }, './security/model': model, './security/value-editor': values });
-const workbench = load('security/workbench.js', { '../../../util/element-creator': {}, '../../../locales/translations': { t: key => key } });
-test('defined policies without settings use a dash and preserve explicit empty or false values', () => {
+const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
+const model = await load('security/model.js');
+const values = await load('security/value-editor.js', { '../../../util/element-creator': { createElement: undefined } });
+const template = await load('security-template.js', { '../../util/element-creator': { createElement: undefined }, '../../locales/translations': { t: key => key }, './security/model': model, './security/value-editor': values });
+const workbench = await load('security/workbench.js', { '../../../util/element-creator': { createElement: undefined }, '../../../locales/translations': { t: key => key } });
+test('defined policies without settings use a dash and preserve explicit empty or false values', async () => {
     const policy = { definition: { elements: [] }, state: { state: 'defined', elements: {} } };
     assert.equal(workbench.policySummary(policy), '—');
     policy.definition.elements.push({ id: 'enabled', value_type: 'boolean' });
@@ -39,7 +34,7 @@ function response() {
         { namespace: ns + 'registry', policy_id: 'registry', display_name: 'Registry Security', category: [ns + 'registry', 'registry'], elements: [{ id: 'entries', value_type: 'collection', unique_by: 'key', fields: [] }] }
     ] }, security_snapshot: { policies: [] } };
 }
-test('merged sorted categories retain scalar policies only in category table and collapse collection folder', () => {
+test('merged sorted categories retain scalar policies only in category table and collapse collection folder', async () => {
     const nodes = model.navigationNodes(response());
     assert.equal(nodes.length, 2);
     assert.equal(nodes[0].title, 'Registry Security');
@@ -50,7 +45,7 @@ test('merged sorted categories retain scalar policies only in category table and
     assert.equal(nodes[1].children[1].title, 'Zulu');
     assert.ok(nodes[1].children.every(node => node.showInTree === false));
 });
-test('collection edits project only changed and deleted row keys', () => {
+test('collection edits project only changed and deleted row keys', async () => {
     const collection = { unique_by: 'key' };
     const row = value => ({ key: { state: 'set', value: { kind: 'string', value } } });
     const actions = values.rowActions(collection, [row('a'), row('b')], [row('b'), row('c')]);
@@ -60,7 +55,7 @@ test('collection edits project only changed and deleted row keys', () => {
     assert.equal(actions[1].action, 'upsert');
     assert.equal(actions[1].key.value, 'c');
 });
-test('Restricted Groups requires an explicit relationship and allows configured empty members', () => {
+test('Restricted Groups requires an explicit relationship and allows configured empty members', async () => {
     const element = { id: 'groups', value_type: 'collection', unique_by: 'group', fields: [
         { id: 'group', required: true, element: { value_type: 'principal' } },
         { id: 'members', required: false, element: { value_type: 'principal_list' } },
@@ -73,7 +68,7 @@ test('Restricted Groups requires an explicit relationship and allows configured 
     row.members = { state: 'set', value: { kind: 'principal_list', value: [] } };
     assert.equal(template._test.validateDraft(policy, draft), null);
 });
-test('undefined policy transition and explicit empty values remain distinct', () => {
+test('undefined policy transition and explicit empty values remain distinct', async () => {
     const built = model.buildSecurityModel(response());
     const policy = [...built.policies.values()][0];
     const baseline = template._test.initialDraft(policy);
@@ -84,25 +79,25 @@ test('undefined policy transition and explicit empty values remain distinct', ()
     assert.equal(request.policies[0].transition, 'define');
     assert.equal(request.policies[0].elements[0].value.value, false);
 });
-test('required service identity and descriptor cannot be blank, and enum selection is explicit', () => {
+test('required service identity and descriptor cannot be blank, and enum selection is explicit', async () => {
     for (const kind of ['service_name', 'sddl', 'principal', 'registry_key', 'file_path']) {
         assert.match(values.validationError({ value_type: kind }, { kind, value: '  ' }), /required/);
     }
     assert.match(values.validationError({ value_type: 'enum', options: [{ id: 'manual' }] }, { kind: 'enum', value: '' }), /Select/);
 });
-test('empty configured collection requires an item', () => {
+test('empty configured collection requires an item', async () => {
     const policy = { definition: { elements: [{ id: 'rows', value_type: 'collection', unique_by: 'key', fields: [] }] } };
     const draft = { defined: true, elements: { rows: { state: 'set', value: { kind: 'collection', value: [] } } } };
     assert.match(template._test.validateDraft(policy, draft), /at least one item/);
 });
-test('scalar-only folders have no empty tree expander but lazy and item folders do', () => {
-    const tree = load('../tree-view/tree-view-list.js', { '../../util/element-creator': {} });
+test('scalar-only folders have no empty tree expander but lazy and item folders do', async () => {
+    const tree = await load('../tree-view/tree-view-list.js', { '../../util/element-creator': { createElement: undefined } });
     assert.equal(tree.hasVisibleChildren({ children: [{ showInTree: false }] }), false);
     assert.equal(tree.hasVisibleChildren({ lazy: true, children: [] }), true);
     assert.equal(tree.hasVisibleChildren({ children: [{ type: 'folder' }] }), true);
 });
-test('Advanced Audit supports all catalog rows and opaque global SACL editing without relabeling machine metadata', () => {
-    const audit = load('advanced-audit/model.js', { '../../../locales/translations': { t: key => key.endsWith('.crash_on_audit_fail') ? 'Localized audit option' : key } });
+test('Advanced Audit supports all catalog rows and opaque global SACL editing without relabeling machine metadata', async () => {
+    const audit = await load('advanced-audit/model.js', { '../../../locales/translations': { t: key => key.endsWith('.crash_on_audit_fail') ? 'Localized audit option' : key } });
     const fixture = { advanced_audit: { suggested_machine_name: 'DC1', rows: [], subcategory_catalog: [{ guid: 'audit-guid', display_name: 'Audit category' }] } };
     const families = audit.families(fixture);
     assert.equal(families.find(family => family.id === 'system_audit_policies').rows[0].editable, true);
@@ -124,9 +119,9 @@ test('installed 185-policy catalog remains complete and sorted when Advanced Aud
         ' print(json.dumps({"security_catalog":w.security.definition_catalog(),"security_snapshot":w.security.definition_snapshot()}))'
     ].join('\n')], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
     const api = { getDisplayName: () => 'UI test', securityDefinitionsShow: async () => fixture, advancedAuditShow: async () => { throw Error('Audit offline'); } };
-    const audit = load('advanced-audit/model.js');
-    const tree = load('../tree-view/tree-view-list-data.js', {
-        '../editor-icons': load('../editor-icons.js'),
+    const audit = await load('advanced-audit/model.js');
+    const tree = await load('../tree-view/tree-view-list-data.js', {
+        '../editor-icons': await load('../editor-icons.js'),
         '../../locales/translations': { t: key => key }, '../../util/API': api,
         '../templates/security/model': model, '../templates/advanced-audit/model': audit
     });

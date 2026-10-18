@@ -45,7 +45,7 @@ jobs:
         run: npx --prefix frontend playwright install --with-deps chromium
 
       - name: UI tests
-        run: npm --prefix frontend test
+        run: npm --prefix frontend test -- --coverage
 
   build-package:
     name: Build package for Sisyphus

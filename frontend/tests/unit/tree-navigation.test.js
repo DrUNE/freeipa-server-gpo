@@ -1,45 +1,29 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
+import * as editorIcons from '../../src/components/editor-icons.js';
+import * as enLocale from '../../src/locales/en.js';
+import * as ruLocale from '../../src/locales/ru.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
-
-const source = path.resolve(__dirname, '../../src/components/tree-view/tree-view-list-data.js');
-let editorIcons;
-vm.runInNewContext(readAmd(path.resolve(__dirname,
-    '../../src/components/editor-icons.js')), {
-    define: (_dependencies, factory) => { editorIcons = factory(); }
-});
 
 function locale(language) {
-    let messages;
-    const filename = path.resolve(__dirname, '../../src/locales', language + '.js');
-    vm.runInNewContext(readAmd(filename), {
-        define: (_dependencies, factory) => { messages = factory(); }
-    });
-    return messages;
+    return language === 'ru' ? ruLocale : enLocale;
 }
 
-function treeModule(options = {}) {
-    let tree;
-    const translations = options.translations || { t: key => key };
+async function treeModule(options = {}) {
+    // vitest rejects reads of exports a mock does not define, so "no getter" is an explicit undefined.
+    const translations = options.translations || { t: key => key, getLanguage: undefined };
     if (options.language) translations.getLanguage = () => options.language;
-    vm.runInNewContext(readAmd(source), {
-        define: (names, factory) => {
-            tree = factory(...names.map(name => ({
-                '../../locales/translations': translations,
-                '../../util/API': { getDisplayName: () => 'Example GPO', ...options.api },
-                '../templates/security/model': options.securityModel || {},
-                '../templates/advanced-audit/model': options.auditModel || {},
-                '../editor-icons': editorIcons
-            })[name]));
-        },
-        Map, Promise
+    return loadModule('components/tree-view/tree-view-list-data.js', {
+        '../../locales/translations': translations,
+        '../../util/API': { getDisplayName: () => 'Example GPO', ...options.api },
+        '../templates/security/model': options.securityModel || {},
+        '../templates/advanced-audit/model': options.auditModel || {},
+        '../editor-icons': editorIcons
     });
-    return tree;
 }
 
 function preference(scope, kind, categoryId, categoryOrder, displayOrder, label) {
@@ -72,7 +56,7 @@ function administrativeTemplates(scopeRoot) {
     return childByTitle(policyBranch(scopeRoot), 'policies.adminTemplates');
 }
 
-test('tree headings keep the requested scope and neutral category names in both languages', () => {
+test('tree headings keep the requested scope and neutral category names in both languages', async () => {
     for (const [language, expected] of Object.entries({
         en: ['Computer', 'User', 'System Settings', 'Component Settings'],
         ru: ['Компьютер', 'Пользователь', 'Конфигурация системы', 'Параметры компонентов']
@@ -88,10 +72,10 @@ test('tree headings keep the requested scope and neutral category names in both 
     }
 });
 
-test('Policies and Preferences keep their editors under the correct scope and category', () => {
+test('Policies and Preferences keep their editors under the correct scope and category', async () => {
     const future = preference('computer', 'future_kind', 'future_category', 15, 1, 'Future');
     future.category_label = 'Future settings';
-    const tree = treeModule().buildTreeViewList({ preference_documents: [
+    const tree = (await treeModule()).buildTreeViewList({ preference_documents: [
         preference('computer', 'registry', 'system_settings', 10, 60, 'Registry'),
         preference('computer', 'control_panel', 'control_panel_settings', 20, 0, 'Control Panel'),
         preference('computer', 'files', 'system_settings', 10, 30, 'Files'),
@@ -151,8 +135,8 @@ test('Policies and Preferences keep their editors under the correct scope and ca
     assert.deepEqual([...childByTitle(user, 'preferences.title').children[0].children.map(node => node.preferenceKind)], ['files']);
 });
 
-test('legacy preference documents without category metadata stay visible', () => {
-    const root = treeModule().buildTreeViewList({ preference_documents: [
+test('legacy preference documents without category metadata stay visible', async () => {
+    const root = (await treeModule()).buildTreeViewList({ preference_documents: [
         { scope: 'computer', kind: 'files', label: 'Files', editable: true }
     ] })[0];
     const computer = scopeByName(root, 'computer');
@@ -161,8 +145,8 @@ test('legacy preference documents without category metadata stay visible', () =>
     assert.equal(category.children[0].preferenceKind, 'files');
 });
 
-test('empty unsupported branches are not presented as available editors', () => {
-    const root = treeModule().buildTreeViewList({})[0];
+test('empty unsupported branches are not presented as available editors', async () => {
+    const root = (await treeModule()).buildTreeViewList({})[0];
     assert.deepEqual([...scopeByName(root, 'computer').children.map(node => node.title)], [
         'policies.allPolicies', 'policies.title'
     ]);
@@ -187,7 +171,7 @@ for (const language of ['en', 'ru']) {
             const rootDtos = children('root');
             const nestedDtos = children('nested');
             const calls = [];
-            const tree = treeModule({ language, api: {
+            const tree = await treeModule({ language, api: {
                 children: async (requestedScope, categoryId) => {
                     calls.push([requestedScope, categoryId]);
                     const result = categoryId === null ? rootDtos : nestedDtos;
@@ -232,7 +216,7 @@ for (const language of ['en', 'ru']) {
 }
 
 test('Administrative Templates falls back to IDs and supports translation mocks without a language getter', async () => {
-    const tree = treeModule({ api: { children: async () => ({ children: [
+    const tree = await treeModule({ api: { children: async () => ({ children: [
         { kind: 'policy', id: 'Zulu policy' },
         { kind: 'category', id: 'Zulu category' },
         { kind: 'policy', id: 'Alpha policy', label: '' },
@@ -248,11 +232,11 @@ test('Administrative Templates ordering and visibility do not change Preferences
     const securityPolicy = { title: 'Scalar policy', type: 'file', template: 'security', showInTree: false };
     const collection = { title: 'Alpha collection', type: 'file', template: 'security', securityCollection: 'entries' };
     const category = { title: 'Zulu category', type: 'folder', template: 'security', children: [securityPolicy] };
-    const tree = treeModule({ language: 'ru',
+    const tree = (await treeModule({ language: 'ru',
         api: { securityDefinitionsShow: async () => ({}), advancedAuditShow: async () => ({}) },
         securityModel: { navigationNodes: () => [category, collection] },
         auditModel: { navigationNode: () => ({ title: 'Middle audit', type: 'folder', template: 'advanced_audit' }) }
-    }).buildTreeViewList({ preference_documents: [
+    })).buildTreeViewList({ preference_documents: [
         preference('computer', 'registry', 'earlier', 1, 20, 'Alpha registry'),
         preference('computer', 'files', 'earlier', 1, 10, 'Zulu files'),
         preference('computer', 'services', 'later', 2, 1, 'Alpha services')

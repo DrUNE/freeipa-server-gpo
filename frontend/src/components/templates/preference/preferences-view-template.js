@@ -900,10 +900,8 @@ import * as targetingEditor from './targeting-editor';
         function recoveryConflict(response) {
             var recovery = response && response.recovery;
             if (!recovery || recovery.kind !== 'conflict') return null;
-            var error = new Error('Preference publication reconciliation is still conflicted.');
-            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
+            var error = /** @type {Error & { category?: string, details?: any }} */ (new Error('Preference publication reconciliation is still conflicted.'));
             error.category = 'publication_conflict';
-            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             error.details = recovery.conflict || null;
             return error;
         }

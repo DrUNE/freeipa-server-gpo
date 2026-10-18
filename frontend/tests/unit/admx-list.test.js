@@ -1,31 +1,22 @@
 'use strict';
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test, vi } from 'vitest';
+import * as dtoModule from '../../src/util/editor-dto.js';
+import * as enModule from '../../src/locales/en.js';
+import * as ruModule from '../../src/locales/ru.js';
+import * as translationsModule from '../../src/locales/translations.js';
+import * as statusModule from '../../src/components/editor-status.js';
+
+vi.mock('../../src/util/element-creator.js', () => ({ createElement: (tag, options) => ({ tag, ...options }) }));
+
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-const root = path.resolve(__dirname, '../../src');
-function load(file, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, file)), {
-        define: (names, factory) => {
-            result = factory(...names.map(name => dependencies[name]));
-        }
-    });
-    return result;
-}
-
-const dto = load('util/editor-dto.js', { './collection-value': load('util/collection-value.js') });
-const en = load('locales/en.js');
-const ru = load('locales/ru.js');
-const translations = load('locales/translations.js', { './en': en, './ru': ru });
-const status = load('components/editor-status.js', {
-    '../util/element-creator': { createElement: (tag, options) => ({ tag, ...options }) },
-    '../util/editor-dto': dto,
-    '../locales/translations': translations
-});
+const dto = dtoModule;
+const en = enModule;
+const ru = ruModule;
+const translations = translationsModule;
+const status = statusModule;
 
 function policy(state, values) {
     return {

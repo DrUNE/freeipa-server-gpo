@@ -1,26 +1,20 @@
 'use strict';
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test, vi } from 'vitest';
+import * as enModule from '../../src/locales/en.js';
+import * as ruModule from '../../src/locales/ru.js';
+import * as translationsModule from '../../src/locales/translations.js';
+import * as statusModule from '../../src/components/editor-status.js';
+
+vi.mock('../../src/util/element-creator.js', () => ({ createElement: (tag, options) => ({ tag, ...options }) }));
+
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 const root = path.resolve(__dirname, '../../src');
-function load(file, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, file)), {
-        define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }
-    });
-    return result;
-}
-const en = load('locales/en.js');
-const ru = load('locales/ru.js');
-const translations = load('locales/translations.js', { './en': en, './ru': ru });
-const status = load('components/editor-status.js', {
-    '../util/element-creator': { createElement: (tag, options) => ({ tag, ...options }) },
-    '../util/editor-dto': load('util/editor-dto.js'),
-    '../locales/translations': translations
-});
+const en = enModule;
+const ru = ruModule;
+const translations = translationsModule;
+const status = statusModule;
 
 test('editor errors, actions and pending notices use the selected language', () => {
     for (const [language, locale] of [['en', en], ['ru', ru]]) {

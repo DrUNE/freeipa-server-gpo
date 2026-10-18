@@ -358,11 +358,10 @@ import * as typedInput from './targeting-typed-input';
                 return;
             }
             var force = blocked || opts.disabled;
-            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
-            var control = options.fieldControl(displayed, force, false, { wrapSelect: true, wrapCheckbox: true, wrapText: true });
-            var dom = control.element.getElement();
+            var fieldControl = options.fieldControl(displayed, force, false, { wrapSelect: true, wrapCheckbox: true, wrapText: true });
+            var dom = fieldControl.element.getElement();
             var input = dom.querySelector('input,select,textarea');
-            if (!input) { container.append(control.element); return; }
+            if (!input) { container.append(fieldControl.element); return; }
             input.setAttribute('aria-label', displayed.label);
             if (opts.hint) input.setAttribute('title', opts.hint);
             if (opts.hintId) input.setAttribute('aria-describedby', opts.hintId);
@@ -376,7 +375,7 @@ import * as typedInput from './targeting-typed-input';
             var isTime = kind === 'time' && (id === 'filter.begin' || id === 'filter.end');
             if (isTime) { input.type = 'time'; input.step = '60'; input.value = /^\d{2}:\d{2}/.test(String(value(id))) ? String(value(id)).slice(0, 5) : ''; }
             var touched = false;
-            var originalRead = control.read;
+            var originalRead = fieldControl.read;
             function captureOne() {
                 if (generation !== renderGeneration || !touched || force || field.editable === false) return;
                 var next = originalRead();
@@ -384,11 +383,11 @@ import * as typedInput from './targeting-typed-input';
                 if (isTime) { next = dto.clone(field.value); next.value = /^\d{2}:\d{2}$/.test(input.value) ? input.value + ':00' : input.value; }
                 fieldOf(working, id).value = dto.clone(next);
             }
-            control.read = function() { captureOne(); return dto.clone(fieldOf(working, id).value); };
-            inputRecords.push({ capture: captureOne }); controls.push(control);
+            fieldControl.read = function() { captureOne(); return dto.clone(fieldOf(working, id).value); };
+            inputRecords.push({ capture: captureOne }); controls.push(fieldControl);
             input.addEventListener('input', function() { if (generation !== renderGeneration) return; touched = true; captureOne(); changed(); });
             input.addEventListener('change', function() { if (generation !== renderGeneration) return; touched = true; captureOne(); if (opts.onChange) { capture(); opts.onChange(value(id)); rebuild(true); } changed(); });
-            container.append(control.element);
+            container.append(fieldControl.element);
         }
         function context() {
             ordinary('filter.userContext', { label: words.context, choices: [{ key: 'false', label: words.computer }, { key: 'true', label: words.user }], defaultKey: 'false', disabled: scope === 'computer', onChange: function(next) {

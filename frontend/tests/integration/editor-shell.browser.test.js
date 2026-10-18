@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const test = require('node:test');
+import { test } from 'vitest';
 
 let chromium, requireJs;
 try {

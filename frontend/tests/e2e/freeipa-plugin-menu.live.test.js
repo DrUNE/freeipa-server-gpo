@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const https = require('node:https');
-const test = require('node:test');
+import { afterAll, beforeAll, describe, test } from 'vitest';
 
 let chromium;
 try {
@@ -68,28 +68,38 @@ async function login(page) {
     }
 }
 
-test('GPO plugin is wired into the live FreeIPA Web UI', async t => {
-    if (!chromium) return t.skip('Install playwright (npm install in frontend/) for live checks.');
-    if (!await reachable() && requireIpa) throw new Error(`FreeIPA at ${base} is not reachable.`);
-    if (!await reachable()) return t.skip(`FreeIPA at ${base} is not reachable; start the dev container or set IPA_URL.`);
-
-    const browser = await chromium.launch();
-    t.after(() => browser.close());
-    // Fixed locale: labels differ per language, so assertions use data-name.
-    const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'en-US', viewport: { width: 1400, height: 900 } });
-    const page = await context.newPage();
+describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
+    let browser;
+    let page;
+    let ready = false;
     const pluginResponses = [];
     const pageErrors = [];
-    page.on('response', response => {
-        if (response.url().includes('/ipa/ui/js/plugins/chain/')) {
-            pluginResponses.push({ url: response.url().split('?')[0], status: response.status() });
-        }
-    });
-    page.on('pageerror', error => pageErrors.push(String(error)));
 
-    await login(page);
+    beforeAll(async () => {
+        if (!chromium) return;
+        const up = await reachable();
+        if (!up && requireIpa) throw new Error(`FreeIPA at ${base} is not reachable.`);
+        if (!up) return;
+        browser = await chromium.launch();
+        // Fixed locale: labels differ per language, so assertions use data-name.
+        const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'en-US', viewport: { width: 1400, height: 900 } });
+        page = await context.newPage();
+        page.on('response', response => {
+            if (response.url().includes('/ipa/ui/js/plugins/chain/')) {
+                pluginResponses.push({ url: response.url().split('?')[0], status: response.status() });
+            }
+        });
+        page.on('pageerror', error => pageErrors.push(String(error)));
+        await login(page);
+        ready = true;
+    }, 90000);
 
-    await t.test('plugin modules are served without errors', () => {
+    afterAll(async () => { if (browser) await browser.close(); });
+
+    // Without a reachable server (and REQUIRE_IPA) the tests are reported as skipped.
+
+    test('plugin modules are served without errors', async ctx => {
+        if (!ready) return ctx.skip();
         const served = url => pluginResponses.filter(r => r.url.endsWith(url) && r.status === 200);
         assert.equal(served('/plugins/chain/chain.js').length > 0, true, 'chain.js was not loaded');
         assert.equal(served('/plugins/chain/gpo.js').length > 0, true, 'gpo.js was not loaded');
@@ -97,7 +107,8 @@ test('GPO plugin is wired into the live FreeIPA Web UI', async t => {
         assert.deepEqual(pageErrors, []);
     });
 
-    await t.test('Policy menu lists Group Policy with Chains and Group Policy Objects', async () => {
+    test('Policy menu lists Group Policy with Chains and Group Policy Objects', async ctx => {
+        if (!ready) return ctx.skip();
         await page.click('li[data-name="policy"] > a');
         assert.equal(await page.isVisible(MENU.group), true, 'Group Policy submenu is not visible under Policy');
         await page.click(`${MENU.group} > a`);
@@ -107,7 +118,8 @@ test('GPO plugin is wired into the live FreeIPA Web UI', async t => {
         assert.match(await page.getAttribute(`${MENU.gpos} a`, 'href'), /#\/e\/gpo\/search$/);
     });
 
-    await t.test('Group Policy Objects entry opens the GPO search facet with the editor action', async () => {
+    test('Group Policy Objects entry opens the GPO search facet with the editor action', async ctx => {
+        if (!ready) return ctx.skip();
         await page.click(`${MENU.gpos} a`);
         await page.waitForSelector('.facet-content table', { state: 'visible', timeout: 15000 });
         assert.match(page.url(), /#\/e\/gpo\/search$/);
@@ -119,14 +131,16 @@ test('GPO plugin is wired into the live FreeIPA Web UI', async t => {
         }
     });
 
-    await t.test('Chains entry opens the chain search facet', async () => {
+    test('Chains entry opens the chain search facet', async ctx => {
+        if (!ready) return ctx.skip();
         await openGroupPolicyMenu(page);
         await page.click(`${MENU.chains} a`);
         await page.waitForSelector('.facet-content table', { state: 'visible', timeout: 15000 });
         assert.match(page.url(), /#\/e\/chain\/search$/);
     });
 
-    await t.test('the GPUI editor opens from the GPO page and renders the policy tree', async () => {
+    test('the GPUI editor opens from the GPO page and renders the policy tree', async ctx => {
+        if (!ready) return ctx.skip();
         const name = 'e2e-editor-' + Date.now();
         ipa('gpo-add', name);
         try {
@@ -147,7 +161,8 @@ test('GPO plugin is wired into the live FreeIPA Web UI', async t => {
         }
     });
 
-    await t.test('navigation raised no page errors', () => {
+    test('navigation raised no page errors', async ctx => {
+        if (!ready) return ctx.skip();
         assert.deepEqual(pageErrors, []);
     });
 });

@@ -3,36 +3,31 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const test = require('node:test');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
 
-function loadApi(specs, responseForSpec) {
-    let api;
-    const filename = path.resolve(__dirname,
-        '../../src/util/API.js');
-    vm.runInNewContext(readAmd(filename), {
-        define: (_names, factory) => {
-            api = factory({ api_version: '2.0' }, {
-                command(spec) {
-                    specs.push(spec);
-                    return { execute() { spec.on_success({ result: { result:
-                        responseForSpec ? responseForSpec(spec) : {
-                            asset: { name: 'existing.cmd', byte_size: 1,
-                                revision: 'r1', content_base64: 'QQ==' }
-                        }
-                    } }); } };
+async function loadApi(specs, responseForSpec) {
+    const rpc = {
+        command(spec) {
+            specs.push(spec);
+            return { execute() { spec.on_success({ result: { result:
+                responseForSpec ? responseForSpec(spec) : {
+                    asset: { name: 'existing.cmd', byte_size: 1,
+                        revision: 'r1', content_base64: 'QQ==' }
                 }
-            }, { getLanguage: () => 'en' });
-        },
-        navigator: { language: 'en-US', languages: ['en-US'] }
-    });
-    return api;
+            } }); } };
+        }
+    };
+    return loadModule('util/API.js', {
+        'freeipa/ipa': { default: { api_version: '2.0' } },
+        'freeipa/rpc': { default: rpc },
+        '../locales/translations': { getLanguage: () => 'en' }
+    }, { navigator: { language: 'en-US', languages: ['en-US'] } });
 }
 
 test('Script download uses the selected scoped asset and never mutates an editor envelope', async () => {
     const specs = [];
-    const api = loadApi(specs, spec => spec.method === 'editor_open'
+    const api = await loadApi(specs, spec => spec.method === 'editor_open'
         ? { gpo: { version: 1 } }
         : { gpo: { version: 999 }, asset: { name: 'existing.cmd',
             byte_size: 1, revision: 'r1', content_base64: 'QQ==' } });
@@ -54,7 +49,7 @@ test('Script download uses the selected scoped asset and never mutates an editor
 
 test('Each Scripts editor action sends its request to the matching scoped RPC', async () => {
     const specs = [];
-    const api = loadApi(specs);
+    const api = await loadApi(specs);
     await api.initialize('Test GPO');
     const request = { marker: 'opaque-editor-value', identities: ['first', 'second'] };
     const routes = [

@@ -3,27 +3,21 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const test = require('node:test');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
+import { test } from 'vitest';
+import * as enModule from '../../src/locales/en.js';
+import * as ruModule from '../../src/locales/ru.js';
+import * as translationsModule from '../../src/locales/translations.js';
+import * as securityModule from '../../src/components/templates/security/model.js';
+import * as auditModule from '../../src/components/templates/advanced-audit/model.js';
+import * as editorIconsModule from '../../src/components/editor-icons.js';
+import * as modelModule from '../../src/components/templates/all-policies/model.js';
 
-const root = path.resolve(__dirname, '../../src');
-function load(filename, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, filename)), {
-        define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }
-    });
-    return result;
-}
-const locales = { en: load('locales/en.js'), ru: load('locales/ru.js') };
-const translations = load('locales/translations.js', { './en': locales.en, './ru': locales.ru });
-const security = load('components/templates/security/model.js', { '../../../locales/translations': translations });
-const audit = load('components/templates/advanced-audit/model.js', { '../../../locales/translations': translations });
-const editorIcons = load('components/editor-icons.js');
-const model = load('components/templates/all-policies/model.js', {
-    '../../../locales/translations': translations, '../security/model': security, '../advanced-audit/model': audit,
-    '../../editor-icons': editorIcons
-});
+const locales = { en: enModule, ru: ruModule };
+const translations = translationsModule;
+const security = securityModule;
+const audit = auditModule;
+const editorIcons = editorIconsModule;
+const model = modelModule;
 const plain = value => JSON.parse(JSON.stringify(value));
 function freeze(value) {
     if (value && typeof value === 'object') {

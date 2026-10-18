@@ -3,30 +3,24 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const test = require('node:test');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
+import { test, vi } from 'vitest';
+import * as iconsModule from '../../src/components/editor-icons.js';
+import * as presentationsModule from '../../src/components/templates/preference/targeting-presentations.js';
+import * as treeModule from '../../src/components/tree-view/tree-view-list-data.js';
+import * as modelModule from '../../src/components/templates/all-policies/model.js';
+
+// The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
+vi.mock('../../src/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
+vi.mock('../../src/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
+vi.mock('../../src/components/templates/security/model.js', () => ({}));
+vi.mock('../../src/components/templates/advanced-audit/model.js', () => ({}));
+
 
 const root = path.resolve(__dirname, '../../../plugin/ui/grouppolicy');
-const srcRoot = path.resolve(__dirname, '../../src');
-function load(file, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(srcRoot, file)), {
-        define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }
-    });
-    return result;
-}
-const icons = load('components/editor-icons.js');
-const presentations = load('components/templates/preference/targeting-presentations.js');
-const translations = { t: key => key, getLanguage: () => 'en' };
-const tree = load('components/tree-view/tree-view-list-data.js', {
-    '../../locales/translations': translations, '../../util/API': { getDisplayName: () => 'Example GPO' },
-    '../templates/security/model': {}, '../templates/advanced-audit/model': {}, '../editor-icons': icons
-});
-const model = load('components/templates/all-policies/model.js', {
-    '../../../locales/translations': translations, '../security/model': {},
-    '../advanced-audit/model': {}, '../../editor-icons': icons
-});
+const icons = iconsModule;
+const presentations = presentationsModule;
+const tree = treeModule;
+const model = modelModule;
 const preferenceKinds = ['applications', 'control_panel', 'data_sources', 'devices', 'drives',
     'environment_variables', 'files', 'folder_options', 'folders', 'ini_files', 'internet_settings',
     'local_users_and_groups', 'network_options', 'network_shares', 'power_options', 'printers',
@@ -50,7 +44,9 @@ test('all 22 native preference families and all 29 targeting kinds have explicit
     assert.deepEqual([...icons.targetingKinds].sort(), [...presentations.supportedKinds].sort());
     assert.equal(new Set(preferenceKinds.map(icons.preference)).size, 22);
     assert.equal(new Set([...icons.targetingKinds].map(icons.targeting)).size, 29);
-    assert.ok(Object.isFrozen(icons) && Object.isFrozen(icons.preferenceKinds) && Object.isFrozen(icons.targetingKinds));
+    // An ES module namespace is immutable by definition; the exported lists must be frozen too.
+    assert.throws(() => { icons.preferenceKinds = []; }, TypeError);
+    assert.ok(Object.isFrozen(icons.preferenceKinds) && Object.isFrozen(icons.targetingKinds));
 });
 
 test('mapped assets are self-contained 16px SVGs in the established grey palette', () => {

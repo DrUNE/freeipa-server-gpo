@@ -1,11 +1,10 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 const { execFileSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '../../src/components/templates');
@@ -16,20 +15,11 @@ const schemas = catalogRoot ? path.join(catalogRoot, 'docs/schema')
     : '/usr/share/xml/sdmx/1.0';
 const schema = path.join(schemas, 'sdmx-1.0.xsd');
 
-function load(name, dependencies = {}) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, name)), {
-        define: (names, factory) => {
-            result = factory(...names.map(dependency => dependencies[dependency]));
-        },
-        Map, Set, console
-    });
-    return result;
-}
+const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 
 test('dependency proposals are accepted as one atomic libadmix update', {
     skip: !fs.existsSync(schema) || !fs.existsSync(path.join(definitions, 'account-password.sdmx'))
-}, () => {
+}, async () => {
     const pythonSetup = [
         'import json,tempfile,pathlib',
         'from admix import SecurityDefinitionCatalog,Workspace',
@@ -43,12 +33,12 @@ test('dependency proposals are accepted as one atomic libadmix update', {
         ' w=Workspace.open(p/"gpo",security_catalog=catalog,load_preferences=False,state_directory=p/"state",state_key="dependency-catalog")',
         ' print(json.dumps({"security_catalog":w.security.definition_catalog(),"security_snapshot":w.security.definition_snapshot()}))'
     ]).join('\n')], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
-    const modelTools = load('security/model.js');
+    const modelTools = await load('security/model.js');
     const model = modelTools.buildSecurityModel(fixture);
-    const planner = load('security/dependency-plan.js');
-    const values = load('security/value-editor.js', { '../../../util/element-creator': {} });
-    const template = load('security-template.js', {
-        '../../util/element-creator': {},
+    const planner = await load('security/dependency-plan.js');
+    const values = await load('security/value-editor.js', { '../../../util/element-creator': { createElement: undefined } });
+    const template = await load('security-template.js', {
+        '../../util/element-creator': { createElement: undefined },
         '../../locales/translations': { t: key => key },
         './security/model': modelTools,
         './security/value-editor': values

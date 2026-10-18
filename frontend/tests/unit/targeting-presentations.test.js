@@ -1,20 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-let presentation;
-vm.runInNewContext(readAmd(path.resolve(__dirname,
-    '../../src/components/templates/preference/targeting-presentations.js')), {
-    define: (dependencies, factory) => {
-        assert.equal(dependencies.length, 0, 'presentation adapters must not depend on DOM, RPC or storage');
-        presentation = factory();
-    }
-});
+const presentation = presentationModule;
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
 function keys(kind, id) { return plain(presentation.choices(kind, id, 'en')).map(value => value.key); }
 

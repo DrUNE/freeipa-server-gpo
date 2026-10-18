@@ -2,14 +2,9 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const test = require('node:test');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
-let navigation;
-vm.runInNewContext(readAmd(path.resolve(__dirname,
-    '../../src/components/list-navigation.js')), {
-    define: (dependencies, factory) => { assert.equal(dependencies.length, 0); navigation = factory(); }
-});
+import { test } from 'vitest';
+import * as navigationModule from '../../src/components/list-navigation.js';
+const navigation = navigationModule;
 
 test('Deletion neighbors prefer a previous visible survivor, then the following survivor', () => {
     assert.equal(navigation.neighbor(['a', 'b', 'c'], ['b'], ['a', 'c']), 'a');

@@ -1,24 +1,14 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import * as collectionModule from '../../src/util/collection-value.js';
+import * as enLocale from '../../src/locales/en.js';
+import * as ruLocale from '../../src/locales/ru.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
 const root = path.resolve(__dirname, '../../src');
-
-function load(file) {
-    let result;
-    vm.runInNewContext(readAmd(path.join(root, file)), {
-        define: (names, factory) => {
-            assert.equal(names.length, 0, 'the collection model must remain independent of DOM and persistence');
-            result = factory();
-        }
-    }, { filename: file });
-    return result;
-}
 
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
@@ -50,7 +40,7 @@ function keyValueParameter(collection = {}, extra = {}) {
     };
 }
 
-const collection = load('util/collection-value.js');
+const collection = collectionModule;
 
 test('ordinary and explicit collections keep distinct typed values without delimiter encoding', () => {
     const ordinary = collection.session(listParameter(), textList(['a=b', 'C:\\Scripts\\one:two.cmd']));
@@ -474,8 +464,8 @@ test('only valid editable fields can be committed and an unknown selection canno
 });
 
 test('English and Russian collection strings cover every label and validation code with matching placeholders', () => {
-    const en = load('locales/en.js').collections;
-    const ru = load('locales/ru.js').collections;
+    const en = enLocale.collections;
+    const ru = ruLocale.collections;
     function strings(source, prefix = '') {
         return Object.entries(source).flatMap(([key, value]) => {
             const name = prefix ? prefix + '.' + key : key;

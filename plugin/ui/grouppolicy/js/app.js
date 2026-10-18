@@ -2786,6 +2786,7 @@
 		};
 	}
 	function windowsPolicySettingsNode(scope) {
+		/** @type {any[]} */
 		var children = [scriptsNode(scope)];
 		if (scope === "computer") children.push(securityNode());
 		return {
@@ -4457,7 +4458,7 @@
 				row.setAttribute("aria-selected", String(state.selectedId === id));
 				var handle = row.querySelector(".gpo-collection-table__handle");
 				if (handle) handle.tabIndex = -1;
-				Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
+				/** @type {HTMLElement[]} */ Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
 					cell.tabIndex = id === activeCell.id && cell.getAttribute("data-collection-field") === activeCell.field ? 0 : -1;
 				});
 			});
@@ -5587,6 +5588,7 @@
 			root.getElement().inert = true;
 			refreshButtons();
 			try {
+				/** @type {{ ok: boolean, response?: any, error?: any, draft?: any }} */
 				var outcome = await submitPreservingDraft(draft, function() {
 					return policyUpdate(item.scope, item.policyId, request);
 				});
@@ -5831,6 +5833,10 @@
 			})]
 		});
 	}
+	/**
+	* @param {{ categoryPath?: string, hideHeading?: boolean, children?: any[], help?: any, onItemClick?: any,
+	*   isHelpOpen?: boolean, listState?: { selectedItem?: any, query?: string, scrollTop?: number } }} [options]
+	*/
 	function renderFolderTemplate$1({ categoryPath = "", hideHeading = false, children = [], help = void 0, onItemClick = null, isHelpOpen = false, listState = {} } = {}) {
 		const folderChildren = Array.isArray(children) ? children : [];
 		const helpBlock = renderHelpBlock$1({
@@ -11449,14 +11455,14 @@
 				return;
 			}
 			var force = blocked || opts.disabled;
-			var control = options.fieldControl(displayed, force, false, {
+			var fieldControl = options.fieldControl(displayed, force, false, {
 				wrapSelect: true,
 				wrapCheckbox: true,
 				wrapText: true
 			});
-			var input = control.element.getElement().querySelector("input,select,textarea");
+			var input = fieldControl.element.getElement().querySelector("input,select,textarea");
 			if (!input) {
-				container.append(control.element);
+				container.append(fieldControl.element);
 				return;
 			}
 			input.setAttribute("aria-label", displayed.label);
@@ -11486,7 +11492,7 @@
 				input.value = /^\d{2}:\d{2}/.test(String(value(id))) ? String(value(id)).slice(0, 5) : "";
 			}
 			var touched = false;
-			var originalRead = control.read;
+			var originalRead = fieldControl.read;
 			function captureOne() {
 				if (generation !== renderGeneration || !touched || force || field.editable === false) return;
 				var next = originalRead();
@@ -11501,12 +11507,12 @@
 				}
 				fieldOf(working, id).value = clone$2(next);
 			}
-			control.read = function() {
+			fieldControl.read = function() {
 				captureOne();
 				return clone$2(fieldOf(working, id).value);
 			};
 			inputRecords.push({ capture: captureOne });
-			controls.push(control);
+			controls.push(fieldControl);
 			input.addEventListener("input", function() {
 				if (generation !== renderGeneration) return;
 				touched = true;
@@ -11524,7 +11530,7 @@
 				}
 				changed();
 			});
-			container.append(control.element);
+			container.append(fieldControl.element);
 		}
 		function context() {
 			ordinary("filter.userContext", {
@@ -12479,7 +12485,7 @@
 			if (blocked()) return;
 			menu.getElement().hidden = !menu.getElement().hidden;
 			createButton.setAttr("aria-expanded", String(!menu.getElement().hidden));
-			if (!menu.getElement().hidden && menu.getElement().firstElementChild) menu.getElement().firstElementChild.focus();
+			if (!menu.getElement().hidden && menu.getElement().firstElementChild) /** @type {HTMLElement} */ menu.getElement().firstElementChild.focus();
 		});
 		menu.on("keydown", function(event) {
 			var entries = Array.from(menu.getElement().querySelectorAll("button"));
@@ -15751,7 +15757,7 @@
 				var neighbor$1 = all.find(function(row) {
 					return row.getAttribute("data-list-id") === selectedId;
 				});
-				if (neighbor$1) neighbor$1.__select();
+				if (neighbor$1) /** @type {any} */ neighbor$1.__select();
 				pendingNeighbor = null;
 			}
 			if (!selection) selectedId = null;

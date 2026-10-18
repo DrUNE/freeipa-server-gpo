@@ -11,7 +11,7 @@
 | Модульность | Все файлы `js/**` — AMD `define([...], function(__dep0){ var {x} = __dep0; ... return {x}; })`. ESM-исходников нет, обёртки поддерживаются вручную. |
 | Язык | ES2015+ внутри AMD (`const`, `class`, стрелочные функции), смешан с `var` и jQuery-стилем в `chain.js`/`gpo.js`. |
 | Линтинг, форматирование, типы | Нет. Корневого `package.json` нет. Для Python есть `ruff` и `pylint`. |
-| Тесты | 40 файлов в `frontend/tests/`: `node:test` и Playwright (`*.browser.test.js`). Без Chromium браузерные тесты молча пропускаются. |
+| Тесты | 40 файлов в `frontend/tests/`: Vitest и Playwright (`*.browser.test.js`). Без Chromium браузерные тесты молча пропускаются. |
 | CI и сборка RPM | `python-backend.yml` и `.spec` запускают только pytest и покрытие Python. `make test-ui` нигде не вызывается. |
 | Dev-стенд | `frontend/dev`: mock-бэкенд и `requirejs` без сборки, обновление по F5. Не покрывает `chain.js`/`gpo.js` (зависят от `freeipa/*`). |
 | Размеры | Крупные файлы: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. Остальной код разбит удовлетворительно. |

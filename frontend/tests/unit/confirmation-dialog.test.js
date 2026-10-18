@@ -1,13 +1,12 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const test = require('node:test');
+import { test } from 'vitest';
+import { loadModule } from './helpers/load-module.js';
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { readAmd } = require('../../scripts/read-amd.cjs');
 
-function harness() {
+async function harness() {
     const document = { activeElement: null };
 
     class FakeElement {
@@ -59,15 +58,10 @@ function harness() {
         };
     }
 
-    let dialog;
-    const filename = path.resolve(__dirname,
-        '../../src/components/confirmation-dialog.js');
-    vm.runInNewContext(readAmd(filename), {
-        document,
-        define: (names, factory) => {
-            dialog = factory({ createElement }, { t: key => key });
-        }
-    });
+    const dialog = await loadModule('components/confirmation-dialog.js', {
+        '../util/element-creator': { createElement },
+        '../locales/translations': { t: key => key }
+    }, { document });
     const host = new FakeElement('div');
     const opener = new FakeElement('button');
     opener.isConnected = true;
@@ -75,8 +69,8 @@ function harness() {
     return { dialog, document, host, opener, createElement };
 }
 
-test('shared contextual confirmation cancels, confirms, and restores focus', () => {
-    const { dialog, document, host, opener } = harness();
+test('shared contextual confirmation cancels, confirms, and restores focus', async () => {
+    const { dialog, document, host, opener } = await harness();
     let result = null;
     const prompt = dialog.open(host, {
         message: 'Discard?',
@@ -98,8 +92,8 @@ test('shared contextual confirmation cancels, confirms, and restores focus', () 
     assert.equal(document.activeElement, opener);
 });
 
-test('Escape cancels the shared prompt and Tab remains inside it', () => {
-    const { dialog, document, host, opener } = harness();
+test('Escape cancels the shared prompt and Tab remains inside it', async () => {
+    const { dialog, document, host, opener } = await harness();
     let cancelled = 0;
     const prompt = dialog.open(host, {
         message: 'Discard?', onCancel: () => { cancelled += 1; }
@@ -116,8 +110,8 @@ test('Escape cancels the shared prompt and Tab remains inside it', () => {
     assert.equal(document.activeElement, opener);
 });
 
-test('shared confirmation accepts structured content without replacing text or callbacks', () => {
-    const { dialog, host, createElement } = harness();
+test('shared confirmation accepts structured content without replacing text or callbacks', async () => {
+    const { dialog, host, createElement } = await harness();
     const table = createElement('table', { children: [createElement('tr', { text: 'Minimum password age: 0' })] });
     let confirmed = false;
     const prompt = dialog.open(host, {

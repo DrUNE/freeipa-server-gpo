@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const vm = require('node:vm');
-const test = require('node:test');
+import { test } from 'vitest';
 let chromium, requireJs;
 try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); }
 catch (_) { /* Browser runner is optional in unit-only environments. */ }

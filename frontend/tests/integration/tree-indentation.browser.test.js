@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const test = require('node:test');
+import { test } from 'vitest';
 
 let chromium;
 try { chromium = require('playwright').chromium; }
