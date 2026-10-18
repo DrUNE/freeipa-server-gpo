@@ -515,6 +515,7 @@ import * as confirmationDialog from '../confirmation-dialog';
                 ] });
                 function finish(confirmed) {
                     if (modal) {
+                        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                         modal.inert = false;
                         modal.classList.remove('gpo-security-dialog--confirming');
                     }
@@ -533,6 +534,7 @@ import * as confirmationDialog from '../confirmation-dialog';
                     cancel: function() { this.dialog.close(); finish(false); }
                 };
                 if (modal) {
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     modal.inert = true;
                     modal.classList.add('gpo-security-dialog--confirming');
                 }

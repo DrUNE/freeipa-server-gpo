@@ -11,9 +11,10 @@
     "build:check": "node scripts/check-artifact.mjs",
     "watch": "vite build --watch --logLevel warn",
     "dev": "vite",
-    "build:test-root": "node scripts/build-test-root.mjs",
-    "test": "npm run build:test-root && NODE_PATH=./node_modules node --test \"../tests/ui/*.test.js\"",
-    "lint": "eslint src dev scripts *.mjs"
+    "lint": "eslint src dev scripts tests *.mjs",
+    "typecheck": "tsc -p . --pretty false",
+    "test": "node scripts/build-test-root.mjs && node --test \"tests/unit/*.test.js\" \"tests/integration/*.test.js\"",
+    "test:ipa": "bash scripts/ipa-up.sh && REQUIRE_IPA=1 node --test \"tests/e2e/*.test.js\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -21,6 +22,7 @@
     "globals": "^17.13.0",
     "playwright": "^1.50.0",
     "requirejs": "^2.3.7",
+    "typescript": "^7.0.2",
     "vite": "^8.3.4"
   }
 }

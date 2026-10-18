@@ -35,6 +35,9 @@ jobs:
       - name: Lint
         run: npm --prefix frontend run lint
 
+      - name: Typecheck
+        run: npm --prefix frontend run typecheck
+
       - name: Committed bundle matches the sources
         run: npm --prefix frontend run build:check
 
@@ -42,9 +45,7 @@ jobs:
         run: npx --prefix frontend playwright install --with-deps chromium
 
       - name: UI tests
-        run: |
-          npm --prefix frontend run build:test-root
-          NODE_PATH=frontend/node_modules node --test "tests/ui/*.test.js"
+        run: npm --prefix frontend test
 
   build-package:
     name: Build package for Sisyphus

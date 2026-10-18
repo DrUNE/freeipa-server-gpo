@@ -513,11 +513,14 @@ import * as confirmationDialog from '../confirmation-dialog';
                     return API.policyUpdate(item.scope, item.policyId, request);
                 });
                 if (!outcome.ok) {
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     showError(outcome.error);
                     return false;
                 }
+                // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                 policy = outcome.response.policy || outcome.response;
                 render();
+                // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                 if (config.onSaved) config.onSaved(outcome.response);
                 return true;
             } finally {
@@ -620,6 +623,7 @@ import * as confirmationDialog from '../confirmation-dialog';
                     finishRefreshConfirmation = null;
                     modal.inert = false;
                     modal.classList.remove('gpo-editor-dialog--confirming');
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     if (!closed && previousFocus && previousFocus.isConnected) previousFocus.focus();
                     resolve(confirmed);
                 };

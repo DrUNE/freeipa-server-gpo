@@ -62,6 +62,7 @@ import * as listNavigation from './list-navigation';
                 var handle = row.querySelector('.gpo-collection-table__handle');
                 if (handle) handle.tabIndex = -1;
                 Array.from(row.querySelectorAll('[data-collection-field]')).forEach(function(cell) {
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     cell.tabIndex = id === activeCell.id && cell.getAttribute('data-collection-field') === activeCell.field ? 0 : -1;
                 });
             });

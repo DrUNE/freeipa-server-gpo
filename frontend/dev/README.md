@@ -21,19 +21,8 @@ make ui-dev           # http://127.0.0.1:8765/ipa/ui/
 
 ## Тесты UI
 
-```bash
-make test-ui            # собирает frontend/.test-root и запускает node --test "tests/ui/*.test.js"
-npx --prefix frontend playwright install chromium   # один раз для *.browser.test.js
-```
-
-Без установленного Chromium браузерные тесты помечаются как пропущенные.
-
-`tests/ui/freeipa-plugin-menu.live.test.js` работает не с моками, а с настоящим
-FreeIPA (dev container из `.devcontainer/`): проверяет, что плагин подключён к
-приложению: модули отдаются, в меню **Policy → Group Policy** есть «Chains» и
-«Group Policy Objects», а их страницы открываются. Адрес и учётные данные берутся
-из `IPA_URL` (по умолчанию `https://server.ipa.test`), `IPA_ADMIN_USER` и
-`IPA_ADMIN_PASSWORD`. Если сервер недоступен, тест пропускается.
+Описаны в `../README.md` (раздел Tests): `npm test` (юнит и интеграционные на моках) и
+`npm run test:ipa` (e2e на настоящем FreeIPA в dev-контейнере).
 
 ## Что покрывает стенд
 

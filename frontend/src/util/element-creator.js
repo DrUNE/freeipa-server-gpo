@@ -20,15 +20,15 @@ class ElementCreator {
     /**
      * Creates an ElementCreator instance.
      * @param {string} tagName Element tag (div, span, button, etc.).
-     * @param {Object} options Element creation options.
-     * @param {string|string[]} options.className CSS class or classes.
-     * @param {string} options.id Element ID.
-     * @param {Object} options.attrs Additional attributes (data-*, aria-*, etc.).
-     * @param {string} options.text Text content.
-     * @param {string} options.html HTML content (mutually exclusive with text).
-     * @param {Object} options.style Inline styles.
-     * @param {Object} options.events Event handlers, for example {click: handler, mouseover: handler}.
-     * @param {ElementCreator[]|Element[]|string[]} options.children Child elements.
+     * @param {Object} [options] Element creation options.
+     * @param {string|string[]} [options.className] CSS class or classes.
+     * @param {string} [options.id] Element ID.
+     * @param {Object} [options.attrs] Additional attributes (data-*, aria-*, etc.).
+     * @param {string} [options.text] Text content.
+     * @param {string} [options.html] HTML content (mutually exclusive with text).
+     * @param {Object} [options.style] Inline styles.
+     * @param {Object} [options.events] Event handlers, for example {click: handler, mouseover: handler}.
+     * @param {ElementCreator[]|Element[]|string[]} [options.children] Child elements.
      */
     constructor(tagName = 'div', options = {}) {
         this.element = document.createElement(tagName);
@@ -197,6 +197,7 @@ class ElementCreator {
      * @param {Object} options addEventListener options.
      * @returns {ElementCreator} This instance for method chaining.
      */
+    /** @param {string} eventName @param {any} handler @param {any} [options] */
     on(eventName, handler, options) {
         if (typeof handler === 'function') {
             this.element.addEventListener(eventName, handler, options);
@@ -210,6 +211,7 @@ class ElementCreator {
      * @param {Function} handler Event handler.
      * @returns {ElementCreator} This instance for method chaining.
      */
+    /** @param {string} eventName @param {any} handler */
     off(eventName, handler) {
         if (typeof handler === 'function') {
             this.element.removeEventListener(eventName, handler);
@@ -260,7 +262,7 @@ class ElementCreator {
 
     /**
      * Returns the created DOM element.
-     * @returns {Element} DOM element.
+     * @returns {GpuiElement} DOM element.
      */
     getElement() {
         return this.element;
@@ -279,29 +281,29 @@ class ElementCreator {
     /**
      * Creates an element from an HTML string.
      * @param {string} html HTML string.
-     * @returns {Element} DOM element.
+     * @returns {GpuiElement} DOM element.
      */
     static fromHTML(html) {
         const template = document.createElement('template');
         template.innerHTML = html.trim();
-        return template.content.firstChild;
+        return /** @type {GpuiElement} */ (template.content.firstChild);
     }
 }
 
 /**
  * Convenience function for creating elements.
  * @param {string} tagName Element tag.
- * @param {Object} options Element creation options.
- * @returns {ElementCreator} ElementCreator instance.
+ * @param {Object} [options] Element creation options.
+ * @returns {GpuiCreator} ElementCreator instance.
  */
 function createElement(tagName = 'div', options = {}) {
-    return new ElementCreator(tagName, options);
+    return /** @type {GpuiCreator} */ (new ElementCreator(tagName, options));
 }
 
 /**
  * Convenience function for creating an element from HTML.
  * @param {string} html HTML string.
- * @returns {Element} DOM element.
+ * @returns {GpuiElement} DOM element.
  */
 function fromHTML(html) {
     return ElementCreator.fromHTML(html);
@@ -309,7 +311,7 @@ function fromHTML(html) {
 
 // Expose createElement globally when the module loads.
 if (typeof window !== 'undefined') {
-    window.createElement = createElement;
+    /** @type {any} */ (window).createElement = createElement;
 }
 
 export { createElement, fromHTML, ElementCreator, ElementCreator as default };

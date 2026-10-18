@@ -59,7 +59,9 @@ import * as translations from '../locales/translations';
             || info.pendingPublication
             || (this.details && this.details.pending_publication)
             || null;
-        if (Error.captureStackTrace) Error.captureStackTrace(this, EditorError);
+        // captureStackTrace is V8-only, hence the guard.
+        const errorCtor = /** @type {any} */ (Error);
+        if (errorCtor.captureStackTrace) errorCtor.captureStackTrace(this, EditorError);
     }
     EditorError.prototype = Object.create(Error.prototype);
     EditorError.prototype.constructor = EditorError;

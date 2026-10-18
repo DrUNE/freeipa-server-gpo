@@ -66,6 +66,7 @@ import * as translations from '../locales/translations';
             if (closed) return;
             closed = true;
             modal.getElement().remove();
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             if (previous && previous.isConnected && previous.focus) previous.focus();
         }
 

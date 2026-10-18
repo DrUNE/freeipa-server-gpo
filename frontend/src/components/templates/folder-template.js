@@ -80,11 +80,13 @@ function renderFolderTemplate({
     let rowItems = new Map();
     let navigation = null;
     function select(item) {
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         listState.selectedItem = item;
         rowItems.forEach((value, row) => { row.classList.toggle('active', value === item); });
         if (navigation) navigation.sync();
     }
     const search = createElement('input', { attrs: {
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         type: 'search', value: listState.query || '',
         placeholder: t('policySearch.categoryPlaceholder'),
         'aria-label': t('policySearch.categoryPlaceholder'),
@@ -92,7 +94,9 @@ function renderFolderTemplate({
     } });
     const empty = createElement('p', { text: t('policySearch.noMatches'), attrs: { role: 'status' } });
     function filter() {
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         listState.query = search.getElement().value;
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         const query = listState.query.trim().toLocaleLowerCase();
         const visible = folderChildren.filter(child => String(child.title || '').toLocaleLowerCase().includes(query));
         rowItems = new Map();
@@ -100,6 +104,7 @@ function renderFolderTemplate({
             const record = renderChildRow(child, onItemClick, select);
             const row = record.getElement().querySelector('.workspace-list-item');
             rowItems.set(row, child);
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             row.classList.toggle('active', listState.selectedItem === child);
             return record.getElement();
         }));
@@ -127,12 +132,15 @@ function renderFolderTemplate({
     filter();
     navigation = listNavigation.bind(list.getElement(), {
         rows: () => Array.from(rowItems.keys()),
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         selected: () => Array.from(rowItems.keys()).find(row => rowItems.get(row) === listState.selectedItem) || null,
         select: row => select(rowItems.get(row)),
         activate: row => { if (onItemClick) onItemClick(rowItems.get(row)); },
         busy: () => Boolean(root.getElement().querySelector('[role="dialog"]'))
     });
+    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
     root.onMounted = () => { content.getElement().scrollTop = listState.scrollTop || 0; };
+    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
     root.cleanup = () => { listState.scrollTop = content.getElement().scrollTop; navigation.cleanup(); };
     return root;
 }

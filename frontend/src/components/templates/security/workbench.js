@@ -195,6 +195,7 @@ import * as listNavigation from '../../list-navigation';
                 if (selection) { selection.element.classList.remove('active'); selection.element.setAttribute('aria-selected', 'false'); }
                 selection = null;
                 var neighbor = all.find(function(row) { return row.getAttribute('data-list-id') === selectedId; });
+                // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                 if (neighbor) neighbor.__select();
                 pendingNeighbor = null;
             }

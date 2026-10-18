@@ -65,15 +65,15 @@
 		/**
 		* Creates an ElementCreator instance.
 		* @param {string} tagName Element tag (div, span, button, etc.).
-		* @param {Object} options Element creation options.
-		* @param {string|string[]} options.className CSS class or classes.
-		* @param {string} options.id Element ID.
-		* @param {Object} options.attrs Additional attributes (data-*, aria-*, etc.).
-		* @param {string} options.text Text content.
-		* @param {string} options.html HTML content (mutually exclusive with text).
-		* @param {Object} options.style Inline styles.
-		* @param {Object} options.events Event handlers, for example {click: handler, mouseover: handler}.
-		* @param {ElementCreator[]|Element[]|string[]} options.children Child elements.
+		* @param {Object} [options] Element creation options.
+		* @param {string|string[]} [options.className] CSS class or classes.
+		* @param {string} [options.id] Element ID.
+		* @param {Object} [options.attrs] Additional attributes (data-*, aria-*, etc.).
+		* @param {string} [options.text] Text content.
+		* @param {string} [options.html] HTML content (mutually exclusive with text).
+		* @param {Object} [options.style] Inline styles.
+		* @param {Object} [options.events] Event handlers, for example {click: handler, mouseover: handler}.
+		* @param {ElementCreator[]|Element[]|string[]} [options.children] Child elements.
 		*/
 		constructor(tagName = "div", options = {}) {
 			this.element = document.createElement(tagName);
@@ -188,6 +188,7 @@
 		* @param {Object} options addEventListener options.
 		* @returns {ElementCreator} This instance for method chaining.
 		*/
+		/** @param {string} eventName @param {any} handler @param {any} [options] */
 		on(eventName, handler, options) {
 			if (typeof handler === "function") this.element.addEventListener(eventName, handler, options);
 			return this;
@@ -198,6 +199,7 @@
 		* @param {Function} handler Event handler.
 		* @returns {ElementCreator} This instance for method chaining.
 		*/
+		/** @param {string} eventName @param {any} handler */
 		off(eventName, handler) {
 			if (typeof handler === "function") this.element.removeEventListener(eventName, handler);
 			return this;
@@ -234,7 +236,7 @@
 		}
 		/**
 		* Returns the created DOM element.
-		* @returns {Element} DOM element.
+		* @returns {GpuiElement} DOM element.
 		*/
 		getElement() {
 			return this.element;
@@ -251,7 +253,7 @@
 		/**
 		* Creates an element from an HTML string.
 		* @param {string} html HTML string.
-		* @returns {Element} DOM element.
+		* @returns {GpuiElement} DOM element.
 		*/
 		static fromHTML(html) {
 			const template = document.createElement("template");
@@ -262,8 +264,8 @@
 	/**
 	* Convenience function for creating elements.
 	* @param {string} tagName Element tag.
-	* @param {Object} options Element creation options.
-	* @returns {ElementCreator} ElementCreator instance.
+	* @param {Object} [options] Element creation options.
+	* @returns {GpuiCreator} ElementCreator instance.
 	*/
 	function createElement$16(tagName = "div", options = {}) {
 		return new ElementCreator(tagName, options);
@@ -271,12 +273,13 @@
 	/**
 	* Convenience function for creating an element from HTML.
 	* @param {string} html HTML string.
-	* @returns {Element} DOM element.
+	* @returns {GpuiElement} DOM element.
 	*/
 	function fromHTML(html) {
 		return ElementCreator.fromHTML(html);
 	}
-	if (typeof window !== "undefined") window.createElement = createElement$16;
+	if (typeof window !== "undefined")
+ /** @type {any} */ window.createElement = createElement$16;
 	//#endregion
 	//#region src/locales/en.js
 	var en_exports = /* @__PURE__ */ __exportAll({
@@ -2066,7 +2069,8 @@
 		} catch (ignore) {}
 		this.details = parsedDetails && typeof parsedDetails === "object" ? parsedDetails : info;
 		this.pendingPublication = info.pending_publication || info.pendingPublication || this.details && this.details.pending_publication || null;
-		if (Error.captureStackTrace) Error.captureStackTrace(this, EditorError);
+		const errorCtor = Error;
+		if (errorCtor.captureStackTrace) errorCtor.captureStackTrace(this, EditorError);
 	}
 	EditorError.prototype = Object.create(Error.prototype);
 	EditorError.prototype.constructor = EditorError;

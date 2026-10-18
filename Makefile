@@ -9,7 +9,7 @@ PYTHON ?= python3
 COVERAGE ?= coverage
 COVERAGE_THRESHOLD ?= 93.90
 
-.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui ui-dev ui-dev-install ui-lint
+.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui test-ui-ipa ui-dev ui-dev-install ui-lint
 
 all: build
 
@@ -31,8 +31,10 @@ UI_DEV_DIR = frontend
 NPM ?= npm
 
 test-ui:
-	$(NPM) --prefix $(UI_DEV_DIR) run build:test-root
-	NODE_PATH=$(UI_DEV_DIR)/node_modules node --test "tests/ui/*.test.js"
+	$(NPM) --prefix $(UI_DEV_DIR) test
+
+test-ui-ipa:
+	$(NPM) --prefix $(UI_DEV_DIR) run test:ipa
 
 ui-dev-install:
 	$(NPM) --prefix $(UI_DEV_DIR) install

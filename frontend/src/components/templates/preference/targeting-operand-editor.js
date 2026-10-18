@@ -358,6 +358,7 @@ import * as typedInput from './targeting-typed-input';
                 return;
             }
             var force = blocked || opts.disabled;
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             var control = options.fieldControl(displayed, force, false, { wrapSelect: true, wrapCheckbox: true, wrapText: true });
             var dom = control.element.getElement();
             var input = dom.querySelector('input,select,textarea');

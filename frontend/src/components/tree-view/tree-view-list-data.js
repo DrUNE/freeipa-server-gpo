@@ -99,6 +99,7 @@ import * as editorIcons from '../editor-icons';
 
     function windowsPolicySettingsNode(scope) {
         var children = [scriptsNode(scope)];
+        // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
         if (scope === 'computer') children.push(securityNode());
         return {
             title: t('policies.windowsSettings'),
@@ -116,7 +117,9 @@ import * as editorIcons from '../editor-icons';
             lazy: true, children: [], loadChildren: function() {
                 return Promise.all([API.securityDefinitionsShow(), API.advancedAuditShow().then(function(value) { return { value: value }; }, function(error) { return { error: error }; })]).then(function(responses) {
                     var nodes = securityModel.navigationNodes(responses[0]);
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     if (responses[1].value) nodes.push(auditModel.navigationNode(responses[1].value));
+                    // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
                     else nodes.push({ title: t('security.auditUnavailable'), type: 'file', icon: 'ico-file', showInTree: false, template: 'advanced_audit', advancedAuditError: responses[1].error });
                     return nodes.sort(function(left, right) { return left.title.localeCompare(right.title); });
                 });

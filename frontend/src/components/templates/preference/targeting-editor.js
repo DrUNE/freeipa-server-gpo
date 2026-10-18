@@ -102,6 +102,7 @@ import * as operandEditor from './targeting-operand-editor';
             var row = Array.from(tree.getElement().querySelectorAll('[data-targeting-id]')).find(function(element) {
                 return element.getAttribute('data-targeting-id') === id;
             });
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             if (row) { row.focus({ preventScroll: true }); row.scrollIntoView({ block: 'nearest' }); }
         }
         function select(id, focus) {
@@ -326,10 +327,12 @@ import * as operandEditor from './targeting-operand-editor';
             if (blocked()) return;
             menu.getElement().hidden = !menu.getElement().hidden;
             createButton.setAttr('aria-expanded', String(!menu.getElement().hidden));
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             if (!menu.getElement().hidden && menu.getElement().firstElementChild) menu.getElement().firstElementChild.focus();
         });
         menu.on('keydown', function(event) {
             var entries = Array.from(menu.getElement().querySelectorAll('button'));
+            // @ts-expect-error TODO(types): untyped DOM/union access; replace with a precise type
             var index = entries.indexOf(document.activeElement);
             if (event.key === 'Escape') { event.preventDefault(); hideMenu(); createButton.getElement().focus(); }
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {

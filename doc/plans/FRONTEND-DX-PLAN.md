@@ -1,7 +1,7 @@
 # План улучшения опыта фронтенд-разработки
 
 **Дата:** 2026-10-18
-**Область:** `plugin/ui/grouppolicy/` (≈20 тыс. строк JS, 2,4 тыс. строк CSS), `frontend/dev/`, `tests/ui/`.
+**Область:** `plugin/ui/grouppolicy/` (≈20 тыс. строк JS, 2,4 тыс. строк CSS), `frontend/dev/`, `frontend/tests/`.
 **Принцип:** улучшать инструментарий вокруг существующего кода, не переписывая редактор. Решение о смене фреймворка принимается после этапа 6 на основе измерений.
 
 ## 1. Исходное состояние (проверено по репозиторию)
@@ -11,7 +11,7 @@
 | Модульность | Все файлы `js/**` — AMD `define([...], function(__dep0){ var {x} = __dep0; ... return {x}; })`. ESM-исходников нет, обёртки поддерживаются вручную. |
 | Язык | ES2015+ внутри AMD (`const`, `class`, стрелочные функции), смешан с `var` и jQuery-стилем в `chain.js`/`gpo.js`. |
 | Линтинг, форматирование, типы | Нет. Корневого `package.json` нет. Для Python есть `ruff` и `pylint`. |
-| Тесты | 40 файлов в `tests/ui/`: `node:test` и Playwright (`*.browser.test.js`). Без Chromium браузерные тесты молча пропускаются. |
+| Тесты | 40 файлов в `frontend/tests/`: `node:test` и Playwright (`*.browser.test.js`). Без Chromium браузерные тесты молча пропускаются. |
 | CI и сборка RPM | `python-backend.yml` и `.spec` запускают только pytest и покрытие Python. `make test-ui` нигде не вызывается. |
 | Dev-стенд | `frontend/dev`: mock-бэкенд и `requirejs` без сборки, обновление по F5. Не покрывает `chain.js`/`gpo.js` (зависят от `freeipa/*`). |
 | Размеры | Крупные файлы: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. Остальной код разбит удовлетворительно. |
@@ -31,14 +31,14 @@
 - `.editorconfig`.
 - Убрать дубль `img/arrow.svg` ↔ `img/svg/arrow.svg` и `close.svg`, проверив ссылки в CSS и `tests/test_editor_icon_assets.py`.
 
-**Готово, когда:** `npm run lint` чист на всём `plugin/ui` и `tests/ui`.
+**Готово, когда:** `npm run lint` чист на всём `plugin/ui` и `frontend/tests`.
 
 ### Этап 2. UI-тесты в CI (1-2 дня)
 
 - Job `ui-tests` в `python-backend.yml`: `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:ui`.
 - Переменная `REQUIRE_BROWSER=1`: в CI отсутствие Chromium — ошибка, а не skip.
 - `c8` для покрытия JS и порог на уровне текущего значения (по аналогии с `COVERAGE_THRESHOLD` для Python); трекать, не снижать.
-- `tests/ui/freeipa-plugin-menu.live.test.js` остаётся локальным, в CI не запускается.
+- `frontend/tests/e2e/freeipa-plugin-menu.live.test.js` запускается локально через `npm run test:ipa`, в CI не запускается.
 
 **Готово, когда:** PR с поломкой UI-теста краснеет в CI.
 

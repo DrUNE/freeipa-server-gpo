@@ -27,7 +27,12 @@ export default [
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } }
     },
     {
-        files: ['../tests/ui/**/*.js'],
-        languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } }
+        files: ['tests/**/*.js'],
+        languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } },
+        rules: {
+            // Functions passed to page.evaluate() run in the browser and use its globals.
+            'no-undef': 'off',
+            'no-unused-vars': 'warn'
+        }
     }
 ];

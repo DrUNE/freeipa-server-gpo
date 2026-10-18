@@ -32,9 +32,9 @@ ADMX, Preferences (22 layout'а, targeting editor), Scripts, Security, Advanced 
 |---|---|
 | Запуск редактора без FreeIPA | `make ui-dev-install`, затем `make ui-dev`: Vite-стенд (`frontend/dev`: mock-бэкенд, ES-шимы `freeipa/*`), перезагрузка при сохранении |
 | Проверка на живом FreeIPA | devcontainer `.devcontainer/` (podman), перезагрузка плагинов `ipa-dev-reload`, живой тест меню `tests/ui/freeipa-plugin-menu.live.test.js` |
-| UI-тесты | `make test-ui`: 39 файлов в `tests/ui/` на `node:test` и Playwright; без Chromium браузерные тесты пропускаются |
+| UI-тесты | `make test-ui` (`frontend/tests/unit` и `integration`, моки) и `make test-ui-ipa` (`frontend/tests/e2e`, живой FreeIPA в контейнере); без Chromium браузерные тесты пропускаются |
 | Бэкенд-тесты | `make test-python`, `make test-coverage` (порог 93,90%), `make test-integration` |
-| Линтер, форматтер, типы для JS | ESLint (`make ui-lint`); форматтера и типов нет |
+| Линтер, форматтер, типы для JS | ESLint (`make ui-lint`), `tsc --noEmit` по JSDoc (`npm run typecheck`); форматтера нет |
 | CI | `python-backend.yml`: сборка RPM, pytest, интеграция во FreeIPA, публикация. job `frontend`: lint, проверка бандла, UI-тесты |
 | Ограничение стенда | `chain.js` и `gpo.js` в `frontend/dev` не работают (нужны модули FreeIPA), проверяются только на живом сервере |
 
