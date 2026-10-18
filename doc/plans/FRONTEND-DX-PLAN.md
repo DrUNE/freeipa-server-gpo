@@ -26,7 +26,7 @@
 ### Этап 1. Гигиена (1-2 дня) — делать первым
 
 - Корневой `package.json`: `npm run lint | format | test | test:ui | dev`. Зависимости `tools/ui-dev` переезжают в него (`npm ci` вместо `--prefix`). `Makefile` остаётся тонкой обёрткой.
-- Линтер и форматтер: Biome (один инструмент) или ESLint flat config + Prettier. Правила для AMD-кода: `no-undef`, `no-unused-vars`, `eqeqeq`. Первый прогон только `--fix`, без ручных переписываний. Форматирование отдельным коммитом, добавить в `.git-blame-ignore-revs`.
+- Линтер и форматтер: **ESLint flat config + Prettier** (тот же набор, что в `freeipa-webui`: `eslint.config.mjs`, `prettier`, `vitest`, `knip`; общие правила упростят перенос кода). Biome остаётся запасным вариантом, если скорость станет проблемой. Правила для AMD-кода: `no-undef`, `no-unused-vars`, `eqeqeq`. Первый прогон только `--fix`, без ручных переписываний. Форматирование отдельным коммитом, добавить в `.git-blame-ignore-revs`.
 - `.vscode/extensions.json` и `settings.json`: расширение линтера, format-on-save для JS/CSS.
 - `.editorconfig`.
 - Убрать дубль `img/arrow.svg` ↔ `img/svg/arrow.svg` и `close.svg`, проверив ссылки в CSS и `tests/test_editor_icon_assets.py`.
@@ -45,6 +45,7 @@
 ### Этап 3. Типы без смены языка (3-5 дней)
 
 - `// @ts-check` + `tsc --noEmit` (`allowJs`, `checkJs`, `noEmit`). Порядок: `util/` → `editor-dto.js` → `locales/` → компоненты. Новые файлы сразу с аннотациями JSDoc.
+- Типы RPC-ответов по возможности вести так, чтобы их можно было переиспользовать в `freeipa-webui` (`utils/datatypes/globalDataTypes.ts`), см. [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md).
 - Описать RPC-ответы в `types/rpc.d.ts` (`@typedef`), по одному на метод `API.js`.
 - Зафиксировать контракт с бэкендом: golden-файлы JSON (ответы `gpo_editor_*`), которые читают и pytest (`tests/test_gpo_editor_backend.py`), и `node:test`. Расхождение формата ловится в CI до живого сервера.
 
@@ -85,7 +86,7 @@
 |---|---|---|
 | Остаться на vanilla + `createStore` | 0 | если этапы 1-6 сняли основные болевые точки |
 | Preact/Lit + htm, постепенно | 2-3 мес. | нужен декларативный рендер, но не стек freeipa-webui |
-| React + PatternFly (`WEBUI-MIGRATION.md`, блок 8) | 3-5 мес. | нужен единый UI с `freeipa-webui` и есть владелец этого проекта |
+| React + PatternFly (`WEBUI-MIGRATION.md`, блок 8) | 3-5 мес. | нужен единый UI с `freeipa-webui` и есть владелец этого проекта. В webui нет UI упорядочивания и слитой плагинной инфраструктуры: часть компонентов придётся создавать |
 
 Критерии пилота: число строк против vanilla-версии, время сборки, прохождение портированных тестов, клавиатурная доступность. Утверждение «50-70% меньше кода» измерить, а не принимать.
 
@@ -111,7 +112,11 @@
 - **Форматирование засоряет историю** → отдельный коммит + `.git-blame-ignore-revs`.
 - **Совместимость с FreeIPA UI:** `chain.js`/`gpo.js` зависят от версии `freeipa/*`; шимы стенда нужно сверять с настоящими модулями (live-тест меню уже есть).
 
-## 5. Первые шаги
+## 5. Связь с миграцией в freeipa-webui
+
+Этапы 1-4 этого плана — предусловие блока «Подключение существующего редактора» в [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md): без автономной ESM-сборки редактор нельзя встроить в webui без AMD-шимов (+1 неделя).
+
+## 6. Первые шаги
 
 1. Этапы 1 и 2 одним PR: `package.json`, линтер, job в CI.
 2. Снять базовые снимки Playwright и порог покрытия JS.
