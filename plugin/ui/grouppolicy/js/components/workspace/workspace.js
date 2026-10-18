@@ -1,13 +1,20 @@
-define(['../../util/element-creator'], function(__dep0) {
-var { createElement } = __dep0;
+/* GENERATED from frontend/src by "npm run build" in frontend/. Do not edit. */
+define(['../../util/element-creator'], function (elementCreator) { 'use strict';
+    var exports = {};
+
+    var { createElement } = elementCreator;
 
 
-function renderWorkspace() {
-    const element = createElement('div', {
-        className: 'workspace'
-    });
-    
-    return element; // Return ElementCreator so callers can use its methods.
-}
-    return { renderWorkspace };
+    function renderWorkspace() {
+        const element = createElement('div', {
+            className: 'workspace'
+        });
+        
+        return element; // Return ElementCreator so callers can use its methods.
+    }
+
+    exports.renderWorkspace = renderWorkspace;
+
+
+    return Object.freeze(exports);
 });

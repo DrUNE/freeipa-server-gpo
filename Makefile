@@ -9,7 +9,7 @@ PYTHON ?= python3
 COVERAGE ?= coverage
 COVERAGE_THRESHOLD ?= 93.90
 
-.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration test-ui ui-dev ui-dev-install
+.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui ui-dev ui-dev-install
 
 all: build
 
@@ -49,6 +49,15 @@ check-po:
 	find locale -name "*.po" -exec msgfmt --check -o /dev/null {} \;
 
 install: build install-ui
+
+ui-build-check:
+	cd frontend && npm run build:check
+
+ui-build:
+	@echo "Building frontend..."
+	cd frontend && npm run build
+	@echo "Frontend build complete."
+
 	@echo "Installing $(PACKAGE_NAME)..."
 
 	# Main executable
