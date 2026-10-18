@@ -5,7 +5,7 @@
 
 Стенд работает на Vite: он раздаёт исходники `frontend/src` напрямую (перезагрузка страницы при сохранении),
 подменяет `freeipa/ipa` и `freeipa/rpc` ES-шимами из `shims/`, а JSON-RPC `POST /ipa/session/json` обслуживает
-mock-бэкенд `backend.cjs` (фикстуры в памяти) через плагин в `../vite.config.mjs`. Настоящий `util/API.js` не меняется.
+mock-бэкенд `backend.mjs` (фикстуры в памяти) через плагин в `../vite.config.mjs`. Настоящий `util/API.js` не меняется.
 
 ## Запуск
 
@@ -38,7 +38,7 @@ make ui-dev           # http://127.0.0.1:8765/ipa/ui/
 
 ## Как расширять
 
-- Новый метод `gpo_editor_*`: добавьте функцию в `methods` в `backend.cjs`.
+- Новый метод `gpo_editor_*`: добавьте функцию в `methods` в `backend.mjs`.
   Сигнатура: `(displayname, ...args, options)`, где `options` это второй
   элемент `params` запроса (`request`, `locales`, `category_id` и т.д.).
   Ответ оборачивается в `{result: {result: ...}}`, как делает FreeIPA.

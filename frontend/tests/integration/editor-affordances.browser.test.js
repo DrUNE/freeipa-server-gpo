@@ -1,16 +1,15 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
-const vm = require('node:vm');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import vm from 'node:vm';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 let chromium, requireJs;
-try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); } catch (_) { /* Optional browser runner. */ }
-const skip = !chromium || !requireJs ? 'Set NODE_PATH for browser checks.' : false;
-const root = path.resolve(__dirname, '../../.test-root');
-const source = fs.readFileSync(path.join(__dirname, 'admx-navigation.browser.test.js'), 'utf8');
+try { chromium = (await import('playwright')).chromium; requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js')); } catch (_) { /* Optional browser runner. */ }
+const skip = !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+const root = path.resolve(import.meta.dirname, '../../.test-root');
+const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
 const start = source.indexOf('const html = `');
 const end = source.indexOf('\nconst browserOptions', start);
 assert.ok(start >= 0 && end > start);

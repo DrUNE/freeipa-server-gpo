@@ -1,8 +1,6 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { test, vi } from 'vitest';
 import * as iconsModule from '../../src/components/editor-icons.js';
 import * as presentationsModule from '../../src/components/templates/preference/targeting-presentations.js';
@@ -16,7 +14,7 @@ vi.mock('../../src/components/templates/security/model.js', () => ({}));
 vi.mock('../../src/components/templates/advanced-audit/model.js', () => ({}));
 
 
-const root = path.resolve(__dirname, '../../../plugin/ui/grouppolicy');
+const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
 const icons = iconsModule;
 const presentations = presentationsModule;
 const tree = treeModule;

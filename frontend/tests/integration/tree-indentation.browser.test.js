@@ -1,17 +1,15 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import path from 'node:path';
 import { test } from 'vitest';
 
 let chromium;
-try { chromium = require('playwright').chromium; }
+try { chromium = (await import('playwright')).chromium; }
 catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
 
-const cssRoot = path.resolve(__dirname, '../../../plugin/ui/grouppolicy/css');
+const cssRoot = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy/css');
 
 test('folder and leaf icons keep the same indentation at each tree depth', {
-    skip: !chromium ? 'Set NODE_PATH for Playwright browser checks.' : false
+    skip: !chromium ? 'Install playwright (npm install in frontend/) for browser checks.' : false
 }, async () => {
     const browser = await chromium.launch({ headless: true });
     try {

@@ -1,11 +1,10 @@
-'use strict';
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-const fs = require('node:fs');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
-const root = path.resolve(__dirname, '../../src/components/templates');
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+const root = path.resolve(import.meta.dirname, '../../src/components/templates');
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 const model = await load('security/model.js');
 const values = await load('security/value-editor.js', { '../../../util/element-creator': { createElement: undefined } });

@@ -1,13 +1,12 @@
-'use strict';
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as enModule from '../../src/locales/en.js';
 import * as ruModule from '../../src/locales/ru.js';
 import * as translationsModule from '../../src/locales/translations.js';
 import * as modelModule from '../../src/components/templates/advanced-audit/model.js';
-const fs = require('node:fs');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 const locales = { en: enModule, ru: ruModule };
 const translations = translationsModule;
 const model = modelModule;

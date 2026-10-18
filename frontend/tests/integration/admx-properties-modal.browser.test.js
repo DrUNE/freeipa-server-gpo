@@ -1,14 +1,13 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 let chromium, requireJs;
-try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); } catch (_) { /* Optional browser runner. */ }
-const root = path.resolve(__dirname, '../../.test-root');
-const skip = !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false;
+try { chromium = (await import('playwright')).chromium; requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js')); } catch (_) { /* Optional browser runner. */ }
+const root = path.resolve(import.meta.dirname, '../../.test-root');
+const skip = !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{margin:0;font:12px Arial,sans-serif;color:#363636}.gp__container{height:100vh;min-width:0}</style>

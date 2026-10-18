@@ -1,20 +1,20 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 
 let chromium, requireJs;
 try {
-    chromium = require('playwright').chromium;
-    requireJs = require.resolve('requirejs/require.js');
+    chromium = (await import('playwright')).chromium;
+    requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
 } catch (_) { /* Optional browser dependencies in unit-only environments. */ }
-const jquery = '/usr/share/ipa/ui/js/libs/jquery.js';
+// FreeIPA's own jQuery: installed on a FreeIPA host, or copied out of the dev container by `npm run test:ipa`.
+const jquery = process.env.FREEIPA_JQUERY || '/usr/share/ipa/ui/js/libs/jquery.js';
 const skip = !chromium || !requireJs || !fs.existsSync(jquery)
-    ? 'Set NODE_PATH and provide the installed FreeIPA jQuery for browser checks.' : false;
-const root = path.resolve(__dirname, '../../.test-root');
+    ? 'Install playwright and provide the installed FreeIPA jQuery for browser checks.' : false;
+const root = path.resolve(import.meta.dirname, '../../.test-root');
 
 // The production action creates the outer window. Only FreeIPA and app init are
 // mocked: real gpo.js, shared dialogs, tree renderer, CSS and jQuery are served.
@@ -35,7 +35,8 @@ define('freeipa/phases',[],function(){return {on:function(){}}});
 define('freeipa/reg',[],function(){return {entity:{register:function(){}},action:{register:function(){}}}});
 define('freeipa/navigation',[],function(){return {}});
 define('freeipa/rpc',[],function(){return {}});
-define('js/app',[],function(){return {init:function(options){
+// gpo.js takes translations and editorDialog from the bundle (js/app); only init is faked.
+define('js/app',['js/locales/translations','js/components/editor-dialog'],function(translations,editorDialog){return {translations:translations,editorDialog:editorDialog,init:function(options){
     initializations.push(options);var host=document.getElementById(options.containerId);
     if(mode==='loading'){host.textContent='Loading fixture';return;}
     host.innerHTML='<div class="fixture-controls"><button id="outer-first">First action</button><input id="outer-input" aria-label="Input"><button id="outer-last">Last action</button><button id="hidden-attr" hidden>Hidden attribute</button><button id="hidden-css" class="not-displayed">Display none</button><button id="hidden-visibility" class="not-visible">Visibility hidden</button><button id="disabled-control" disabled>Disabled</button></div>';

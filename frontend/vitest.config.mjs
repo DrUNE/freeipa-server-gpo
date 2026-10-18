@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config';
 // `npm run test:ipa` runs e2e against a live FreeIPA server.
 export default defineConfig({
     test: {
+        // Browser tests are timing-sensitive on small CI runners: one retry there, none locally.
+        retry: process.env.CI ? 1 : 0,
         // `npm test -- --coverage`. Only unit tests contribute: integration tests execute the code
         // inside Chromium, which Node's V8 coverage does not see. The thresholds are a floor at the
         // current level (ratchet them up as unit coverage grows), not a target.
@@ -19,7 +21,11 @@ export default defineConfig({
                 test: {
                     name: 'integration',
                     include: ['tests/integration/**/*.test.js'],
-                    // Each file launches Chromium.
+                    // Each file launches Chromium, which spawns many processes; unbounded parallelism
+                    // exhausts container pid limits (podman defaults to 2048).
+                    maxWorkers: 2,
+                    // Projects with different worker limits must run in different groups.
+                    sequence: { groupOrder: 1 },
                     testTimeout: 60000,
                     hookTimeout: 60000
                 }
@@ -30,7 +36,8 @@ export default defineConfig({
                     include: ['tests/e2e/**/*.test.js'],
                     testTimeout: 90000,
                     hookTimeout: 90000,
-                    fileParallelism: false
+                    fileParallelism: false,
+                    sequence: { groupOrder: 2 }
                 }
             }
         ]

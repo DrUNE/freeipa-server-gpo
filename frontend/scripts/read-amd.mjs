@@ -1,9 +1,8 @@
-'use strict';
 // Reads an ES module from frontend/src and returns it in the classic AMD shape
 // `define([deps], function (deps) { ...; return {exports}; })`, so unit tests can
 // keep injecting mocked dependencies through a stubbed `define`.
 // Handles only the import/export forms used in frontend/src.
-const fs = require('node:fs');
+import fs from 'node:fs';
 
 function readAmd(filename) {
     const source = fs.readFileSync(filename, 'utf8');
@@ -27,4 +26,4 @@ function readAmd(filename) {
         + body + '\nreturn Object.freeze({ ' + members.join(', ') + ' });\n});\n';
 }
 
-module.exports = { readAmd };
+export { readAmd };

@@ -1,18 +1,17 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 
 let chromium, requireJs;
 try {
-    chromium = require('playwright').chromium;
-    requireJs = require.resolve('requirejs/require.js');
+    chromium = (await import('playwright')).chromium;
+    requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
 } catch (_) { /* Optional browser dependencies. */ }
-const root = path.resolve(__dirname, '../../.test-root');
-const skip = !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false;
+const root = path.resolve(import.meta.dirname, '../../.test-root');
+const skip = !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/icons.css">
 <style>body{font:12px Arial,sans-serif;color:#363636;background:white;margin:20px}h1{font-size:18px;font-weight:400;margin:0 0 18px}h2{font-size:14px;font-weight:400;margin:12px 0 8px}.sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 16px}.sample{display:flex;align-items:center;gap:8px;min-height:24px;padding:4px;border:1px solid #eee}.sample:nth-child(odd){background:#f5f5f5}.sample span:last-child{min-width:0}section{margin-bottom:20px}</style>

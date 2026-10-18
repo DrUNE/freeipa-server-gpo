@@ -19,6 +19,9 @@
         "--hosts-file=image",
         "--privileged",
         "--systemd=always",
+        // Chromium (UI tests run in the container) needs a real /dev/shm and many processes.
+        "--shm-size=2g",
+        "--pids-limit=-1",
         "--publish=127.0.0.1:443:443"
     ],
 

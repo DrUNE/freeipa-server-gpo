@@ -1,10 +1,8 @@
-'use strict';
-
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 async function loadApi(rpc) {
     return loadModule('util/API.js', {

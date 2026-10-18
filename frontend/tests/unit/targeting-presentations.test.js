@@ -1,10 +1,8 @@
-'use strict';
-
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 const presentation = presentationModule;
 function plain(value) { return JSON.parse(JSON.stringify(value)); }

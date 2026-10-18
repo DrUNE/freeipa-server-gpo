@@ -112,6 +112,35 @@
 - **Форматирование засоряет историю** → отдельный коммит + `.git-blame-ignore-revs`.
 - **Совместимость с FreeIPA UI:** `chain.js`/`gpo.js` зависят от версии `freeipa/*`; шимы стенда нужно сверять с настоящими модулями (live-тест меню уже есть).
 
+### Открытая проблема: образ для CI без установки Chromium и без доступа в интернет
+
+**Состояние.** Задача `frontend` (`.forgejo/workflows/python-backend.yml`) работает в образе `altlinux.space/actions/runner/containers:sisyphus`
+и при каждом запуске выкачивает всё нужное из сети:
+
+| Что | Откуда | Объём |
+|---|---|---|
+| `python3-module-admix`, `sdmx-*`, `admx-basealt`, `freeipa-server-common`, `fonts-ttf-open-sans` | `apt-get` (Sisyphus) | десятки пакетов |
+| `chromium` (нужен ради системных библиотек) | `apt-get` | около 140 пакетов |
+| браузер Playwright | CDN Playwright (`playwright install chromium`) | около 120 МБ |
+| npm-зависимости | `npm ci` (npm-реестр) | 174 пакета в `package-lock.json` |
+
+Цена: задача зависит от доступности трёх внешних источников, дольше выполняется и ломается при недоступности сети или смене версий в Sisyphus (образ без `apt-get update` не работает, а версии `admix` и `chromium` плавают). В hasher сети нет вообще, поэтому та же схема не годится для сборки пакета.
+
+**Требования к решению:**
+- в образе уже есть всё, что нужно тестам: Node (≥ 20), `python3-module-admix` 0.3.x, `sdmx-basealt`, `sdmx-schemas`, `admx-basealt`, jQuery FreeIPA (`/usr/share/ipa/ui/js/libs/jquery.js`), Chromium вместе с TTF-шрифтом и правилом fontconfig, которое отбрасывает шрифты Type 1;
+- в задаче нет `apt-get` и `playwright install`; `npm ci` работает из кэша или из закоммиченного/vendored набора зависимостей;
+- версия Chromium закреплена и совпадает с той, под которую выпущена версия Playwright из `package-lock.json`, иначе она ломается молча;
+- образ собирается и публикуется воспроизводимо (из репозитория, например из `.devcontainer/Containerfile` или отдельного `ci/Containerfile`) и обновляется осознанно, а не при каждом запуске.
+
+**Что нужно исследовать и выбрать:**
+1. Есть ли готовый образ в `altlinux.space/actions/runner/*` (или в `registry.altlinux.org`) с Node и Chromium; проверено только `containers:sisyphus` — Chromium в нём нет, `apt` требует `apt-get update`.
+2. Как подключить Chromium без `playwright install`: системный `chromium` через `executablePath` / `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`-подобный способ (в тестах 23 вызова `chromium.launch`, потребуется общая обёртка), либо образ с заранее загруженным `PLAYWRIGHT_BROWSERS_PATH`. Нужно проверить, что Playwright работает с системным Chromium ALT той версии, что в Sisyphus (сейчас 155 против 156 у Playwright).
+3. Как обеспечить npm-зависимости без сети: кэш в образе (`npm ci --offline`), `node_modules` в образе с проверкой по `package-lock.json`, либо внутренний npm-прокси.
+4. Где хранить и как обновлять образ (реестр Forgejo; триггер пересборки при изменении `package-lock.json`, `Containerfile` или версии `admix` в spec).
+5. Вариант полностью автономный: образ, собранный из `.devcontainer/Containerfile` без части FreeIPA, плюс `chromium` и браузер Playwright; сверить, что он воспроизводит результат dev-контейнера (280 тестов, нет пропусков).
+
+**Критерий готовности:** задача `frontend` проходит в runner'е без доступа в интернет (проверка: запуск с отключённой сетью), `assert-no-skips.mjs` зелёный (280 тестов, ноль пропусков), время задачи не больше текущего.
+
 ## 5. Связь с миграцией в freeipa-webui
 
 Этапы 1-4 этого плана — предусловие блока «Подключение существующего редактора» в [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md): без автономной ESM-сборки редактор нельзя встроить в webui без AMD-шимов (+1 неделя).

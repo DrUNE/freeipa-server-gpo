@@ -14,7 +14,7 @@
     "lint": "eslint src dev scripts tests *.mjs",
     "typecheck": "tsc -p . --pretty false",
     "test": "node scripts/build-test-root.mjs && vitest run --project unit --project integration",
-    "test:ipa": "bash scripts/ipa-up.sh && REQUIRE_IPA=1 vitest run --project e2e",
+    "test:ipa": "bash scripts/ipa-up.sh && REQUIRE_IPA=1 vitest run --project e2e && bash scripts/ipa-native.sh",
     "test:watch": "node scripts/build-test-root.mjs && vitest --project unit"
   },
   "devDependencies": {

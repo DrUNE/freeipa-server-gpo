@@ -1,5 +1,4 @@
-'use strict';
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test, vi } from 'vitest';
 import * as dtoModule from '../../src/util/editor-dto.js';
 import * as enModule from '../../src/locales/en.js';
@@ -9,8 +8,8 @@ import * as statusModule from '../../src/components/editor-status.js';
 
 vi.mock('../../src/util/element-creator.js', () => ({ createElement: (tag, options) => ({ tag, ...options }) }));
 
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 const dto = dtoModule;
 const en = enModule;

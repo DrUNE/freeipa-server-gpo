@@ -1,13 +1,11 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const { execFileSync } = require('node:child_process');
-const https = require('node:https');
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import https from 'node:https';
 import { afterAll, beforeAll, describe, test } from 'vitest';
 
 let chromium;
 try {
-    chromium = require('playwright').chromium;
+    chromium = (await import('playwright')).chromium;
 } catch (_) { /* Optional browser dependency in unit-only environments. */ }
 
 // Live check against a real FreeIPA server with the plugin installed, such as

@@ -1,21 +1,20 @@
-'use strict';
-
 // Loads the committed production bundle (plugin/ui/grouppolicy/js/app.js)
 // through RequireJS the way FreeIPA's Web UI does, with stub freeipa/* modules.
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 
 let chromium;
 let requireJs;
 try {
-    chromium = require('playwright').chromium;
-    requireJs = require.resolve('requirejs/require.js');
+    chromium = (await import('playwright')).chromium;
+    requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
 } catch (_) { /* Browser dependencies are optional for unit-only environments. */ }
 
-const root = path.resolve(__dirname, '../../../plugin/ui/grouppolicy');
+const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
 const html = `<!doctype html><html><body><div id="gp__container"></div>
 <script src="/require.js"></script><script>
 define('freeipa/ipa', [], () => ({ api_version: '2.0', notify() {}, notify_success() {} }));
@@ -25,7 +24,7 @@ require(['app'], app => { window.bundle = app; window.ready = true; }, error => 
 </script></body></html>`;
 
 test('the committed bundle registers as an AMD module with the entry points FreeIPA uses', {
-    skip: !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false
+    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
 }, async () => {
     const server = http.createServer((request, response) => {
         const url = new URL(request.url, 'http://localhost');

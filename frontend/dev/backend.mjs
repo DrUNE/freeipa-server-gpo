@@ -1,4 +1,3 @@
-'use strict';
 
 /**
  * In-memory fixture backend for the GPUI editor.
@@ -123,7 +122,7 @@ function policyDefinition(scope, id) {
         scope, policy_id: id, state: 'not_configured', comment: null,
         capabilities: clone(capabilities), state_actions: stateActions(),
         supported_on: 'ALT systems\nGroup Policy client',
-        explain_text: 'Fixture policy served by frontend/dev/backend.cjs.\n\nEdit the fixture to change this text.'
+        explain_text: 'Fixture policy served by frontend/dev/backend.mjs.\n\nEdit the fixture to change this text.'
     };
     const simple = (label, parameters) => Object.assign(base, { label, parameters });
 
@@ -565,4 +564,4 @@ function dispatch(body) {
     }
 }
 
-module.exports = { dispatch, reset, methods, RpcError };
+export { dispatch, reset, methods, RpcError };

@@ -14,7 +14,7 @@ RUN apt-get update \
          python3-module-pytest python3-module-coverage \
          python3-module-dbus python3-module-ldap \
          gettext-tools make git rsync curl tar gzip less procps iproute2 \
-         node npm \
+         node npm chromium fonts-ttf-open-sans \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

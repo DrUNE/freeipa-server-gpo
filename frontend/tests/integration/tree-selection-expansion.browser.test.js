@@ -1,21 +1,20 @@
-'use strict';
-
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const http = require('node:http');
-const path = require('node:path');
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
 import { test } from 'vitest';
+import { fileURLToPath } from 'node:url';
 
 let chromium;
 let requireJs;
 try {
-    chromium = require('playwright').chromium;
-    requireJs = require.resolve('requirejs/require.js');
+    chromium = (await import('playwright')).chromium;
+    requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
 } catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
 
-const root = path.resolve(__dirname, '../../.test-root');
+const root = path.resolve(import.meta.dirname, '../../.test-root');
 const browserOptions = {
-    skip: !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false
+    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
 };
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">

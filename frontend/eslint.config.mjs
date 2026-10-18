@@ -19,16 +19,11 @@ export default [
         }
     },
     {
-        files: ['**/*.cjs'],
-        languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node } }
-    },
-    {
-        files: ['*.mjs', 'scripts/**/*.mjs'],
+        files: ['*.mjs', 'scripts/**/*.mjs', 'dev/**/*.mjs'],
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } }
     },
     {
         files: ['tests/**/*.js'],
-        // Vitest transforms these files; they mix `import` with `require`.
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
         rules: {
             // Functions passed to page.evaluate() run in the browser and use its globals.

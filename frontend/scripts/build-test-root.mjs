@@ -1,13 +1,11 @@
 // Builds the fixture tree used by the browser tests: every ES module in src/
 // as its own classic AMD module (js/), next to the plugin's css/ and img/.
 // Not shipped; the shipped artifact is the single bundle from `npm run build`.
-import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readAmd } from './read-amd.mjs';
 
-const require = createRequire(import.meta.url);
-const { readAmd } = require('./read-amd.cjs');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(root, 'src');
 const out = path.join(root, '.test-root');

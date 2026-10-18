@@ -1,14 +1,12 @@
-'use strict';
-
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as collectionModule from '../../src/util/collection-value.js';
 import * as enLocale from '../../src/locales/en.js';
 import * as ruLocale from '../../src/locales/ru.js';
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const root = path.resolve(__dirname, '../../src');
+const root = path.resolve(import.meta.dirname, '../../src');
 
 function plain(value) {
     return JSON.parse(JSON.stringify(value));

@@ -1,12 +1,10 @@
-'use strict';
-
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
 import * as operandEditorModule from '../../src/components/templates/preference/targeting-operand-editor.js';
-const fs = require('node:fs');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 function plain(value) { return JSON.parse(JSON.stringify(value)); }
 const presentation = presentationModule;

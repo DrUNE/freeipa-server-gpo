@@ -20,17 +20,45 @@ jobs:
   frontend:
     name: Frontend lint, bundle and UI tests
     runs-on: als-tiny
-    timeout-minutes: 20
+    timeout-minutes: 30
+    # The same ALT image the integration job uses (Node 22, git, apt, root). The tests that compare
+    # the UI with the server side need the real libadmix, the SDMX catalog, the policy definitions
+    # and FreeIPA's jQuery; Chromium needs the system libraries that package pulls in.
     container:
-      image: node:24-bookworm
+      image: altlinux.space/actions/runner/containers:sisyphus
+      options: --shm-size=1g --pids-limit=-1
+    env:
+      CI: "1"
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      - name: Install test prerequisites
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y \
+            python3-module-admix sdmx-basealt sdmx-schemas admx-basealt \
+            freeipa-server-common chromium fonts-ttf-open-sans
+
+      # Layout assertions need a real text font. fontconfig would otherwise map Arial to the
+      # Type 1 URW fonts that Chromium cannot render (text width 0), so those are rejected.
+      - name: Configure fonts
+        run: |
+          set -euo pipefail
+          cat > /etc/fonts/local.conf <<'EOF'
+          <?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig><selectfont><rejectfont><glob>/usr/share/fonts/type1/*</glob></rejectfont></selectfont></fontconfig>
+          EOF
+          fc-cache -f
+          fc-match Arial
+
       - name: Install dependencies
-        run: npm --prefix frontend ci
+        run: |
+          npm --prefix frontend ci
+          npx --prefix frontend playwright install chromium
 
       - name: Lint
         run: npm --prefix frontend run lint
@@ -41,11 +69,13 @@ jobs:
       - name: Committed bundle matches the sources
         run: npm --prefix frontend run build:check
 
-      - name: Install Chromium
-        run: npx --prefix frontend playwright install --with-deps chromium
+      - name: Unit and integration tests
+        run: >
+          npm --prefix frontend test --
+          --coverage --reporter=default --reporter=json --outputFile.json=test-results.json
 
-      - name: UI tests
-        run: npm --prefix frontend test -- --coverage
+      - name: No test may be skipped
+        run: node frontend/scripts/assert-no-skips.mjs frontend/test-results.json
 
   build-package:
     name: Build package for Sisyphus

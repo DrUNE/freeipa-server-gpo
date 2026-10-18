@@ -1,10 +1,9 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import * as backend from './dev/backend.mjs';
 
-const require = createRequire(import.meta.url);
 const root = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy');
 const pluginUrl = '/ipa/ui/js/plugins/chain/';
@@ -14,7 +13,6 @@ const mime = { '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png',
 // Dev stand: mock FreeIPA JSON-RPC and the plugin's static files (css, img),
 // mirroring the URL layout of a real server.
 function devStand() {
-    const backend = require('./dev/backend.cjs');
     return {
         name: 'gpui-dev-stand',
         configureServer(server) {

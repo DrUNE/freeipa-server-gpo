@@ -1,13 +1,11 @@
-'use strict';
-
-const assert = require('node:assert/strict');
+import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
 import * as editorIcons from '../../src/components/editor-icons.js';
 import * as enLocale from '../../src/locales/en.js';
 import * as ruLocale from '../../src/locales/ru.js';
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 function locale(language) {
     return language === 'ru' ? ruLocale : enLocale;
