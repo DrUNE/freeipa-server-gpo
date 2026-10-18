@@ -5,12 +5,13 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js');
+const root = path.resolve(__dirname, '../../frontend/src');
 
 function load(file) {
     let result;
-    vm.runInNewContext(fs.readFileSync(path.join(root, file), 'utf8'), {
+    vm.runInNewContext(readAmd(path.join(root, file)), {
         define: (names, factory) => {
             assert.equal(names.length, 0, 'the collection model must remain independent of DOM and persistence');
             result = factory();

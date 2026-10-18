@@ -22,6 +22,6 @@
     },
     "search.exclude": {
         "**/node_modules": true,
-        "tools/ui-dev/package-lock.json": true
+        "frontend/package-lock.json": true
     }
 }

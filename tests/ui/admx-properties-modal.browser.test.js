@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 let chromium, requireJs;
 try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); } catch (_) { /* Optional browser runner. */ }
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 const skip = !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false;
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">

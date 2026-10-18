@@ -5,10 +5,11 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
 let presentation;
-vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,
-    '../../plugin/ui/grouppolicy/js/components/templates/preference/targeting-presentations.js'), 'utf8'), {
+vm.runInNewContext(readAmd(path.resolve(__dirname,
+    '../../frontend/src/components/templates/preference/targeting-presentations.js')), {
     define: (dependencies, factory) => {
         assert.equal(dependencies.length, 0, 'presentation adapters must not depend on DOM, RPC or storage');
         presentation = factory();

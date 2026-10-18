@@ -16,6 +16,7 @@ import * as elementCreatorModule from './util/element-creator';
 import * as editorStatusModule from './components/editor-status';
 import * as translationsModule from './locales/translations';
 import * as APIModule from './util/API';
+import * as editorDialogModule from './components/editor-dialog';
 
 
     var renderHeader = headerModule.renderHeader;
@@ -23,7 +24,6 @@ import * as APIModule from './util/API';
     var renderFooter = footerModule.renderFooter;
     var resizable = resizableModule.resizable;
     var renderDefaultTemplate = defaultTemplateModule.renderDefaultTemplate;
-    var renderAdmxTemplate = admxTemplateModule.renderAdmxTemplate;
     var renderFolderTemplate = folderTemplateModule.renderFolderTemplate;
     var renderHelpBlock = folderTemplateModule.renderHelpBlock;
     var renderScriptsTemplate = scriptsTemplateModule.renderScriptsTemplate;
@@ -852,4 +852,6 @@ const __export__test = {
             createTreeViewState: createTreeViewState
         };
 
-export { init, __export__test as _test };
+// The FreeIPA-side entry points (gpo.js, chain.js) share these module instances
+// with the editor, because the whole editor ships as one bundle (js/app.js).
+export { init, __export__test as _test, translationsModule as translations, editorDialogModule as editorDialog };

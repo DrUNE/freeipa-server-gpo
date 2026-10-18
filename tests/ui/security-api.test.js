@@ -5,12 +5,13 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
 function loadApi(rpc) {
     let api;
     const filename = path.resolve(__dirname,
-        '../../plugin/ui/grouppolicy/js/util/API.js');
-    vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+        '../../frontend/src/util/API.js');
+    vm.runInNewContext(readAmd(filename), {
         define: (names, factory) => {
             api = factory({ api_version: '2.0' }, rpc, {
                 getLanguage: () => 'ru'

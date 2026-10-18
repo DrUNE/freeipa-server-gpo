@@ -8,7 +8,7 @@ const test = require('node:test');
 let chromium, requireJs;
 try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); } catch (_) { /* Optional browser runner. */ }
 const skip = !chromium || !requireJs ? 'Set NODE_PATH for browser checks.' : false;
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 // Reuse the actual-app mock fixture without registering its historical tests.
 const source = fs.readFileSync(path.join(__dirname, 'admx-navigation.browser.test.js'), 'utf8');
 const start = source.indexOf('const html = `');

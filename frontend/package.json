@@ -3,13 +3,24 @@
   "private": true,
   "description": "Sources of the GPUI editor. The build writes the AMD artifact into ../plugin/ui/grouppolicy/js, which is committed and installed by the RPM.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "rollup -c --silent",
+    "build": "vite build --logLevel warn",
     "build:check": "node scripts/check-artifact.mjs",
-    "dev": "rollup -c --watch --silent"
+    "watch": "vite build --watch --logLevel warn",
+    "dev": "vite",
+    "build:test-root": "node scripts/build-test-root.mjs",
+    "test": "npm run build:test-root && NODE_PATH=./node_modules node --test \"../tests/ui/*.test.js\"",
+    "lint": "eslint src dev scripts *.mjs"
   },
   "devDependencies": {
-    "rollup": "^4.60.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "playwright": "^1.50.0",
+    "requirejs": "^2.3.7",
+    "vite": "^8.3.4"
   }
 }

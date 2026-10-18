@@ -5,15 +5,16 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 const { spawnSync } = require('node:child_process');
 
-const sourceRoot = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js');
+const sourceRoot = path.resolve(__dirname, '../../frontend/src');
 const cache = new Map();
 function load(file) {
     file = path.posix.normalize(file);
     if (cache.has(file)) return cache.get(file);
     let result;
-    vm.runInNewContext(fs.readFileSync(path.join(sourceRoot, file), 'utf8'), {
+    vm.runInNewContext(readAmd(path.join(sourceRoot, file)), {
         define: (dependencies, factory) => {
             result = factory(...dependencies.map(name => load(path.posix.join(path.posix.dirname(file), name + '.js'))));
         }

@@ -5,10 +5,11 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
 let planner;
-vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,
-    '../../plugin/ui/grouppolicy/js/components/templates/security/dependency-plan.js'), 'utf8'), {
+vm.runInNewContext(readAmd(path.resolve(__dirname,
+    '../../frontend/src/components/templates/security/dependency-plan.js')), {
     define: (_dependencies, factory) => { planner = factory(); },
     Number, JSON, Math
 });

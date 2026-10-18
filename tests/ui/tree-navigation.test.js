@@ -5,18 +5,19 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
-const source = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js/components/tree-view/tree-view-list-data.js');
+const source = path.resolve(__dirname, '../../frontend/src/components/tree-view/tree-view-list-data.js');
 let editorIcons;
-vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,
-    '../../plugin/ui/grouppolicy/js/components/editor-icons.js'), 'utf8'), {
+vm.runInNewContext(readAmd(path.resolve(__dirname,
+    '../../frontend/src/components/editor-icons.js')), {
     define: (_dependencies, factory) => { editorIcons = factory(); }
 });
 
 function locale(language) {
     let messages;
-    const filename = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js/locales', language + '.js');
-    vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+    const filename = path.resolve(__dirname, '../../frontend/src/locales', language + '.js');
+    vm.runInNewContext(readAmd(filename), {
         define: (_dependencies, factory) => { messages = factory(); }
     });
     return messages;
@@ -26,7 +27,7 @@ function treeModule(options = {}) {
     let tree;
     const translations = options.translations || { t: key => key };
     if (options.language) translations.getLanguage = () => options.language;
-    vm.runInNewContext(fs.readFileSync(source, 'utf8'), {
+    vm.runInNewContext(readAmd(source), {
         define: (names, factory) => {
             tree = factory(...names.map(name => ({
                 '../../locales/translations': translations,

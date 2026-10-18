@@ -4,9 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 let navigation;
-vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,
-    '../../plugin/ui/grouppolicy/js/components/list-navigation.js'), 'utf8'), {
+vm.runInNewContext(readAmd(path.resolve(__dirname,
+    '../../frontend/src/components/list-navigation.js')), {
     define: (dependencies, factory) => { assert.equal(dependencies.length, 0); navigation = factory(); }
 });
 

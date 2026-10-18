@@ -5,9 +5,10 @@ define([
     'freeipa/reg',
     'freeipa/navigation',
     'freeipa/rpc',
-    './js/locales/translations',
-    './js/components/editor-dialog'
-], function(require, IPA, phases, reg, navigation, rpc, translationsModule, editorDialog) {
+    './js/app'
+], function(require, IPA, phases, reg, navigation, rpc, appBundle) {
+    var translationsModule = appBundle.translations;
+    var editorDialog = appBundle.editorDialog;
 
     var exp = IPA.gpo = {};
     var nextDialogId = 0;

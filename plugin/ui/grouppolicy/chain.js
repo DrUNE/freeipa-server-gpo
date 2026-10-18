@@ -7,10 +7,11 @@ define(
         'freeipa/rpc',
         'freeipa/jquery',
         './gpo',
-        './js/locales/translations',
+        './js/app',
         'freeipa/text'
     ],
-    function(IPA, menu, phases, reg, rpc, $, gpo_module, translationsModule, text) {
+    function(IPA, menu, phases, reg, rpc, $, gpo_module, appBundle, text) {
+        var translationsModule = appBundle.translations;
 
         var exp = IPA.grouppolicy = {};
 

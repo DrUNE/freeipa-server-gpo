@@ -10,7 +10,7 @@ let chromium, requireJs;
 try { chromium = require('playwright').chromium; requireJs = require.resolve('requirejs/require.js'); }
 catch (_) { /* Browser runner is optional in unit-only environments. */ }
 const skip = !chromium || !requireJs ? 'Set NODE_PATH for browser checks.' : false;
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 const source = fs.readFileSync(path.join(__dirname, 'admx-navigation.browser.test.js'), 'utf8');
 const start = source.indexOf('const html = `');
 const end = source.indexOf('\nconst browserOptions', start);

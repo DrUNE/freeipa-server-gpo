@@ -13,7 +13,7 @@ try {
     requireJs = require.resolve('requirejs/require.js');
 } catch (_) { /* Browser dependencies are optional for the unit-only runner. */ }
 
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif;color:#363636}.gp__container{min-width:0;height:100vh}#reference{position:absolute;left:-2000px;top:0}</style>

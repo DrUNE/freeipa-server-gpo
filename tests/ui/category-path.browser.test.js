@@ -13,7 +13,7 @@ try {
     requireJs = require.resolve('requirejs/require.js');
 } catch (_) { /* Browser dependencies are optional for unit-only environments. */ }
 
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif}.gp__container{height:100vh}#confirmation{display:none}#confirmation.active{display:block;position:fixed;z-index:2000;top:40px;left:450px;background:white}</style>

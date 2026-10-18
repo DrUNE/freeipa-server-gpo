@@ -5,6 +5,7 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 
 function harness() {
     const document = { activeElement: null };
@@ -60,8 +61,8 @@ function harness() {
 
     let dialog;
     const filename = path.resolve(__dirname,
-        '../../plugin/ui/grouppolicy/js/components/confirmation-dialog.js');
-    vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+        '../../frontend/src/components/confirmation-dialog.js');
+    vm.runInNewContext(readAmd(filename), {
         document,
         define: (names, factory) => {
             dialog = factory({ createElement }, { t: key => key });

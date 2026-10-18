@@ -14,7 +14,7 @@ try {
 const jquery = '/usr/share/ipa/ui/js/libs/jquery.js';
 const skip = !chromium || !requireJs || !fs.existsSync(jquery)
     ? 'Set NODE_PATH and provide the installed FreeIPA jQuery for browser checks.' : false;
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 
 // The production action creates the outer window. Only FreeIPA and app init are
 // mocked: real gpo.js, shared dialogs, tree renderer, CSS and jQuery are served.

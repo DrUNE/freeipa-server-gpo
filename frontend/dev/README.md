@@ -1,0 +1,57 @@
+# GPUI dev harness
+
+Автономный стенд для разработки веб-редактора групповых политик
+(`plugin/ui/grouppolicy/js`) без сервера FreeIPA.
+
+Стенд работает на Vite: он раздаёт исходники `frontend/src` напрямую (перезагрузка страницы при сохранении),
+подменяет `freeipa/ipa` и `freeipa/rpc` ES-шимами из `shims/`, а JSON-RPC `POST /ipa/session/json` обслуживает
+mock-бэкенд `backend.cjs` (фикстуры в памяти) через плагин в `../vite.config.mjs`. Настоящий `util/API.js` не меняется.
+
+## Запуск
+
+```bash
+make ui-dev-install   # один раз: npm install в frontend (requirejs, playwright)
+make ui-dev           # http://127.0.0.1:8765/ipa/ui/
+```
+
+Порт и хост: `npx --prefix frontend vite --port 9000 --host 0.0.0.0` (из корня репозитория: `cd frontend && npx vite ...`).
+
+Параметры URL: `?gpo=Имя&lang=ru`. Кнопка **Reset fixtures** сбрасывает
+состояние mock-бэкенда. Сборка не нужна: правьте файлы в `frontend/src/`.
+
+## Тесты UI
+
+```bash
+make test-ui            # собирает frontend/.test-root и запускает node --test "tests/ui/*.test.js"
+npx --prefix frontend playwright install chromium   # один раз для *.browser.test.js
+```
+
+Без установленного Chromium браузерные тесты помечаются как пропущенные.
+
+`tests/ui/freeipa-plugin-menu.live.test.js` работает не с моками, а с настоящим
+FreeIPA (dev container из `.devcontainer/`): проверяет, что плагин подключён к
+приложению: модули отдаются, в меню **Policy → Group Policy** есть «Chains» и
+«Group Policy Objects», а их страницы открываются. Адрес и учётные данные берутся
+из `IPA_URL` (по умолчанию `https://server.ipa.test`), `IPA_ADMIN_USER` и
+`IPA_ADMIN_PASSWORD`. Если сервер недоступен, тест пропускается.
+
+## Что покрывает стенд
+
+- редактор GPUI целиком: дерево, ADMX-политики, предпочтения, скрипты,
+  параметры безопасности, расширенный аудит;
+- реальные `API.js`, нормализация ошибок, локали;
+- ошибки сервера: неизвестный метод возвращает `CommandError`, неизвестная
+  политика `NotFound`, чтобы проверять состояния ошибок в UI.
+
+Не покрывает `chain.js` и `gpo.js` (списки цепочек и GPO, модалка запуска
+редактора): они зависят от фреймворка Web UI FreeIPA и проверяются только на
+живом сервере.
+
+## Как расширять
+
+- Новый метод `gpo_editor_*`: добавьте функцию в `methods` в `backend.cjs`.
+  Сигнатура: `(displayname, ...args, options)`, где `options` это второй
+  элемент `params` запроса (`request`, `locales`, `category_id` и т.д.).
+  Ответ оборачивается в `{result: {result: ...}}`, как делает FreeIPA.
+- Новая зависимость `freeipa/<module>`: добавьте ES-шим `shims/<module>.js` и alias в `../vite.config.mjs`.
+- Ошибка для UI: `throw new RpcError('message', {category: 'validation', field: 'id'})`.

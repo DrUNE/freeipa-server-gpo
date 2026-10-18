@@ -5,9 +5,10 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 const { execFileSync } = require('node:child_process');
 
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js/components/templates');
+const root = path.resolve(__dirname, '../../frontend/src/components/templates');
 const catalogRoot = process.env.SDMX_BASEALT_ROOT || null;
 const definitions = catalogRoot ? path.join(catalogRoot, 'definitions')
     : '/usr/share/PolicyDefinitions';
@@ -17,7 +18,7 @@ const schema = path.join(schemas, 'sdmx-1.0.xsd');
 
 function load(name, dependencies = {}) {
     let result;
-    vm.runInNewContext(fs.readFileSync(path.join(root, name), 'utf8'), {
+    vm.runInNewContext(readAmd(path.join(root, name)), {
         define: (names, factory) => {
             result = factory(...names.map(dependency => dependencies[dependency]));
         },

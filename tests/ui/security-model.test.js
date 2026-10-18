@@ -4,11 +4,12 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { readAmd } = require('../../frontend/scripts/read-amd.cjs');
 const { execFileSync } = require('node:child_process');
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy/js/components/templates');
+const root = path.resolve(__dirname, '../../frontend/src/components/templates');
 function load(name, dependencies = {}) {
     let result;
-    vm.runInNewContext(fs.readFileSync(path.join(root, name), 'utf8'), { define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }, Map, Set, console });
+    vm.runInNewContext(readAmd(path.join(root, name)), { define: (names, factory) => { result = factory(...names.map(name => dependencies[name])); }, Map, Set, console });
     return result;
 }
 const model = load('security/model.js');

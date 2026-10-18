@@ -1,7 +1,7 @@
 # План улучшения опыта фронтенд-разработки
 
 **Дата:** 2026-10-18
-**Область:** `plugin/ui/grouppolicy/` (≈20 тыс. строк JS, 2,4 тыс. строк CSS), `tools/ui-dev/`, `tests/ui/`.
+**Область:** `plugin/ui/grouppolicy/` (≈20 тыс. строк JS, 2,4 тыс. строк CSS), `frontend/dev/`, `tests/ui/`.
 **Принцип:** улучшать инструментарий вокруг существующего кода, не переписывая редактор. Решение о смене фреймворка принимается после этапа 6 на основе измерений.
 
 ## 1. Исходное состояние (проверено по репозиторию)
@@ -13,7 +13,7 @@
 | Линтинг, форматирование, типы | Нет. Корневого `package.json` нет. Для Python есть `ruff` и `pylint`. |
 | Тесты | 40 файлов в `tests/ui/`: `node:test` и Playwright (`*.browser.test.js`). Без Chromium браузерные тесты молча пропускаются. |
 | CI и сборка RPM | `python-backend.yml` и `.spec` запускают только pytest и покрытие Python. `make test-ui` нигде не вызывается. |
-| Dev-стенд | `tools/ui-dev`: mock-бэкенд и `requirejs` без сборки, обновление по F5. Не покрывает `chain.js`/`gpo.js` (зависят от `freeipa/*`). |
+| Dev-стенд | `frontend/dev`: mock-бэкенд и `requirejs` без сборки, обновление по F5. Не покрывает `chain.js`/`gpo.js` (зависят от `freeipa/*`). |
 | Размеры | Крупные файлы: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. Остальной код разбит удовлетворительно. |
 | RPC-контракт | `util/API.js` (373 строки) и `editor-dto.js` вручную согласованы с `gpo.py`; схемы нет. |
 
@@ -25,7 +25,7 @@
 
 ### Этап 1. Гигиена (1-2 дня) — делать первым
 
-- Корневой `package.json`: `npm run lint | format | test | test:ui | dev`. Зависимости `tools/ui-dev` переезжают в него (`npm ci` вместо `--prefix`). `Makefile` остаётся тонкой обёрткой.
+- Корневой `package.json`: `npm run lint | format | test | test:ui | dev`. Зависимости стенда (уже перенесены в `frontend/package.json`) переезжают в него (`npm ci` вместо `--prefix`). `Makefile` остаётся тонкой обёрткой.
 - Линтер и форматтер: **ESLint flat config + Prettier** (тот же набор, что в `freeipa-webui`: `eslint.config.mjs`, `prettier`, `vitest`, `knip`; общие правила упростят перенос кода). Biome остаётся запасным вариантом, если скорость станет проблемой. Правила для AMD-кода: `no-undef`, `no-unused-vars`, `eqeqeq`. Первый прогон только `--fix`, без ручных переписываний. Форматирование отдельным коммитом, добавить в `.git-blame-ignore-revs`.
 - `.vscode/extensions.json` и `settings.json`: расширение линтера, format-on-save для JS/CSS.
 - `.editorconfig`.

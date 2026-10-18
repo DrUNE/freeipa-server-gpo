@@ -13,7 +13,7 @@ try {
     requireJs = require.resolve('requirejs/require.js');
 } catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
 
-const root = path.resolve(__dirname, '../../plugin/ui/grouppolicy');
+const root = path.resolve(__dirname, '../../frontend/.test-root');
 const browserOptions = {
     skip: !chromium || !requireJs ? 'Set NODE_PATH for Playwright and RequireJS browser checks.' : false
 };
