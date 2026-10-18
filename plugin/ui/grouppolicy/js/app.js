@@ -11349,7 +11349,7 @@
 			var error = create$3("span", { className: "gpo-editor-field__error" });
 			var body = type === "checkbox" ? create$3("span", {
 				className: "gpo-editor-boolean",
-				children: [input, create$3("label", { attrs: { "for": inputId } })]
+				children: [input, create$3("label", { attrs: { for: inputId } })]
 			}) : input;
 			var element = create$3("div", {
 				className: [
@@ -11362,7 +11362,7 @@
 				children: [create$3("div", {
 					className: "field__label",
 					children: [create$3("label", {
-						attrs: { "for": inputId },
+						attrs: { for: inputId },
 						text
 					})]
 				}), create$3("div", {
@@ -11416,7 +11416,7 @@
 					children: [create$3("div", {
 						className: "field__label",
 						children: [create$3("label", {
-							attrs: { "for": control.inputs[0].id },
+							attrs: { for: control.inputs[0].id },
 							text: displayed.label
 						})]
 					}), create$3("div", {
@@ -12496,7 +12496,8 @@
 			if (blocked()) return;
 			menu.getElement().hidden = !menu.getElement().hidden;
 			createButton.setAttr("aria-expanded", String(!menu.getElement().hidden));
-			if (!menu.getElement().hidden && menu.getElement().firstElementChild) /** @type {HTMLElement} */ menu.getElement().firstElementChild.focus();
+			if (!menu.getElement().hidden && menu.getElement().firstElementChild)
+ /** @type {HTMLElement} */ menu.getElement().firstElementChild.focus();
 		});
 		menu.on("keydown", function(event) {
 			var entries = Array.from(menu.getElement().querySelectorAll("button"));
@@ -12844,7 +12845,7 @@
 			return createElement$6("span", {
 				className: "gpo-editor-boolean",
 				children: [checkbox, createElement$6("label", { attrs: {
-					"for": controlId,
+					for: controlId,
 					"aria-label": field.label || field.id
 				} })]
 			});
@@ -12990,7 +12991,7 @@
 					className: "field__label",
 					children: [createElement$6("label", {
 						className: "gpo-editor-field__label",
-						attrs: { "for": builder.checkboxControlId },
+						attrs: { for: builder.checkboxControlId },
 						children: [createElement$6("span", { text: field.label || field.id }), field.required ? createElement$6("span", {
 							className: "gpo-editor-field__required",
 							text: "*"
@@ -13204,7 +13205,7 @@
 					type: "checkbox",
 					disabled: "disabled"
 				} }), createElement$5("label", { attrs: {
-					"for": controlId,
+					for: controlId,
 					"aria-label": label
 				} })]
 			}), createElement$5("span", {

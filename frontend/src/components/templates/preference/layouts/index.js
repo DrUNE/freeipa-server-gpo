@@ -21,7 +21,29 @@ import * as scheduledTasks from './scheduled-tasks';
 import * as services from './services';
 import * as startMenu from './start-menu';
 
+('use strict');
 
-    "use strict";
-
-export { shortcuts, folders, applications, controlPanel as control_panel, dataSources as data_sources, devices, drives, environmentVariables as environment_variables, files, folderOptions as folder_options, iniFiles as ini_files, internetSettings as internet_settings, localUsersAndGroups as local_users_and_groups, networkOptions as network_options, networkShares as network_shares, powerOptions as power_options, printers, regionalOptions as regional_options, registry, scheduledTasks as scheduled_tasks, services, startMenu as start_menu };
+export {
+    shortcuts,
+    folders,
+    applications,
+    controlPanel as control_panel,
+    dataSources as data_sources,
+    devices,
+    drives,
+    environmentVariables as environment_variables,
+    files,
+    folderOptions as folder_options,
+    iniFiles as ini_files,
+    internetSettings as internet_settings,
+    localUsersAndGroups as local_users_and_groups,
+    networkOptions as network_options,
+    networkShares as network_shares,
+    powerOptions as power_options,
+    printers,
+    regionalOptions as regional_options,
+    registry,
+    scheduledTasks as scheduled_tasks,
+    services,
+    startMenu as start_menu
+};

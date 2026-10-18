@@ -8,37 +8,59 @@ async function loadApi(specs, responseForSpec) {
     const rpc = {
         command(spec) {
             specs.push(spec);
-            return { execute() { spec.on_success({ result: { result:
-                responseForSpec ? responseForSpec(spec) : {
-                    asset: { name: 'existing.cmd', byte_size: 1,
-                        revision: 'r1', content_base64: 'QQ==' }
+            return {
+                execute() {
+                    spec.on_success({
+                        result: {
+                            result: responseForSpec
+                                ? responseForSpec(spec)
+                                : {
+                                      asset: {
+                                          name: 'existing.cmd',
+                                          byte_size: 1,
+                                          revision: 'r1',
+                                          content_base64: 'QQ=='
+                                      }
+                                  }
+                        }
+                    });
                 }
-            } }); } };
+            };
         }
     };
-    return loadModule('util/API.js', {
-        'freeipa/ipa': { default: { api_version: '2.0' } },
-        'freeipa/rpc': { default: rpc },
-        '../locales/translations': { getLanguage: () => 'en' }
-    }, { navigator: { language: 'en-US', languages: ['en-US'] } });
+    return loadModule(
+        'util/API.js',
+        {
+            'freeipa/ipa': { default: { api_version: '2.0' } },
+            'freeipa/rpc': { default: rpc },
+            '../locales/translations': { getLanguage: () => 'en' }
+        },
+        { navigator: { language: 'en-US', languages: ['en-US'] } }
+    );
 }
 
 test('Script download uses the selected scoped asset and never mutates an editor envelope', async () => {
     const specs = [];
-    const api = await loadApi(specs, spec => spec.method === 'editor_open'
-        ? { gpo: { version: 1 } }
-        : { gpo: { version: 999 }, asset: { name: 'existing.cmd',
-            byte_size: 1, revision: 'r1', content_base64: 'QQ==' } });
+    const api = await loadApi(specs, spec =>
+        spec.method === 'editor_open'
+            ? { gpo: { version: 1 } }
+            : {
+                  gpo: { version: 999 },
+                  asset: { name: 'existing.cmd', byte_size: 1, revision: 'r1', content_base64: 'QQ==' }
+              }
+    );
     await api.initialize('Test GPO');
     const result = await api.scriptAssetDownload('computer', 'startup', {
-        name: 'existing.cmd', revision: 'r1'
+        name: 'existing.cmd',
+        revision: 'r1'
     });
     assert.equal(result.asset.content_base64, 'QQ==');
     const request = specs[1];
     assert.equal(request.method, 'editor_script_asset_download');
     assert.deepEqual(Array.from(request.args), ['Test GPO', 'computer', 'startup']);
     assert.deepEqual(JSON.parse(JSON.stringify(request.options.request)), {
-        name: 'existing.cmd', revision: 'r1'
+        name: 'existing.cmd',
+        revision: 'r1'
     });
     assert.equal(request.retry, false);
     assert.equal((await api.open()).gpo.version, 1);
@@ -70,7 +92,10 @@ test('Each Scripts editor action sends its request to the matching scoped RPC', 
         assert.equal(spec.method, route, method);
         assert.deepEqual(Array.from(spec.args), ['Test GPO', 'user', 'logoff'], method);
         assert.equal(spec.retry, false, method);
-        assert.deepEqual(hasRequest ? JSON.parse(JSON.stringify(spec.options.request))
-            : spec.options.request, hasRequest ? request : undefined, method);
+        assert.deepEqual(
+            hasRequest ? JSON.parse(JSON.stringify(spec.options.request)) : spec.options.request,
+            hasRequest ? request : undefined,
+            method
+        );
     }
 });

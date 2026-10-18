@@ -1,29 +1,56 @@
 // Reads an ES module from frontend/src and returns it in the classic AMD shape
 // `define([deps], function (deps) { ...; return {exports}; })`, so unit tests can
 // keep injecting mocked dependencies through a stubbed `define`.
-// Handles only the import/export forms used in frontend/src.
+// Handles only the import/export forms used in frontend/src (namespace and default
+// imports, side-effect imports, one `export { ... }` list). Statements may span lines,
+// as Prettier wraps long ones.
 import fs from 'node:fs';
 
+const IMPORT = /^import\s+(?:\*\s+as\s+)?(\w+)\s+from\s+'([^']+)';?[ \t]*$/gm;
+const SIDE_EFFECT_IMPORT = /^import\s+'([^']+)';?[ \t]*$/gm;
+const EXPORT_LIST = /^export\s*\{([\s\S]*?)\};?[ \t]*$/m;
+
 function readAmd(filename) {
-    const source = fs.readFileSync(filename, 'utf8');
+    let body = fs.readFileSync(filename, 'utf8');
     const deps = [];
     const params = [];
-    let exported = null;
-    const body = source.split('\n').filter(line => {
-        let m;
-        if ((m = /^import (?:\* as )?(\w+) from '([^']+)';$/.exec(line))) { params.push(m[1]); deps.push(m[2]); return false; }
-        if ((m = /^import '([^']+)';$/.exec(line))) { deps.push(m[1]); params.push('__side' + params.length); return false; }
-        if ((m = /^export \{(.*)\};$/.exec(line))) { exported = m[1]; return false; }
-        if (/^(import|export)\b/.test(line)) throw new Error('unsupported module syntax in ' + filename + ': ' + line);
-        return true;
-    }).join('\n');
-    if (exported === null) throw new Error('no export list in ' + filename);
-    const members = exported.split(',').map(s => s.trim()).filter(Boolean).map(s => {
-        const [local, name] = s.split(/\s+as\s+/);
-        return (name || local) + ': ' + local;
+
+    body = body.replace(IMPORT, (_, local, source) => {
+        params.push(local);
+        deps.push(source);
+        return '';
     });
-    return 'define(' + JSON.stringify(deps) + ', function (' + params.join(', ') + ') {\n'
-        + body + '\nreturn Object.freeze({ ' + members.join(', ') + ' });\n});\n';
+    body = body.replace(SIDE_EFFECT_IMPORT, (_, source) => {
+        deps.push(source);
+        params.push('__side' + params.length);
+        return '';
+    });
+    const exported = EXPORT_LIST.exec(body);
+    if (!exported) throw new Error('no export list in ' + filename);
+    body = body.replace(EXPORT_LIST, '');
+
+    const leftover = /^(import|export)\b.*$/m.exec(body);
+    if (leftover) throw new Error('unsupported module syntax in ' + filename + ': ' + leftover[0]);
+
+    const members = exported[1]
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => {
+            const [local, name] = s.split(/\s+as\s+/);
+            return (name || local) + ': ' + local;
+        });
+    return (
+        'define(' +
+        JSON.stringify(deps) +
+        ', function (' +
+        params.join(', ') +
+        ') {\n' +
+        body +
+        '\nreturn Object.freeze({ ' +
+        members.join(', ') +
+        ' });\n});\n'
+    );
 }
 
 export { readAmd };

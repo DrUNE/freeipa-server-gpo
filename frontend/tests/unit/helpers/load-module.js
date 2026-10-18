@@ -17,7 +17,13 @@ let mocked = [];
 // FreeIPA's own modules do not exist outside the Web UI; unless a test supplies its own, they are inert.
 const inertFreeipa = {
     'freeipa/ipa': { default: { api_version: '2.0', notify() {}, notify_success() {} } },
-    'freeipa/rpc': { default: { command() { return { execute() {} }; } } }
+    'freeipa/rpc': {
+        default: {
+            command() {
+                return { execute() {} };
+            }
+        }
+    }
 };
 
 afterEach(() => {

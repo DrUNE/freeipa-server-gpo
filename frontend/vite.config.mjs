@@ -32,10 +32,15 @@ function devStand() {
                     request.on('data', chunk => chunks.push(chunk));
                     request.on('end', () => {
                         let body;
-                        try { body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); }
-                        catch (error) { return send(400, JSON.stringify({ error: { message: 'Invalid JSON: ' + error.message } })); }
+                        try {
+                            body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+                        } catch (error) {
+                            return send(400, JSON.stringify({ error: { message: 'Invalid JSON: ' + error.message } }));
+                        }
                         const reply = backend.dispatch(body);
-                        console.log(`[rpc ${reply.error ? '✗' : '←'}] ${body.method}${reply.error ? ': ' + reply.error.message : ''}`);
+                        console.log(
+                            `[rpc ${reply.error ? '✗' : '←'}] ${body.method}${reply.error ? ': ' + reply.error.message : ''}`
+                        );
                         send(200, JSON.stringify(reply));
                     });
                     return;
@@ -45,8 +50,11 @@ function devStand() {
                     return send(200, '{"ok":true}');
                 }
                 if (url.pathname.startsWith(pluginUrl)) {
-                    const file = path.normalize(path.join(pluginRoot, decodeURIComponent(url.pathname.slice(pluginUrl.length))));
-                    if (!file.startsWith(pluginRoot + path.sep) || !fs.existsSync(file)) return send(404, 'Not found', 'text/plain');
+                    const file = path.normalize(
+                        path.join(pluginRoot, decodeURIComponent(url.pathname.slice(pluginUrl.length)))
+                    );
+                    if (!file.startsWith(pluginRoot + path.sep) || !fs.existsSync(file))
+                        return send(404, 'Not found', 'text/plain');
                     return send(200, fs.readFileSync(file), mime[path.extname(file)] || 'application/octet-stream');
                 }
                 next();
@@ -55,36 +63,40 @@ function devStand() {
     };
 }
 
-export default defineConfig(({ command }) => command === 'serve' ? {
-    root: path.join(root, 'dev'),
-    plugins: [devStand()],
-    resolve: {
-        alias: {
-            '@gpui': path.join(root, 'src'),
-            'freeipa/ipa': path.join(root, 'dev', 'shims', 'ipa.js'),
-            'freeipa/rpc': path.join(root, 'dev', 'shims', 'rpc.js')
-        }
-    },
-    server: { host: '127.0.0.1', port: 8765, fs: { allow: [root] } }
-} : {
-    // One UMD bundle, committed to plugin/ui/grouppolicy/js/app.js. Under
-    // FreeIPA's RequireJS it registers as an AMD module that depends on the
-    // Web UI's own freeipa/* modules.
-    publicDir: false,
-    build: {
-        outDir: path.join(pluginRoot, 'js'),
-        emptyOutDir: true,
-        minify: false,
-        reportCompressedSize: false,
-        lib: {
-            entry: path.join(root, 'src', 'app.js'),
-            name: 'gpui',
-            formats: ['umd'],
-            fileName: () => 'app.js'
-        },
-        rollupOptions: {
-            external: [/^freeipa\//],
-            output: { globals: { 'freeipa/ipa': 'IPA', 'freeipa/rpc': 'IPA_rpc' } }
-        }
-    }
-});
+export default defineConfig(({ command }) =>
+    command === 'serve'
+        ? {
+              root: path.join(root, 'dev'),
+              plugins: [devStand()],
+              resolve: {
+                  alias: {
+                      '@gpui': path.join(root, 'src'),
+                      'freeipa/ipa': path.join(root, 'dev', 'shims', 'ipa.js'),
+                      'freeipa/rpc': path.join(root, 'dev', 'shims', 'rpc.js')
+                  }
+              },
+              server: { host: '127.0.0.1', port: 8765, fs: { allow: [root] } }
+          }
+        : {
+              // One UMD bundle, committed to plugin/ui/grouppolicy/js/app.js. Under
+              // FreeIPA's RequireJS it registers as an AMD module that depends on the
+              // Web UI's own freeipa/* modules.
+              publicDir: false,
+              build: {
+                  outDir: path.join(pluginRoot, 'js'),
+                  emptyOutDir: true,
+                  minify: false,
+                  reportCompressedSize: false,
+                  lib: {
+                      entry: path.join(root, 'src', 'app.js'),
+                      name: 'gpui',
+                      formats: ['umd'],
+                      fileName: () => 'app.js'
+                  },
+                  rollupOptions: {
+                      external: [/^freeipa\//],
+                      output: { globals: { 'freeipa/ipa': 'IPA', 'freeipa/rpc': 'IPA_rpc' } }
+                  }
+              }
+          }
+);

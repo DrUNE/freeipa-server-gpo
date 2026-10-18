@@ -58,8 +58,11 @@ test('missing collection metadata remains compatible with existing text-list cal
     const parameter = { id: 'OldList', kind: 'list' };
     assert.equal(collection.mode(parameter, textList(['old'])), 'list');
     assert.deepEqual(plain(collection.constraints(parameter, textList([]))), {
-        mode: 'list', unique_keys: false, key_case_sensitive: false,
-        allow_empty_values: true, min_items: 0
+        mode: 'list',
+        unique_keys: false,
+        key_case_sensitive: false,
+        allow_empty_values: true,
+        min_items: 0
     });
     assert.deepEqual(plain(collection.session(parameter, null).read()), textList([]));
 });
@@ -103,22 +106,30 @@ test('row identities are stable and list positions follow zero-based array order
     const originalIds = plain(session.rows.map(row => row.id));
     assert.equal(new Set(originalIds).size, 3);
     assert.deepEqual(plain(session.rows.map((row, index) => [index, row.value])), [
-        [0, 'zero'], [1, 'one'], [2, 'two']
+        [0, 'zero'],
+        [1, 'one'],
+        [2, 'two']
     ]);
 
     session.edit(originalIds[1], 'value', 'edited one');
     session.move(originalIds[2], 0);
     assert.deepEqual(plain(session.rows.map(row => row.id)), [originalIds[2], originalIds[0], originalIds[1]]);
     assert.deepEqual(plain(session.rows.map((row, index) => [index, row.value])), [
-        [0, 'two'], [1, 'zero'], [2, 'edited one']
+        [0, 'two'],
+        [1, 'zero'],
+        [2, 'edited one']
     ]);
     assert.deepEqual(plain(session.read()), textList(['two', 'zero', 'edited one']));
 });
 
 test('Add appends a blank row, clears selection and uses a new identity after deletion', () => {
-    const session = collection.session(keyValueParameter(), keyValueList([
-        { key: 'a', value: '1' }, { key: 'b', value: '2' }
-    ]));
+    const session = collection.session(
+        keyValueParameter(),
+        keyValueList([
+            { key: 'a', value: '1' },
+            { key: 'b', value: '2' }
+        ])
+    );
     const selectedId = session.rows[0].id;
     session.select(selectedId);
     assert.equal(session.selectedId, selectedId);
@@ -135,7 +146,13 @@ test('Add appends a blank row, clears selection and uses a new identity after de
     const nextId = session.add();
     assert.notEqual(nextId, addedId);
     assert.equal(session.rows[2].id, nextId);
-    assert.deepEqual(plain(session.read()), keyValueList([{ key: 'a', value: '1' }, { key: 'b', value: '2' }]));
+    assert.deepEqual(
+        plain(session.read()),
+        keyValueList([
+            { key: 'a', value: '1' },
+            { key: 'b', value: '2' }
+        ])
+    );
 });
 
 test('Remove deletes only the selected row and clears selection without selecting a neighbour', () => {
@@ -173,20 +190,32 @@ test('reorder retains row identities and selection, and invalid or no-op moves c
 
 test('pending editor text is included in read, validation and dirty detection but never mutates rows', () => {
     const parameter = keyValueParameter();
-    const session = collection.session(parameter, keyValueList([
-        { key: 'first', value: '1' }, { key: 'second', value: '2' }
-    ]));
+    const session = collection.session(
+        parameter,
+        keyValueList([
+            { key: 'first', value: '1' },
+            { key: 'second', value: '2' }
+        ])
+    );
     const id = session.rows[1].id;
     const pending = { id, field: 'key', value: 'FIRST' };
     assert.equal(session.isDirty(), false);
     assert.equal(session.isDirty(pending), true);
     assert.equal(session.rows[1].key, 'second');
-    assert.deepEqual(plain(session.read(pending)), keyValueList([
-        { key: 'first', value: '1' }, { key: 'FIRST', value: '2' }
-    ]));
-    assert.deepEqual(plain(session.errors(pending)).map(error => [error.id, error.field, error.code]), [
-        [id, 'key', 'duplicateKey'], [session.rows[0].id, 'key', 'duplicateKey']
-    ]);
+    assert.deepEqual(
+        plain(session.read(pending)),
+        keyValueList([
+            { key: 'first', value: '1' },
+            { key: 'FIRST', value: '2' }
+        ])
+    );
+    assert.deepEqual(
+        plain(session.errors(pending)).map(error => [error.id, error.field, error.code]),
+        [
+            [id, 'key', 'duplicateKey'],
+            [session.rows[0].id, 'key', 'duplicateKey']
+        ]
+    );
 
     // Escape discards the pending buffer: callers resume reading without it.
     assert.equal(session.isDirty(), false);
@@ -194,9 +223,13 @@ test('pending editor text is included in read, validation and dirty detection bu
     assert.equal(session.rows[1].key, 'second');
     session.edit(id, pending.field, 'third');
     assert.equal(session.isDirty(), true);
-    assert.deepEqual(plain(session.read()), keyValueList([
-        { key: 'first', value: '1' }, { key: 'third', value: '2' }
-    ]));
+    assert.deepEqual(
+        plain(session.read()),
+        keyValueList([
+            { key: 'first', value: '1' },
+            { key: 'third', value: '2' }
+        ])
+    );
 });
 
 test('fresh blank rows are ignored while existing empty entries remain part of the collection', () => {
@@ -219,9 +252,13 @@ test('fresh blank rows are ignored while existing empty entries remain part of t
     const freshId = explicit.add();
     assert.deepEqual(plain(explicit.read()), keyValueList([{ key: 'existing', value: '' }]));
     explicit.edit(freshId, 'key', 'fresh');
-    assert.deepEqual(plain(explicit.read()), keyValueList([
-        { key: 'existing', value: '' }, { key: 'fresh', value: '' }
-    ]));
+    assert.deepEqual(
+        plain(explicit.read()),
+        keyValueList([
+            { key: 'existing', value: '' },
+            { key: 'fresh', value: '' }
+        ])
+    );
 });
 
 test('partially filled new key–value rows are retained and validated at the correct row identity', () => {
@@ -230,30 +267,42 @@ test('partially filled new key–value rows are retained and validated at the co
     const pending = { id, field: 'value', value: '/usr/lib/provider.so' };
     assert.equal(session.isDirty(pending), true);
     assert.deepEqual(plain(session.read(pending)), keyValueList([{ key: '', value: '/usr/lib/provider.so' }]));
-    assert.deepEqual(plain(session.errors(pending)), [
-        { index: 0, field: 'key', code: 'requiredKey', id }
-    ]);
+    assert.deepEqual(plain(session.errors(pending)), [{ index: 0, field: 'key', code: 'requiredKey', id }]);
     session.edit(id, 'key', 'Provider');
     assert.deepEqual(plain(session.errors()), []);
 });
 
 test('explicit keys are unique with domain-declared ASCII-case rules, not locale folding', () => {
     const insensitive = keyValueParameter({ key_case_sensitive: false });
-    const casePair = keyValueList([{ key: 'OpenSC', value: '1' }, { key: 'opensc', value: '2' }]);
+    const casePair = keyValueList([
+        { key: 'OpenSC', value: '1' },
+        { key: 'opensc', value: '2' }
+    ]);
     assert.deepEqual(plain(collection.validate(insensitive, casePair)), [
         { index: 1, field: 'key', code: 'duplicateKey' },
         { index: 0, field: 'key', code: 'duplicateKey' }
     ]);
     assert.deepEqual(plain(collection.validate(keyValueParameter({ key_case_sensitive: true }), casePair)), []);
-    assert.deepEqual(plain(collection.validate(insensitive, keyValueList([
-        { key: 'Ä', value: '1' }, { key: 'ä', value: '2' }
-    ]))), []);
+    assert.deepEqual(
+        plain(
+            collection.validate(
+                insensitive,
+                keyValueList([
+                    { key: 'Ä', value: '1' },
+                    { key: 'ä', value: '2' }
+                ])
+            )
+        ),
+        []
+    );
 });
 
 test('declared Unicode uppercase comparison conservatively finds non-ASCII registry key collisions', () => {
     const entries = keyValueList([
-        { key: 'Ключ', value: '1' }, { key: 'ключ', value: '2' },
-        { key: 'ß', value: '3' }, { key: 'SS', value: '4' }
+        { key: 'Ключ', value: '1' },
+        { key: 'ключ', value: '2' },
+        { key: 'ß', value: '3' },
+        { key: 'SS', value: '4' }
     ]);
     const unicodeRules = { key_comparison: 'unicode_uppercase', key_case_sensitive: false };
     assert.deepEqual(plain(collection.validate(keyValueParameter(unicodeRules), entries)), [
@@ -263,9 +312,14 @@ test('declared Unicode uppercase comparison conservatively finds non-ASCII regis
         { index: 2, field: 'key', code: 'duplicateKey' }
     ]);
     assert.deepEqual(plain(collection.validate(keyValueParameter({ key_case_sensitive: false }), entries)), []);
-    assert.deepEqual(plain(collection.validate(keyValueParameter({ ...unicodeRules, key_case_sensitive: true }), entries)), []);
-    assert.deepEqual(plain(collection.constraints(keyValueParameter(unicodeRules), entries)).key_comparison,
-        'unicode_uppercase');
+    assert.deepEqual(
+        plain(collection.validate(keyValueParameter({ ...unicodeRules, key_case_sensitive: true }), entries)),
+        []
+    );
+    assert.deepEqual(
+        plain(collection.constraints(keyValueParameter(unicodeRules), entries)).key_comparison,
+        'unicode_uppercase'
+    );
 });
 
 test('name-equals-data lists enforce declared uniqueness while numbered lists allow repeats and empty values', () => {
@@ -274,12 +328,35 @@ test('name-equals-data lists enforce declared uniqueness while numbered lists al
         { index: 1, field: 'value', code: 'duplicateKey' },
         { index: 0, field: 'value', code: 'duplicateKey' }
     ]);
-    assert.deepEqual(plain(collection.validate(listParameter({ unique_keys: true, key_case_sensitive: true }),
-        textList(['Package', 'package']))), []);
-    assert.deepEqual(plain(collection.validate(listParameter({ unique_keys: false, allow_empty_values: true }),
-        textList(['repeat', 'repeat', '', '  ']))), []);
-    assert.deepEqual(plain(collection.session(listParameter({ unique_keys: false, allow_empty_values: true }),
-        textList(['repeat', 'repeat', ''])).read()), textList(['repeat', 'repeat', '']));
+    assert.deepEqual(
+        plain(
+            collection.validate(
+                listParameter({ unique_keys: true, key_case_sensitive: true }),
+                textList(['Package', 'package'])
+            )
+        ),
+        []
+    );
+    assert.deepEqual(
+        plain(
+            collection.validate(
+                listParameter({ unique_keys: false, allow_empty_values: true }),
+                textList(['repeat', 'repeat', '', '  '])
+            )
+        ),
+        []
+    );
+    assert.deepEqual(
+        plain(
+            collection
+                .session(
+                    listParameter({ unique_keys: false, allow_empty_values: true }),
+                    textList(['repeat', 'repeat', ''])
+                )
+                .read()
+        ),
+        textList(['repeat', 'repeat', ''])
+    );
 });
 
 test('minimum size excludes untouched new rows and empty-value constraints do not trim stored content', () => {
@@ -296,12 +373,17 @@ test('minimum size excludes untouched new rows and empty-value constraints do no
 });
 
 test('NUL text and reserved or blank registry keys receive field-specific errors', () => {
-    const errors = plain(collection.validate(keyValueParameter(), keyValueList([
-        { key: 'Provider', value: 'invalid\0value' },
-        { key: '**Del.SomeRecord', value: 'value' },
-        { key: 'invalid\0key', value: 'value' },
-        { key: '  ', value: 'value' }
-    ])));
+    const errors = plain(
+        collection.validate(
+            keyValueParameter(),
+            keyValueList([
+                { key: 'Provider', value: 'invalid\0value' },
+                { key: '**Del.SomeRecord', value: 'value' },
+                { key: 'invalid\0key', value: 'value' },
+                { key: '  ', value: 'value' }
+            ])
+        )
+    );
     assert.deepEqual(errors, [
         { index: 0, field: 'value', code: 'invalidText' },
         { index: 1, field: 'key', code: 'invalidKey' },
@@ -319,10 +401,12 @@ test('NUL text and reserved or blank registry keys receive field-specific errors
 
 test('registry names reject CR and LF while collection data preserves permitted newlines', () => {
     for (const name of ['first\nsecond', 'first\rsecond', 'first\r\nsecond']) {
-        assert.deepEqual(plain(collection.validate(keyValueParameter(),
-            keyValueList([{ key: name, value: 'data\r\nwith\nnewlines' }]))), [
-            { index: 0, field: 'key', code: 'invalidKey' }
-        ]);
+        assert.deepEqual(
+            plain(
+                collection.validate(keyValueParameter(), keyValueList([{ key: name, value: 'data\r\nwith\nnewlines' }]))
+            ),
+            [{ index: 0, field: 'key', code: 'invalidKey' }]
+        );
         assert.deepEqual(plain(collection.validate(listParameter({ unique_keys: true }), textList([name]))), [
             { index: 0, field: 'value', code: 'invalidKey' }
         ]);
@@ -344,9 +428,15 @@ test('maximum length counts Unicode scalar values rather than UTF-16 code units'
     assert.deepEqual(plain(collection.validate(parameter, textList(['🦊🙂a']))), [
         { index: 0, field: 'value', code: 'tooLong' }
     ]);
-    assert.deepEqual(plain(collection.validate(keyValueParameter({}, { max_length: 2 }), keyValueList([
-        { key: 'Long key is independent of the value constraint', value: '🦊🙂a' }
-    ]))), [{ index: 0, field: 'value', code: 'tooLong' }]);
+    assert.deepEqual(
+        plain(
+            collection.validate(
+                keyValueParameter({}, { max_length: 2 }),
+                keyValueList([{ key: 'Long key is independent of the value constraint', value: '🦊🙂a' }])
+            )
+        ),
+        [{ index: 0, field: 'value', code: 'tooLong' }]
+    );
     assert.deepEqual(plain(collection.validate(listParameter({}, { max_length: null }), textList(['long value']))), []);
 });
 
@@ -362,17 +452,33 @@ test('declared key and value limits count UTF-16 units separately and accept exa
         { index: 0, field: 'value', code: 'tooLong' }
     ]);
     assert.deepEqual(plain(collection.constraints(parameter, boundary)), {
-        mode: 'key_value', unique_keys: true, key_case_sensitive: false,
-        allow_empty_values: true, min_items: 0,
-        max_key_length: 3, max_value_length: 5, length_unit: 'utf16'
+        mode: 'key_value',
+        unique_keys: true,
+        key_case_sensitive: false,
+        allow_empty_values: true,
+        min_items: 0,
+        max_key_length: 3,
+        max_value_length: 5,
+        length_unit: 'utf16'
     });
 
-    assert.deepEqual(plain(collection.validate(listParameter({ max_value_length: 2, length_unit: 'utf16' }),
-        textList(['🦊']))), []);
-    assert.deepEqual(plain(collection.validate(listParameter({ max_value_length: 2, length_unit: 'utf16' }),
-        textList(['🦊a']))), [{ index: 0, field: 'value', code: 'tooLong' }]);
-    assert.deepEqual(plain(collection.validate(keyValueParameter({ max_key_length: 2, max_value_length: 2 }),
-        keyValueList([{ key: '🦊a', value: '🦊🙂' }]))), []);
+    assert.deepEqual(
+        plain(collection.validate(listParameter({ max_value_length: 2, length_unit: 'utf16' }), textList(['🦊']))),
+        []
+    );
+    assert.deepEqual(
+        plain(collection.validate(listParameter({ max_value_length: 2, length_unit: 'utf16' }), textList(['🦊a']))),
+        [{ index: 0, field: 'value', code: 'tooLong' }]
+    );
+    assert.deepEqual(
+        plain(
+            collection.validate(
+                keyValueParameter({ max_key_length: 2, max_value_length: 2 }),
+                keyValueList([{ key: '🦊a', value: '🦊🙂' }])
+            )
+        ),
+        []
+    );
 });
 
 test('declared collection mode rejects a mismatched wire kind instead of inferring a different mode', () => {
@@ -420,13 +526,22 @@ test('summaries show at most three previews, use only KV keys and preserve origi
     assert.deepEqual(ordinary, baseline);
     assert.deepEqual(plain(collection.session(listParameter(), ordinary).read()), baseline);
 
-    const pairs = keyValueList([{ key: 'OpenSC', value: longValue }, { key: 'CryptoPro', value: '/full/path.so' }]);
+    const pairs = keyValueList([
+        { key: 'OpenSC', value: longValue },
+        { key: 'CryptoPro', value: '/full/path.so' }
+    ]);
     assert.deepEqual(plain(collection.summary(keyValueParameter(), pairs)), {
-        mode: 'key_value', count: 2, preview: ['OpenSC', 'CryptoPro'], more: false
+        mode: 'key_value',
+        count: 2,
+        preview: ['OpenSC', 'CryptoPro'],
+        more: false
     });
     assert.equal(pairs.value[0].value, longValue);
     assert.deepEqual(plain(collection.summary(listParameter(), null)), {
-        mode: 'list', count: 0, preview: [], more: false
+        mode: 'list',
+        count: 0,
+        preview: [],
+        more: false
     });
 });
 
@@ -481,8 +596,15 @@ test('English and Russian collection strings cover every label and validation co
         assert.deepEqual(russian[key].match(/\{[^{}]+\}/g) || [], value.match(/\{[^{}]+\}/g) || [], key);
     }
     for (const code of [
-        'minItems', 'requiredKey', 'requiredValue', 'duplicateKey', 'invalidKey',
-        'invalidText', 'tooLong', 'keyTooLong', 'invalidValue'
+        'minItems',
+        'requiredKey',
+        'requiredValue',
+        'duplicateKey',
+        'invalidKey',
+        'invalidText',
+        'tooLong',
+        'keyTooLong',
+        'invalidValue'
     ]) {
         assert.ok(english['errors.' + code], 'English error ' + code);
         assert.ok(russian['errors.' + code], 'Russian error ' + code);

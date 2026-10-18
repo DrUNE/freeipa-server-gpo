@@ -1,4 +1,3 @@
-
 /**
  * In-memory fixture backend for the GPUI editor.
  *
@@ -54,8 +53,12 @@ function preferenceDocuments() {
     return docs;
 }
 
-function policyNode(id, label) { return { kind: 'policy', id, label }; }
-function categoryNode(id, label) { return { kind: 'category', id, label }; }
+function policyNode(id, label) {
+    return { kind: 'policy', id, label };
+}
+function categoryNode(id, label) {
+    return { kind: 'category', id, label };
+}
 
 /* Catalog tree: categoryId → children.  `null` is the root. */
 function catalogTree(scope) {
@@ -81,10 +84,7 @@ function catalogTree(scope) {
             policyNode('alt-devices', 'Allowed security devices'),
             policyNode('alt-raw', 'Policy with preserved raw value')
         ],
-        system: [
-            policyNode('sys-timeout', 'Session timeout'),
-            policyNode('sys-mode', 'Processing mode')
-        ],
+        system: [policyNode('sys-timeout', 'Session timeout'), policyNode('sys-mode', 'Processing mode')],
         empty: []
     };
 }
@@ -103,81 +103,181 @@ function catalogIndex(scope) {
 }
 
 function stateActions(overrides) {
-    return Object.assign({
-        enabled: { available: true, mode: 'dynamic_list_values', requires_parameters: true },
-        disabled: { available: true, mode: 'clear_list_values', requires_parameters: false },
-        not_configured: { available: true, mode: 'remove_owned_records', requires_parameters: false }
-    }, overrides || {});
+    return Object.assign(
+        {
+            enabled: { available: true, mode: 'dynamic_list_values', requires_parameters: true },
+            disabled: { available: true, mode: 'clear_list_values', requires_parameters: false },
+            not_configured: { available: true, mode: 'remove_owned_records', requires_parameters: false }
+        },
+        overrides || {}
+    );
 }
 
 const capabilities = {
-    enable: true, disable: true, clear: true,
-    inspect_parameters: true, edit_parameters: true, edit_comments: true
+    enable: true,
+    disable: true,
+    clear: true,
+    inspect_parameters: true,
+    edit_parameters: true,
+    edit_comments: true
 };
 
-function dword(value) { return { kind: 'registry', value: { kind: 'dword', value } }; }
+function dword(value) {
+    return { kind: 'registry', value: { kind: 'dword', value } };
+}
 
 function policyDefinition(scope, id) {
     const base = {
-        scope, policy_id: id, state: 'not_configured', comment: null,
-        capabilities: clone(capabilities), state_actions: stateActions(),
+        scope,
+        policy_id: id,
+        state: 'not_configured',
+        comment: null,
+        capabilities: clone(capabilities),
+        state_actions: stateActions(),
         supported_on: 'ALT systems\nGroup Policy client',
         explain_text: 'Fixture policy served by frontend/dev/backend.mjs.\n\nEdit the fixture to change this text.'
     };
     const simple = (label, parameters) => Object.assign(base, { label, parameters });
 
     switch (id) {
-    case 'alt-install':
-        return simple('Install packages', [{
-            id: 'InstallPackagesList', label: 'Packages', kind: 'list', editable: true,
-            collection: { mode: 'list', unique_keys: true, key_case_sensitive: false, allow_empty_values: false, min_items: 1 },
-            value: null, default_value: { kind: 'text_list', value: ['vim', 'git'] }
-        }]);
-    case 'alt-remove':
-        return simple('Remove packages', [{
-            id: 'RemovePackagesList', label: 'Packages', kind: 'list', editable: true,
-            collection: { mode: 'list', unique_keys: true, key_case_sensitive: false, allow_empty_values: false, min_items: 1 },
-            value: null, default_value: { kind: 'text_list', value: [] }
-        }]);
-    case 'alt-devices':
-        return simple('Allowed security devices', [{
-            id: 'Devices', label: 'Security devices', kind: 'list', editable: true,
-            collection: { mode: 'key_value', unique_keys: true, key_case_sensitive: false, allow_empty_values: true, min_items: 1 },
-            value: null, default_value: { kind: 'key_value_list', value: [{ key: 'OpenSC', value: 'C:\\modules\\opensc.dll' }] }
-        }]);
-    case 'alt-repo':
-        return simple('Package repository', [
-            { id: 'url', label: 'Repository URL', kind: 'text', editable: true, required: true, value: null, default_value: { kind: 'text', value: 'http://ftp.altlinux.org/pub/distributions/ALTLinux' } },
-            { id: 'enabled', label: 'Enable repository', kind: 'boolean', editable: true, value: null, default_value: { kind: 'boolean', value: true } }
-        ]);
-    case 'alt-raw':
-        return Object.assign(simple('Policy with preserved raw value', [
-            { id: 'raw', label: 'Preserved raw value', kind: 'text', editable: false, value: { kind: 'unsupported', value: { type: 'binary', value: [0, 255] } } }
-        ]), { state: 'unknown_raw_values' });
-    case 'sys-timeout':
-        return simple('Session timeout', [
-            { id: 'limit', label: 'Timeout, minutes', kind: 'decimal', editable: true, min_value: 1, max_value: 1440, value: null, default_value: { kind: 'integer', value: 20 } }
-        ]);
-    case 'sys-mode':
-        return simple('Processing mode', [{
-            id: 'mode', label: 'Mode', kind: 'enum', editable: true, value: null,
-            choices: [
-                { label: 'Automatic', value: dword(1) },
-                { label: 'Manual', value: dword(2) },
-                { label: 'Disabled', value: dword(0) }
-            ],
-            default_value: dword(1)
-        }]);
-    case 'alt-banner':
-        return simple('Login banner text', [
-            { id: 'text', label: 'Banner', kind: 'text', editable: true, value: null, default_value: { kind: 'text', value: 'Authorized access only' } }
-        ]);
-    case 'root-policy':
-        return Object.assign(simple('Root level policy', []), {
-            state_actions: stateActions({ enabled: { available: true, mode: 'static_values', requires_parameters: false } })
-        });
-    default:
-        return null;
+        case 'alt-install':
+            return simple('Install packages', [
+                {
+                    id: 'InstallPackagesList',
+                    label: 'Packages',
+                    kind: 'list',
+                    editable: true,
+                    collection: {
+                        mode: 'list',
+                        unique_keys: true,
+                        key_case_sensitive: false,
+                        allow_empty_values: false,
+                        min_items: 1
+                    },
+                    value: null,
+                    default_value: { kind: 'text_list', value: ['vim', 'git'] }
+                }
+            ]);
+        case 'alt-remove':
+            return simple('Remove packages', [
+                {
+                    id: 'RemovePackagesList',
+                    label: 'Packages',
+                    kind: 'list',
+                    editable: true,
+                    collection: {
+                        mode: 'list',
+                        unique_keys: true,
+                        key_case_sensitive: false,
+                        allow_empty_values: false,
+                        min_items: 1
+                    },
+                    value: null,
+                    default_value: { kind: 'text_list', value: [] }
+                }
+            ]);
+        case 'alt-devices':
+            return simple('Allowed security devices', [
+                {
+                    id: 'Devices',
+                    label: 'Security devices',
+                    kind: 'list',
+                    editable: true,
+                    collection: {
+                        mode: 'key_value',
+                        unique_keys: true,
+                        key_case_sensitive: false,
+                        allow_empty_values: true,
+                        min_items: 1
+                    },
+                    value: null,
+                    default_value: {
+                        kind: 'key_value_list',
+                        value: [{ key: 'OpenSC', value: 'C:\\modules\\opensc.dll' }]
+                    }
+                }
+            ]);
+        case 'alt-repo':
+            return simple('Package repository', [
+                {
+                    id: 'url',
+                    label: 'Repository URL',
+                    kind: 'text',
+                    editable: true,
+                    required: true,
+                    value: null,
+                    default_value: { kind: 'text', value: 'http://ftp.altlinux.org/pub/distributions/ALTLinux' }
+                },
+                {
+                    id: 'enabled',
+                    label: 'Enable repository',
+                    kind: 'boolean',
+                    editable: true,
+                    value: null,
+                    default_value: { kind: 'boolean', value: true }
+                }
+            ]);
+        case 'alt-raw':
+            return Object.assign(
+                simple('Policy with preserved raw value', [
+                    {
+                        id: 'raw',
+                        label: 'Preserved raw value',
+                        kind: 'text',
+                        editable: false,
+                        value: { kind: 'unsupported', value: { type: 'binary', value: [0, 255] } }
+                    }
+                ]),
+                { state: 'unknown_raw_values' }
+            );
+        case 'sys-timeout':
+            return simple('Session timeout', [
+                {
+                    id: 'limit',
+                    label: 'Timeout, minutes',
+                    kind: 'decimal',
+                    editable: true,
+                    min_value: 1,
+                    max_value: 1440,
+                    value: null,
+                    default_value: { kind: 'integer', value: 20 }
+                }
+            ]);
+        case 'sys-mode':
+            return simple('Processing mode', [
+                {
+                    id: 'mode',
+                    label: 'Mode',
+                    kind: 'enum',
+                    editable: true,
+                    value: null,
+                    choices: [
+                        { label: 'Automatic', value: dword(1) },
+                        { label: 'Manual', value: dword(2) },
+                        { label: 'Disabled', value: dword(0) }
+                    ],
+                    default_value: dword(1)
+                }
+            ]);
+        case 'alt-banner':
+            return simple('Login banner text', [
+                {
+                    id: 'text',
+                    label: 'Banner',
+                    kind: 'text',
+                    editable: true,
+                    value: null,
+                    default_value: { kind: 'text', value: 'Authorized access only' }
+                }
+            ]);
+        case 'root-policy':
+            return Object.assign(simple('Root level policy', []), {
+                state_actions: stateActions({
+                    enabled: { available: true, mode: 'static_values', requires_parameters: false }
+                })
+            });
+        default:
+            return null;
     }
 }
 
@@ -220,16 +320,40 @@ function preferenceDetail(kind, identity) {
         item,
         fields,
         new_item_fields: fields,
-        filters: isNew ? [] : [
-            { path: [0], kind: 'collection', label: 'Primary Collection', supports_children: true, child_count: 1 },
-            { path: [0, 0], kind: 'file', label: 'File match', detail: 'alpha.cmd', supports_children: false, child_count: 0 },
-            { path: [1], kind: 'file', label: 'File match', detail: 'root.cmd', supports_children: false, child_count: 0 }
-        ],
-        filter_fields: isNew ? [] : [
-            { path: [0], fields: commonFilterFields(), available: true },
-            { path: [0, 0], fields: fileFilterFields('alpha.cmd'), available: true },
-            { path: [1], fields: fileFilterFields('root.cmd'), available: true }
-        ],
+        filters: isNew
+            ? []
+            : [
+                  {
+                      path: [0],
+                      kind: 'collection',
+                      label: 'Primary Collection',
+                      supports_children: true,
+                      child_count: 1
+                  },
+                  {
+                      path: [0, 0],
+                      kind: 'file',
+                      label: 'File match',
+                      detail: 'alpha.cmd',
+                      supports_children: false,
+                      child_count: 0
+                  },
+                  {
+                      path: [1],
+                      kind: 'file',
+                      label: 'File match',
+                      detail: 'root.cmd',
+                      supports_children: false,
+                      child_count: 0
+                  }
+              ],
+        filter_fields: isNew
+            ? []
+            : [
+                  { path: [0], fields: commonFilterFields(), available: true },
+                  { path: [0, 0], fields: fileFilterFields('alpha.cmd'), available: true },
+                  { path: [1], fields: fileFilterFields('root.cmd'), available: true }
+              ],
         filter_kinds: [
             { kind: 'collection', label: 'Collection', supports_children: true, fields: commonFilterFields() },
             { kind: 'file', label: 'File match', supports_children: false, fields: fileFilterFields('') }
@@ -240,14 +364,29 @@ function preferenceDetail(kind, identity) {
 
 function scriptsFixture(scope, event) {
     return {
-        scope, event, execution_order: 'unspecified',
+        scope,
+        event,
+        execution_order: 'unspecified',
         assets: [
-            { name: 'hello.sh', byte_size: 32, revision: 'r1', references: [{ event, executable_group: 'classic', index: 0 }] },
+            {
+                name: 'hello.sh',
+                byte_size: 32,
+                revision: 'r1',
+                references: [{ event, executable_group: 'classic', index: 0 }]
+            },
             { name: 'unused.ps1', byte_size: 12, revision: 'r1', references: [] }
         ],
         classic: {
             editable: true,
-            entries: [{ identity: 'entry-0', command_line: 'hello.sh', parameters: '--verbose', kind: 'managed_asset', managed_asset_name: 'hello.sh' }],
+            entries: [
+                {
+                    identity: 'entry-0',
+                    command_line: 'hello.sh',
+                    parameters: '--verbose',
+                    kind: 'managed_asset',
+                    managed_asset_name: 'hello.sh'
+                }
+            ],
             snapshot: {}
         },
         powershell: { editable: true, entries: [], snapshot: {} }
@@ -262,9 +401,27 @@ function securityCatalog() {
             { namespace: 'fixture', id: 'local', display_name: 'Local Policies' }
         ],
         policies: [
-            { namespace: 'fixture', policy_id: 'min-password-length', display_name: 'Minimum password length', category: ['fixture', 'account'], elements: [{ id: 'value', value_type: 'integer' }] },
-            { namespace: 'fixture', policy_id: 'lockout', display_name: 'Account lockout threshold', category: ['fixture', 'account'], elements: [{ id: 'value', value_type: 'integer' }] },
-            { namespace: 'fixture', policy_id: 'audit-logon', display_name: 'Audit logon events', category: ['fixture', 'local'], elements: [{ id: 'enabled', value_type: 'boolean' }] }
+            {
+                namespace: 'fixture',
+                policy_id: 'min-password-length',
+                display_name: 'Minimum password length',
+                category: ['fixture', 'account'],
+                elements: [{ id: 'value', value_type: 'integer' }]
+            },
+            {
+                namespace: 'fixture',
+                policy_id: 'lockout',
+                display_name: 'Account lockout threshold',
+                category: ['fixture', 'account'],
+                elements: [{ id: 'value', value_type: 'integer' }]
+            },
+            {
+                namespace: 'fixture',
+                policy_id: 'audit-logon',
+                display_name: 'Audit logon events',
+                category: ['fixture', 'local'],
+                elements: [{ id: 'enabled', value_type: 'boolean' }]
+            }
         ]
     };
 }
@@ -273,23 +430,26 @@ function securityCatalog() {
 
 function createState() {
     return {
-        policies: {},          // `${scope}:${id}` → policy with user edits
-        preferenceItems: {},   // `${scope}:${kind}` → items array
+        policies: {}, // `${scope}:${id}` → policy with user edits
+        preferenceItems: {}, // `${scope}:${kind}` → items array
         securitySnapshots: {},
         auditRows: [],
-        scripts: {}            // `${scope}:${event}` → scripts fixture
+        scripts: {} // `${scope}:${event}` → scripts fixture
     };
 }
 
 let state = createState();
 
-function reset() { state = createState(); }
+function reset() {
+    state = createState();
+}
 
 function policyFor(scope, id) {
     const key = scope + ':' + id;
     if (!state.policies[key]) {
         const definition = policyDefinition(scope, id);
-        if (!definition) throw new RpcError('Unknown policy "' + id + '"', { name: 'NotFound', code: 4001, category: 'not_found' });
+        if (!definition)
+            throw new RpcError('Unknown policy "' + id + '"', { name: 'NotFound', code: 4001, category: 'not_found' });
         state.policies[key] = definition;
     }
     return state.policies[key];
@@ -332,7 +492,8 @@ const methods = {
     gpo_editor_children(displayname, scope, options) {
         const categoryId = options.category_id === undefined ? null : options.category_id;
         const tree = catalogTree(scope);
-        if (!(categoryId in tree)) throw new RpcError('Unknown category "' + categoryId + '"', { category: 'not_found' });
+        if (!(categoryId in tree))
+            throw new RpcError('Unknown category "' + categoryId + '"', { category: 'not_found' });
         return Object.assign(gpoEnvelope(displayname), { children: tree[categoryId] });
     },
 
@@ -350,13 +511,20 @@ const methods = {
         if (request.state) policy.state = request.state;
         for (const update of request.set_parameters || []) {
             const parameter = policy.parameters.find(entry => entry.id === update.parameter_id);
-            if (!parameter) throw new RpcError('Unknown parameter "' + update.parameter_id + '"', { category: 'validation', field: update.parameter_id });
+            if (!parameter)
+                throw new RpcError('Unknown parameter "' + update.parameter_id + '"', {
+                    category: 'validation',
+                    field: update.parameter_id
+                });
             parameter.value = update.value;
         }
-        if (request.state === 'not_configured') policy.parameters.forEach(parameter => { parameter.value = null; });
+        if (request.state === 'not_configured')
+            policy.parameters.forEach(parameter => {
+                parameter.value = null;
+            });
         if (request.comment) {
-            policy.comment = request.comment.action === 'clear'
-                ? null : { source: 'embedded', text: request.comment.text || '' };
+            policy.comment =
+                request.comment.action === 'clear' ? null : { source: 'embedded', text: request.comment.text || '' };
         }
         return Object.assign(gpoEnvelope(displayname), { policy: clone(policy), publication: { changed: true } });
     },
@@ -371,14 +539,17 @@ const methods = {
 
     gpo_editor_preference_show(displayname, scope, kind, options) {
         const identity = (options.request || {}).identity;
-        return Object.assign(gpoEnvelope(displayname), preferenceDetail(kind, identity === undefined ? null : identity));
+        return Object.assign(
+            gpoEnvelope(displayname),
+            preferenceDetail(kind, identity === undefined ? null : identity)
+        );
     },
 
     gpo_editor_preference_create(displayname, scope, kind, options) {
         const items = itemsFor(scope, kind);
         const request = options.request || {};
         const labelField = (request.fields || []).find(entry => /targetPath|desc|label/.test(entry.id));
-        const label = labelField && labelField.value && labelField.value.value || 'New ' + kind + ' item';
+        const label = (labelField && labelField.value && labelField.value.value) || 'New ' + kind + ' item';
         const item = { identity: [kind, 'opaque-' + Date.now()], label, has_filters: false };
         items.push(item);
         return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
@@ -387,14 +558,17 @@ const methods = {
     gpo_editor_preference_update(displayname, scope, kind, options) {
         const request = options.request || {};
         const items = itemsFor(scope, kind);
-        const item = items.find(entry => JSON.stringify(entry.identity) === JSON.stringify(request.identity)) || items[0];
+        const item =
+            items.find(entry => JSON.stringify(entry.identity) === JSON.stringify(request.identity)) || items[0];
         return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
     },
 
     gpo_editor_preference_delete(displayname, scope, kind, options) {
         const identity = (options.request || {}).identity;
         const key = scope + ':' + kind;
-        state.preferenceItems[key] = itemsFor(scope, kind).filter(entry => JSON.stringify(entry.identity) !== JSON.stringify(identity));
+        state.preferenceItems[key] = itemsFor(scope, kind).filter(
+            entry => JSON.stringify(entry.identity) !== JSON.stringify(identity)
+        );
         return Object.assign(gpoEnvelope(displayname), { publication: { changed: true } });
     },
 
@@ -411,11 +585,19 @@ const methods = {
         const scripts = scriptsFor(scope, event);
         const group = scripts[request.executable_group || 'classic'];
         group.entries.push({
-            identity: 'entry-' + Date.now(), command_line: request.name, parameters: request.parameters || '',
-            kind: 'managed_asset', managed_asset_name: request.name
+            identity: 'entry-' + Date.now(),
+            command_line: request.name,
+            parameters: request.parameters || '',
+            kind: 'managed_asset',
+            managed_asset_name: request.name
         });
         const asset = scripts.assets.find(entry => entry.name === request.name);
-        if (asset) asset.references.push({ event, executable_group: request.executable_group || 'classic', index: group.entries.length - 1 });
+        if (asset)
+            asset.references.push({
+                event,
+                executable_group: request.executable_group || 'classic',
+                index: group.entries.length - 1
+            });
         return Object.assign(gpoEnvelope(displayname), { scripts: clone(scripts), publication: { changed: true } });
     },
 
@@ -424,7 +606,10 @@ const methods = {
         const scripts = scriptsFor(scope, event);
         for (const group of [scripts.classic, scripts.powershell]) {
             const entry = group.entries.find(candidate => candidate.identity === request.identity);
-            if (entry) Object.assign(entry, { parameters: request.parameters === undefined ? entry.parameters : request.parameters });
+            if (entry)
+                Object.assign(entry, {
+                    parameters: request.parameters === undefined ? entry.parameters : request.parameters
+                });
         }
         return Object.assign(gpoEnvelope(displayname), { scripts: clone(scripts), publication: { changed: true } });
     },
@@ -443,7 +628,9 @@ const methods = {
         const scripts = scriptsFor(scope, event);
         const group = scripts[request.executable_group || 'classic'];
         if (Array.isArray(request.order)) {
-            group.entries.sort((left, right) => request.order.indexOf(left.identity) - request.order.indexOf(right.identity));
+            group.entries.sort(
+                (left, right) => request.order.indexOf(left.identity) - request.order.indexOf(right.identity)
+            );
         }
         return Object.assign(gpoEnvelope(displayname), { scripts: clone(scripts), publication: { changed: true } });
     },
@@ -457,7 +644,12 @@ const methods = {
     gpo_editor_script_asset_upload(displayname, scope, event, options) {
         const request = options.request || {};
         const scripts = scriptsFor(scope, event);
-        scripts.assets.push({ name: request.name, byte_size: Buffer.from(request.content_base64 || '', 'base64').length, revision: 'r' + Date.now(), references: [] });
+        scripts.assets.push({
+            name: request.name,
+            byte_size: Buffer.from(request.content_base64 || '', 'base64').length,
+            revision: 'r' + Date.now(),
+            references: []
+        });
         return Object.assign(gpoEnvelope(displayname), { scripts: clone(scripts), publication: { changed: true } });
     },
 
@@ -470,7 +662,11 @@ const methods = {
         const request = options.request || {};
         const scripts = scriptsFor(scope, event);
         const asset = scripts.assets.find(entry => entry.name === request.name);
-        if (asset) Object.assign(asset, { byte_size: Buffer.from(request.content_base64 || '', 'base64').length, revision: 'r' + Date.now() });
+        if (asset)
+            Object.assign(asset, {
+                byte_size: Buffer.from(request.content_base64 || '', 'base64').length,
+                revision: 'r' + Date.now()
+            });
         return Object.assign(gpoEnvelope(displayname), { scripts: clone(scripts), publication: { changed: true } });
     },
 
@@ -485,7 +681,12 @@ const methods = {
         const request = options.request || {};
         const content = Buffer.from('#!/bin/sh\necho "' + request.name + '"\n');
         return Object.assign(gpoEnvelope(displayname), {
-            asset: { name: request.name, revision: request.revision || 'r1', byte_size: content.length, content_base64: content.toString('base64') }
+            asset: {
+                name: request.name,
+                revision: request.revision || 'r1',
+                byte_size: content.length,
+                content_base64: content.toString('base64')
+            }
         });
     },
 
@@ -500,12 +701,16 @@ const methods = {
     gpo_editor_security_definitions_update(displayname, options) {
         const request = options.request || options || {};
         for (const update of request.policies || []) {
-            const before = state.securitySnapshots[update.policy_id]
-                || { namespace: update.namespace, policy_id: update.policy_id, state: 'defined', elements: {} };
+            const before = state.securitySnapshots[update.policy_id] || {
+                namespace: update.namespace,
+                policy_id: update.policy_id,
+                state: 'defined',
+                elements: {}
+            };
             if (update.transition) before.state = update.transition === 'define' ? 'defined' : 'undefined';
             for (const element of update.elements || []) {
-                before.elements[element.element_id] = element.action === 'unset'
-                    ? { state: 'unset' } : { state: 'set', value: element.value };
+                before.elements[element.element_id] =
+                    element.action === 'unset' ? { state: 'unset' } : { state: 'set', value: element.value };
             }
             state.securitySnapshots[update.policy_id] = before;
         }
@@ -544,7 +749,12 @@ function dispatch(body) {
     if (!handler) {
         return {
             result: null,
-            error: { code: 907, name: 'CommandError', message: 'Dev backend does not implement ' + method, data: { method } },
+            error: {
+                code: 907,
+                name: 'CommandError',
+                message: 'Dev backend does not implement ' + method,
+                data: { method }
+            },
             id: body && body.id
         };
     }

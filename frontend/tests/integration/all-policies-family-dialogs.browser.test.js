@@ -10,11 +10,16 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
+} catch (_) {
+    /* Browser dependencies are optional in unit-only environments. */
+}
 
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const browserOptions = {
-    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
+    skip:
+        !chromium || !requireJs
+            ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.'
+            : false
 };
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
@@ -115,9 +120,19 @@ async function withPage(run) {
         }
         const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
         try {
-            response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : filename.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript');
+            response.setHeader(
+                'Content-Type',
+                filename.endsWith('.css')
+                    ? 'text/css'
+                    : filename.endsWith('.svg')
+                      ? 'image/svg+xml'
+                      : 'application/javascript'
+            );
             response.end(fs.readFileSync(filename));
-        } catch (_) { response.statusCode = 404; response.end('Missing'); }
+        } catch (_) {
+            response.statusCode = 404;
+            response.end('Missing');
+        }
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     let browser;
@@ -130,8 +145,12 @@ async function withPage(run) {
         page.on('pageerror', error => errors.push(error.message));
         await page.goto('http://127.0.0.1:' + server.address().port);
         await page.waitForFunction(() => window.ready);
-        try { await run(page); }
-        catch (error) { error.message += '; browser errors: ' + errors.join('; '); throw error; }
+        try {
+            await run(page);
+        } catch (error) {
+            error.message += '; browser errors: ' + errors.join('; ');
+            throw error;
+        }
         assert.deepEqual(errors, []);
     } finally {
         if (browser) await browser.close();
@@ -145,40 +164,47 @@ async function unchangedCatalog(page) {
     assert.equal(await page.evaluate(() => document.getElementById('header').innerHTML === headerBefore), true);
 }
 
-test('Preferences result opens a local family toolbar, reuses item/targeting editors, saves and returns without changing the catalog', browserOptions, async () => {
-    await withPage(async page => {
-        await page.locator('#open-preferences').click();
-        const family = page.getByRole('dialog', { name: 'Files', exact: true });
-        await family.locator('.preference__table tbody tr').first().waitFor();
-        assert.equal(await family.locator('[data-category-path]').count(), 0);
-        assert.equal(await family.locator('.preferences__btn-create').isVisible(), true);
-        assert.equal(await family.locator('.preferences__btn-edit').isVisible(), true);
-        assert.equal(await family.locator('.preferences__btn-delete').isVisible(), true);
-        await unchangedCatalog(page);
-        await family.locator('.preference__table tbody tr').first().click();
-        await family.locator('.preferences__btn-edit').click();
-        const form = page.getByRole('dialog', { name: 'Edit preference item', exact: true });
-        await form.waitFor();
-        assert.equal(await family.evaluate(element => element.inert), true);
-        await form.locator('.preference__tab-button[data-tab="tab-general"]').click();
-        await form.locator('.preference__tab-targetting-btn').click();
-        const targeting = page.getByRole('dialog', { name: 'Targeting Editor', exact: true });
-        await targeting.waitFor();
-        await targeting.locator('.btn-cancel').click();
-        await targeting.waitFor({ state: 'hidden' });
-        await form.locator('.preference__tab-button[data-tab="tab-basic"]').click();
-        await form.locator('[data-field-id="name"] input').fill('Renamed file');
-        await form.getByRole('button', { name: 'Save', exact: true }).click();
-        await form.waitFor({ state: 'hidden' });
-        await family.locator('tbody tr').filter({ hasText: 'Renamed file' }).waitFor();
-        assert.equal(await page.evaluate(() => saved.length), 1);
-        await family.locator('.preference__modal-footer > .btn-cancel').click();
-        await family.waitFor({ state: 'hidden' });
-        assert.equal(await page.evaluate(() => closeCount), 1);
-        assert.equal(await page.locator('#open-preferences').evaluate(element => element === document.activeElement), true);
-        await unchangedCatalog(page);
-    });
-});
+test(
+    'Preferences result opens a local family toolbar, reuses item/targeting editors, saves and returns without changing the catalog',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.locator('#open-preferences').click();
+            const family = page.getByRole('dialog', { name: 'Files', exact: true });
+            await family.locator('.preference__table tbody tr').first().waitFor();
+            assert.equal(await family.locator('[data-category-path]').count(), 0);
+            assert.equal(await family.locator('.preferences__btn-create').isVisible(), true);
+            assert.equal(await family.locator('.preferences__btn-edit').isVisible(), true);
+            assert.equal(await family.locator('.preferences__btn-delete').isVisible(), true);
+            await unchangedCatalog(page);
+            await family.locator('.preference__table tbody tr').first().click();
+            await family.locator('.preferences__btn-edit').click();
+            const form = page.getByRole('dialog', { name: 'Edit preference item', exact: true });
+            await form.waitFor();
+            assert.equal(await family.evaluate(element => element.inert), true);
+            await form.locator('.preference__tab-button[data-tab="tab-general"]').click();
+            await form.locator('.preference__tab-targetting-btn').click();
+            const targeting = page.getByRole('dialog', { name: 'Targeting Editor', exact: true });
+            await targeting.waitFor();
+            await targeting.locator('.btn-cancel').click();
+            await targeting.waitFor({ state: 'hidden' });
+            await form.locator('.preference__tab-button[data-tab="tab-basic"]').click();
+            await form.locator('[data-field-id="name"] input').fill('Renamed file');
+            await form.getByRole('button', { name: 'Save', exact: true }).click();
+            await form.waitFor({ state: 'hidden' });
+            await family.locator('tbody tr').filter({ hasText: 'Renamed file' }).waitFor();
+            assert.equal(await page.evaluate(() => saved.length), 1);
+            await family.locator('.preference__modal-footer > .btn-cancel').click();
+            await family.waitFor({ state: 'hidden' });
+            assert.equal(await page.evaluate(() => closeCount), 1);
+            assert.equal(
+                await page.locator('#open-preferences').evaluate(element => element === document.activeElement),
+                true
+            );
+            await unchangedCatalog(page);
+        });
+    }
+);
 
 test('Preferences family supports repeated creates and removal using its local controls', browserOptions, async () => {
     await withPage(async page => {
@@ -203,87 +229,122 @@ test('Preferences family supports repeated creates and removal using its local c
     });
 });
 
-test('Preferences outer close shares discard confirmation and cleans nested forms without discarding on No', browserOptions, async () => {
-    await withPage(async page => {
-        await page.locator('#open-preferences').click();
-        const family = page.getByRole('dialog', { name: 'Files', exact: true });
-        await family.locator('tbody tr').first().dblclick();
-        const form = page.getByRole('dialog', { name: 'Edit preference item', exact: true });
-        await form.locator('[data-field-id="name"] input').fill('Retain this draft');
-        await page.evaluate(() => current.dialog.requestClose());
-        const confirmation = page.getByRole('alertdialog');
-        await confirmation.waitFor();
-        await confirmation.locator('.btn-no').click();
-        assert.equal(await form.locator('[data-field-id="name"] input').inputValue(), 'Retain this draft');
-        assert.equal(await page.evaluate(() => current.editor.hasUnsavedChanges()), true);
-        await page.evaluate(() => current.dialog.requestClose());
-        await confirmation.locator('.btn-yes').click();
-        await family.waitFor({ state: 'hidden' });
-        assert.equal(await page.locator('.gpo-editor-preference-form').count(), 0);
-        assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
-        assert.equal(await page.evaluate(() => calls.some(call => call.method === 'preferenceUpdate')), false);
-        await unchangedCatalog(page);
-    });
-});
+test(
+    'Preferences outer close shares discard confirmation and cleans nested forms without discarding on No',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.locator('#open-preferences').click();
+            const family = page.getByRole('dialog', { name: 'Files', exact: true });
+            await family.locator('tbody tr').first().dblclick();
+            const form = page.getByRole('dialog', { name: 'Edit preference item', exact: true });
+            await form.locator('[data-field-id="name"] input').fill('Retain this draft');
+            await page.evaluate(() => current.dialog.requestClose());
+            const confirmation = page.getByRole('alertdialog');
+            await confirmation.waitFor();
+            await confirmation.locator('.btn-no').click();
+            assert.equal(await form.locator('[data-field-id="name"] input').inputValue(), 'Retain this draft');
+            assert.equal(await page.evaluate(() => current.editor.hasUnsavedChanges()), true);
+            await page.evaluate(() => current.dialog.requestClose());
+            await confirmation.locator('.btn-yes').click();
+            await family.waitFor({ state: 'hidden' });
+            assert.equal(await page.locator('.gpo-editor-preference-form').count(), 0);
+            assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
+            assert.equal(await page.evaluate(() => calls.some(call => call.method === 'preferenceUpdate')), false);
+            await unchangedCatalog(page);
+        });
+    }
+);
 
-test('closing a still-loading Preferences family does not resurrect it after its response arrives', browserOptions, async () => {
-    await withPage(async page => {
-        await page.evaluate(() => { holdPreferences = true; });
-        await page.locator('#open-preferences').click();
-        const family = page.getByRole('dialog', { name: 'Files', exact: true });
-        await family.waitFor();
-        await page.waitForFunction(() => Boolean(window.resolvePreferences));
-        await family.locator('.close').click();
-        await page.evaluate(() => { resolvePreferences(); return opening; });
-        assert.equal(await page.evaluate(() => current), null);
-        assert.equal(await page.locator('[role="dialog"]').count(), 0);
-        assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
-        assert.equal(await page.evaluate(() => closeCount), 1);
-        await unchangedCatalog(page);
-    });
-});
+test(
+    'closing a still-loading Preferences family does not resurrect it after its response arrives',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.evaluate(() => {
+                holdPreferences = true;
+            });
+            await page.locator('#open-preferences').click();
+            const family = page.getByRole('dialog', { name: 'Files', exact: true });
+            await family.waitFor();
+            await page.waitForFunction(() => Boolean(window.resolvePreferences));
+            await family.locator('.close').click();
+            await page.evaluate(() => {
+                resolvePreferences();
+                return opening;
+            });
+            assert.equal(await page.evaluate(() => current), null);
+            assert.equal(await page.locator('[role="dialog"]').count(), 0);
+            assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
+            assert.equal(await page.evaluate(() => closeCount), 1);
+            await unchangedCatalog(page);
+        });
+    }
+);
 
-test('Scripts result loads only its event, opens a nested SYSVOL explorer and publishes existing entry operations immediately', browserOptions, async () => {
-    await withPage(async page => {
-        await page.locator('#open-scripts').click();
-        const event = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
-        await event.locator('.gpo-editor-scripts__entries tbody tr').first().waitFor();
-        assert.deepEqual(await page.evaluate(() => calls.filter(call => call.method === 'scriptsShow').map(call => [call.scope, call.event])), [['computer', 'shutdown']]);
-        assert.equal(await page.locator('.gpo-editor-scripts__overview').count(), 0);
-        assert.equal(await event.locator('[data-category-path]').count(), 0);
-        await unchangedCatalog(page);
-        await event.locator('.gpo-editor-scripts__order select').selectOption('powershell_first');
-        await event.getByRole('button', { name: 'Show files…', exact: true }).click();
-        const explorer = page.getByRole('dialog', { name: 'Files: Shutdown scripts', exact: true });
-        await explorer.locator('tbody tr').first().waitFor();
-        assert.equal(await event.evaluate(element => element.inert), true);
-        const file = explorer.locator('input[type=file]').first();
-        await file.setInputFiles({ name: 'uploaded.cmd', mimeType: 'application/octet-stream', buffer: Buffer.from('echo test') });
-        await explorer.locator('tbody tr').filter({ hasText: 'uploaded.cmd' }).waitFor();
-        await explorer.press('Escape');
-        await explorer.waitFor({ state: 'hidden' });
-        assert.equal(await event.evaluate(element => element.inert), false);
-        assert.equal(await event.locator('.gpo-editor-scripts__order select').inputValue(), 'powershell_first');
-        await event.getByRole('button', { name: 'Add', exact: true }).click();
-        const form = event.locator('.gpo-editor-scripts__form');
-        await form.locator('.gpo-editor-scripts__asset-field input').fill('uploaded.cmd');
-        await form.getByRole('button', { name: 'Apply', exact: true }).click();
-        await form.waitFor({ state: 'hidden' });
-        await event.locator('.gpo-editor-scripts__entries tbody tr').filter({ hasText: 'uploaded.cmd' }).waitFor();
-        assert.equal(await page.evaluate(() => calls.find(call => call.method === 'scriptEntryAdd').request.mode), 'existing_asset');
-        assert.equal(await page.evaluate(() => saved.length), 2);
-        assert.ok(await page.evaluate(() => calls.filter(call => call.method === 'scriptsShow').every(call => call.event === 'shutdown')));
-        await page.evaluate(() => current.editor.cancelChanges());
-        await event.locator('.preference__modal-footer > .btn-cancel').last().click();
-        await event.waitFor({ state: 'hidden' });
-        assert.equal(await page.evaluate(() => closeCount), 1);
-        await unchangedCatalog(page);
-    });
-});
+test(
+    'Scripts result loads only its event, opens a nested SYSVOL explorer and publishes existing entry operations immediately',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.locator('#open-scripts').click();
+            const event = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
+            await event.locator('.gpo-editor-scripts__entries tbody tr').first().waitFor();
+            assert.deepEqual(
+                await page.evaluate(() =>
+                    calls.filter(call => call.method === 'scriptsShow').map(call => [call.scope, call.event])
+                ),
+                [['computer', 'shutdown']]
+            );
+            assert.equal(await page.locator('.gpo-editor-scripts__overview').count(), 0);
+            assert.equal(await event.locator('[data-category-path]').count(), 0);
+            await unchangedCatalog(page);
+            await event.locator('.gpo-editor-scripts__order select').selectOption('powershell_first');
+            await event.getByRole('button', { name: 'Show files…', exact: true }).click();
+            const explorer = page.getByRole('dialog', { name: 'Files: Shutdown scripts', exact: true });
+            await explorer.locator('tbody tr').first().waitFor();
+            assert.equal(await event.evaluate(element => element.inert), true);
+            const file = explorer.locator('input[type=file]').first();
+            await file.setInputFiles({
+                name: 'uploaded.cmd',
+                mimeType: 'application/octet-stream',
+                buffer: Buffer.from('echo test')
+            });
+            await explorer.locator('tbody tr').filter({ hasText: 'uploaded.cmd' }).waitFor();
+            await explorer.press('Escape');
+            await explorer.waitFor({ state: 'hidden' });
+            assert.equal(await event.evaluate(element => element.inert), false);
+            assert.equal(await event.locator('.gpo-editor-scripts__order select').inputValue(), 'powershell_first');
+            await event.getByRole('button', { name: 'Add', exact: true }).click();
+            const form = event.locator('.gpo-editor-scripts__form');
+            await form.locator('.gpo-editor-scripts__asset-field input').fill('uploaded.cmd');
+            await form.getByRole('button', { name: 'Apply', exact: true }).click();
+            await form.waitFor({ state: 'hidden' });
+            await event.locator('.gpo-editor-scripts__entries tbody tr').filter({ hasText: 'uploaded.cmd' }).waitFor();
+            assert.equal(
+                await page.evaluate(() => calls.find(call => call.method === 'scriptEntryAdd').request.mode),
+                'existing_asset'
+            );
+            assert.equal(await page.evaluate(() => saved.length), 2);
+            assert.ok(
+                await page.evaluate(() =>
+                    calls.filter(call => call.method === 'scriptsShow').every(call => call.event === 'shutdown')
+                )
+            );
+            await page.evaluate(() => current.editor.cancelChanges());
+            await event.locator('.preference__modal-footer > .btn-cancel').last().click();
+            await event.waitFor({ state: 'hidden' });
+            assert.equal(await page.evaluate(() => closeCount), 1);
+            await unchangedCatalog(page);
+        });
+    }
+);
 
 test('Scripts cleanup suppresses a late event load and restores the result focus', browserOptions, async () => {
     await withPage(async page => {
-        await page.evaluate(() => { holdScripts = true; });
+        await page.evaluate(() => {
+            holdScripts = true;
+        });
         await page.locator('#open-scripts').click();
         const event = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
         await page.waitForFunction(() => Boolean(window.resolveScripts));
@@ -297,24 +358,30 @@ test('Scripts cleanup suppresses a late event load and restores the result focus
     });
 });
 
-test('busy script publication prevents closing its family dialog and keeps the submitted form', browserOptions, async () => {
-    await withPage(async page => {
-        await page.locator('#open-scripts').click();
-        const event = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
-        await event.locator('tbody tr').first().waitFor();
-        await page.evaluate(() => { holdWrite = true; });
-        await event.getByRole('button', { name: 'Add', exact: true }).click();
-        const form = event.locator('.gpo-editor-scripts__form');
-        await form.locator('.gpo-editor-scripts__asset-field input').fill('one.cmd');
-        await form.getByRole('button', { name: 'Apply', exact: true }).click();
-        await page.waitForFunction(() => Boolean(window.resolveWrite));
-        assert.equal(await page.evaluate(() => current.dialog.requestClose()), false);
-        assert.equal(await page.getByRole('alertdialog').count(), 0);
-        assert.equal(await form.isVisible(), true);
-        await page.evaluate(() => resolveWrite());
-        await form.waitFor({ state: 'hidden' });
-        await event.locator('.preference__modal-footer > .btn-cancel').last().click();
-        await event.waitFor({ state: 'hidden' });
-        await unchangedCatalog(page);
-    });
-});
+test(
+    'busy script publication prevents closing its family dialog and keeps the submitted form',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.locator('#open-scripts').click();
+            const event = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
+            await event.locator('tbody tr').first().waitFor();
+            await page.evaluate(() => {
+                holdWrite = true;
+            });
+            await event.getByRole('button', { name: 'Add', exact: true }).click();
+            const form = event.locator('.gpo-editor-scripts__form');
+            await form.locator('.gpo-editor-scripts__asset-field input').fill('one.cmd');
+            await form.getByRole('button', { name: 'Apply', exact: true }).click();
+            await page.waitForFunction(() => Boolean(window.resolveWrite));
+            assert.equal(await page.evaluate(() => current.dialog.requestClose()), false);
+            assert.equal(await page.getByRole('alertdialog').count(), 0);
+            assert.equal(await form.isVisible(), true);
+            await page.evaluate(() => resolveWrite());
+            await form.waitFor({ state: 'hidden' });
+            await event.locator('.preference__modal-footer > .btn-cancel').last().click();
+            await event.waitFor({ state: 'hidden' });
+            await unchangedCatalog(page);
+        });
+    }
+);

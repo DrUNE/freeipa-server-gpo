@@ -1,0 +1,4 @@
+# Revisions that only reformat code. Add the hash of the commit that applied Prettier to frontend/
+# (the "format frontend with Prettier" commit), then enable once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub and Forgejo also read this file by default.

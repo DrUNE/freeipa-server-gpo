@@ -9,9 +9,12 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Optional browser dependencies. */ }
+} catch (_) {
+    /* Optional browser dependencies. */
+}
 const root = path.resolve(import.meta.dirname, '../../.test-root');
-const skip = !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+const skip =
+    !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/icons.css">
 <style>body{font:12px Arial,sans-serif;color:#363636;background:white;margin:20px}h1{font-size:18px;font-weight:400;margin:0 0 18px}h2{font-size:14px;font-weight:400;margin:12px 0 8px}.sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 16px}.sample{display:flex;align-items:center;gap:8px;min-height:24px;padding:4px;border:1px solid #eee}.sample:nth-child(odd){background:#f5f5f5}.sample span:last-child{min-width:0}section{margin-bottom:20px}</style>
@@ -31,10 +34,23 @@ require(['components/editor-icons','components/templates/preference/targeting-pr
 
 test('every semantic SVG loads at 16px without missing requests and keeps labels separate', { skip }, async () => {
     const server = http.createServer((request, response) => {
-        if (request.url === '/') { response.setHeader('Content-Type', 'text/html; charset=utf-8'); return response.end(html); }
+        if (request.url === '/') {
+            response.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return response.end(html);
+        }
         const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
-        if (!fs.existsSync(filename) || !fs.statSync(filename).isFile()) { response.statusCode = 404; return response.end('Not found'); }
-        response.setHeader('Content-Type', filename.endsWith('.svg') ? 'image/svg+xml' : filename.endsWith('.css') ? 'text/css' : 'application/javascript');
+        if (!fs.existsSync(filename) || !fs.statSync(filename).isFile()) {
+            response.statusCode = 404;
+            return response.end('Not found');
+        }
+        response.setHeader(
+            'Content-Type',
+            filename.endsWith('.svg')
+                ? 'image/svg+xml'
+                : filename.endsWith('.css')
+                  ? 'text/css'
+                  : 'application/javascript'
+        );
         response.end(fs.readFileSync(filename));
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -44,33 +60,52 @@ test('every semantic SVG loads at 16px without missing requests and keeps labels
         const page = await browser.newPage({ viewport: { width: 1080, height: 960 }, deviceScaleFactor: 1 });
         const errors = [];
         page.on('pageerror', error => errors.push(String(error)));
-        page.on('response', response => { if (response.status() >= 400) errors.push(response.status() + ' ' + response.url()); });
+        page.on('response', response => {
+            if (response.status() >= 400) errors.push(response.status() + ' ' + response.url());
+        });
         await page.goto('http://127.0.0.1:' + server.address().port);
         await page.waitForFunction(() => window.ready);
         const rendered = await page.evaluate(async () => {
             const nodes = Array.from(document.querySelectorAll('.gpo-icon'));
-            return Promise.all(nodes.map(async node => {
-                const style = getComputedStyle(node);
-                const url = style.backgroundImage.match(/url\("?(.+?)"?\)/);
-                if (!url) return { missing: node.className };
-                const image = new Image(); image.src = url[1]; await image.decode();
-                const canvas = document.createElement('canvas'); canvas.width = 16; canvas.height = 16;
-                const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
-                const data = context.getImageData(0, 0, 16, 16).data;
-                let ink = 0;
-                for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 80 && data[i] < 210) ink++;
-                return { width: style.width, height: style.height, naturalWidth: image.naturalWidth,
-                    naturalHeight: image.naturalHeight, ariaHidden: node.getAttribute('aria-hidden'), ink };
-            }));
+            return Promise.all(
+                nodes.map(async node => {
+                    const style = getComputedStyle(node);
+                    const url = style.backgroundImage.match(/url\("?(.+?)"?\)/);
+                    if (!url) return { missing: node.className };
+                    const image = new Image();
+                    image.src = url[1];
+                    await image.decode();
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 16;
+                    canvas.height = 16;
+                    const context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0);
+                    const data = context.getImageData(0, 0, 16, 16).data;
+                    let ink = 0;
+                    for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 80 && data[i] < 210) ink++;
+                    return {
+                        width: style.width,
+                        height: style.height,
+                        naturalWidth: image.naturalWidth,
+                        naturalHeight: image.naturalHeight,
+                        ariaHidden: node.getAttribute('aria-hidden'),
+                        ink
+                    };
+                })
+            );
         });
         assert.equal(rendered.length, 63);
         for (const icon of rendered) {
-            assert.equal(icon.width, '16px'); assert.equal(icon.height, '16px');
-            assert.equal(icon.naturalWidth, 16); assert.equal(icon.naturalHeight, 16);
-            assert.equal(icon.ariaHidden, 'true'); assert.ok(icon.ink >= 20, 'Icon should paint a discernible silhouette');
+            assert.equal(icon.width, '16px');
+            assert.equal(icon.height, '16px');
+            assert.equal(icon.naturalWidth, 16);
+            assert.equal(icon.naturalHeight, 16);
+            assert.equal(icon.ariaHidden, 'true');
+            assert.ok(icon.ink >= 20, 'Icon should paint a discernible silhouette');
         }
         assert.deepEqual(errors, []);
-        if (process.env.ICON_CATALOG_SCREENSHOT) await page.screenshot({ path: process.env.ICON_CATALOG_SCREENSHOT, fullPage: true });
+        if (process.env.ICON_CATALOG_SCREENSHOT)
+            await page.screenshot({ path: process.env.ICON_CATALOG_SCREENSHOT, fullPage: true });
     } finally {
         if (browser) await browser.close();
         await new Promise(resolve => server.close(resolve));

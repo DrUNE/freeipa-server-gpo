@@ -7,9 +7,19 @@ import { execFileSync } from 'node:child_process';
 const root = path.resolve(import.meta.dirname, '../../src/components/templates');
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 const model = await load('security/model.js');
-const values = await load('security/value-editor.js', { '../../../util/element-creator': { createElement: undefined } });
-const template = await load('security-template.js', { '../../util/element-creator': { createElement: undefined }, '../../locales/translations': { t: key => key }, './security/model': model, './security/value-editor': values });
-const workbench = await load('security/workbench.js', { '../../../util/element-creator': { createElement: undefined }, '../../../locales/translations': { t: key => key } });
+const values = await load('security/value-editor.js', {
+    '../../../util/element-creator': { createElement: undefined }
+});
+const template = await load('security-template.js', {
+    '../../util/element-creator': { createElement: undefined },
+    '../../locales/translations': { t: key => key },
+    './security/model': model,
+    './security/value-editor': values
+});
+const workbench = await load('security/workbench.js', {
+    '../../../util/element-creator': { createElement: undefined },
+    '../../../locales/translations': { t: key => key }
+});
 test('defined policies without settings use a dash and preserve explicit empty or false values', async () => {
     const policy = { definition: { elements: [] }, state: { state: 'defined', elements: {} } };
     assert.equal(workbench.policySummary(policy), '—');
@@ -23,15 +33,40 @@ test('defined policies without settings use a dash and preserve explicit empty o
 });
 function response() {
     const ns = 'urn:altlinux:sdmx:policies:';
-    return { security_catalog: { semantic_revision: 'v1', categories: [
-        { namespace: ns + 'b', id: 'security_options', display_name: 'Security Options' },
-        { namespace: ns + 'a', id: 'security_options', display_name: 'Security Options' },
-        { namespace: ns + 'registry', id: 'registry', display_name: 'Registry Security' }
-    ], policies: [
-        { namespace: ns + 'b', policy_id: 'b', display_name: 'Zulu', category: [ns + 'b', 'security_options'], elements: [{ id: 'enabled', value_type: 'boolean', required: true }] },
-        { namespace: ns + 'a', policy_id: 'a', display_name: 'Alpha', category: [ns + 'a', 'security_options'], elements: [{ id: 'enabled', value_type: 'boolean', required: true }] },
-        { namespace: ns + 'registry', policy_id: 'registry', display_name: 'Registry Security', category: [ns + 'registry', 'registry'], elements: [{ id: 'entries', value_type: 'collection', unique_by: 'key', fields: [] }] }
-    ] }, security_snapshot: { policies: [] } };
+    return {
+        security_catalog: {
+            semantic_revision: 'v1',
+            categories: [
+                { namespace: ns + 'b', id: 'security_options', display_name: 'Security Options' },
+                { namespace: ns + 'a', id: 'security_options', display_name: 'Security Options' },
+                { namespace: ns + 'registry', id: 'registry', display_name: 'Registry Security' }
+            ],
+            policies: [
+                {
+                    namespace: ns + 'b',
+                    policy_id: 'b',
+                    display_name: 'Zulu',
+                    category: [ns + 'b', 'security_options'],
+                    elements: [{ id: 'enabled', value_type: 'boolean', required: true }]
+                },
+                {
+                    namespace: ns + 'a',
+                    policy_id: 'a',
+                    display_name: 'Alpha',
+                    category: [ns + 'a', 'security_options'],
+                    elements: [{ id: 'enabled', value_type: 'boolean', required: true }]
+                },
+                {
+                    namespace: ns + 'registry',
+                    policy_id: 'registry',
+                    display_name: 'Registry Security',
+                    category: [ns + 'registry', 'registry'],
+                    elements: [{ id: 'entries', value_type: 'collection', unique_by: 'key', fields: [] }]
+                }
+            ]
+        },
+        security_snapshot: { policies: [] }
+    };
 }
 test('merged sorted categories retain scalar policies only in category table and collapse collection folder', async () => {
     const nodes = model.navigationNodes(response());
@@ -55,13 +90,21 @@ test('collection edits project only changed and deleted row keys', async () => {
     assert.equal(actions[1].key.value, 'c');
 });
 test('Restricted Groups requires an explicit relationship and allows configured empty members', async () => {
-    const element = { id: 'groups', value_type: 'collection', unique_by: 'group', fields: [
-        { id: 'group', required: true, element: { value_type: 'principal' } },
-        { id: 'members', required: false, element: { value_type: 'principal_list' } },
-        { id: 'member_of', required: false, element: { value_type: 'principal_list' } }
-    ] };
+    const element = {
+        id: 'groups',
+        value_type: 'collection',
+        unique_by: 'group',
+        fields: [
+            { id: 'group', required: true, element: { value_type: 'principal' } },
+            { id: 'members', required: false, element: { value_type: 'principal_list' } },
+            { id: 'member_of', required: false, element: { value_type: 'principal_list' } }
+        ]
+    };
     const row = { group: { state: 'set', value: { kind: 'principal', value: 'Administrators' } } };
-    const draft = { defined: true, elements: { groups: { state: 'set', value: { kind: 'collection', value: [row] } } } };
+    const draft = {
+        defined: true,
+        elements: { groups: { state: 'set', value: { kind: 'collection', value: [row] } } }
+    };
     const policy = { definition: { elements: [element] } };
     assert.match(template._test.validateDraft(policy, draft), /Members or Member of/);
     row.members = { state: 'set', value: { kind: 'principal_list', value: [] } };
@@ -71,7 +114,8 @@ test('undefined policy transition and explicit empty values remain distinct', as
     const built = model.buildSecurityModel(response());
     const policy = [...built.policies.values()][0];
     const baseline = template._test.initialDraft(policy);
-    const draft = JSON.parse(JSON.stringify(baseline)); draft.defined = true;
+    const draft = JSON.parse(JSON.stringify(baseline));
+    draft.defined = true;
     draft.elements.enabled = { state: 'set', value: { kind: 'boolean', value: false } };
     const request = template._test.updateRequest(built, policy, baseline, draft);
     assert.equal(request.expected_semantic_revision, 'v1');
@@ -82,22 +126,39 @@ test('required service identity and descriptor cannot be blank, and enum selecti
     for (const kind of ['service_name', 'sddl', 'principal', 'registry_key', 'file_path']) {
         assert.match(values.validationError({ value_type: kind }, { kind, value: '  ' }), /required/);
     }
-    assert.match(values.validationError({ value_type: 'enum', options: [{ id: 'manual' }] }, { kind: 'enum', value: '' }), /Select/);
+    assert.match(
+        values.validationError({ value_type: 'enum', options: [{ id: 'manual' }] }, { kind: 'enum', value: '' }),
+        /Select/
+    );
 });
 test('empty configured collection requires an item', async () => {
-    const policy = { definition: { elements: [{ id: 'rows', value_type: 'collection', unique_by: 'key', fields: [] }] } };
+    const policy = {
+        definition: { elements: [{ id: 'rows', value_type: 'collection', unique_by: 'key', fields: [] }] }
+    };
     const draft = { defined: true, elements: { rows: { state: 'set', value: { kind: 'collection', value: [] } } } };
     assert.match(template._test.validateDraft(policy, draft), /at least one item/);
 });
 test('scalar-only folders have no empty tree expander but lazy and item folders do', async () => {
-    const tree = await load('../tree-view/tree-view-list.js', { '../../util/element-creator': { createElement: undefined } });
+    const tree = await load('../tree-view/tree-view-list.js', {
+        '../../util/element-creator': { createElement: undefined }
+    });
     assert.equal(tree.hasVisibleChildren({ children: [{ showInTree: false }] }), false);
     assert.equal(tree.hasVisibleChildren({ lazy: true, children: [] }), true);
     assert.equal(tree.hasVisibleChildren({ children: [{ type: 'folder' }] }), true);
 });
 test('Advanced Audit supports all catalog rows and opaque global SACL editing without relabeling machine metadata', async () => {
-    const audit = await load('advanced-audit/model.js', { '../../../locales/translations': { t: key => key.endsWith('.crash_on_audit_fail') ? 'Localized audit option' : key } });
-    const fixture = { advanced_audit: { suggested_machine_name: 'DC1', rows: [], subcategory_catalog: [{ guid: 'audit-guid', display_name: 'Audit category' }] } };
+    const audit = await load('advanced-audit/model.js', {
+        '../../../locales/translations': {
+            t: key => (key.endsWith('.crash_on_audit_fail') ? 'Localized audit option' : key)
+        }
+    });
+    const fixture = {
+        advanced_audit: {
+            suggested_machine_name: 'DC1',
+            rows: [],
+            subcategory_catalog: [{ guid: 'audit-guid', display_name: 'Audit category' }]
+        }
+    };
     const families = audit.families(fixture);
     assert.equal(families.find(family => family.id === 'system_audit_policies').rows[0].editable, true);
     const sacls = families.find(family => family.id === 'global_object_access_auditing').rows;
@@ -107,39 +168,67 @@ test('Advanced Audit supports all catalog rows and opaque global SACL editing wi
     assert.equal(option.display_name, 'Localized audit option');
     assert.equal(option.machine_name, 'DC1');
 });
-test('installed 185-policy catalog remains complete and sorted when Advanced Audit RPC fails', { skip: !fs.existsSync('/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd') }, async () => {
-    const fixture = JSON.parse(execFileSync('/usr/bin/python3', ['-B', '-c', [
-        'import json,tempfile,pathlib',
-        'from admix import SecurityDefinitionCatalog,Workspace',
-        'c=SecurityDefinitionCatalog("/usr/share/PolicyDefinitions",locale="en-US",sdmx_schema="/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd",sdml_schema="/usr/share/xml/sdmx/1.0/sdml-1.0.xsd")',
-        'with tempfile.TemporaryDirectory() as d:',
-        ' p=pathlib.Path(d); (p/"gpo").mkdir()',
-        ' w=Workspace.open(p/"gpo",security_catalog=c,load_preferences=False,state_directory=p/"state",state_key="ui-test")',
-        ' print(json.dumps({"security_catalog":w.security.definition_catalog(),"security_snapshot":w.security.definition_snapshot()}))'
-    ].join('\n')], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
-    const api = { getDisplayName: () => 'UI test', securityDefinitionsShow: async () => fixture, advancedAuditShow: async () => { throw Error('Audit offline'); } };
-    const audit = await load('advanced-audit/model.js');
-    const tree = await load('../tree-view/tree-view-list-data.js', {
-        '../editor-icons': await load('../editor-icons.js'),
-        '../../locales/translations': { t: key => key }, '../../util/API': api,
-        '../templates/security/model': model, '../templates/advanced-audit/model': audit
-    });
-    const computer = tree.buildTreeViewList({})[0].children[0];
-    const policies = computer.children.find(node => node.title === 'policies.title');
-    const windowsSettings = policies.children.find(node => node.title === 'policies.windowsSettings');
-    const node = windowsSettings.children.find(node => node.title === 'security.title');
-    const nodes = await node.loadChildren();
-    const visible = nodes.filter(node => node.showInTree !== false);
-    assert.equal(visible.length, 11);
-    assert.equal(visible.filter(node => node.securityCollection).length, 4);
-    const scalars = visible.flatMap(node => node.children || []).filter(node => node.securityPolicy);
-    assert.equal(scalars.length, 181);
-    assert.ok(scalars.every(node => node.showInTree === false));
-    assert.equal(scalars.length + visible.filter(node => node.securityCollection).length, 185);
-    assert.deepEqual([...visible.map(node => node.title)], [...visible.map(node => node.title)].sort((a,b) => a.localeCompare(b)));
-    api.advancedAuditShow = async () => ({ advanced_audit: { rows: [], subcategory_catalog: [] } });
-    const available = (await node.loadChildren()).filter(node => node.showInTree !== false);
-    assert.equal(available.length, 12);
-    assert.equal(available[1].title, 'Advanced Audit Policy Configuration');
-    assert.deepEqual([...available.map(node => node.title)], [...available.map(node => node.title)].sort((a,b) => a.localeCompare(b)));
-});
+test(
+    'installed 185-policy catalog remains complete and sorted when Advanced Audit RPC fails',
+    { skip: !fs.existsSync('/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd') },
+    async () => {
+        const fixture = JSON.parse(
+            execFileSync(
+                '/usr/bin/python3',
+                [
+                    '-B',
+                    '-c',
+                    [
+                        'import json,tempfile,pathlib',
+                        'from admix import SecurityDefinitionCatalog,Workspace',
+                        'c=SecurityDefinitionCatalog("/usr/share/PolicyDefinitions",locale="en-US",sdmx_schema="/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd",sdml_schema="/usr/share/xml/sdmx/1.0/sdml-1.0.xsd")',
+                        'with tempfile.TemporaryDirectory() as d:',
+                        ' p=pathlib.Path(d); (p/"gpo").mkdir()',
+                        ' w=Workspace.open(p/"gpo",security_catalog=c,load_preferences=False,state_directory=p/"state",state_key="ui-test")',
+                        ' print(json.dumps({"security_catalog":w.security.definition_catalog(),"security_snapshot":w.security.definition_snapshot()}))'
+                    ].join('\n')
+                ],
+                { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }
+            )
+        );
+        const api = {
+            getDisplayName: () => 'UI test',
+            securityDefinitionsShow: async () => fixture,
+            advancedAuditShow: async () => {
+                throw Error('Audit offline');
+            }
+        };
+        const audit = await load('advanced-audit/model.js');
+        const tree = await load('../tree-view/tree-view-list-data.js', {
+            '../editor-icons': await load('../editor-icons.js'),
+            '../../locales/translations': { t: key => key },
+            '../../util/API': api,
+            '../templates/security/model': model,
+            '../templates/advanced-audit/model': audit
+        });
+        const computer = tree.buildTreeViewList({})[0].children[0];
+        const policies = computer.children.find(node => node.title === 'policies.title');
+        const windowsSettings = policies.children.find(node => node.title === 'policies.windowsSettings');
+        const node = windowsSettings.children.find(node => node.title === 'security.title');
+        const nodes = await node.loadChildren();
+        const visible = nodes.filter(node => node.showInTree !== false);
+        assert.equal(visible.length, 11);
+        assert.equal(visible.filter(node => node.securityCollection).length, 4);
+        const scalars = visible.flatMap(node => node.children || []).filter(node => node.securityPolicy);
+        assert.equal(scalars.length, 181);
+        assert.ok(scalars.every(node => node.showInTree === false));
+        assert.equal(scalars.length + visible.filter(node => node.securityCollection).length, 185);
+        assert.deepEqual(
+            [...visible.map(node => node.title)],
+            [...visible.map(node => node.title)].sort((a, b) => a.localeCompare(b))
+        );
+        api.advancedAuditShow = async () => ({ advanced_audit: { rows: [], subcategory_catalog: [] } });
+        const available = (await node.loadChildren()).filter(node => node.showInTree !== false);
+        assert.equal(available.length, 12);
+        assert.equal(available[1].title, 'Advanced Audit Policy Configuration');
+        assert.deepEqual(
+            [...available.map(node => node.title)],
+            [...available.map(node => node.title)].sort((a, b) => a.localeCompare(b))
+        );
+    }
+);

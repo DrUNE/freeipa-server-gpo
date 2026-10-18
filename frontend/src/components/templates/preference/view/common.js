@@ -13,9 +13,17 @@ function validationMessage(code) {
     if (code === 'required') return pt('validationRequired');
     if (code === 'invalid_number') return pt('validationInvalidNumber');
     if (code === 'unsigned_byte_range') return pt('validationUnsignedByteRange');
-    var targetingCodes = { invalid_date: 'validationDate', invalid_time: 'validationTime',
-        invalid_ip: 'validationIp', invalid_ipv6: 'validationIpv6', invalid_mac: 'validationMac', invalid_version: 'validationVersion', invalid_guid: 'validationGuid',
-        invalid_range: 'validationRange', invalid_value: 'validationValue' };
+    var targetingCodes = {
+        invalid_date: 'validationDate',
+        invalid_time: 'validationTime',
+        invalid_ip: 'validationIp',
+        invalid_ipv6: 'validationIpv6',
+        invalid_mac: 'validationMac',
+        invalid_version: 'validationVersion',
+        invalid_guid: 'validationGuid',
+        invalid_range: 'validationRange',
+        invalid_value: 'validationValue'
+    };
     if (targetingCodes[code]) return pt(targetingCodes[code]);
     return pt('validationFixErrors');
 }
@@ -29,7 +37,7 @@ function parentCandidateLabel(candidate) {
     var depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
     var prefix = '';
     for (var index = 0; index < depth; index += 1) prefix += '\u00a0\u00a0';
-    return prefix + String(candidate && candidate.label || '');
+    return prefix + String((candidate && candidate.label) || '');
 }
 
 function scopeField(field, scope) {
@@ -45,9 +53,10 @@ function scopeField(field, scope) {
 }
 
 function actionLabel(value) {
-    var key = ({ create: 'actionCreate', replace: 'actionReplace',
-        update: 'actionUpdate', delete: 'actionDelete' })[value];
-    return key ? pt(key) : (value === null || value === undefined ? '' : String(value));
+    var key = { create: 'actionCreate', replace: 'actionReplace', update: 'actionUpdate', delete: 'actionDelete' }[
+        value
+    ];
+    return key ? pt(key) : value === null || value === undefined ? '' : String(value);
 }
 
 function itemFieldValue(item, fieldId) {
@@ -60,8 +69,10 @@ function itemFieldValue(item, fieldId) {
         }
     }
     if (item.properties && typeof item.properties === 'object') {
-        var key = String(fieldId).indexOf('properties.') === 0
-            ? String(fieldId).slice('properties.'.length) : String(fieldId);
+        var key =
+            String(fieldId).indexOf('properties.') === 0
+                ? String(fieldId).slice('properties.'.length)
+                : String(fieldId);
         if (Object.prototype.hasOwnProperty.call(item.properties, key)) {
             var raw = item.properties[key];
             if (raw && typeof raw === 'object' && 'kind' in raw) return dto.valuePayload(raw);
@@ -81,7 +92,7 @@ function tableColumns(kind) {
 
 function editableFields(controls, baseline, changedOnly) {
     var result = [];
-    controls.forEach(function(control, id) {
+    controls.forEach(function (control, id) {
         var field = baseline.get(id);
         if (!field || !field.editable) return;
         var value = control.read();
@@ -90,6 +101,19 @@ function editableFields(controls, baseline, changedOnly) {
     return result;
 }
 
-function filterKey(path) { return JSON.stringify(path || []); }
+function filterKey(path) {
+    return JSON.stringify(path || []);
+}
 
-export { pt, validationMessage, listFrom, parentCandidateLabel, scopeField, actionLabel, itemFieldValue, tableColumns, editableFields, filterKey };
+export {
+    pt,
+    validationMessage,
+    listFrom,
+    parentCandidateLabel,
+    scopeField,
+    actionLabel,
+    itemFieldValue,
+    tableColumns,
+    editableFields,
+    filterKey
+};

@@ -20,7 +20,9 @@ for (const suite of report.testResults) {
     }
 }
 if (skipped.length) {
-    console.error(`${skipped.length} test(s) were skipped; every prerequisite must be installed:\n  ${skipped.join('\n  ')}`);
+    console.error(
+        `${skipped.length} test(s) were skipped; every prerequisite must be installed:\n  ${skipped.join('\n  ')}`
+    );
     process.exit(1);
 }
 console.log(`no skipped tests (${report.numTotalTests} run)`);

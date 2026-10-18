@@ -3,16 +3,14 @@ import * as __dep1 from '../../locales/translations';
 import * as __dep2 from './tree-view-list';
 import * as __dep3 from './tree-view-list-data';
 
-
 var { createElement } = __dep0;
 var { t } = __dep1;
 var { renderTreeViewList } = __dep2;
 var { loadTreeViewList } = __dep3;
 
-
 const TREE_VIEW_MESSAGES = {
     loading: 'treeView.loadingPolicies',
-    error: 'treeView.unableToLoadPolicies',
+    error: 'treeView.unableToLoadPolicies'
 };
 
 function renderTreeViewStatus(type = 'loading') {
@@ -20,28 +18,30 @@ function renderTreeViewStatus(type = 'loading') {
     const children = [];
 
     if (!isError) {
-        children.push(createElement('span', {
-            className: 'tree-view__status-spinner',
-            attrs: {
-                'aria-hidden': 'true',
-            },
-        }));
+        children.push(
+            createElement('span', {
+                className: 'tree-view__status-spinner',
+                attrs: {
+                    'aria-hidden': 'true'
+                }
+            })
+        );
     }
 
-    children.push(createElement('span', {
-        className: 'tree-view__status-text',
-        text: isError
-            ? t(TREE_VIEW_MESSAGES.error)
-            : t(TREE_VIEW_MESSAGES.loading),
-    }));
+    children.push(
+        createElement('span', {
+            className: 'tree-view__status-text',
+            text: isError ? t(TREE_VIEW_MESSAGES.error) : t(TREE_VIEW_MESSAGES.loading)
+        })
+    );
 
     return createElement('div', {
         className: ['tree-view__status', isError ? 'tree-view__status--error' : 'tree-view__status--loading'],
         attrs: {
             role: isError ? 'alert' : 'status',
-            'aria-live': isError ? 'assertive' : 'polite',
+            'aria-live': isError ? 'assertive' : 'polite'
         },
-        children,
+        children
     });
 }
 

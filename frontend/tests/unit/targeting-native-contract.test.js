@@ -6,13 +6,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-function plain(value) { return JSON.parse(JSON.stringify(value)); }
+function plain(value) {
+    return JSON.parse(JSON.stringify(value));
+}
 const presentation = presentationModule;
 const operandEditor = operandEditorModule;
 
-const probe = spawnSync(process.env.PYTHON || 'python3', ['-c', 'from admix import _native; print(_native.__file__)'], { encoding: 'utf8' });
-const skip = probe.error && probe.error.code === 'ENOENT' || /ModuleNotFoundError/.test(probe.stderr || '')
-    ? 'Optional installed admix native binding is unavailable.' : false;
+const probe = spawnSync(process.env.PYTHON || 'python3', ['-c', 'from admix import _native; print(_native.__file__)'], {
+    encoding: 'utf8'
+});
+const skip =
+    (probe.error && probe.error.code === 'ENOENT') || /ModuleNotFoundError/.test(probe.stderr || '')
+        ? 'Optional installed admix native binding is unavailable.'
+        : false;
 
 // This is an isolated format-contract check, not a server integration test.
 // Every writable path is beneath a fresh TemporaryDirectory; no SYSVOL,
@@ -88,9 +94,13 @@ with tempfile.TemporaryDirectory(prefix="gpo-targeting-native-") as temporary:
 `;
 
 function native(request) {
-    if (probe.error || probe.status !== 0) assert.fail('Installed native probe failed: ' + (probe.error || probe.stderr));
+    if (probe.error || probe.status !== 0)
+        assert.fail('Installed native probe failed: ' + (probe.error || probe.stderr));
     const execution = spawnSync(process.env.PYTHON || 'python3', ['-c', python], {
-        input: JSON.stringify(request), encoding: 'utf8', timeout: 60000, maxBuffer: 32 * 1024 * 1024
+        input: JSON.stringify(request),
+        encoding: 'utf8',
+        timeout: 60000,
+        maxBuffer: 32 * 1024 * 1024
     });
     assert.equal(execution.error, undefined, String(execution.error));
     assert.equal(execution.status, 0, execution.stderr || execution.stdout);
@@ -110,27 +120,91 @@ const representatives = {
     disk: { drive: 'System', freeSpace: 100 },
     domain: { name: 'EXAMPLE', userContext: true },
     dun: { type: '' },
-    file: { path: '%SystemRoot%\\example.exe', type: 'EXISTS', folder: false, min: '1.0.0.0', max: '2.0.0.0', gte: true, lte: false },
+    file: {
+        path: '%SystemRoot%\\example.exe',
+        type: 'EXISTS',
+        folder: false,
+        min: '1.0.0.0',
+        max: '2.0.0.0',
+        gte: true,
+        lte: false
+    },
     ip_range: { min: '10.0.0.1', max: '10.0.0.254' },
     language: { languageLocale: 'ru-RU', default: true, system: false, native: false, displayName: 'Русский (Россия)' },
-    ldap: { binding: 'LDAP://DC=example,DC=test', searchFilter: '(objectClass=computer)', variableName: 'LDAP_RESULT', attribute: 'cn' },
+    ldap: {
+        binding: 'LDAP://DC=example,DC=test',
+        searchFilter: '(objectClass=computer)',
+        variableName: 'LDAP_RESULT',
+        attribute: 'cn'
+    },
     mac_range: { min: '00:11:22:33:44:55', max: '00:11:22:33:44:66' },
-    msi: { type: 'PRODUCT', subtype: 'EXISTS', code: '{01234567-89AB-CDEF-0123-456789ABCDEF}', item: 'ProductName', value: 'Example', min: '1.0.0.0', max: '2.0.0.0', gte: true, lte: true },
+    msi: {
+        type: 'PRODUCT',
+        subtype: 'EXISTS',
+        code: '{01234567-89AB-CDEF-0123-456789ABCDEF}',
+        item: 'ProductName',
+        value: 'Example',
+        min: '1.0.0.0',
+        max: '2.0.0.0',
+        gte: true,
+        lte: true
+    },
     org_unit: { name: 'OU=Clients,DC=example,DC=test', userContext: false, directMember: true },
     pcmcia: {},
     portable: { unknown: true, docked: false, undocked: true },
-    proc_mode: { synchFore: true, asynchFore: false, backRefr: true, forceRefr: false, linkTrns: false, noChg: false, rsopTrns: false, safeBoot: false, slowLink: false, verbLog: false, rsopEnbl: true },
+    proc_mode: {
+        synchFore: true,
+        asynchFore: false,
+        backRefr: true,
+        forceRefr: false,
+        linkTrns: false,
+        noChg: false,
+        rsopTrns: false,
+        safeBoot: false,
+        slowLink: false,
+        verbLog: false,
+        rsopEnbl: true
+    },
     ram: { totalMB: '8192' },
-    run_once: { id: '{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}', userContext: false, comments: 'Isolated format-contract test' },
+    run_once: {
+        id: '{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}',
+        userContext: false,
+        comments: 'Isolated format-contract test'
+    },
     site: { name: 'Example-Site' },
     terminal: { type: 'NE', option: 'NE', value: '', min: '10.0.0.1', max: '10.0.0.254' },
     time: { begin: '23:45:00', end: '01:15:00' },
     user: { name: 'EXAMPLE\\User', sid: 'S-1-5-21-1-2-3-1001' },
     variable: { variableName: 'EXAMPLE_TARGET', value: 'ready' },
     os: { class: 'NT', version: 'WINTHRESHOLD', type: 'PRO', edition: 'PRO', sp: 'NE' },
-    registry: { type: 'KEYEXISTS', subtype: 'EQUALHEX', valueName: 'Enabled', valueType: 'REG_DWORD', valueData: '00000001', variableName: 'REG_RESULT', key: 'Software\\Example', hive: 'HKEY_LOCAL_MACHINE', min: '1.0.0.0', max: '2.0.0.0', gte: true, lte: true, version: '1.0.0.0' },
-    wmi: { query: 'SELECT * FROM Win32_ComputerSystem', nameSpace: 'root\\cimv2', property: 'Name', variableName: 'WMI_RESULT' },
-    group: { name: 'EXAMPLE\\Targeted', sid: 'S-1-5-21-1-2-3-1002', userContext: false, primaryGroup: false, localGroup: false },
+    registry: {
+        type: 'KEYEXISTS',
+        subtype: 'EQUALHEX',
+        valueName: 'Enabled',
+        valueType: 'REG_DWORD',
+        valueData: '00000001',
+        variableName: 'REG_RESULT',
+        key: 'Software\\Example',
+        hive: 'HKEY_LOCAL_MACHINE',
+        min: '1.0.0.0',
+        max: '2.0.0.0',
+        gte: true,
+        lte: true,
+        version: '1.0.0.0'
+    },
+    wmi: {
+        query: 'SELECT * FROM Win32_ComputerSystem',
+        nameSpace: 'root\\cimv2',
+        property: 'Name',
+        variableName: 'WMI_RESULT'
+    },
+    group: {
+        name: 'EXAMPLE\\Targeted',
+        sid: 'S-1-5-21-1-2-3-1002',
+        userContext: false,
+        primaryGroup: false,
+        localGroup: false
+    },
     collection: { name: 'Example collection' }
 };
 function edits(kind, overrides = {}) {
@@ -138,11 +212,17 @@ function edits(kind, overrides = {}) {
     const fields = currentInventory().fields[kind];
     return fields.map(field => ({
         id: field.id,
-        value: { ...field.value, value: Object.hasOwn(values, field.id.replace(/^filter\./, ''))
-            ? values[field.id.replace(/^filter\./, '')] : field.value.value }
+        value: {
+            ...field.value,
+            value: Object.hasOwn(values, field.id.replace(/^filter\./, ''))
+                ? values[field.id.replace(/^filter\./, '')]
+                : field.value.value
+        }
     }));
 }
-function scenario(name, kind, overrides = {}) { return { name, kind, fields: edits(kind, overrides) }; }
+function scenario(name, kind, overrides = {}) {
+    return { name, kind, fields: edits(kind, overrides) };
+}
 function initializedNode(kind, language = 'en') {
     const source = { kind, available: true, originalPath: null, fields: plain(currentInventory().fields[kind]) };
     const fields = operandEditor.initialize(source, { language, scope: 'computer' });
@@ -151,67 +231,112 @@ function initializedNode(kind, language = 'en') {
     fields.forEach(field => {
         const id = field.id.replace(/^filter\./, '');
         const empty = field.value.value === null || field.value.value === '';
-        if (empty && (field.required || ['user', 'group'].includes(kind) && id === 'name') && Object.hasOwn(representatives[kind], id)) {
+        if (
+            empty &&
+            (field.required || (['user', 'group'].includes(kind) && id === 'name')) &&
+            Object.hasOwn(representatives[kind], id)
+        ) {
             field.value.value = representatives[kind][id];
         }
     });
     return { ...source, fields };
 }
 
-test('the optional native check is installed and returns matching descriptors for every presentation kind', { skip }, () => {
-    const data = currentInventory();
-    assert.match(data.native, /_native.*\.(?:so|pyd)$/);
-    assert.deepEqual(data.kinds.map(kind => kind.kind).sort(), plain(presentation.supportedKinds).sort());
-    for (const kind of presentation.supportedKinds) {
-        const fields = data.fields[kind];
-        assert.ok(Array.isArray(fields), kind);
-        assert.equal(fields.find(field => field.id === 'filter.bool').value.kind, 'filter_combine');
-        assert.equal(fields.find(field => field.id === 'filter.not').value.kind, 'boolean');
-        for (const field of fields) {
-            if (['filter.bool', 'filter.not', 'filter.hidden', 'filter.displayName'].includes(field.id)) continue;
-            assert.notEqual(presentation.fieldLabel(kind, field.id, 'missing', 'en'), 'missing', kind + '/' + field.id);
-            assert.notEqual(presentation.fieldLabel(kind, field.id, 'missing', 'ru'), 'missing', kind + '/' + field.id);
-            const choices = presentation.choices(kind, field.id, 'en');
-            if (choices) assert.ok(['text', 'optional_text'].includes(field.value.kind), kind + '/' + field.id + ' uses original text envelopes');
+test(
+    'the optional native check is installed and returns matching descriptors for every presentation kind',
+    { skip },
+    () => {
+        const data = currentInventory();
+        assert.match(data.native, /_native.*\.(?:so|pyd)$/);
+        assert.deepEqual(data.kinds.map(kind => kind.kind).sort(), plain(presentation.supportedKinds).sort());
+        for (const kind of presentation.supportedKinds) {
+            const fields = data.fields[kind];
+            assert.ok(Array.isArray(fields), kind);
+            assert.equal(fields.find(field => field.id === 'filter.bool').value.kind, 'filter_combine');
+            assert.equal(fields.find(field => field.id === 'filter.not').value.kind, 'boolean');
+            for (const field of fields) {
+                if (['filter.bool', 'filter.not', 'filter.hidden', 'filter.displayName'].includes(field.id)) continue;
+                assert.notEqual(
+                    presentation.fieldLabel(kind, field.id, 'missing', 'en'),
+                    'missing',
+                    kind + '/' + field.id
+                );
+                assert.notEqual(
+                    presentation.fieldLabel(kind, field.id, 'missing', 'ru'),
+                    'missing',
+                    kind + '/' + field.id
+                );
+                const choices = presentation.choices(kind, field.id, 'en');
+                if (choices)
+                    assert.ok(
+                        ['text', 'optional_text'].includes(field.value.kind),
+                        kind + '/' + field.id + ' uses original text envelopes'
+                    );
+            }
         }
+        const language = data.fields.language.find(field => field.id === 'filter.languageLocale');
+        assert.ok(language.choices.find(choice => choice.key === 'ru-RU'));
+        assert.ok(language.choices.find(choice => choice.key === 'en-US'));
+        assert.equal(language.value.kind, 'text');
     }
-    const language = data.fields.language.find(field => field.id === 'filter.languageLocale');
-    assert.ok(language.choices.find(choice => choice.key === 'ru-RU'));
-    assert.ok(language.choices.find(choice => choice.key === 'en-US'));
-    assert.equal(language.value.kind, 'text');
-});
+);
 
 let roundtrip;
 function currentRoundtrip() {
     if (roundtrip) return roundtrip;
     const data = currentInventory();
     const cases = presentation.supportedKinds.map(kind => scenario('base/' + kind, kind));
-    presentation.supportedKinds.forEach(kind => cases.push({
-        name: 'initialized/' + kind, kind,
-        fields: plain(initializedNode(kind).fields).map(field => ({ id: field.id, value: field.value }))
-    }));
-    cases.push({ name: 'initialized/language-ru', kind: 'language',
-        fields: plain(initializedNode('language', 'ru').fields).map(field => ({ id: field.id, value: field.value })) });
+    presentation.supportedKinds.forEach(kind =>
+        cases.push({
+            name: 'initialized/' + kind,
+            kind,
+            fields: plain(initializedNode(kind).fields).map(field => ({ id: field.id, value: field.value }))
+        })
+    );
+    cases.push({
+        name: 'initialized/language-ru',
+        kind: 'language',
+        fields: plain(initializedNode('language', 'ru').fields).map(field => ({ id: field.id, value: field.value }))
+    });
     for (const kind of presentation.supportedKinds) {
         for (const field of data.fields[kind]) {
             const choices = presentation.choices(kind, field.id, 'en');
             if (!choices) continue;
             const operand = field.id.replace(/^filter\./, '');
-            choices.forEach(choice => cases.push(scenario(kind + '/' + operand + '/' + choice.key, kind, { [operand]: choice.key })));
+            choices.forEach(choice =>
+                cases.push(scenario(kind + '/' + operand + '/' + choice.key, kind, { [operand]: choice.key }))
+            );
         }
     }
     // Language keys come from native inventory rather than a second static
     // language catalog. Exercise every known key without creating Unknown.
-    data.fields.language.find(field => field.id === 'filter.languageLocale').choices
-        .filter(choice => choice.key !== 'unknown').forEach(choice => cases.push(scenario('language/' + choice.key, 'language', {
-            languageLocale: choice.key, displayName: choice.label
-        })));
-    cases.push(scenario('date/annual-leap-day', 'date', { period: 'YEARLY', dow: null, day: 29, month: 2, year: null }));
-    cases.push(scenario('date/concrete-leap-day', 'date', { period: 'YEARLY', dow: null, day: 29, month: 2, year: '2024' }));
+    data.fields.language
+        .find(field => field.id === 'filter.languageLocale')
+        .choices.filter(choice => choice.key !== 'unknown')
+        .forEach(choice =>
+            cases.push(
+                scenario('language/' + choice.key, 'language', {
+                    languageLocale: choice.key,
+                    displayName: choice.label
+                })
+            )
+        );
+    cases.push(
+        scenario('date/annual-leap-day', 'date', { period: 'YEARLY', dow: null, day: 29, month: 2, year: null })
+    );
+    cases.push(
+        scenario('date/concrete-leap-day', 'date', { period: 'YEARLY', dow: null, day: 29, month: 2, year: '2024' })
+    );
     cases.push(scenario('date/monthly-31', 'date', { period: 'MONTHLY', dow: null, day: 31, month: null, year: null }));
     cases.push(scenario('time/seconds-and-zone', 'time', { begin: '23:45:12.500+03:00', end: '01:15:00+03:00' }));
     cases.push(scenario('ip_range/ipv6-compressed', 'ip_range', { useIPv6: true, min: '2001:db8::beef', max: '64' }));
-    cases.push(scenario('ip_range/ipv6-expanded', 'ip_range', { useIPv6: true, min: '2001:0DB8:0000:0000:0000:0000:0000:0001', max: '128' }));
+    cases.push(
+        scenario('ip_range/ipv6-expanded', 'ip_range', {
+            useIPv6: true,
+            min: '2001:0DB8:0000:0000:0000:0000:0000:0001',
+            max: '128'
+        })
+    );
     cases.push(scenario('ip_range/ipv6-mapped', 'ip_range', { useIPv6: true, min: '::ffff:192.0.2.1', max: '0' }));
     cases.push(scenario('ip_range/ipv4-explicit-false', 'ip_range', { useIPv6: false }));
     const invalid = [
@@ -236,22 +361,30 @@ function currentRoundtrip() {
     return roundtrip;
 }
 
-test('all 29 kinds and every advertised presentation/native-language enum roundtrip with original typed envelopes', { skip }, () => {
-    const { cases, result } = currentRoundtrip();
-    assert.equal(result.rows.length, cases.length);
-    assert.equal(result.filter_count, cases.length + 2);
-    cases.forEach((scenario, index) => {
-        const row = result.rows[index];
-        assert.equal(row.name, scenario.name);
-        assert.equal(row.kind, scenario.kind);
-        scenario.fields.forEach(field => assert.deepEqual(row.values[field.id], field.value, scenario.name + '/' + field.id));
-    });
-    assert.match(result.gpt, /Version=1\b/, 'the entire temporary draft is published only once');
-});
+test(
+    'all 29 kinds and every advertised presentation/native-language enum roundtrip with original typed envelopes',
+    { skip },
+    () => {
+        const { cases, result } = currentRoundtrip();
+        assert.equal(result.rows.length, cases.length);
+        assert.equal(result.filter_count, cases.length + 2);
+        cases.forEach((scenario, index) => {
+            const row = result.rows[index];
+            assert.equal(row.name, scenario.name);
+            assert.equal(row.kind, scenario.kind);
+            scenario.fields.forEach(field =>
+                assert.deepEqual(row.values[field.id], field.value, scenario.name + '/' + field.id)
+            );
+        });
+        assert.match(result.gpt, /Version=1\b/, 'the entire temporary draft is published only once');
+    }
+);
 
 test('Date recurrence omissions and Time seconds/timezones retain the intended XML encoding', { skip }, () => {
     const { cases, result } = currentRoundtrip();
-    function attributes(name) { return result.serialized_attributes[cases.findIndex(scenario => scenario.name === name)]; }
+    function attributes(name) {
+        return result.serialized_attributes[cases.findIndex(scenario => scenario.name === name)];
+    }
     const annual = attributes('date/annual-leap-day');
     assert.equal(annual.period, 'YEARLY');
     assert.equal(annual.day, '29');
@@ -266,66 +399,105 @@ test('Date recurrence omissions and Time seconds/timezones retain the intended X
     assert.equal(attributes('base/time').end, '01:15:00', 'overnight ranges remain valid');
 });
 
-test('broken imported Language and original second-level Time data are not normalized during draft roundtrip', { skip }, () => {
-    const original = currentInventory().originals;
-    const { result } = currentRoundtrip();
-    assert.deepEqual(result.originals, original);
-    assert.equal(result.original_attributes[0].language, '200');
-    assert.equal(result.original_attributes[0].locale, '77');
-    assert.equal(result.original_attributes[0].displayName, 'Imported language');
-    assert.equal(result.originals[0].find(field => field.id === 'filter.languageLocale').value.value, 'unknown');
-    assert.equal(result.original_attributes[1].begin, '23:45:12.500+03:00');
-    assert.equal(result.original_attributes[1].bool, 'OR');
-    assert.equal(result.original_attributes[1].not, '1');
-});
-
-test('IPv6 targeting keeps its address/prefix semantics and legacy IPv4 omits the new optional attribute', { skip }, () => {
-    const { cases, result } = currentRoundtrip();
-    const attributes = name => result.serialized_attributes[cases.findIndex(scenario => scenario.name === name)];
-    assert.equal(currentInventory().fields.ip_range.find(field => field.id === 'filter.useIPv6').value.kind, 'optional_boolean');
-    assert.equal(attributes('base/ip_range').useIPv6, undefined);
-    assert.equal(attributes('ip_range/ipv4-explicit-false').useIPv6, '0');
-    assert.equal(attributes('ip_range/ipv6-compressed').useIPv6, '1');
-    assert.equal(attributes('ip_range/ipv6-compressed').min, '2001:db8::beef');
-    assert.equal(attributes('ip_range/ipv6-compressed').max, '64');
-    assert.equal(attributes('ip_range/ipv6-expanded').min, '2001:0DB8:0000:0000:0000:0000:0000:0001');
-    assert.equal(attributes('ip_range/ipv6-expanded').max, '128');
-    assert.equal(attributes('ip_range/ipv6-mapped').min, '::ffff:192.0.2.1');
-    assert.equal(attributes('ip_range/ipv6-mapped').max, '0');
-});
-
-test('the installed native rejects unsupported tokens and numeric/range/time violations without altering the draft', { skip }, () => {
-    const { invalid, result } = currentRoundtrip();
-    assert.deepEqual(result.rejected.map(scenario => scenario.name), invalid.map(scenario => scenario.name));
-    assert.ok(result.rejected.every(scenario => scenario.error.length > 0));
-});
-
-test('renderer defaults and representative active operands validate for all 29 real native descriptors', { skip }, () => {
-    for (const kind of presentation.supportedKinds) {
-        const original = plain(currentInventory().fields[kind]);
-        const initialized = initializedNode(kind);
-        assert.deepEqual(plain(operandEditor.validateFields(initialized)), [], kind + ' renderer defaults');
-        assert.deepEqual(currentInventory().fields[kind], original, kind + ' initialize must not change the source descriptors');
-        const representative = { kind, available: true, originalPath: null, fields: original };
-        const values = new Map(edits(kind).map(field => [field.id, field.value]));
-        representative.fields.forEach(field => { field.value = values.get(field.id); });
-        assert.deepEqual(plain(operandEditor.validateFields(representative)), [], kind + ' representative operands');
+test(
+    'broken imported Language and original second-level Time data are not normalized during draft roundtrip',
+    { skip },
+    () => {
+        const original = currentInventory().originals;
+        const { result } = currentRoundtrip();
+        assert.deepEqual(result.originals, original);
+        assert.equal(result.original_attributes[0].language, '200');
+        assert.equal(result.original_attributes[0].locale, '77');
+        assert.equal(result.original_attributes[0].displayName, 'Imported language');
+        assert.equal(result.originals[0].find(field => field.id === 'filter.languageLocale').value.value, 'unknown');
+        assert.equal(result.original_attributes[1].begin, '23:45:12.500+03:00');
+        assert.equal(result.original_attributes[1].bool, 'OR');
+        assert.equal(result.original_attributes[1].not, '1');
     }
-    const english = initializedNode('language'), russian = initializedNode('language', 'ru');
-    assert.equal(english.fields.find(field => field.id === 'filter.languageLocale').value.value, 'en-US');
-    assert.equal(russian.fields.find(field => field.id === 'filter.languageLocale').value.value, 'ru-RU');
-    assert.ok(russian.fields.find(field => field.id === 'filter.displayName').value.value.includes('русский') ||
-        russian.fields.find(field => field.id === 'filter.displayName').value.value.includes('Русский'));
-    const once = initializedNode('run_once').fields.find(field => field.id === 'filter.id').value.value;
-    assert.match(once, /^\{[0-9A-F]{8}-(?:[0-9A-F]{4}-){3}[0-9A-F]{12}\}$/);
-});
+);
 
-test('renderer preserves broken existing locale and seconds/timezones without eager initialization or validation normalization', { skip }, () => {
-    currentInventory().originals.forEach((fields, index) => {
-        const kind = index === 0 ? 'language' : 'time';
-        const node = { kind, available: true, originalPath: [index], fields: plain(fields) };
-        assert.deepEqual(plain(operandEditor.initialize(node, { language: 'ru', scope: 'computer' })), fields);
-        assert.deepEqual(plain(operandEditor.validateFields(node)), []);
-        assert.deepEqual(node.fields, fields);
-    });
-});
+test(
+    'IPv6 targeting keeps its address/prefix semantics and legacy IPv4 omits the new optional attribute',
+    { skip },
+    () => {
+        const { cases, result } = currentRoundtrip();
+        const attributes = name => result.serialized_attributes[cases.findIndex(scenario => scenario.name === name)];
+        assert.equal(
+            currentInventory().fields.ip_range.find(field => field.id === 'filter.useIPv6').value.kind,
+            'optional_boolean'
+        );
+        assert.equal(attributes('base/ip_range').useIPv6, undefined);
+        assert.equal(attributes('ip_range/ipv4-explicit-false').useIPv6, '0');
+        assert.equal(attributes('ip_range/ipv6-compressed').useIPv6, '1');
+        assert.equal(attributes('ip_range/ipv6-compressed').min, '2001:db8::beef');
+        assert.equal(attributes('ip_range/ipv6-compressed').max, '64');
+        assert.equal(attributes('ip_range/ipv6-expanded').min, '2001:0DB8:0000:0000:0000:0000:0000:0001');
+        assert.equal(attributes('ip_range/ipv6-expanded').max, '128');
+        assert.equal(attributes('ip_range/ipv6-mapped').min, '::ffff:192.0.2.1');
+        assert.equal(attributes('ip_range/ipv6-mapped').max, '0');
+    }
+);
+
+test(
+    'the installed native rejects unsupported tokens and numeric/range/time violations without altering the draft',
+    { skip },
+    () => {
+        const { invalid, result } = currentRoundtrip();
+        assert.deepEqual(
+            result.rejected.map(scenario => scenario.name),
+            invalid.map(scenario => scenario.name)
+        );
+        assert.ok(result.rejected.every(scenario => scenario.error.length > 0));
+    }
+);
+
+test(
+    'renderer defaults and representative active operands validate for all 29 real native descriptors',
+    { skip },
+    () => {
+        for (const kind of presentation.supportedKinds) {
+            const original = plain(currentInventory().fields[kind]);
+            const initialized = initializedNode(kind);
+            assert.deepEqual(plain(operandEditor.validateFields(initialized)), [], kind + ' renderer defaults');
+            assert.deepEqual(
+                currentInventory().fields[kind],
+                original,
+                kind + ' initialize must not change the source descriptors'
+            );
+            const representative = { kind, available: true, originalPath: null, fields: original };
+            const values = new Map(edits(kind).map(field => [field.id, field.value]));
+            representative.fields.forEach(field => {
+                field.value = values.get(field.id);
+            });
+            assert.deepEqual(
+                plain(operandEditor.validateFields(representative)),
+                [],
+                kind + ' representative operands'
+            );
+        }
+        const english = initializedNode('language'),
+            russian = initializedNode('language', 'ru');
+        assert.equal(english.fields.find(field => field.id === 'filter.languageLocale').value.value, 'en-US');
+        assert.equal(russian.fields.find(field => field.id === 'filter.languageLocale').value.value, 'ru-RU');
+        assert.ok(
+            russian.fields.find(field => field.id === 'filter.displayName').value.value.includes('русский') ||
+                russian.fields.find(field => field.id === 'filter.displayName').value.value.includes('Русский')
+        );
+        const once = initializedNode('run_once').fields.find(field => field.id === 'filter.id').value.value;
+        assert.match(once, /^\{[0-9A-F]{8}-(?:[0-9A-F]{4}-){3}[0-9A-F]{12}\}$/);
+    }
+);
+
+test(
+    'renderer preserves broken existing locale and seconds/timezones without eager initialization or validation normalization',
+    { skip },
+    () => {
+        currentInventory().originals.forEach((fields, index) => {
+            const kind = index === 0 ? 'language' : 'time';
+            const node = { kind, available: true, originalPath: [index], fields: plain(fields) };
+            assert.deepEqual(plain(operandEditor.initialize(node, { language: 'ru', scope: 'computer' })), fields);
+            assert.deepEqual(plain(operandEditor.validateFields(node)), []);
+            assert.deepEqual(node.fields, fields);
+        });
+    }
+);

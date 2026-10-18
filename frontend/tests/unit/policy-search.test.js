@@ -27,11 +27,14 @@ function freeze(value) {
 
 test('AT index rows include every deep and unconfigured policy in both scopes without mutating the catalog', () => {
     translations.setLanguage('en');
-    const result = freeze({ policies: Array.from({ length: 2001 }, (_, index) => ({
-        id: 'urn:example:policy/' + index,
-        label: index === 2000 ? 'Unconfigured deep policy' : 'Duplicate name',
-        path: ['Root category', 'Nested category ' + index], state: 'not_configured'
-    })) });
+    const result = freeze({
+        policies: Array.from({ length: 2001 }, (_, index) => ({
+            id: 'urn:example:policy/' + index,
+            label: index === 2000 ? 'Unconfigured deep policy' : 'Duplicate name',
+            path: ['Root category', 'Nested category ' + index],
+            state: 'not_configured'
+        }))
+    });
     const before = plain(result);
     const byScope = {};
     for (const scope of ['computer', 'user']) {
@@ -41,9 +44,19 @@ test('AT index rows include every deep and unconfigured policy in both scopes wi
         assert.equal(new Set(rows.map(row => row.id)).size, 2001);
         assert.equal(rows[2000].title, 'Unconfigured deep policy');
         assert.deepEqual(plain(rows[2000].path), ['Administrative Templates', 'Root category', 'Nested category 2000']);
-        assert.deepEqual([...rows.map(row => row.target.policyId)], result.policies.map(policy => policy.id));
-        assert.ok(rows.every(row => row.target.scope === scope && row.target.type === 'file'
-            && row.target.template === 'admx' && row.target.showInTree === false));
+        assert.deepEqual(
+            [...rows.map(row => row.target.policyId)],
+            result.policies.map(policy => policy.id)
+        );
+        assert.ok(
+            rows.every(
+                row =>
+                    row.target.scope === scope &&
+                    row.target.type === 'file' &&
+                    row.target.template === 'admx' &&
+                    row.target.showInTree === false
+            )
+        );
         assert.equal(model.matches(rows[2000], 'NESTED CATEGORY 2000'), true);
         assert.equal(model.matches(rows[2000], 'UNCONFIGURED DEEP'), true);
         assert.notEqual(rows[0].target, result.policies[0]);
@@ -58,17 +71,53 @@ test('Security index includes qualified duplicates, collections, orphan policies
     translations.setLanguage('en');
     const element = { id: 'enabled', value_type: 'boolean' };
     const collection = { id: 'entries', value_type: 'collection', fields: [], unique_by: 'key' };
-    const response = freeze({ security_catalog: { categories: [
-        { namespace: 'ns:first', id: 'root', display_name: 'Root category' },
-        { namespace: 'ns:first', id: 'child', display_name: 'Nested category', parent: ['ns:first', 'root'] },
-        { namespace: 'ns:second', id: 'root', display_name: 'Second root' }
-    ], policies: [
-        { namespace: 'ns:first', policy_id: 'duplicate', display_name: 'Shared policy', category: ['ns:first', 'child'], elements: [element] },
-        { namespace: 'ns:second', policy_id: 'duplicate', display_name: 'Shared policy', category: ['ns:second', 'root'], elements: [element] },
-        { namespace: 'ns:first', policy_id: 'collection', display_name: 'Collection policy', category: ['ns:first', 'root'], elements: [collection] },
-        { namespace: 'ns:first', policy_id: 'mixed', display_name: 'Mixed settings', category: ['ns:first', 'root'], elements: [collection, element] },
-        { namespace: 'ns:first', policy_id: 'orphan', display_name: 'Orphan policy', category: ['missing', 'category'], elements: [] }
-    ] }, security_snapshot: { policies: [] } });
+    const response = freeze({
+        security_catalog: {
+            categories: [
+                { namespace: 'ns:first', id: 'root', display_name: 'Root category' },
+                { namespace: 'ns:first', id: 'child', display_name: 'Nested category', parent: ['ns:first', 'root'] },
+                { namespace: 'ns:second', id: 'root', display_name: 'Second root' }
+            ],
+            policies: [
+                {
+                    namespace: 'ns:first',
+                    policy_id: 'duplicate',
+                    display_name: 'Shared policy',
+                    category: ['ns:first', 'child'],
+                    elements: [element]
+                },
+                {
+                    namespace: 'ns:second',
+                    policy_id: 'duplicate',
+                    display_name: 'Shared policy',
+                    category: ['ns:second', 'root'],
+                    elements: [element]
+                },
+                {
+                    namespace: 'ns:first',
+                    policy_id: 'collection',
+                    display_name: 'Collection policy',
+                    category: ['ns:first', 'root'],
+                    elements: [collection]
+                },
+                {
+                    namespace: 'ns:first',
+                    policy_id: 'mixed',
+                    display_name: 'Mixed settings',
+                    category: ['ns:first', 'root'],
+                    elements: [collection, element]
+                },
+                {
+                    namespace: 'ns:first',
+                    policy_id: 'orphan',
+                    display_name: 'Orphan policy',
+                    category: ['missing', 'category'],
+                    elements: []
+                }
+            ]
+        },
+        security_snapshot: { policies: [] }
+    });
     const before = plain(response);
     const rows = model.securityRows(response, 'computer');
     assert.equal(rows.length, 5);
@@ -86,17 +135,38 @@ test('Security index includes qualified duplicates, collections, orphan policies
     assert.equal(mixed.target.openPolicyDialog, true);
     const orphan = rows.find(row => row.target.securityPolicy.policy_id === 'orphan');
     assert.deepEqual(plain(orphan.path), [locales.en.security.title]);
-    assert.ok(rows.every(row => row.target.template === 'security' && row.target.scope === 'computer'
-        && row.target.type === 'file' && row.target.showInTree === false && !('securityModel' in row.target)));
+    assert.ok(
+        rows.every(
+            row =>
+                row.target.template === 'security' &&
+                row.target.scope === 'computer' &&
+                row.target.type === 'file' &&
+                row.target.showInTree === false &&
+                !('securityModel' in row.target)
+        )
+    );
     assert.deepEqual(plain(model.securityRows(response, 'user')), []);
     assert.deepEqual(response, before);
 });
 
 test('Security path projection terminates for cyclic categories and still includes their policy', () => {
-    const response = { security_catalog: { categories: [
-        { namespace: 'ns', id: 'a', display_name: 'A', parent: ['ns', 'b'] },
-        { namespace: 'ns', id: 'b', display_name: 'B', parent: ['ns', 'a'] }
-    ], policies: [{ namespace: 'ns', policy_id: 'cycle', display_name: 'Cycle policy', category: ['ns', 'a'], elements: [] }] } };
+    const response = {
+        security_catalog: {
+            categories: [
+                { namespace: 'ns', id: 'a', display_name: 'A', parent: ['ns', 'b'] },
+                { namespace: 'ns', id: 'b', display_name: 'B', parent: ['ns', 'a'] }
+            ],
+            policies: [
+                {
+                    namespace: 'ns',
+                    policy_id: 'cycle',
+                    display_name: 'Cycle policy',
+                    category: ['ns', 'a'],
+                    elements: []
+                }
+            ]
+        }
+    };
     const rows = model.securityRows(response, 'computer');
     assert.equal(rows.length, 1);
     assert.equal(rows[0].target.securityPolicy.policy_id, 'cycle');
@@ -106,17 +176,42 @@ test('Security path projection terminates for cyclic categories and still includ
 test('Advanced Audit rows include all configured, unconfigured and preserved families with stable editor identities in EN/RU', () => {
     const firstGuid = '0cce9210-69ae-11d9-bed3-505054503030';
     const secondGuid = '0cce9211-69ae-11d9-bed3-505054503030';
-    const response = freeze({ advanced_audit: { rows: [
-        { kind: 'subcategory', guid: '{' + firstGuid.toUpperCase() + '}', target: { kind: 'system' }, display_name: 'Source name', editable: true, setting: { kind: 'system', value: 'success' } },
-        { kind: 'subcategory', guid: firstGuid, target: { kind: 'user', sid: 'S-1-5-21-123' }, display_name: 'User source name', editable: true, setting: { kind: 'user', include_success: true } },
-        { kind: 'option', option: 'vendor_option', display_name: 'Vendor option', editable: false, enabled: true },
-        { kind: 'global_sacl', object_kind: 'file', sddl: 'S:(AU;SA;FA;;;WD)', editable: true },
-        { kind: 'preserved', fields: ['opaque', 'source', 'row'] },
-        { kind: 'preserved', fields: ['opaque', 'source', 'row'] }
-    ], subcategory_catalog: [
-        { guid: firstGuid, display_name: 'First source category' },
-        { guid: secondGuid, display_name: 'Second source category' }
-    ] } });
+    const response = freeze({
+        advanced_audit: {
+            rows: [
+                {
+                    kind: 'subcategory',
+                    guid: '{' + firstGuid.toUpperCase() + '}',
+                    target: { kind: 'system' },
+                    display_name: 'Source name',
+                    editable: true,
+                    setting: { kind: 'system', value: 'success' }
+                },
+                {
+                    kind: 'subcategory',
+                    guid: firstGuid,
+                    target: { kind: 'user', sid: 'S-1-5-21-123' },
+                    display_name: 'User source name',
+                    editable: true,
+                    setting: { kind: 'user', include_success: true }
+                },
+                {
+                    kind: 'option',
+                    option: 'vendor_option',
+                    display_name: 'Vendor option',
+                    editable: false,
+                    enabled: true
+                },
+                { kind: 'global_sacl', object_kind: 'file', sddl: 'S:(AU;SA;FA;;;WD)', editable: true },
+                { kind: 'preserved', fields: ['opaque', 'source', 'row'] },
+                { kind: 'preserved', fields: ['opaque', 'source', 'row'] }
+            ],
+            subcategory_catalog: [
+                { guid: firstGuid, display_name: 'First source category' },
+                { guid: secondGuid, display_name: 'Second source category' }
+            ]
+        }
+    });
     const before = plain(response);
     let firstIds;
     for (const language of ['en', 'ru']) {
@@ -138,14 +233,29 @@ test('Advanced Audit rows include all configured, unconfigured and preserved fam
         assert.ok(preserved.every(row => row.target.readOnly));
         assert.deepEqual([...preserved.map(row => row.target.advancedAuditOccurrence)], [0, 1]);
         assert.equal(rows.find(row => row.title === 'Vendor option').target.readOnly, true);
-        assert.ok(rows.every(row => row.target.template === 'advanced_audit' && row.target.scope === 'computer'
-            && row.target.showInTree === false && row.target.openPolicyDialog
-            && !('advancedAuditResponse' in row.target)));
+        assert.ok(
+            rows.every(
+                row =>
+                    row.target.template === 'advanced_audit' &&
+                    row.target.scope === 'computer' &&
+                    row.target.showInTree === false &&
+                    row.target.openPolicyDialog &&
+                    !('advancedAuditResponse' in row.target)
+            )
+        );
     }
-    assert.equal(model.auditIdentity(response.advanced_audit.rows[0]), model.auditIdentity({
-        kind: 'subcategory', guid: firstGuid, target: { kind: 'system' }
-    }));
-    assert.notEqual(model.auditIdentity(response.advanced_audit.rows[0]), model.auditIdentity(response.advanced_audit.rows[1]));
+    assert.equal(
+        model.auditIdentity(response.advanced_audit.rows[0]),
+        model.auditIdentity({
+            kind: 'subcategory',
+            guid: firstGuid,
+            target: { kind: 'system' }
+        })
+    );
+    assert.notEqual(
+        model.auditIdentity(response.advanced_audit.rows[0]),
+        model.auditIdentity(response.advanced_audit.rows[1])
+    );
     assert.deepEqual(plain(model.auditRows(response, 'user')), []);
     assert.deepEqual(response, before);
 });
@@ -159,9 +269,19 @@ test('Scripts index has exactly the applicable events per scope and reuses local
         ]) {
             const rows = model.scriptRows(scope);
             assert.deepEqual([...rows.map(row => row.target.scriptEvent)], events);
-            assert.deepEqual([...rows.map(row => row.title)], keys.map(key => locales[language].systemSettings[key]));
-            assert.ok(rows.every(row => row.target.template === 'scripts' && row.target.scope === scope
-                && row.target.showInTree === false && row.target.openPolicyDialog));
+            assert.deepEqual(
+                [...rows.map(row => row.title)],
+                keys.map(key => locales[language].systemSettings[key])
+            );
+            assert.ok(
+                rows.every(
+                    row =>
+                        row.target.template === 'scripts' &&
+                        row.target.scope === scope &&
+                        row.target.showInTree === false &&
+                        row.target.openPolicyDialog
+                )
+            );
         }
     }
     assert.deepEqual(plain(model.scriptRows('unknown')), []);
@@ -170,8 +290,23 @@ test('Scripts index has exactly the applicable events per scope and reuses local
 
 test('Optional Preferences rows retain scoped document identities, category labels and read-only metadata without sharing mutable DTOs', () => {
     const documents = freeze([
-        { scope: 'computer', kind: 'registry', label: 'Registry', category_id: 'system_settings', editable: true, items: [{ id: 'one' }] },
-        { scope: 'computer', kind: 'future', label: 'Future settings', category_id: 'vendor', category_label: 'Vendor category', editable: true, applicable: false },
+        {
+            scope: 'computer',
+            kind: 'registry',
+            label: 'Registry',
+            category_id: 'system_settings',
+            editable: true,
+            items: [{ id: 'one' }]
+        },
+        {
+            scope: 'computer',
+            kind: 'future',
+            label: 'Future settings',
+            category_id: 'vendor',
+            category_label: 'Vendor category',
+            editable: true,
+            applicable: false
+        },
         { scope: 'user', kind: 'files', label: 'Files', category_id: 'control_panel_settings', editable: false }
     ]);
     const before = plain(documents);
@@ -181,7 +316,10 @@ test('Optional Preferences rows retain scoped document identities, category labe
         const user = model.preferenceRows(documents, 'user');
         assert.equal(computer.length, 2);
         assert.equal(user.length, 1);
-        assert.deepEqual(plain(computer[0].path), [locales[language].preferences.title, locales[language].preferences.windowsSettings]);
+        assert.deepEqual(plain(computer[0].path), [
+            locales[language].preferences.title,
+            locales[language].preferences.windowsSettings
+        ]);
         assert.equal(computer[1].path[1], 'Vendor category');
         assert.equal(user[0].path[1], locales[language].preferences.controlPanelSettings);
         assert.equal(computer[0].target.readOnly, false);
@@ -229,8 +367,10 @@ test('Search sorting copies the source and uses UI locale with path and identity
     assert.strictEqual(sorted[0], rows[4]);
     assert.deepEqual(rows, before);
     const mixed = [
-        { id: '1', title: 'Zulu' }, { id: '2', title: 'Яблоко' },
-        { id: '3', title: 'Apple' }, { id: '4', title: 'Альфа' }
+        { id: '1', title: 'Zulu' },
+        { id: '2', title: 'Яблоко' },
+        { id: '3', title: 'Apple' },
+        { id: '4', title: 'Альфа' }
     ];
     assert.deepEqual([...model.sortRows(mixed).map(row => row.title)], ['Apple', 'Zulu', 'Альфа', 'Яблоко']);
     translations.setLanguage('ru');
@@ -241,11 +381,18 @@ test('Malformed source payloads are errors rather than empty successful indexes'
     for (const language of ['en', 'ru']) {
         translations.setLanguage(language);
         const message = locales[language].policySearch.invalidIndex;
-        assert.throws(() => model.admxRows({}, 'computer'), error => error.message === message);
-        assert.throws(() => model.securityRows({ security_catalog: { categories: [] } }, 'computer'),
-            error => error.message === message);
-        assert.throws(() => model.auditRows({ advanced_audit: { rows: [] } }, 'computer'),
-            error => error.message === message);
+        assert.throws(
+            () => model.admxRows({}, 'computer'),
+            error => error.message === message
+        );
+        assert.throws(
+            () => model.securityRows({ security_catalog: { categories: [] } }, 'computer'),
+            error => error.message === message
+        );
+        assert.throws(
+            () => model.auditRows({ advanced_audit: { rows: [] } }, 'computer'),
+            error => error.message === message
+        );
     }
     assert.deepEqual(plain(model.admxRows({ policies: [] }, 'computer')), []);
     assert.deepEqual(plain(model.securityRows({ security_catalog: { categories: [], policies: [] } }, 'computer')), []);

@@ -40,16 +40,7 @@ class ElementCreator {
      * @private
      */
     applyOptions(options) {
-        const {
-            className,
-            id,
-            attrs = {},
-            text,
-            html,
-            style = {},
-            events = {},
-            children = []
-        } = options;
+        const { className, id, attrs = {}, text, html, style = {}, events = {}, children = [] } = options;
 
         // Apply the ID.
         if (id) {

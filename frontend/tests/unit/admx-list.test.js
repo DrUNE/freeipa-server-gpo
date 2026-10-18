@@ -26,8 +26,13 @@ function policy(state, values) {
             disabled: { available: true, mode: 'clear_list_values', requires_parameters: false },
             not_configured: { available: true, mode: 'remove_owned_records', requires_parameters: false }
         },
-        parameters: [{ id: 'InstallPackagesList', kind: 'list', value: values === null
-            ? null : { kind: 'text_list', value: values } }],
+        parameters: [
+            {
+                id: 'InstallPackagesList',
+                kind: 'list',
+                value: values === null ? null : { kind: 'text_list', value: values }
+            }
+        ],
         comment: null
     };
 }
@@ -50,14 +55,15 @@ test('Software Install enables with separate package entries, replaces entries a
     const enableRequest = dto.buildPolicyUpdate(initial, enabled, baseline);
     assert.equal(enableRequest.state, 'enabled');
     assert.equal(enableRequest.set_parameters[0].parameter_id, 'InstallPackagesList');
-    assert.equal(JSON.stringify(enableRequest.set_parameters[0].value),
-        JSON.stringify({ kind: 'text_list', value: ['vim', 'git'] }));
+    assert.equal(
+        JSON.stringify(enableRequest.set_parameters[0].value),
+        JSON.stringify({ kind: 'text_list', value: ['vim', 'git'] })
+    );
 
     const configured = policy('enabled', ['vim', 'git']);
     const replacement = dto.buildPolicyUpdate(configured, draft('enabled', ['git', 'curl']), enabled);
     assert.equal(replacement.state, undefined);
-    assert.equal(JSON.stringify(replacement.set_parameters[0].value.value),
-        JSON.stringify(['git', 'curl']));
+    assert.equal(JSON.stringify(replacement.set_parameters[0].value.value), JSON.stringify(['git', 'curl']));
     const disabled = dto.buildPolicyUpdate(configured, draft('disabled', ['vim', 'git']), enabled);
     assert.equal(disabled.state, 'disabled');
     assert.equal(disabled.set_parameters, undefined);
@@ -70,10 +76,15 @@ test('empty enabled list is stopped before RPC with a localized field error', ()
         const error = dto.validatePolicyDraft(initial, draft('enabled', values));
         assert.equal(error.category, 'validation');
         assert.equal(error.field, 'InstallPackagesList');
-        for (const [language, locale] of [['en', en], ['ru', ru]]) {
+        for (const [language, locale] of [
+            ['en', en],
+            ['ru', ru]
+        ]) {
             translations.setLanguage(language);
-            assert.equal(status.messageForError(error),
-                locale.editorStatus.errors.validation + ' ' + locale.editorStatus.details.listRequiresEntry);
+            assert.equal(
+                status.messageForError(error),
+                locale.editorStatus.errors.validation + ' ' + locale.editorStatus.details.listRequiresEntry
+            );
             assert.notEqual(translations.t('policies.listOnePerLine'), 'policies.listOnePerLine');
         }
     }
@@ -92,14 +103,20 @@ test('read-only and unsupported list inspection does not block an unrelated comm
 test('explicit key-value policy updates retain structured pairs and validate domain constraints', () => {
     const configured = policy('enabled', null);
     configured.parameters[0].collection = {
-        mode: 'key_value', unique_keys: true, key_comparison: 'unicode_uppercase',
-        allow_empty_values: true, min_items: 1
+        mode: 'key_value',
+        unique_keys: true,
+        key_comparison: 'unicode_uppercase',
+        allow_empty_values: true,
+        min_items: 1
     };
     const value = { kind: 'key_value_list', value: [{ key: 'Provider=one:module', value: 'C:\\one=path:module.dll' }] };
     const edited = draft('enabled', []);
     edited.parameters[0].value = value;
     assert.equal(dto.validatePolicyDraft(configured, edited), null);
-    assert.equal(JSON.stringify(dto.buildPolicyUpdate(configured, edited).set_parameters[0].value), JSON.stringify(value));
+    assert.equal(
+        JSON.stringify(dto.buildPolicyUpdate(configured, edited).set_parameters[0].value),
+        JSON.stringify(value)
+    );
     value.value.push({ key: 'PROVIDER=ONE:MODULE', value: '' });
     assert.equal(dto.validatePolicyDraft(configured, edited).message, 'Invalid collection entries');
 });

@@ -17,6 +17,7 @@ All code in `frontend/` uses `import`/`export` (no CommonJS, no `.cjs`). Node is
 | `make ui-build` | Rebuild the committed bundle (`npm run build`) |
 | `make ui-build-check` | Fail if the committed bundle differs from a fresh build |
 | `make ui-lint` | ESLint (`eslint.config.mjs`) |
+| `make ui-format` / `make ui-format-check` | Prettier (`.prettierrc.json`: 4 spaces, single quotes, width 120) writes / checks `src`, `dev`, `scripts`, `tests` and the config files; `*.md`, `*.html`, the lock file and the generated bundle are not touched |
 | `npm run typecheck` (in `frontend/`) | `tsc --noEmit` over all of `src/` (JSDoc, `checkJs`, non-strict). `types/globals.d.ts` models the editor's ad-hoc members as open records; the former `@ts-expect-error` placeholders have been replaced by precise annotations |
 
 Workflow: edit `src/`, check in the dev stand (reloads on save), run `make test-ui`, run `make ui-build`,
@@ -87,7 +88,7 @@ Install the browser once: `npx playwright install chromium` (in `frontend/`).
 
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
-fonts-ttf-open-sans`, configures fontconfig, then runs lint, typecheck, `build:check`, `npm test -- --coverage` (one retry for
+fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
 timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 280 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render

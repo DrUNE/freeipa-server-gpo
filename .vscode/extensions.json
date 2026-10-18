@@ -7,6 +7,9 @@
         "charliermarsh.ruff",
         // Shell: dev container scripts, bin/, oddjob handlers, completions.
         "timonwong.shellcheck",
+        // Frontend (frontend/): ESLint and Prettier, configured in frontend/.
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
         // Forgejo CI workflows.
         "redhat.vscode-yaml",
         // Translations in locale/*.po.

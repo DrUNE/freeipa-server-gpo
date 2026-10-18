@@ -10,7 +10,7 @@ function resizable(divider, panel, container, options = {}) {
     let startX = 0;
     let startWidth = 0;
 
-    const handleMouseDown = (e) => {
+    const handleMouseDown = e => {
         isResizing = true;
         startX = e.clientX;
         startWidth = panel.offsetWidth;
@@ -19,13 +19,11 @@ function resizable(divider, panel, container, options = {}) {
         e.preventDefault();
     };
 
-    const handleMouseMove = (e) => {
+    const handleMouseMove = e => {
         if (!isResizing) return;
 
         const newWidth = startWidth + (e.clientX - startX);
-        const calculatedMaxWidth = maxWidth === container.offsetWidth - 50
-            ? container.offsetWidth - 50
-            : maxWidth;
+        const calculatedMaxWidth = maxWidth === container.offsetWidth - 50 ? container.offsetWidth - 50 : maxWidth;
 
         if (newWidth >= minWidth && newWidth <= calculatedMaxWidth) {
             panel.style.width = `${newWidth}px`;

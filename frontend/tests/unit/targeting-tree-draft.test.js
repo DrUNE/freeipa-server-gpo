@@ -4,7 +4,9 @@ import * as targetingModule from '../../src/util/targeting-tree-draft.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
-function plain(value) { return JSON.parse(JSON.stringify(value)); }
+function plain(value) {
+    return JSON.parse(JSON.stringify(value));
+}
 const targeting = targetingModule;
 
 function field(value = '', extra = {}) {
@@ -13,27 +15,41 @@ function field(value = '', extra = {}) {
 function condition(value, children = [], kind = 'condition') {
     return { kind, value, children };
 }
-function collection(value, children = []) { return condition(value, children, 'collection'); }
+function collection(value, children = []) {
+    return condition(value, children, 'collection');
+}
 function snapshot(roots = []) {
     const result = {
-        filters: [], filter_fields: [],
+        filters: [],
+        filter_fields: [],
         filter_kinds: [
             { kind: 'condition', label: 'Condition', supports_children: false, fields: [field()] },
             { kind: 'collection', label: 'Collection', supports_children: true, fields: [field()] },
-            { kind: 'required', label: 'Required operand', supports_children: false, fields: [field('', { required: true })] }
+            {
+                kind: 'required',
+                label: 'Required operand',
+                supports_children: false,
+                fields: [field('', { required: true })]
+            }
         ]
     };
     function visit(nodes, parentPath) {
         nodes.forEach((node, index) => {
             const filterPath = parentPath.concat(index);
             result.filters.push({
-                path: filterPath, kind: node.kind, label: node.value,
-                element_name: node.kind || 'VendorFilter', detail: 'Detail: ' + node.value,
+                path: filterPath,
+                kind: node.kind,
+                label: node.value,
+                element_name: node.kind || 'VendorFilter',
+                detail: 'Detail: ' + node.value,
                 supports_children: node.kind === 'collection',
-                combine: 'and', negate: false, hidden: null
+                combine: 'and',
+                negate: false,
+                hidden: null
             });
             result.filter_fields.push({
-                path: filterPath, available: node.kind !== null,
+                path: filterPath,
+                available: node.kind !== null,
                 fields: node.kind === null ? [] : [field(node.value)]
             });
             visit(node.children, filterPath);
@@ -87,7 +103,9 @@ function apply(roots, operations) {
         });
         return node;
     }
-    function owner(filterPath) { return filterPath.length ? at(filterPath).children : roots; }
+    function owner(filterPath) {
+        return filterPath.length ? at(filterPath).children : roots;
+    }
     function checkDepth(nodes, depth = 0) {
         nodes.forEach(node => {
             const collectionDepth = depth + (node.kind === 'collection' ? 1 : 0);
@@ -125,7 +143,11 @@ test('snapshot paths build a nested tree with stable identities and no publicati
     const model = targeting.create(data);
     assert.deepEqual(shape(model), original);
     assert.deepEqual(plain(model.flatten().map(entry => [entry.path, entry.depth])), [
-        [[0], 0], [[0, 0], 1], [[0, 1], 1], [[0, 1, 0], 2], [[1], 0]
+        [[0], 0],
+        [[0, 0], 1],
+        [[0, 1], 1],
+        [[0, 1, 0], 2],
+        [[1], 0]
     ]);
     assert.deepEqual(plain(model.compile()), { operations: [], errors: [] });
     const ids = model.flatten().map(entry => entry.node.id);
@@ -141,13 +163,22 @@ test('multiple new nodes and arbitrarily nested collections are inserted using f
     const b = model.add('collection', a.id);
     const c = model.add('condition', b.id);
     const d = model.add('condition', null);
-    update(model, a, 'A'); update(model, b, 'B'); update(model, c, 'C'); update(model, d, 'D');
+    update(model, a, 'A');
+    update(model, b, 'B');
+    update(model, c, 'C');
+    update(model, d, 'D');
     assert.equal(model.move(d.id, b.id, 0), true);
     assert.deepEqual(plain(model.compile()).errors, []);
     const operations = plain(model.compile()).operations;
-    assert.deepEqual(operations.map(operation => [operation.op, operation.collection_path, operation.index]), [
-        ['insert', [], 0], ['insert', [0], 0], ['insert', [0, 0], 0], ['insert', [0, 0], 1]
-    ]);
+    assert.deepEqual(
+        operations.map(operation => [operation.op, operation.collection_path, operation.index]),
+        [
+            ['insert', [], 0],
+            ['insert', [0], 0],
+            ['insert', [0, 0], 0],
+            ['insert', [0, 0], 1]
+        ]
+    );
     assert.deepEqual(apply([], operations), shape(model));
 });
 
@@ -174,10 +205,20 @@ test('moves are lossless, retain identity and edit only final paths after insert
     const operations = plain(model.compile()).operations;
     assert.equal(model.find(id), b);
     assert.deepEqual(plain(b.originalPath), [1, 0]);
-    assert.deepEqual(operations.filter(operation => operation.op === 'edit'), [{
-        op: 'edit', path: [0, 0], fields: [{ id: 'operand', value: { kind: 'text', value: 'B edited' } }]
-    }]);
-    assert.equal(operations.some(operation => operation.op === 'insert'), false);
+    assert.deepEqual(
+        operations.filter(operation => operation.op === 'edit'),
+        [
+            {
+                op: 'edit',
+                path: [0, 0],
+                fields: [{ id: 'operand', value: { kind: 'text', value: 'B edited' } }]
+            }
+        ]
+    );
+    assert.equal(
+        operations.some(operation => operation.op === 'insert'),
+        false
+    );
     assert.deepEqual(apply(original, operations), shape(model));
 });
 
@@ -195,10 +236,13 @@ test('destination collection path addresses the pre-move tree even when removal 
 });
 
 test('sibling destination indexes are after removal and rejected moves change nothing', () => {
-    const model = targeting.create(snapshot([
-        collection('A', [collection('B', [condition('C')])]), condition('D'), condition('E')
-    ]));
-    const a = named(model, 'A'), b = named(model, 'B'), c = named(model, 'C'), d = named(model, 'D');
+    const model = targeting.create(
+        snapshot([collection('A', [collection('B', [condition('C')])]), condition('D'), condition('E')])
+    );
+    const a = named(model, 'A'),
+        b = named(model, 'B'),
+        c = named(model, 'C'),
+        d = named(model, 'D');
     const before = shape(model);
     assert.equal(model.move(a.id, a.id, 0), false);
     assert.equal(model.move(a.id, b.id, 0), false);
@@ -217,7 +261,8 @@ test('sibling destination indexes are after removal and rejected moves change no
 test('collections may be moved out and then inverted without a simulated cycle', () => {
     const original = [collection('A', [collection('B', [condition('C')])])];
     const model = targeting.create(snapshot(original));
-    const a = named(model, 'A'), b = named(model, 'B');
+    const a = named(model, 'A'),
+        b = named(model, 'B');
     assert.equal(model.move(b.id, null, 1), true);
     assert.equal(model.move(a.id, b.id, 1), true);
     assert.deepEqual(apply(original, plain(model.compile()).operations), shape(model));
@@ -237,7 +282,8 @@ test('a removed ancestor does not destroy surviving descendants moved elsewhere'
 test('replace produces a new node, drops former children and does not recreate already moved survivors', () => {
     const original = [collection('A', [condition('B'), condition('discard')]), collection('C')];
     const model = targeting.create(snapshot(original));
-    const a = named(model, 'A'), b = named(model, 'B');
+    const a = named(model, 'A'),
+        b = named(model, 'B');
     model.move(b.id, named(model, 'C').id, 0);
     const replacement = model.replace(a.id, 'condition');
     assert.ok(replacement);
@@ -259,15 +305,24 @@ test('opaque filters remain read-only and are moved without insertion or field s
     assert.equal(model.add('condition', vendor.id), null);
     assert.equal(model.move(vendor.id, named(model, 'A').id, 0), true);
     const operations = plain(model.compile()).operations;
-    assert.equal(operations.every(operation => operation.op === 'move'), true);
+    assert.equal(
+        operations.every(operation => operation.op === 'move'),
+        true
+    );
     const opaque = { ...original[0], vendorAttributes: { untouched: 'yes' } };
     const result = apply([opaque, original[1]], operations);
     assert.deepEqual(result[0].children[0].vendorAttributes, opaque.vendorAttributes);
     assert.deepEqual(result[0].children[0].children, opaque.children);
-    assert.deepEqual(result.map(node => ({ ...node, children: node.children.map(child => {
-        const { vendorAttributes, ...rest } = child;
-        return rest;
-    }) })), shape(model));
+    assert.deepEqual(
+        result.map(node => ({
+            ...node,
+            children: node.children.map(child => {
+                const { vendorAttributes, ...rest } = child;
+                return rest;
+            })
+        })),
+        shape(model)
+    );
 });
 
 test('modal clone is isolated but compiles all previously accepted parent draft changes', () => {
@@ -293,14 +348,19 @@ test('required fields and duplicate descriptors report stable row and field IDs 
     const model = targeting.create(snapshot());
     const required = model.add('required', null);
     assert.deepEqual(plain(model.compile()), {
-        operations: [], errors: [{ id: required.id, fieldId: 'operand', code: 'required' }]
+        operations: [],
+        errors: [{ id: required.id, fieldId: 'operand', code: 'required' }]
     });
     update(model, required, 'configured');
     assert.deepEqual(plain(model.compile()).errors, []);
     required.fields.push(plain(required.fields[0]));
-    assert.deepEqual(plain(model.compile()).errors, [{
-        id: required.id, fieldId: 'operand', code: 'duplicate_descriptor'
-    }]);
+    assert.deepEqual(plain(model.compile()).errors, [
+        {
+            id: required.id,
+            fieldId: 'operand',
+            code: 'duplicate_descriptor'
+        }
+    ]);
 });
 
 test('field edits retain descriptors, ignore read-only fields and use final validation types', () => {
@@ -308,17 +368,24 @@ test('field edits retain descriptors, ignore read-only fields and use final vali
     data.filter_fields[0].fields.push(field('immutable', { id: 'readonly', editable: false }));
     const model = targeting.create(data);
     const node = named(model, 'A');
-    assert.equal(model.updateFields(node.id, [
-        { id: 'operand', value: { kind: 'text', value: 'edited' } },
-        { id: 'readonly', value: { kind: 'text', value: 'changed' } },
-        { id: 'foreign', value: { kind: 'text', value: 'ignored' } }
-    ]), true);
+    assert.equal(
+        model.updateFields(node.id, [
+            { id: 'operand', value: { kind: 'text', value: 'edited' } },
+            { id: 'readonly', value: { kind: 'text', value: 'changed' } },
+            { id: 'foreign', value: { kind: 'text', value: 'ignored' } }
+        ]),
+        true
+    );
     assert.equal(node.fields[1].value.value, 'immutable');
     assert.equal(node.fields.length, 2);
     assert.equal(node.fields[0].editable, true);
-    assert.deepEqual(plain(model.compile()).operations, [{
-        op: 'edit', path: [0], fields: [{ id: 'operand', value: { kind: 'text', value: 'edited' } }]
-    }]);
+    assert.deepEqual(plain(model.compile()).operations, [
+        {
+            op: 'edit',
+            path: [0],
+            fields: [{ id: 'operand', value: { kind: 'text', value: 'edited' } }]
+        }
+    ]);
 });
 
 test('compiled trees never briefly exceed native depth when moved children have final parents elsewhere', () => {
@@ -341,8 +408,13 @@ test('compiled trees never briefly exceed native depth when moved children have 
     assert.equal(model.move(source.id, parent.id, 0), true);
     const operations = plain(model.compile()).operations;
     assert.deepEqual(apply(original, operations), shape(model));
-    assert.ok(operations.some(operation => operation.op === 'move' && operation.collection_path.length === 0
-        && operation.source_path.length > 1), 'departing subtree is staged safely before the deep source move');
+    assert.ok(
+        operations.some(
+            operation =>
+                operation.op === 'move' && operation.collection_path.length === 0 && operation.source_path.length > 1
+        ),
+        'departing subtree is staged safely before the deep source move'
+    );
 });
 
 test('local add/move enforce supported parents, positions and maximum native tree depth', () => {
@@ -400,7 +472,8 @@ test('mixed draft sessions reconcile deterministically across repeated add/edit/
         }
         const original = [
             collection('A', [condition('B'), collection('C', [condition('D')])]),
-            collection('E', [condition('F')]), condition('G')
+            collection('E', [condition('F')]),
+            condition('G')
         ];
         const model = targeting.create(snapshot(original));
         for (let turn = 0; turn < 40; turn++) {
@@ -411,7 +484,11 @@ test('mixed draft sessions reconcile deterministically across repeated add/edit/
             switch (random(5)) {
                 case 0: {
                     const siblings = parent ? parent.children : model.roots;
-                    const added = model.add(random(2) ? 'condition' : 'collection', parent && parent.id, random(siblings.length + 1));
+                    const added = model.add(
+                        random(2) ? 'condition' : 'collection',
+                        parent && parent.id,
+                        random(siblings.length + 1)
+                    );
                     if (added) update(model, added, 'added ' + seed + '/' + turn);
                     break;
                 }
@@ -437,6 +514,10 @@ test('mixed draft sessions reconcile deterministically across repeated add/edit/
         const compiled = plain(model.compile());
         assert.deepEqual(compiled.errors, [], 'seed ' + seed + ' must remain valid');
         assert.deepEqual(plain(model.compile()), compiled, 'compile must not consume or mutate the draft');
-        assert.deepEqual(apply(original, compiled.operations), shape(model), 'seed ' + seed + ' must reproduce the final tree');
+        assert.deepEqual(
+            apply(original, compiled.operations),
+            shape(model),
+            'seed ' + seed + ' must reproduce the final tree'
+        );
     }
 });

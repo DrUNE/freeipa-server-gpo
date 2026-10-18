@@ -11,8 +11,7 @@ var mockupFieldControl = fieldControlModule.mockupFieldControl;
 var fieldControl = fieldControlModule.fieldControl;
 
 function buildPlaceholderCheckbox(entry) {
-    var label = (entry && entry.label)
-        || (entry && entry.labelKey ? pt(entry.labelKey) : '');
+    var label = (entry && entry.label) || (entry && entry.labelKey ? pt(entry.labelKey) : '');
     var controlId = nextControlId();
     var checkbox = createElement('input', {
         attrs: {
@@ -31,7 +30,7 @@ function buildPlaceholderCheckbox(entry) {
                         children: [
                             checkbox,
                             createElement('label', {
-                                attrs: { 'for': controlId, 'aria-label': label }
+                                attrs: { for: controlId, 'aria-label': label }
                             })
                         ]
                     }),
@@ -46,12 +45,11 @@ function buildPlaceholderCheckbox(entry) {
 }
 
 function isMetadataField(field) {
-    return String(field && field.id || '').indexOf('metadata.') === 0;
+    return String((field && field.id) || '').indexOf('metadata.') === 0;
 }
 
 function isGeneralTabField(field) {
-    return isMetadataField(field)
-        || (Boolean(field) && field.id === 'properties.disabled');
+    return isMetadataField(field) || (Boolean(field) && field.id === 'properties.disabled');
 }
 
 function isBasicTabField(field) {
@@ -60,22 +58,29 @@ function isBasicTabField(field) {
 
 function orderedTabEntries(fields, layoutEntries, predicate) {
     var layout = Array.isArray(layoutEntries) ? layoutEntries : [];
-    var belongs = typeof predicate === 'function' ? predicate : function() { return true; };
+    var belongs =
+        typeof predicate === 'function'
+            ? predicate
+            : function () {
+                  return true;
+              };
     var result = [];
     var placed = {};
-    layout.forEach(function(entry) {
+    layout.forEach(function (entry) {
         var item = dto.clone(entry || {});
         if (!item.field) {
             if (item.line) result.push({ line: true });
             if (item.placeholder) result.push(item);
             return;
         }
-        var field = fields.find(function(candidate) { return candidate.id === item.field; });
+        var field = fields.find(function (candidate) {
+            return candidate.id === item.field;
+        });
         if (!field || !belongs(field)) return;
         placed[item.field] = true;
         result.push(item);
     });
-    fields.forEach(function(field) {
+    fields.forEach(function (field) {
         if (placed[field.id] || !belongs(field)) return;
         result.push({ field: field.id });
     });
@@ -86,15 +91,17 @@ function buildFieldTabs(fields, options) {
     var opts = options || {};
     var layout = opts.layout || null;
     var fieldsById = new Map();
-    fields.forEach(function(field) { fieldsById.set(field.id, field); });
+    fields.forEach(function (field) {
+        fieldsById.set(field.id, field);
+    });
     var basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
     var generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
     var fieldOptions = {};
-    basicEntries.concat(generalEntries).forEach(function(entry) {
+    basicEntries.concat(generalEntries).forEach(function (entry) {
         if (entry && entry.field && !fieldOptions[entry.field]) fieldOptions[entry.field] = entry;
     });
 
-    fields.forEach(function(field) {
+    fields.forEach(function (field) {
         var control;
         if (field.hidden) {
             control = hiddenFieldControl(field);
@@ -109,7 +116,7 @@ function buildFieldTabs(fields, options) {
     });
 
     function renderable(entries) {
-        return entries.some(function(entry) {
+        return entries.some(function (entry) {
             if (entry.placeholder) return true;
             if (!entry.field) return false;
             var field = fieldsById.get(entry.field);
@@ -123,7 +130,7 @@ function buildFieldTabs(fields, options) {
 
     function buildContent(entries) {
         var content = createElement('div', { className: 'tab-content' });
-        entries.forEach(function(entry) {
+        entries.forEach(function (entry) {
             if (entry.line) {
                 content.append(createElement('div', { className: 'field__line' }));
                 return;
@@ -133,7 +140,7 @@ function buildFieldTabs(fields, options) {
                 return;
             }
             if (!entry.field) return;
-            (opts.controlsById.get(entry.field) || []).forEach(function(control) {
+            (opts.controlsById.get(entry.field) || []).forEach(function (control) {
                 if (control.element) content.append(control.element);
             });
         });
@@ -153,39 +160,56 @@ function buildFieldTabs(fields, options) {
     [
         { id: 'tab-basic', enabled: basicHasFields, label: pt('tabBasic') },
         { id: 'tab-general', enabled: generalHasFields, label: pt('tabGeneral') }
-    ].forEach(function(spec) {
+    ].forEach(function (spec) {
         if (!spec.enabled) return;
-        buttons.append(createElement('div', {
-            className: ['preference__tab-button', activeTab === spec.id ? 'active' : null],
-            attrs: { 'data-tab': spec.id },
-            text: spec.label,
-            events: { click: function() { activateTab(spec.id); } }
-        }));
+        buttons.append(
+            createElement('div', {
+                className: ['preference__tab-button', activeTab === spec.id ? 'active' : null],
+                attrs: { 'data-tab': spec.id },
+                text: spec.label,
+                events: {
+                    click: function () {
+                        activateTab(spec.id);
+                    }
+                }
+            })
+        );
     });
     tabs.append(buttons);
     tabs.append(basicContent);
     tabs.append(generalContent);
 
     var filtersTab = opts.layout
-        ? (opts.layout.filters === 'basic' ? 'tab-basic'
-            : opts.layout.filters === 'general' ? 'tab-general' : null)
+        ? opts.layout.filters === 'basic'
+            ? 'tab-basic'
+            : opts.layout.filters === 'general'
+              ? 'tab-general'
+              : null
         : null;
-    tabs.filtersSlot = filtersTab === 'tab-basic' && basicHasFields ? basicContent
-        : filtersTab === 'tab-general' && generalHasFields ? generalContent
-        : null;
+    tabs.filtersSlot =
+        filtersTab === 'tab-basic' && basicHasFields
+            ? basicContent
+            : filtersTab === 'tab-general' && generalHasFields
+              ? generalContent
+              : null;
 
     function activateTab(id) {
-        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.preference__tab-button'),
-            function(button) {
-                button.classList.toggle('active', button.getAttribute('data-tab') === id);
-            });
-        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.tab-content'),
-            function(content) {
-                content.classList.toggle('active', content.id === id);
-            });
+        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.preference__tab-button'), function (button) {
+            button.classList.toggle('active', button.getAttribute('data-tab') === id);
+        });
+        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.tab-content'), function (content) {
+            content.classList.toggle('active', content.id === id);
+        });
     }
 
     return tabs;
 }
 
-export { buildPlaceholderCheckbox, isMetadataField, isGeneralTabField, isBasicTabField, orderedTabEntries, buildFieldTabs };
+export {
+    buildPlaceholderCheckbox,
+    isMetadataField,
+    isGeneralTabField,
+    isBasicTabField,
+    orderedTabEntries,
+    buildFieldTabs
+};

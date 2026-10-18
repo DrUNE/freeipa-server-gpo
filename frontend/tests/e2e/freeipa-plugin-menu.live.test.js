@@ -6,7 +6,9 @@ import { afterAll, beforeAll, describe, test } from 'vitest';
 let chromium;
 try {
     chromium = (await import('playwright')).chromium;
-} catch (_) { /* Optional browser dependency in unit-only environments. */ }
+} catch (_) {
+    /* Optional browser dependency in unit-only environments. */
+}
 
 // Live check against a real FreeIPA server with the plugin installed, such as
 // the dev container (.devcontainer/). Everything under tests/unit and tests/integration mocks FreeIPA;
@@ -35,15 +37,21 @@ const container = process.env.IPA_CONTAINER || 'freeipa-gpo-dev';
 // Fixture access goes through the container's ipa CLI (the same admin account).
 function ipa(...args) {
     const script = 'printf "%s\\n" "$P" | kinit admin >/dev/null && ipa "$@"';
-    return execFileSync('podman', ['exec', '-e', `P=${password}`, container, 'bash', '-c', script, 'ipa', ...args],
-        { encoding: 'utf8' });
+    return execFileSync('podman', ['exec', '-e', `P=${password}`, container, 'bash', '-c', script, 'ipa', ...args], {
+        encoding: 'utf8'
+    });
 }
 
 function reachable() {
     return new Promise(resolve => {
-        const request = https.get(`${base}/ipa/ui/`, { rejectUnauthorized: false, timeout: 5000 },
-            response => { response.resume(); resolve(response.statusCode === 200); });
-        request.on('timeout', () => { request.destroy(); resolve(false); });
+        const request = https.get(`${base}/ipa/ui/`, { rejectUnauthorized: false, timeout: 5000 }, response => {
+            response.resume();
+            resolve(response.statusCode === 200);
+        });
+        request.on('timeout', () => {
+            request.destroy();
+            resolve(false);
+        });
         request.on('error', () => resolve(false));
     });
 }
@@ -58,11 +66,13 @@ async function login(page) {
         await page.waitForSelector(MENU.group, { state: 'attached', timeout: 30000 });
     } catch (error) {
         const loggedIn = await page.isVisible('.navbar');
-        throw new Error(loggedIn
-            ? 'Logged in, but the Group Policy menu was not added under Policy: check that chain.js loads and '
-                + 'that "policy" exists in the menu (plugin/ui/grouppolicy/chain.js add_menu_items).'
-            : `Could not log in to ${base} as ${username}: check IPA_ADMIN_USER and IPA_ADMIN_PASSWORD.`,
-        { cause: error });
+        throw new Error(
+            loggedIn
+                ? 'Logged in, but the Group Policy menu was not added under Policy: check that chain.js loads and ' +
+                      'that "policy" exists in the menu (plugin/ui/grouppolicy/chain.js add_menu_items).'
+                : `Could not log in to ${base} as ${username}: check IPA_ADMIN_USER and IPA_ADMIN_PASSWORD.`,
+            { cause: error }
+        );
     }
 }
 
@@ -80,7 +90,11 @@ describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
         if (!up) return;
         browser = await chromium.launch();
         // Fixed locale: labels differ per language, so assertions use data-name.
-        const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'en-US', viewport: { width: 1400, height: 900 } });
+        const context = await browser.newContext({
+            ignoreHTTPSErrors: true,
+            locale: 'en-US',
+            viewport: { width: 1400, height: 900 }
+        });
         page = await context.newPage();
         page.on('response', response => {
             if (response.url().includes('/ipa/ui/js/plugins/chain/')) {
@@ -92,7 +106,9 @@ describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
         ready = true;
     }, 90000);
 
-    afterAll(async () => { if (browser) await browser.close(); });
+    afterAll(async () => {
+        if (browser) await browser.close();
+    });
 
     // Without a reachable server (and REQUIRE_IPA) the tests are reported as skipped.
 
@@ -101,7 +117,10 @@ describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
         const served = url => pluginResponses.filter(r => r.url.endsWith(url) && r.status === 200);
         assert.equal(served('/plugins/chain/chain.js').length > 0, true, 'chain.js was not loaded');
         assert.equal(served('/plugins/chain/gpo.js').length > 0, true, 'gpo.js was not loaded');
-        assert.deepEqual(pluginResponses.filter(r => r.status >= 400), []);
+        assert.deepEqual(
+            pluginResponses.filter(r => r.status >= 400),
+            []
+        );
         assert.deepEqual(pageErrors, []);
     });
 
@@ -124,8 +143,7 @@ describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
         // The toolbar renders after the table; "gpui" opens the GPUI editor
         // and its order is set by gpo.js.
         for (const name of ['refresh', 'add', 'gpui', 'remove']) {
-            await page.waitForSelector(`.facet-controls button[name="${name}"]`,
-                { state: 'visible', timeout: 15000 });
+            await page.waitForSelector(`.facet-controls button[name="${name}"]`, { state: 'visible', timeout: 15000 });
         }
     });
 
@@ -151,9 +169,12 @@ describe('GPO plugin is wired into the live FreeIPA Web UI', () => {
             await page.click('.facet-controls button[name="gpui"]');
             await page.waitForSelector('.modal-gpui .gp__container', { timeout: 20000 });
             await page.waitForSelector('.modal-gpui [role=treeitem]', { timeout: 30000 });
-            assert.ok(await page.locator('.modal-gpui [role=treeitem]').count() > 0);
+            assert.ok((await page.locator('.modal-gpui [role=treeitem]').count()) > 0);
             assert.match(await page.locator('.modal-gpui').innerText(), /Computer/);
-            assert.ok(pluginResponses.some(r => r.url.endsWith('/plugins/chain/js/app.js') && r.status === 200), 'bundle js/app.js was not served');
+            assert.ok(
+                pluginResponses.some(r => r.url.endsWith('/plugins/chain/js/app.js') && r.status === 200),
+                'bundle js/app.js was not served'
+            );
         } finally {
             ipa('gpo-del', name);
         }

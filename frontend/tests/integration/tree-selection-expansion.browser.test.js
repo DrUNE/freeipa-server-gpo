@@ -10,11 +10,16 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
+} catch (_) {
+    /* Browser dependencies are optional in unit-only environments. */
+}
 
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const browserOptions = {
-    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
+    skip:
+        !chromium || !requireJs
+            ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.'
+            : false
 };
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
@@ -53,9 +58,19 @@ async function withPage(run) {
         }
         const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
         try {
-            response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : filename.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript');
+            response.setHeader(
+                'Content-Type',
+                filename.endsWith('.css')
+                    ? 'text/css'
+                    : filename.endsWith('.svg')
+                      ? 'image/svg+xml'
+                      : 'application/javascript'
+            );
             response.end(fs.readFileSync(filename));
-        } catch (_) { response.statusCode = 404; response.end('Missing'); }
+        } catch (_) {
+            response.statusCode = 404;
+            response.end('Missing');
+        }
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     let browser;
@@ -67,8 +82,9 @@ async function withPage(run) {
         page.on('pageerror', error => errors.push(error.message));
         await page.goto('http://127.0.0.1:' + server.address().port);
         await page.waitForFunction(() => window.ready);
-        try { await run(page); }
-        catch (error) {
+        try {
+            await run(page);
+        } catch (error) {
             error.message += '; page errors: ' + errors.join('; ');
             throw error;
         }
@@ -88,7 +104,8 @@ async function folderState(page, name) {
         const element = state.treeListItemElements.get(item);
         const list = element.querySelector(':scope > ul.tree-view__list');
         return {
-            opened: Boolean(item.opened), selected: state.selectedItem.item === item,
+            opened: Boolean(item.opened),
+            selected: state.selectedItem.item === item,
             active: state.treeItemElements.get(item).classList.contains('active'),
             domOpened: element.classList.contains('opened'),
             ariaExpanded: element.querySelector(':scope > .tree-item > .icon-switcher').getAttribute('aria-expanded'),
@@ -103,152 +120,204 @@ async function expectFolder(page, name, opened, selected) {
     assert.equal(actual.selected, selected);
     assert.equal(actual.domOpened, opened);
     assert.equal(actual.ariaExpanded, String(opened));
-    if (name !== 'lazy' || await page.evaluate(() => lazy.loaded)) assert.equal(actual.nestedVisible, opened);
+    if (name !== 'lazy' || (await page.evaluate(() => lazy.loaded))) assert.equal(actual.nestedVisible, opened);
 }
 
-test('tree selection preserves a collapsed catalog; repeated titles and other arrows retain the current view and filter', browserOptions, async () => {
-    await withPage(async page => {
-        await title(page, 'Target category').click();
-        await expectFolder(page, 'target', false, true);
-        await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
-        const search = page.locator('.workspace [data-policy-filter]');
-        await search.fill('Nested');
-        const before = await page.evaluate(() => {
-            window.originalView = state.currentView;
-            return { render: state.renderRequestId, navigation: state.navigationRequestId };
+test(
+    'tree selection preserves a collapsed catalog; repeated titles and other arrows retain the current view and filter',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await title(page, 'Target category').click();
+            await expectFolder(page, 'target', false, true);
+            await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+            const search = page.locator('.workspace [data-policy-filter]');
+            await search.fill('Nested');
+            const before = await page.evaluate(() => {
+                window.originalView = state.currentView;
+                return { render: state.renderRequestId, navigation: state.navigationRequestId };
+            });
+            await title(page, 'Target category').click();
+            await expectFolder(page, 'target', true, true);
+            await title(page, 'Target category').click();
+            await expectFolder(page, 'target', false, true);
+            await arrow(page, 'Other category').click();
+            await expectFolder(page, 'other', true, false);
+            assert.equal(await search.inputValue(), 'Nested');
+            assert.deepEqual(
+                await page.evaluate(() => ({
+                    render: state.renderRequestId,
+                    navigation: state.navigationRequestId,
+                    sameView: state.currentView === originalView
+                })),
+                { ...before, sameView: true }
+            );
         });
-        await title(page, 'Target category').click();
-        await expectFolder(page, 'target', true, true);
-        await title(page, 'Target category').click();
-        await expectFolder(page, 'target', false, true);
-        await arrow(page, 'Other category').click();
-        await expectFolder(page, 'other', true, false);
-        assert.equal(await search.inputValue(), 'Nested');
-        assert.deepEqual(await page.evaluate(() => ({
-            render: state.renderRequestId, navigation: state.navigationRequestId,
-            sameView: state.currentView === originalView
-        })), { ...before, sameView: true });
-    });
-});
+    }
+);
 
-test('arrow expansion bypasses navigation guard without discarding a draft; a category selection remains guarded', browserOptions, async () => {
-    await withPage(async page => {
-        const search = page.locator('.workspace [data-policy-filter]');
-        await search.fill('unsaved draft');
-        const before = await page.evaluate(() => {
-            state.currentView.hasUnsavedChanges = () => true;
-            state.currentView.cancelChanges = () => false;
-            window.originalView = state.currentView;
-            return state.navigationRequestId;
+test(
+    'arrow expansion bypasses navigation guard without discarding a draft; a category selection remains guarded',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            const search = page.locator('.workspace [data-policy-filter]');
+            await search.fill('unsaved draft');
+            const before = await page.evaluate(() => {
+                state.currentView.hasUnsavedChanges = () => true;
+                state.currentView.cancelChanges = () => false;
+                window.originalView = state.currentView;
+                return state.navigationRequestId;
+            });
+            await arrow(page, 'Target category').click();
+            await expectFolder(page, 'target', true, false);
+            assert.equal(await page.evaluate(() => state.pendingNavigation), null);
+            assert.equal(await page.getByRole('alertdialog', { name: 'Unsaved policy' }).isVisible(), false);
+            assert.equal(await page.evaluate(() => state.navigationRequestId), before);
+            assert.equal(await search.inputValue(), 'unsaved draft');
+            await title(page, 'Target category').click();
+            await page.getByRole('alertdialog', { name: 'Unsaved policy' }).waitFor();
+            await expectFolder(page, 'target', true, false);
+            assert.equal(await page.evaluate(() => state.pendingNavigation.options.openCurrentFolder), undefined);
+            await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
+            assert.equal(await page.evaluate(() => state.pendingNavigation), null);
+            assert.equal(await page.evaluate(() => state.currentView === originalView), true);
+            assert.equal(await search.inputValue(), 'unsaved draft');
         });
-        await arrow(page, 'Target category').click();
-        await expectFolder(page, 'target', true, false);
-        assert.equal(await page.evaluate(() => state.pendingNavigation), null);
-        assert.equal(await page.getByRole('alertdialog', { name: 'Unsaved policy' }).isVisible(), false);
-        assert.equal(await page.evaluate(() => state.navigationRequestId), before);
-        assert.equal(await search.inputValue(), 'unsaved draft');
-        await title(page, 'Target category').click();
-        await page.getByRole('alertdialog', { name: 'Unsaved policy' }).waitFor();
-        await expectFolder(page, 'target', true, false);
-        assert.equal(await page.evaluate(() => state.pendingNavigation.options.openCurrentFolder), undefined);
-        await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
-        assert.equal(await page.evaluate(() => state.pendingNavigation), null);
-        assert.equal(await page.evaluate(() => state.currentView === originalView), true);
-        assert.equal(await search.inputValue(), 'unsaved draft');
-    });
-});
+    }
+);
 
 for (const language of ['en', 'ru']) {
-    test(`tree arrows are keyboard operable and announce expansion in ${language} without selecting`, browserOptions, async () => {
-        await withPage(async page => {
-            await page.evaluate(language => { translations.setLanguage(language); state.setFolderOpened(target, false); }, language);
-            const control = arrow(page, 'Target category');
-            const names = language === 'en' ? ['Expand category', 'Collapse category'] : ['Раскрыть категорию', 'Свернуть категорию'];
-            assert.equal(await control.getAttribute('aria-label'), names[0] + ': Target category');
-            await control.focus();
-            await page.keyboard.press('Enter');
-            await expectFolder(page, 'target', true, false);
-            assert.equal(await control.getAttribute('aria-label'), names[1] + ': Target category');
-            await page.keyboard.press('Space');
-            await expectFolder(page, 'target', false, false);
-            assert.equal(await page.evaluate(() => state.selectedItem.item === other), true);
-        });
-    });
+    test(
+        `tree arrows are keyboard operable and announce expansion in ${language} without selecting`,
+        browserOptions,
+        async () => {
+            await withPage(async page => {
+                await page.evaluate(language => {
+                    translations.setLanguage(language);
+                    state.setFolderOpened(target, false);
+                }, language);
+                const control = arrow(page, 'Target category');
+                const names =
+                    language === 'en'
+                        ? ['Expand category', 'Collapse category']
+                        : ['Раскрыть категорию', 'Свернуть категорию'];
+                assert.equal(await control.getAttribute('aria-label'), names[0] + ': Target category');
+                await control.focus();
+                await page.keyboard.press('Enter');
+                await expectFolder(page, 'target', true, false);
+                assert.equal(await control.getAttribute('aria-label'), names[1] + ': Target category');
+                await page.keyboard.press('Space');
+                await expectFolder(page, 'target', false, false);
+                assert.equal(await page.evaluate(() => state.selectedItem.item === other), true);
+            });
+        }
+    );
 }
 
-test('selecting a lazy category loads its main catalog while keeping its sidebar folder collapsed', browserOptions, async () => {
-    await withPage(async page => {
-        await title(page, 'Lazy category').click();
-        await page.waitForFunction(() => lazyRequests === 1);
-        await expectFolder(page, 'lazy', false, false);
-        await page.evaluate(() => resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }]));
-        await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
-        await expectFolder(page, 'lazy', false, true);
-        assert.equal(await page.evaluate(() => lazyRequests), 1);
-    });
-});
-
-test('a lazy arrow can be collapsed before loading completes, without selecting or reopening its folder', browserOptions, async () => {
-    await withPage(async page => {
-        const before = await page.evaluate(() => {
-            window.originalView = state.currentView;
-            return state.navigationRequestId;
+test(
+    'selecting a lazy category loads its main catalog while keeping its sidebar folder collapsed',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await title(page, 'Lazy category').click();
+            await page.waitForFunction(() => lazyRequests === 1);
+            await expectFolder(page, 'lazy', false, false);
+            await page.evaluate(() =>
+                resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
+            );
+            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await expectFolder(page, 'lazy', false, true);
+            assert.equal(await page.evaluate(() => lazyRequests), 1);
         });
-        await arrow(page, 'Lazy category').click();
-        await page.waitForFunction(() => lazyRequests === 1);
-        await expectFolder(page, 'lazy', true, false);
-        await arrow(page, 'Lazy category').click();
-        await expectFolder(page, 'lazy', false, false);
-        await page.evaluate(() => resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }]));
-        await page.waitForFunction(() => lazy.loaded && !lazy.loadingPromise);
-        await expectFolder(page, 'lazy', false, false);
-        assert.equal(await page.evaluate(() => state.navigationRequestId), before);
-        assert.equal(await page.evaluate(() => state.currentView === originalView), true);
-    });
-});
+    }
+);
 
-test('an explicit lazy navigation honors a later collapse instead of replaying its old open request', browserOptions, async () => {
-    await withPage(async page => {
-        await page.evaluate(() => { window.lazyNavigation = state.navigateToNode(lazy, { openPath: true, openCurrentFolder: true }); });
-        await page.waitForFunction(() => lazyRequests === 1);
-        await arrow(page, 'Lazy category').click();
-        await expectFolder(page, 'lazy', false, false);
-        await page.evaluate(() => resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }]));
-        await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
-        await expectFolder(page, 'lazy', false, true);
-    });
-});
-
-test('a failed lazy arrow remains collapsed after an intervening toggle and remains retryable', browserOptions, async () => {
-    await withPage(async page => {
-        await arrow(page, 'Lazy category').click();
-        await page.waitForFunction(() => lazyRequests === 1);
-        await arrow(page, 'Lazy category').click();
-        await page.evaluate(() => rejectLazy(Error('Fixture load failed')));
-        await page.waitForFunction(() => !lazy.loadingPromise);
-        await expectFolder(page, 'lazy', false, false);
-        await arrow(page, 'Lazy category').click();
-        await page.waitForFunction(() => lazyRequests === 2);
-        await page.evaluate(() => resolveLazy([{ title: 'Retry child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }]));
-        await page.waitForFunction(() => lazy.loaded && !lazy.loadingPromise);
-        await expectFolder(page, 'lazy', true, false);
-        assert.equal(await page.evaluate(() => state.selectedItem.item === other), true);
-    });
-});
-
-test('normal navigation to a nested element reveals all ancestors and selects its actual tree row', browserOptions, async () => {
-    await withPage(async page => {
-        await page.evaluate(() => {
-            state.setFolderOpened(rootNode, false);
-            state.setFolderOpened(target, false);
-            state.setFolderOpened(nested, false);
-            return state.navigateToNode(leaf, { openPath: true });
+test(
+    'a lazy arrow can be collapsed before loading completes, without selecting or reopening its folder',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            const before = await page.evaluate(() => {
+                window.originalView = state.currentView;
+                return state.navigationRequestId;
+            });
+            await arrow(page, 'Lazy category').click();
+            await page.waitForFunction(() => lazyRequests === 1);
+            await expectFolder(page, 'lazy', true, false);
+            await arrow(page, 'Lazy category').click();
+            await expectFolder(page, 'lazy', false, false);
+            await page.evaluate(() =>
+                resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
+            );
+            await page.waitForFunction(() => lazy.loaded && !lazy.loadingPromise);
+            await expectFolder(page, 'lazy', false, false);
+            assert.equal(await page.evaluate(() => state.navigationRequestId), before);
+            assert.equal(await page.evaluate(() => state.currentView === originalView), true);
         });
-        await expectFolder(page, 'target', true, false);
-        await expectFolder(page, 'nested', true, false);
-        assert.equal(await page.evaluate(() => rootNode.opened), true);
-        assert.equal(await page.evaluate(() => state.selectedItem.item === leaf), true);
-        assert.equal(await page.locator('.tree-item.active .tree-item__title').textContent(), 'Nested leaf');
-        assert.equal(await page.locator('.tree-item.active').count(), 1);
-    });
-});
+    }
+);
+
+test(
+    'an explicit lazy navigation honors a later collapse instead of replaying its old open request',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.evaluate(() => {
+                window.lazyNavigation = state.navigateToNode(lazy, { openPath: true, openCurrentFolder: true });
+            });
+            await page.waitForFunction(() => lazyRequests === 1);
+            await arrow(page, 'Lazy category').click();
+            await expectFolder(page, 'lazy', false, false);
+            await page.evaluate(() =>
+                resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
+            );
+            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await expectFolder(page, 'lazy', false, true);
+        });
+    }
+);
+
+test(
+    'a failed lazy arrow remains collapsed after an intervening toggle and remains retryable',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await arrow(page, 'Lazy category').click();
+            await page.waitForFunction(() => lazyRequests === 1);
+            await arrow(page, 'Lazy category').click();
+            await page.evaluate(() => rejectLazy(Error('Fixture load failed')));
+            await page.waitForFunction(() => !lazy.loadingPromise);
+            await expectFolder(page, 'lazy', false, false);
+            await arrow(page, 'Lazy category').click();
+            await page.waitForFunction(() => lazyRequests === 2);
+            await page.evaluate(() =>
+                resolveLazy([{ title: 'Retry child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
+            );
+            await page.waitForFunction(() => lazy.loaded && !lazy.loadingPromise);
+            await expectFolder(page, 'lazy', true, false);
+            assert.equal(await page.evaluate(() => state.selectedItem.item === other), true);
+        });
+    }
+);
+
+test(
+    'normal navigation to a nested element reveals all ancestors and selects its actual tree row',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.evaluate(() => {
+                state.setFolderOpened(rootNode, false);
+                state.setFolderOpened(target, false);
+                state.setFolderOpened(nested, false);
+                return state.navigateToNode(leaf, { openPath: true });
+            });
+            await expectFolder(page, 'target', true, false);
+            await expectFolder(page, 'nested', true, false);
+            assert.equal(await page.evaluate(() => rootNode.opened), true);
+            assert.equal(await page.evaluate(() => state.selectedItem.item === leaf), true);
+            assert.equal(await page.locator('.tree-item.active .tree-item__title').textContent(), 'Nested leaf');
+            assert.equal(await page.locator('.tree-item.active').count(), 1);
+        });
+    }
+);

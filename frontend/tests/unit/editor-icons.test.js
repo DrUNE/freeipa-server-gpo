@@ -13,16 +13,35 @@ vi.mock('../../src/util/API.js', () => ({ getDisplayName: () => 'Example GPO' })
 vi.mock('../../src/components/templates/security/model.js', () => ({}));
 vi.mock('../../src/components/templates/advanced-audit/model.js', () => ({}));
 
-
 const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
 const icons = iconsModule;
 const presentations = presentationsModule;
 const tree = treeModule;
 const model = modelModule;
-const preferenceKinds = ['applications', 'control_panel', 'data_sources', 'devices', 'drives',
-    'environment_variables', 'files', 'folder_options', 'folders', 'ini_files', 'internet_settings',
-    'local_users_and_groups', 'network_options', 'network_shares', 'power_options', 'printers',
-    'regional_options', 'registry', 'scheduled_tasks', 'services', 'shortcuts', 'start_menu'];
+const preferenceKinds = [
+    'applications',
+    'control_panel',
+    'data_sources',
+    'devices',
+    'drives',
+    'environment_variables',
+    'files',
+    'folder_options',
+    'folders',
+    'ini_files',
+    'internet_settings',
+    'local_users_and_groups',
+    'network_options',
+    'network_shares',
+    'power_options',
+    'printers',
+    'regional_options',
+    'registry',
+    'scheduled_tasks',
+    'services',
+    'shortcuts',
+    'start_menu'
+];
 const categories = ['system_settings', 'control_panel_settings', 'other_settings'];
 const css = fs.readFileSync(path.join(root, 'css/icons.css'), 'utf8');
 function asset(className) {
@@ -43,28 +62,45 @@ test('all 22 native preference families and all 29 targeting kinds have explicit
     assert.equal(new Set(preferenceKinds.map(icons.preference)).size, 22);
     assert.equal(new Set([...icons.targetingKinds].map(icons.targeting)).size, 29);
     // An ES module namespace is immutable by definition; the exported lists must be frozen too.
-    assert.throws(() => { icons.preferenceKinds = []; }, TypeError);
+    assert.throws(() => {
+        icons.preferenceKinds = [];
+    }, TypeError);
     assert.ok(Object.isFrozen(icons.preferenceKinds) && Object.isFrozen(icons.targetingKinds));
 });
 
 test('mapped assets are self-contained 16px SVGs in the established grey palette', () => {
-    const classes = preferenceKinds.map(icons.preference).concat([...icons.targetingKinds].map(icons.targeting),
-        categories.map(icons.preferenceCategory), icons.preferencesRoot(), icons.scripts(),
-        ['startup', 'shutdown', 'logon', 'logoff'].map(icons.scriptEvent),
-        ['classic', 'powershell'].map(icons.scriptFile), icons.targeting(null));
+    const classes = preferenceKinds
+        .map(icons.preference)
+        .concat(
+            [...icons.targetingKinds].map(icons.targeting),
+            categories.map(icons.preferenceCategory),
+            icons.preferencesRoot(),
+            icons.scripts(),
+            ['startup', 'shutdown', 'logon', 'logoff'].map(icons.scriptEvent),
+            ['classic', 'powershell'].map(icons.scriptFile),
+            icons.targeting(null)
+        );
     for (const className of new Set(classes)) {
         const svg = asset(className);
         assert.match(svg, /width="16" height="16" viewBox="0 0 16 16"/);
         assert.match(svg, /#6C757D/);
         assert.doesNotMatch(svg, /<script|<foreignObject|<image|<text|href=|onload=/i);
         const colors = svg.match(/#[0-9a-f]{3,8}\b/gi) || [];
-        assert.ok(colors.every(color => color.toLowerCase() === '#6c757d'), className);
+        assert.ok(
+            colors.every(color => color.toLowerCase() === '#6c757d'),
+            className
+        );
     }
 });
 
 test('tree roots, actual preference families and Scripts share the centralized mapping', () => {
-    const documents = preferenceKinds.map((kind, index) => ({ scope: 'computer', kind, label: kind,
-        editable: true, category_id: categories[index % categories.length] }));
+    const documents = preferenceKinds.map((kind, index) => ({
+        scope: 'computer',
+        kind,
+        label: kind,
+        editable: true,
+        category_id: categories[index % categories.length]
+    }));
     const scope = tree.buildTreeViewList({ preference_documents: documents })[0].children[0];
     const preferences = scope.children.find(node => node.title === 'preferences.title');
     assert.equal(preferences.icon, icons.preferencesRoot());
@@ -85,7 +121,8 @@ test('All Policies preference and script event projections use the same icons in
         for (const row of model.preferenceRows(documents, scope)) {
             assert.equal(row.target.icon, icons.preference(row.target.preferenceKind));
         }
-        for (const row of model.scriptRows(scope)) assert.equal(row.target.icon, icons.scriptEvent(row.target.scriptEvent));
+        for (const row of model.scriptRows(scope))
+            assert.equal(row.target.icon, icons.scriptEvent(row.target.scriptEvent));
     }
 });
 

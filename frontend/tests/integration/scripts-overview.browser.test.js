@@ -10,7 +10,9 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Browser dependencies are optional in unit-only environments. */ }
+} catch (_) {
+    /* Browser dependencies are optional in unit-only environments. */
+}
 
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head>
@@ -92,189 +94,294 @@ require(['components/templates/script-template','components/header/header','loca
  });
 </script></body></html>`;
 
-test('Scripts overview opens event details and manages files in the selected SYSVOL folder', {
-    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
-}, async () => {
-    const server = http.createServer((request, response) => {
-        if (request.url === '/') {
-            response.setHeader('Content-Type', 'text/html; charset=utf-8');
-            return response.end(html);
-        }
-        const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
+test(
+    'Scripts overview opens event details and manages files in the selected SYSVOL folder',
+    {
+        skip:
+            !chromium || !requireJs
+                ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.'
+                : false
+    },
+    async () => {
+        const server = http.createServer((request, response) => {
+            if (request.url === '/') {
+                response.setHeader('Content-Type', 'text/html; charset=utf-8');
+                return response.end(html);
+            }
+            const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
+            try {
+                response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : 'application/javascript');
+                response.end(fs.readFileSync(filename));
+            } catch (_) {
+                response.statusCode = 404;
+                response.end('Missing');
+            }
+        });
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        let browser;
         try {
-            response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : 'application/javascript');
-            response.end(fs.readFileSync(filename));
-        } catch (_) { response.statusCode = 404; response.end('Missing'); }
-    });
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    let browser;
-    try {
-        browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
-        const errors = [];
-        page.on('pageerror', error => errors.push(error.message));
-        await page.goto('http://127.0.0.1:' + server.address().port);
-        await page.waitForFunction(() => window.ready &&
-            [...document.querySelectorAll('.gpo-editor-scripts__event-table tbody tr')]
-                .every(row => !row.textContent.includes('—')), null, { timeout: 10000 }).catch(error => {
-            throw new Error(error.message + '; browser errors: ' + errors.join('; '));
-        });
+            browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto('http://127.0.0.1:' + server.address().port);
+            await page
+                .waitForFunction(
+                    () =>
+                        window.ready &&
+                        [...document.querySelectorAll('.gpo-editor-scripts__event-table tbody tr')].every(
+                            row => !row.textContent.includes('—')
+                        ),
+                    null,
+                    { timeout: 10000 }
+                )
+                .catch(error => {
+                    throw new Error(error.message + '; browser errors: ' + errors.join('; '));
+                });
 
-        const rows = page.locator('.gpo-editor-scripts__event-table tbody tr');
-        assert.equal(await rows.count(), 2);
-        assert.deepEqual(await rows.allTextContents(), ['Startup scripts10', 'Shutdown scripts10']);
-        assert.equal(await page.getByRole('button', { name: 'Open scripts folder…' }).isVisible(), true);
+            const rows = page.locator('.gpo-editor-scripts__event-table tbody tr');
+            assert.equal(await rows.count(), 2);
+            assert.deepEqual(await rows.allTextContents(), ['Startup scripts10', 'Shutdown scripts10']);
+            assert.equal(await page.getByRole('button', { name: 'Open scripts folder…' }).isVisible(), true);
 
-        await rows.filter({ hasText: 'Shutdown scripts' }).dblclick({ timeout: 5000 }).catch(async error => {
-            const bounds = await page.evaluate(() => Object.fromEntries([
-                '.gp__container', '#workspace', '.gpo-editor-scripts',
-                '.gpo-editor-scripts__title', '.gpo-editor-scripts__overview',
-                '.gpo-editor-scripts__event-table',
-                '.gpo-editor-scripts__event-table tbody tr:last-child'
-            ].map(selector => {
-                const element = document.querySelector(selector);
-                const rect = element.getBoundingClientRect();
-                return [selector, { x: rect.x, y: rect.y, width: rect.width,
-                    height: rect.height, display: getComputedStyle(element).display }];
-            })));
-            throw new Error(error.message + '; bounds: ' + JSON.stringify(bounds));
-        });
-        const eventDialog = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
-        await eventDialog.waitFor();
-        await eventDialog.locator('.gpo-editor-scripts__entries tbody tr').filter({ hasText: 'shutdown.cmd' }).waitFor();
-        const eventBounds = await eventDialog.boundingBox();
-        const entryListBounds = await eventDialog.locator('.gpo-editor-scripts__entries .gpo-editor-scripts__list')
-            .boundingBox();
-        const entryActionsBounds = await eventDialog.locator('.gpo-editor-scripts__entries .gpo-editor-scripts__toolbar')
-            .boundingBox();
-        const showFilesBounds = await eventDialog.getByRole('button', { name: 'Show files…' }).boundingBox();
-        const eventFooterBounds = await eventDialog.locator('.preference__modal-footer').boundingBox();
-        assert.ok(eventBounds.width <= 660 && eventBounds.height <= 480);
-        assert.ok(entryActionsBounds.x >= entryListBounds.x + entryListBounds.width - 2);
-        assert.ok(Math.abs(entryActionsBounds.y - entryListBounds.y) <= 12);
-        assert.ok(eventFooterBounds.y - (showFilesBounds.y + showFilesBounds.height) <= 26);
-        assert.equal(await eventDialog.locator('.gpo-editor-scripts__assets').count(), 0);
-        assert.equal(await eventDialog.getByRole('button', { name: 'Show files…' }).isVisible(), true);
-        assert.equal(await eventDialog.locator('input[type=file]:visible').count(), 0);
-        await eventDialog.getByRole('button', { name: 'Add', exact: true }).click();
-        const form = eventDialog.locator('.gpo-editor-scripts__form');
-        await form.waitFor();
-        const scriptName = form.locator('.gpo-editor-scripts__asset-field input[type=text]');
-        assert.equal(await scriptName.count(), 1);
-        assert.equal(await scriptName.getAttribute('readonly'), null);
-        await scriptName.fill('manual.cmd');
-        await form.getByRole('button', { name: 'Select a file from SYSVOL' }).click();
-        const picker = eventDialog.locator('.gpo-editor-scripts__picker');
-        await picker.waitFor();
-        assert.deepEqual(await picker.locator('tbody tr td:first-child').allTextContents(),
-            ['shutdown.cmd', 'extra.cmd']);
-        await picker.locator('tbody tr').filter({ hasText: 'extra.cmd' }).click();
-        await picker.getByRole('button', { name: 'Select file' }).click();
-        assert.equal(await scriptName.inputValue(), 'extra.cmd');
-        await form.getByRole('button', { name: 'Apply' }).click();
-        await page.waitForFunction(() => calls.some(call => call.method === 'add'));
-        assert.deepEqual(await page.evaluate(() => {
-            const call = calls.find(item => item.method === 'add');
-            return [call.scope, call.event, call.request.mode, call.request.name];
-        }), ['computer', 'shutdown', 'existing_asset', 'extra.cmd']);
-        await eventDialog.locator('.gpo-editor-scripts__order select').selectOption('powershell_first');
-        await eventDialog.getByRole('button', { name: 'Show files…' }).click();
-        const discardConfirmation = page.getByRole('alertdialog');
-        await discardConfirmation.waitFor();
-        assert.equal(await page.getByRole('dialog', { name: 'Files: Shutdown scripts' }).count(), 0);
-        await discardConfirmation.getByRole('button', { name: 'Yes' }).click();
-        await eventDialog.waitFor({ state: 'hidden' });
-        assert.equal(await page.evaluate(() => calls.some(call => call.method === 'order')), false);
-        const explorer = page.getByRole('dialog', { name: 'Files: Shutdown scripts' });
-        await explorer.waitFor();
-        await explorer.locator('.gpo-editor-scripts__assets tbody tr').filter({ hasText: 'shutdown.cmd' }).waitFor();
-        assert.equal(await explorer.getByRole('combobox', { name: 'Event' }).count(), 0);
-        assert.equal(await explorer.locator('input[type=file]:visible').count(), 0);
-        assert.deepEqual(await explorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
-            ['shutdown.cmd', 'extra.cmd']);
-        await explorer.locator('.preference__modal-footer > .btn-cancel').click();
-        await explorer.waitFor({ state: 'hidden' });
-        await rows.filter({ hasText: 'Startup scripts' }).click();
-        await page.getByRole('button', { name: 'Open scripts folder…' }).click();
-        const startupExplorer = page.getByRole('dialog', { name: 'Files: Startup scripts' });
-        await startupExplorer.waitFor();
-        await startupExplorer.locator('.gpo-editor-scripts__assets tbody tr').filter({ hasText: 'loose.cmd' }).waitFor();
-        assert.deepEqual(await startupExplorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
-            ['startup.cmd', 'loose.cmd', 'spare.cmd']);
+            await rows
+                .filter({ hasText: 'Shutdown scripts' })
+                .dblclick({ timeout: 5000 })
+                .catch(async error => {
+                    const bounds = await page.evaluate(() =>
+                        Object.fromEntries(
+                            [
+                                '.gp__container',
+                                '#workspace',
+                                '.gpo-editor-scripts',
+                                '.gpo-editor-scripts__title',
+                                '.gpo-editor-scripts__overview',
+                                '.gpo-editor-scripts__event-table',
+                                '.gpo-editor-scripts__event-table tbody tr:last-child'
+                            ].map(selector => {
+                                const element = document.querySelector(selector);
+                                const rect = element.getBoundingClientRect();
+                                return [
+                                    selector,
+                                    {
+                                        x: rect.x,
+                                        y: rect.y,
+                                        width: rect.width,
+                                        height: rect.height,
+                                        display: getComputedStyle(element).display
+                                    }
+                                ];
+                            })
+                        )
+                    );
+                    throw new Error(error.message + '; bounds: ' + JSON.stringify(bounds));
+                });
+            const eventDialog = page.getByRole('dialog', { name: 'Shutdown scripts', exact: true });
+            await eventDialog.waitFor();
+            await eventDialog
+                .locator('.gpo-editor-scripts__entries tbody tr')
+                .filter({ hasText: 'shutdown.cmd' })
+                .waitFor();
+            const eventBounds = await eventDialog.boundingBox();
+            const entryListBounds = await eventDialog
+                .locator('.gpo-editor-scripts__entries .gpo-editor-scripts__list')
+                .boundingBox();
+            const entryActionsBounds = await eventDialog
+                .locator('.gpo-editor-scripts__entries .gpo-editor-scripts__toolbar')
+                .boundingBox();
+            const showFilesBounds = await eventDialog.getByRole('button', { name: 'Show files…' }).boundingBox();
+            const eventFooterBounds = await eventDialog.locator('.preference__modal-footer').boundingBox();
+            assert.ok(eventBounds.width <= 660 && eventBounds.height <= 480);
+            assert.ok(entryActionsBounds.x >= entryListBounds.x + entryListBounds.width - 2);
+            assert.ok(Math.abs(entryActionsBounds.y - entryListBounds.y) <= 12);
+            assert.ok(eventFooterBounds.y - (showFilesBounds.y + showFilesBounds.height) <= 26);
+            assert.equal(await eventDialog.locator('.gpo-editor-scripts__assets').count(), 0);
+            assert.equal(await eventDialog.getByRole('button', { name: 'Show files…' }).isVisible(), true);
+            assert.equal(await eventDialog.locator('input[type=file]:visible').count(), 0);
+            await eventDialog.getByRole('button', { name: 'Add', exact: true }).click();
+            const form = eventDialog.locator('.gpo-editor-scripts__form');
+            await form.waitFor();
+            const scriptName = form.locator('.gpo-editor-scripts__asset-field input[type=text]');
+            assert.equal(await scriptName.count(), 1);
+            assert.equal(await scriptName.getAttribute('readonly'), null);
+            await scriptName.fill('manual.cmd');
+            await form.getByRole('button', { name: 'Select a file from SYSVOL' }).click();
+            const picker = eventDialog.locator('.gpo-editor-scripts__picker');
+            await picker.waitFor();
+            assert.deepEqual(await picker.locator('tbody tr td:first-child').allTextContents(), [
+                'shutdown.cmd',
+                'extra.cmd'
+            ]);
+            await picker.locator('tbody tr').filter({ hasText: 'extra.cmd' }).click();
+            await picker.getByRole('button', { name: 'Select file' }).click();
+            assert.equal(await scriptName.inputValue(), 'extra.cmd');
+            await form.getByRole('button', { name: 'Apply' }).click();
+            await page.waitForFunction(() => calls.some(call => call.method === 'add'));
+            assert.deepEqual(
+                await page.evaluate(() => {
+                    const call = calls.find(item => item.method === 'add');
+                    return [call.scope, call.event, call.request.mode, call.request.name];
+                }),
+                ['computer', 'shutdown', 'existing_asset', 'extra.cmd']
+            );
+            await eventDialog.locator('.gpo-editor-scripts__order select').selectOption('powershell_first');
+            await eventDialog.getByRole('button', { name: 'Show files…' }).click();
+            const discardConfirmation = page.getByRole('alertdialog');
+            await discardConfirmation.waitFor();
+            assert.equal(await page.getByRole('dialog', { name: 'Files: Shutdown scripts' }).count(), 0);
+            await discardConfirmation.getByRole('button', { name: 'Yes' }).click();
+            await eventDialog.waitFor({ state: 'hidden' });
+            assert.equal(await page.evaluate(() => calls.some(call => call.method === 'order')), false);
+            const explorer = page.getByRole('dialog', { name: 'Files: Shutdown scripts' });
+            await explorer.waitFor();
+            await explorer
+                .locator('.gpo-editor-scripts__assets tbody tr')
+                .filter({ hasText: 'shutdown.cmd' })
+                .waitFor();
+            assert.equal(await explorer.getByRole('combobox', { name: 'Event' }).count(), 0);
+            assert.equal(await explorer.locator('input[type=file]:visible').count(), 0);
+            assert.deepEqual(
+                await explorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
+                ['shutdown.cmd', 'extra.cmd']
+            );
+            await explorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await explorer.waitFor({ state: 'hidden' });
+            await rows.filter({ hasText: 'Startup scripts' }).click();
+            await page.getByRole('button', { name: 'Open scripts folder…' }).click();
+            const startupExplorer = page.getByRole('dialog', { name: 'Files: Startup scripts' });
+            await startupExplorer.waitFor();
+            await startupExplorer
+                .locator('.gpo-editor-scripts__assets tbody tr')
+                .filter({ hasText: 'loose.cmd' })
+                .waitFor();
+            assert.deepEqual(
+                await startupExplorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
+                ['startup.cmd', 'loose.cmd', 'spare.cmd']
+            );
 
-        await startupExplorer.getByRole('checkbox', { name: 'Select file: loose.cmd' }).check();
-        const downloadReady = page.waitForEvent('download');
-        await startupExplorer.getByRole('button', { name: 'Download' }).click();
-        assert.equal((await downloadReady).suggestedFilename(), 'loose.cmd');
-        assert.deepEqual(await page.evaluate(() => {
-            const call = calls.find(item => item.method === 'download');
-            return [call.scope, call.event, call.request.name, call.request.revision];
-        }), ['computer', 'startup', 'loose.cmd', 'r1']);
+            await startupExplorer.getByRole('checkbox', { name: 'Select file: loose.cmd' }).check();
+            const downloadReady = page.waitForEvent('download');
+            await startupExplorer.getByRole('button', { name: 'Download' }).click();
+            assert.equal((await downloadReady).suggestedFilename(), 'loose.cmd');
+            assert.deepEqual(
+                await page.evaluate(() => {
+                    const call = calls.find(item => item.method === 'download');
+                    return [call.scope, call.event, call.request.name, call.request.revision];
+                }),
+                ['computer', 'startup', 'loose.cmd', 'r1']
+            );
 
-        const entryAddsBeforeUpload = await page.evaluate(() => calls.filter(call => call.method === 'add').length);
-        const fileChooserReady = page.waitForEvent('filechooser');
-        await startupExplorer.getByRole('button', { name: 'Upload', exact: true }).click();
-        await (await fileChooserReady).setFiles({
-            name: 'fresh.cmd', mimeType: 'text/plain', buffer: Buffer.from('abc')
-        });
-        await page.waitForFunction(() => calls.some(call => call.method === 'upload'));
-        assert.equal(await page.evaluate(() => calls.filter(call => call.method === 'add').length),
-            entryAddsBeforeUpload);
-        assert.deepEqual(await page.evaluate(() => {
-            const call = calls.find(item => item.method === 'upload');
-            return [call.scope, call.event, call.request.name, call.request.content_base64];
-        }), ['computer', 'startup', 'fresh.cmd', 'YWJj']);
-        await startupExplorer.locator('.gpo-editor-scripts__assets tbody tr').filter({ hasText: 'fresh.cmd' }).waitFor();
+            const entryAddsBeforeUpload = await page.evaluate(() => calls.filter(call => call.method === 'add').length);
+            const fileChooserReady = page.waitForEvent('filechooser');
+            await startupExplorer.getByRole('button', { name: 'Upload', exact: true }).click();
+            await (
+                await fileChooserReady
+            ).setFiles({
+                name: 'fresh.cmd',
+                mimeType: 'text/plain',
+                buffer: Buffer.from('abc')
+            });
+            await page.waitForFunction(() => calls.some(call => call.method === 'upload'));
+            assert.equal(
+                await page.evaluate(() => calls.filter(call => call.method === 'add').length),
+                entryAddsBeforeUpload
+            );
+            assert.deepEqual(
+                await page.evaluate(() => {
+                    const call = calls.find(item => item.method === 'upload');
+                    return [call.scope, call.event, call.request.name, call.request.content_base64];
+                }),
+                ['computer', 'startup', 'fresh.cmd', 'YWJj']
+            );
+            await startupExplorer
+                .locator('.gpo-editor-scripts__assets tbody tr')
+                .filter({ hasText: 'fresh.cmd' })
+                .waitFor();
 
-        await startupExplorer.getByRole('checkbox', { name: 'Select file: spare.cmd' }).check();
-        await startupExplorer.getByRole('button', { name: 'Delete file' }).click();
-        await page.getByRole('alertdialog').getByRole('button', { name: 'Yes' }).click();
-        await page.waitForFunction(() => calls.filter(call => call.method === 'delete').length === 2);
-        assert.deepEqual(await page.evaluate(() => calls.filter(call => call.method === 'delete')
-            .map(call => [call.scope, call.event, call.request.name])), [
-            ['computer', 'startup', 'loose.cmd'], ['computer', 'startup', 'spare.cmd']
-        ]);
-        await startupExplorer.locator('.gpo-editor-scripts__assets tbody tr').filter({ hasText: 'loose.cmd' })
-            .waitFor({ state: 'hidden' });
-        await startupExplorer.locator('.preference__modal-footer > .btn-cancel').click();
-        await startupExplorer.waitFor({ state: 'hidden' });
+            await startupExplorer.getByRole('checkbox', { name: 'Select file: spare.cmd' }).check();
+            await startupExplorer.getByRole('button', { name: 'Delete file' }).click();
+            await page.getByRole('alertdialog').getByRole('button', { name: 'Yes' }).click();
+            await page.waitForFunction(() => calls.filter(call => call.method === 'delete').length === 2);
+            assert.deepEqual(
+                await page.evaluate(() =>
+                    calls
+                        .filter(call => call.method === 'delete')
+                        .map(call => [call.scope, call.event, call.request.name])
+                ),
+                [
+                    ['computer', 'startup', 'loose.cmd'],
+                    ['computer', 'startup', 'spare.cmd']
+                ]
+            );
+            await startupExplorer
+                .locator('.gpo-editor-scripts__assets tbody tr')
+                .filter({ hasText: 'loose.cmd' })
+                .waitFor({ state: 'hidden' });
+            await startupExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await startupExplorer.waitFor({ state: 'hidden' });
 
-        await page.evaluate(() => render('user'));
-        await page.locator('.gpo-editor-scripts__event-table tbody tr').filter({ hasText: 'Logon scripts' }).waitFor();
-        assert.equal(await page.locator('.gpo-editor-scripts__event-table tbody tr').count(), 2);
-        await page.getByRole('button', { name: 'Open scripts folder…' }).click();
-        const userExplorer = page.getByRole('dialog', { name: 'Files: Logon scripts' });
-        await userExplorer.locator('.gpo-editor-scripts__assets tbody tr').filter({ hasText: 'user.cmd' }).waitFor();
-        assert.deepEqual(await userExplorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
-            ['user.cmd']);
-        await userExplorer.locator('.preference__modal-footer > .btn-cancel').click();
-        await userExplorer.waitFor({ state: 'hidden' });
-        await page.locator('.gpo-editor-scripts__event-table tbody tr').filter({ hasText: 'Logoff scripts' }).click();
-        await page.getByRole('button', { name: 'Open scripts folder…' }).click();
-        const emptyExplorer = page.getByRole('dialog', { name: 'Files: Logoff scripts' });
-        await emptyExplorer.waitFor();
-        await emptyExplorer.getByText('No files. Upload a script to this folder.').waitFor();
-        const explorerBounds = await emptyExplorer.boundingBox();
-        const fileActionsBounds = await emptyExplorer.locator('.gpo-editor-scripts__assets .gpo-editor-scripts__toolbar')
-            .boundingBox();
-        const fileListBounds = await emptyExplorer.locator('.gpo-editor-scripts__assets .gpo-editor-scripts__list')
-            .boundingBox();
-        const explorerFooterBounds = await emptyExplorer.locator('.preference__modal-footer').boundingBox();
-        assert.ok(explorerBounds.width <= 680 && explorerBounds.height <= 340);
-        assert.ok(fileActionsBounds.y + fileActionsBounds.height <= fileListBounds.y + 3);
-        assert.ok(explorerFooterBounds.y - (fileListBounds.y + fileListBounds.height) <= 26);
-        assert.equal(await emptyExplorer.locator('input[type=file]:visible').count(), 0);
-        assert.deepEqual(await emptyExplorer.locator('.gpo-editor-scripts__toolbar button:visible')
-            .allTextContents(), ['Upload']);
-        assert.equal(await emptyExplorer.getByRole('button', { name: 'Upload', exact: true })
-            .evaluate(el => getComputedStyle(el).borderStyle), 'solid');
-        await emptyExplorer.locator('.preference__modal-footer > .btn-cancel').click();
-        await page.evaluate(() => { setLanguage('ru'); render('computer'); });
-        await page.locator('.gpo-editor-scripts__event-table tbody tr').filter({ hasText: 'Сценарии запуска' }).waitFor();
-        assert.equal(await page.getByRole('button', { name: 'Открыть каталог скриптов…' }).count(), 1);
-        assert.deepEqual(errors, []);
-    } finally {
-        if (browser) await browser.close();
-        await new Promise(resolve => server.close(resolve));
+            await page.evaluate(() => render('user'));
+            await page
+                .locator('.gpo-editor-scripts__event-table tbody tr')
+                .filter({ hasText: 'Logon scripts' })
+                .waitFor();
+            assert.equal(await page.locator('.gpo-editor-scripts__event-table tbody tr').count(), 2);
+            await page.getByRole('button', { name: 'Open scripts folder…' }).click();
+            const userExplorer = page.getByRole('dialog', { name: 'Files: Logon scripts' });
+            await userExplorer
+                .locator('.gpo-editor-scripts__assets tbody tr')
+                .filter({ hasText: 'user.cmd' })
+                .waitFor();
+            assert.deepEqual(
+                await userExplorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
+                ['user.cmd']
+            );
+            await userExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await userExplorer.waitFor({ state: 'hidden' });
+            await page
+                .locator('.gpo-editor-scripts__event-table tbody tr')
+                .filter({ hasText: 'Logoff scripts' })
+                .click();
+            await page.getByRole('button', { name: 'Open scripts folder…' }).click();
+            const emptyExplorer = page.getByRole('dialog', { name: 'Files: Logoff scripts' });
+            await emptyExplorer.waitFor();
+            await emptyExplorer.getByText('No files. Upload a script to this folder.').waitFor();
+            const explorerBounds = await emptyExplorer.boundingBox();
+            const fileActionsBounds = await emptyExplorer
+                .locator('.gpo-editor-scripts__assets .gpo-editor-scripts__toolbar')
+                .boundingBox();
+            const fileListBounds = await emptyExplorer
+                .locator('.gpo-editor-scripts__assets .gpo-editor-scripts__list')
+                .boundingBox();
+            const explorerFooterBounds = await emptyExplorer.locator('.preference__modal-footer').boundingBox();
+            assert.ok(explorerBounds.width <= 680 && explorerBounds.height <= 340);
+            assert.ok(fileActionsBounds.y + fileActionsBounds.height <= fileListBounds.y + 3);
+            assert.ok(explorerFooterBounds.y - (fileListBounds.y + fileListBounds.height) <= 26);
+            assert.equal(await emptyExplorer.locator('input[type=file]:visible').count(), 0);
+            assert.deepEqual(
+                await emptyExplorer.locator('.gpo-editor-scripts__toolbar button:visible').allTextContents(),
+                ['Upload']
+            );
+            assert.equal(
+                await emptyExplorer
+                    .getByRole('button', { name: 'Upload', exact: true })
+                    .evaluate(el => getComputedStyle(el).borderStyle),
+                'solid'
+            );
+            await emptyExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await page.evaluate(() => {
+                setLanguage('ru');
+                render('computer');
+            });
+            await page
+                .locator('.gpo-editor-scripts__event-table tbody tr')
+                .filter({ hasText: 'Сценарии запуска' })
+                .waitFor();
+            assert.equal(await page.getByRole('button', { name: 'Открыть каталог скриптов…' }).count(), 1);
+            assert.deepEqual(errors, []);
+        } finally {
+            if (browser) await browser.close();
+            await new Promise(resolve => server.close(resolve));
+        }
     }
-});
+);

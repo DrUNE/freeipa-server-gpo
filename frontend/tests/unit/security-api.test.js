@@ -5,11 +5,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 async function loadApi(rpc) {
-    return loadModule('util/API.js', {
-        'freeipa/ipa': { default: { api_version: '2.0' } },
-        'freeipa/rpc': { default: rpc },
-        '../locales/translations': { getLanguage: () => 'ru' }
-    }, { navigator: { language: 'ru-RU', languages: ['ru-RU'] } });
+    return loadModule(
+        'util/API.js',
+        {
+            'freeipa/ipa': { default: { api_version: '2.0' } },
+            'freeipa/rpc': { default: rpc },
+            '../locales/translations': { getLanguage: () => 'ru' }
+        },
+        { navigator: { language: 'ru-RU', languages: ['ru-RU'] } }
+    );
 }
 
 test('Security RPC preserves arrays and exposes structured FreeIPA validation errors', async () => {
@@ -20,18 +24,23 @@ test('Security RPC preserves arrays and exposes structured FreeIPA validation er
             data: { error_category: 'validation', field: 'request.policies' }
         }
     };
-    const api = await loadApi({ command(spec) {
-        specs.push(spec);
-        return { execute() {
-            if (spec.method === 'editor_open') {
-                spec.on_success({ result: { result: {} } });
-            } else {
-                spec.on_error({ responseJSON: response }, 'error', {
-                    message: response.error.message, data: response
-                });
-            }
-        } };
-    } });
+    const api = await loadApi({
+        command(spec) {
+            specs.push(spec);
+            return {
+                execute() {
+                    if (spec.method === 'editor_open') {
+                        spec.on_success({ result: { result: {} } });
+                    } else {
+                        spec.on_error({ responseJSON: response }, 'error', {
+                            message: response.error.message,
+                            data: response
+                        });
+                    }
+                }
+            };
+        }
+    });
     await api.initialize('Test GPO');
     const request = {
         expected_semantic_revision: 'sha256:good',
@@ -51,19 +60,23 @@ test('Security RPC preserves arrays and exposes structured FreeIPA validation er
 
 test('Advanced Audit RPC uses editor error rendering instead of FreeIPA retry dialog', async () => {
     const specs = [];
-    const api = await loadApi({ command(spec) {
-        specs.push(spec);
-        return { execute() {
-            if (spec.method === 'editor_open') {
-                spec.on_success({ result: { result: {} } });
-            } else {
-                spec.on_error(null, 'error', {
-                    message: 'Advanced Audit operations must be lists.',
-                    data: { error_category: 'validation', field: 'request.set_options' }
-                });
-            }
-        } };
-    } });
+    const api = await loadApi({
+        command(spec) {
+            specs.push(spec);
+            return {
+                execute() {
+                    if (spec.method === 'editor_open') {
+                        spec.on_success({ result: { result: {} } });
+                    } else {
+                        spec.on_error(null, 'error', {
+                            message: 'Advanced Audit operations must be lists.',
+                            data: { error_category: 'validation', field: 'request.set_options' }
+                        });
+                    }
+                }
+            };
+        }
+    });
     await api.initialize('Test GPO');
 
     await assert.rejects(api.advancedAuditUpdate({ set_options: [] }), error => {

@@ -10,7 +10,9 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Browser dependencies are optional for the unit-only runner. */ }
+} catch (_) {
+    /* Browser dependencies are optional for the unit-only runner. */
+}
 
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head>
@@ -39,125 +41,195 @@ window.show=async()=>{
 show().then(()=>window.ready=true);
 });</script></body></html>`;
 
-test('Security dialog reuses Preferences styling, retains draft and supports accessible tabs', {
-    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
-}, async () => {
-    const server = http.createServer((req, res) => {
-        if (req.url === '/') {
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            return res.end(html);
-        }
-        const file = req.url === '/require.js' ? requireJs : path.join(root, req.url);
-        try {
-            res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript');
-            res.end(fs.readFileSync(file));
-        } catch (_) { res.statusCode = 404; res.end('Missing'); }
-    });
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    let browser;
-    try {
-        browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-        const errors = [];
-        page.on('pageerror', error => errors.push(error.message));
-        await page.goto('http://127.0.0.1:' + server.address().port);
-        await page.waitForFunction(() => window.ready, null, { timeout: 10000 }).catch(error => {
-            throw new Error(error.message + '; browser errors: ' + errors.join('; '));
-        });
-        assert.equal(await page.locator('[data-security-row="Policy without settings"] td').last().textContent(), '—');
-        await page.locator('[data-security-row="Maximum password age"]').dblclick();
-        const dialog = page.getByRole('dialog');
-        await dialog.waitFor();
-        await page.getByLabel('Define this policy setting', { exact: true }).check();
-        await page.getByLabel('Password expires after:', { exact: true }).fill('42');
-        assert.equal(await page.locator('.gpo-security-dialog .field__element input[type=number]').count(), 1);
-        const mismatches = await page.evaluate(() => {
-            const actual = document.querySelector('.gpo-security-dialog');
-            const reference = actual.cloneNode(true);
-            reference.id = 'reference';
-            reference.querySelectorAll('*').forEach(element => {
-                Array.from(element.classList).filter(name => name.startsWith('gpo-security')).forEach(name => element.classList.remove(name));
-            });
-            reference.classList.remove('gpo-security-dialog');
-            actual.parentNode.appendChild(reference);
-            const comparisons = [
-                ['.preference__modal-header', ['backgroundColor', 'borderBottom', 'height']],
-                ['.preference__modal-footer', ['height', 'padding', 'borderTop', 'gap']],
-                ['.btn-cancel', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
-                ['.btn-ok', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
-                ['.preference__tab-button', ['height', 'padding', 'border', 'backgroundColor', 'color']],
-                ['.preference__tab-button[aria-selected=false]', ['height', 'padding', 'border', 'backgroundColor', 'color']],
-                ['input[type=number]', ['padding', 'border', 'borderRadius', 'fontSize', 'height']]
-            ];
-            const mismatches = [];
-            for (const [selector, properties] of comparisons) {
-                const left = getComputedStyle(actual.querySelector(selector));
-                const right = getComputedStyle(reference.querySelector(selector));
-                for (const property of properties) if (left[property] !== right[property]) mismatches.push(selector + '.' + property + ': ' + left[property] + ' != ' + right[property]);
+test(
+    'Security dialog reuses Preferences styling, retains draft and supports accessible tabs',
+    {
+        skip:
+            !chromium || !requireJs
+                ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.'
+                : false
+    },
+    async () => {
+        const server = http.createServer((req, res) => {
+            if (req.url === '/') {
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                return res.end(html);
             }
-            reference.remove();
-            return mismatches;
+            const file = req.url === '/require.js' ? requireJs : path.join(root, req.url);
+            try {
+                res.setHeader(
+                    'Content-Type',
+                    file.endsWith('.css')
+                        ? 'text/css'
+                        : file.endsWith('.svg')
+                          ? 'image/svg+xml'
+                          : 'application/javascript'
+                );
+                res.end(fs.readFileSync(file));
+            } catch (_) {
+                res.statusCode = 404;
+                res.end('Missing');
+            }
         });
-        assert.deepEqual(mismatches, []);
-        await page.getByRole('tab', { name: 'Security Policy Setting', exact: true }).press('ArrowRight');
-        assert.equal(await page.getByRole('tab', { name: 'Explanation', exact: true }).getAttribute('aria-selected'), 'true');
-        await page.getByRole('tab', { name: 'Explanation', exact: true }).press('Home');
-        await page.keyboard.press('Escape');
-        await page.getByRole('alertdialog').waitFor();
-        assert.equal(await dialog.evaluate(element => element.inert), true);
-        await page.keyboard.press('Escape');
-        assert.equal(await page.getByLabel('Password expires after:', { exact: true }).inputValue(), '42');
-        assert.equal(await dialog.evaluate(element => element.inert), false);
-        await page.getByRole('button', { name: 'Apply', exact: true }).click();
-        await page.getByRole('alertdialog').waitFor();
-        assert.equal(await page.getByRole('alertdialog').getByRole('cell', { name: 'Minimum password age' }).count(), 1);
-        assert.equal(await dialog.evaluate(element => element.inert), true);
-        assert.equal(await page.evaluate(() => requests.length), 0);
-        if (process.env.SECURITY_SCREENSHOT_DIR) {
-            await page.screenshot({ path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dependencies-en.png'), animations: 'disabled' });
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        let browser;
+        try {
+            browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto('http://127.0.0.1:' + server.address().port);
+            await page
+                .waitForFunction(() => window.ready, null, { timeout: 10000 })
+                .catch(error => {
+                    throw new Error(error.message + '; browser errors: ' + errors.join('; '));
+                });
+            assert.equal(
+                await page.locator('[data-security-row="Policy without settings"] td').last().textContent(),
+                '—'
+            );
+            await page.locator('[data-security-row="Maximum password age"]').dblclick();
+            const dialog = page.getByRole('dialog');
+            await dialog.waitFor();
+            await page.getByLabel('Define this policy setting', { exact: true }).check();
+            await page.getByLabel('Password expires after:', { exact: true }).fill('42');
+            assert.equal(await page.locator('.gpo-security-dialog .field__element input[type=number]').count(), 1);
+            const mismatches = await page.evaluate(() => {
+                const actual = document.querySelector('.gpo-security-dialog');
+                const reference = actual.cloneNode(true);
+                reference.id = 'reference';
+                reference.querySelectorAll('*').forEach(element => {
+                    Array.from(element.classList)
+                        .filter(name => name.startsWith('gpo-security'))
+                        .forEach(name => element.classList.remove(name));
+                });
+                reference.classList.remove('gpo-security-dialog');
+                actual.parentNode.appendChild(reference);
+                const comparisons = [
+                    ['.preference__modal-header', ['backgroundColor', 'borderBottom', 'height']],
+                    ['.preference__modal-footer', ['height', 'padding', 'borderTop', 'gap']],
+                    ['.btn-cancel', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
+                    ['.btn-ok', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
+                    ['.preference__tab-button', ['height', 'padding', 'border', 'backgroundColor', 'color']],
+                    [
+                        '.preference__tab-button[aria-selected=false]',
+                        ['height', 'padding', 'border', 'backgroundColor', 'color']
+                    ],
+                    ['input[type=number]', ['padding', 'border', 'borderRadius', 'fontSize', 'height']]
+                ];
+                const mismatches = [];
+                for (const [selector, properties] of comparisons) {
+                    const left = getComputedStyle(actual.querySelector(selector));
+                    const right = getComputedStyle(reference.querySelector(selector));
+                    for (const property of properties)
+                        if (left[property] !== right[property])
+                            mismatches.push(
+                                selector + '.' + property + ': ' + left[property] + ' != ' + right[property]
+                            );
+                }
+                reference.remove();
+                return mismatches;
+            });
+            assert.deepEqual(mismatches, []);
+            await page.getByRole('tab', { name: 'Security Policy Setting', exact: true }).press('ArrowRight');
+            assert.equal(
+                await page.getByRole('tab', { name: 'Explanation', exact: true }).getAttribute('aria-selected'),
+                'true'
+            );
+            await page.getByRole('tab', { name: 'Explanation', exact: true }).press('Home');
+            await page.keyboard.press('Escape');
+            await page.getByRole('alertdialog').waitFor();
+            assert.equal(await dialog.evaluate(element => element.inert), true);
+            await page.keyboard.press('Escape');
+            assert.equal(await page.getByLabel('Password expires after:', { exact: true }).inputValue(), '42');
+            assert.equal(await dialog.evaluate(element => element.inert), false);
+            await page.getByRole('button', { name: 'Apply', exact: true }).click();
+            await page.getByRole('alertdialog').waitFor();
+            assert.equal(
+                await page.getByRole('alertdialog').getByRole('cell', { name: 'Minimum password age' }).count(),
+                1
+            );
+            assert.equal(await dialog.evaluate(element => element.inert), true);
+            assert.equal(await page.evaluate(() => requests.length), 0);
+            if (process.env.SECURITY_SCREENSHOT_DIR) {
+                await page.screenshot({
+                    path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dependencies-en.png'),
+                    animations: 'disabled'
+                });
+            }
+            await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
+            assert.equal(await page.getByLabel('Password expires after:', { exact: true }).inputValue(), '42');
+            assert.equal(await page.evaluate(() => requests.length), 0);
+            assert.equal(await dialog.evaluate(element => element.inert), false);
+            assert.equal(
+                await page
+                    .locator('.gpo-security-dialog__apply')
+                    .evaluate(element => element === document.activeElement),
+                true
+            );
+            if (process.env.SECURITY_SCREENSHOT_DIR) {
+                await page.screenshot({
+                    path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dialog-en.png'),
+                    animations: 'disabled'
+                });
+            }
+            await page.getByRole('button', { name: 'Apply', exact: true }).click();
+            await page.getByRole('alertdialog').getByRole('button', { name: 'Apply changes' }).click();
+            await dialog.waitFor({ state: 'hidden' });
+            const requests = await page.evaluate(() => window.requests);
+            assert.equal(requests.length, 1);
+            assert.equal(requests[0].policies.length, 2);
+            assert.ok(requests[0].policies.every(policy => policy.transition === 'define'));
+            const defaults = {
+                'account.password.maximum_password_age': 42,
+                'account.password.minimum_password_age': 0
+            };
+            const settings = Object.fromEntries(
+                requests[0].policies.map(policy => [
+                    policy.policy_id,
+                    policy.elements.length ? policy.elements[0].value.value : defaults[policy.policy_id]
+                ])
+            );
+            assert.deepEqual(settings, {
+                'account.password.maximum_password_age': 42,
+                'account.password.minimum_password_age': 0
+            });
+            await page.evaluate(async () => {
+                translations.setLanguage('ru');
+                response.security_catalog.policies[0].display_name = 'Максимальный срок действия пароля';
+                response.security_catalog.policies[0].controls[0].label = 'Срок действия пароля (дней):';
+                response.security_catalog.policies[1].display_name = 'Минимальный срок действия пароля';
+                await show();
+            });
+            await page.locator('[data-security-row="Максимальный срок действия пароля"]').dblclick();
+            await page.getByLabel('Определить этот параметр политики', { exact: true }).check();
+            assert.equal(await page.getByRole('button', { name: 'Применить', exact: true }).isVisible(), true);
+            if (process.env.SECURITY_SCREENSHOT_DIR) {
+                await page.screenshot({
+                    path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dialog-ru.png'),
+                    animations: 'disabled'
+                });
+            }
+            await page.getByRole('button', { name: 'Применить', exact: true }).click();
+            await page.getByRole('alertdialog').waitFor();
+            assert.equal(
+                await page
+                    .getByRole('alertdialog')
+                    .getByRole('button', { name: 'Применить изменения', exact: true })
+                    .isVisible(),
+                true
+            );
+            if (process.env.SECURITY_SCREENSHOT_DIR) {
+                await page.screenshot({
+                    path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dependencies-ru.png'),
+                    animations: 'disabled'
+                });
+            }
+            await page.getByRole('alertdialog').getByRole('button', { name: 'Отмена', exact: true }).click();
+            assert.deepEqual(errors, []);
+        } finally {
+            if (browser) await browser.close();
+            await new Promise(resolve => server.close(resolve));
         }
-        await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel' }).click();
-        assert.equal(await page.getByLabel('Password expires after:', { exact: true }).inputValue(), '42');
-        assert.equal(await page.evaluate(() => requests.length), 0);
-        assert.equal(await dialog.evaluate(element => element.inert), false);
-        assert.equal(await page.locator('.gpo-security-dialog__apply').evaluate(element => element === document.activeElement), true);
-        if (process.env.SECURITY_SCREENSHOT_DIR) {
-            await page.screenshot({ path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dialog-en.png'), animations: 'disabled' });
-        }
-        await page.getByRole('button', { name: 'Apply', exact: true }).click();
-        await page.getByRole('alertdialog').getByRole('button', { name: 'Apply changes' }).click();
-        await dialog.waitFor({ state: 'hidden' });
-        const requests = await page.evaluate(() => window.requests);
-        assert.equal(requests.length, 1);
-        assert.equal(requests[0].policies.length, 2);
-        assert.ok(requests[0].policies.every(policy => policy.transition === 'define'));
-        const defaults = { 'account.password.maximum_password_age': 42, 'account.password.minimum_password_age': 0 };
-        const settings = Object.fromEntries(requests[0].policies.map(policy => [policy.policy_id,
-            policy.elements.length ? policy.elements[0].value.value : defaults[policy.policy_id]]));
-        assert.deepEqual(settings, { 'account.password.maximum_password_age': 42, 'account.password.minimum_password_age': 0 });
-        await page.evaluate(async () => {
-            translations.setLanguage('ru');
-            response.security_catalog.policies[0].display_name = 'Максимальный срок действия пароля';
-            response.security_catalog.policies[0].controls[0].label = 'Срок действия пароля (дней):';
-            response.security_catalog.policies[1].display_name = 'Минимальный срок действия пароля';
-            await show();
-        });
-        await page.locator('[data-security-row="Максимальный срок действия пароля"]').dblclick();
-        await page.getByLabel('Определить этот параметр политики', { exact: true }).check();
-        assert.equal(await page.getByRole('button', { name: 'Применить', exact: true }).isVisible(), true);
-        if (process.env.SECURITY_SCREENSHOT_DIR) {
-            await page.screenshot({ path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dialog-ru.png'), animations: 'disabled' });
-        }
-        await page.getByRole('button', { name: 'Применить', exact: true }).click();
-        await page.getByRole('alertdialog').waitFor();
-        assert.equal(await page.getByRole('alertdialog').getByRole('button', { name: 'Применить изменения', exact: true }).isVisible(), true);
-        if (process.env.SECURITY_SCREENSHOT_DIR) {
-            await page.screenshot({ path: path.join(process.env.SECURITY_SCREENSHOT_DIR, 'security-preferences-dependencies-ru.png'), animations: 'disabled' });
-        }
-        await page.getByRole('alertdialog').getByRole('button', { name: 'Отмена', exact: true }).click();
-        assert.deepEqual(errors, []);
-    } finally {
-        if (browser) await browser.close();
-        await new Promise(resolve => server.close(resolve));
     }
-});
+);

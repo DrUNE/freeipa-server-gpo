@@ -1,10 +1,8 @@
 import * as __dep0 from '../../util/element-creator';
 import * as __dep1 from '../../locales/translations';
 
-
 var { createElement } = __dep0;
 var { t } = __dep1;
-
 
 function renderHeader(container) {
     const element = createElement('div', {

@@ -10,7 +10,9 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) { /* Browser dependencies are optional for unit-only environments. */ }
+} catch (_) {
+    /* Browser dependencies are optional for unit-only environments. */
+}
 
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head>
@@ -89,7 +91,10 @@ require(['app','components/tree-view/tree-view-list','components/tree-view/tree-
 </script></body></html>`;
 
 const browserOptions = {
-    skip: !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false
+    skip:
+        !chromium || !requireJs
+            ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.'
+            : false
 };
 
 async function withPage(run) {
@@ -100,9 +105,19 @@ async function withPage(run) {
         }
         const filename = request.url === '/require.js' ? requireJs : path.join(root, request.url);
         try {
-            response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : filename.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript');
+            response.setHeader(
+                'Content-Type',
+                filename.endsWith('.css')
+                    ? 'text/css'
+                    : filename.endsWith('.svg')
+                      ? 'image/svg+xml'
+                      : 'application/javascript'
+            );
             response.end(fs.readFileSync(filename));
-        } catch (_) { response.statusCode = 404; response.end('Missing'); }
+        } catch (_) {
+            response.statusCode = 404;
+            response.end('Missing');
+        }
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     let browser;
@@ -114,8 +129,12 @@ async function withPage(run) {
         page.on('pageerror', error => errors.push(error.message));
         await page.goto('http://127.0.0.1:' + server.address().port);
         await page.waitForFunction(() => window.ready);
-        try { await run(page); }
-        catch (error) { error.message += '; browser errors: ' + errors.join('; '); throw error; }
+        try {
+            await run(page);
+        } catch (error) {
+            error.message += '; browser errors: ' + errors.join('; ');
+            throw error;
+        }
         assert.deepEqual(errors, []);
         assert.equal(await page.evaluate(() => requests.some(request => request.method === 'write')), false);
     } finally {
@@ -132,72 +151,122 @@ async function pathMetrics(page) {
         const box = element.getBoundingClientRect();
         const workspaceBox = element.closest('.workspace').getBoundingClientRect();
         return {
-            fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight, color: style.color,
-            padding: style.padding, buttonFont: buttonStyle.font, buttonColor: buttonStyle.color,
-            inset: box.left - workspaceBox.left, width: box.width - workspaceBox.width
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            lineHeight: style.lineHeight,
+            color: style.color,
+            padding: style.padding,
+            buttonFont: buttonStyle.font,
+            buttonColor: buttonStyle.color,
+            inset: box.left - workspaceBox.left,
+            width: box.width - workspaceBox.width
         };
     });
 }
 
 for (const language of ['en', 'ru']) {
-    test('The actual app shares a quiet clickable ' + language + ' path across every catalog and includes the AT policy leaf', browserOptions, async () => {
-        await withPage(async page => {
-            await page.evaluate(language => reset(language), language);
-            let reference;
-            for (const kind of ['folder', 'preferences', 'scripts', 'security', 'audit', 'all', 'at']) {
-                await page.evaluate(kind => openView(kind), kind);
-                const pathView = page.locator('.workspace > .gpo-category-path');
-                await pathView.waitFor();
-                assert.equal(await page.locator('.workspace [data-category-path]').count(), 1, kind + ' should have one path');
-                const metrics = await pathMetrics(page);
-                if (!reference) reference = metrics;
-                else assert.deepEqual(metrics, reference, kind + ' should match the common heading');
-                assert.equal(metrics.fontWeight, '400');
-                assert.equal(await pathView.getAttribute('aria-label'), await page.evaluate(() => translations.t('navigation.path')));
-                const titles = await pathView.locator('.gpo-category-path__segment').allTextContents();
-                assert.deepEqual(titles, await page.evaluate(() => state.getPathToItem(state.selectedItem.item).map(node => node.title)));
-                assert.equal(await pathView.locator('button[aria-current=page]').count(), 1);
-                assert.equal(await page.locator('.workspace h2[data-category-path]').count(), 0);
-            }
-            const leaf = page.locator('.workspace > .gpo-category-path button[aria-current=page]');
-            assert.equal(await leaf.textContent(), await page.evaluate(() => labels().policy));
-            const modal = page.locator('.gpo-admx-dialog');
-            await modal.locator('[data-field-id=path] input').waitFor();
-            assert.equal(await modal.locator('.gpo-category-path, [data-category-path]').count(), 0);
-            await modal.locator('.btn-cancel').click();
-            await leaf.click();
-            await page.locator('.gpo-admx-dialog [data-field-id=path] input').waitFor();
-            assert.equal(await page.evaluate(() => state.selectedItem.item === nodes.policy), true);
-        });
-    });
+    test(
+        'The actual app shares a quiet clickable ' +
+            language +
+            ' path across every catalog and includes the AT policy leaf',
+        browserOptions,
+        async () => {
+            await withPage(async page => {
+                await page.evaluate(language => reset(language), language);
+                let reference;
+                for (const kind of ['folder', 'preferences', 'scripts', 'security', 'audit', 'all', 'at']) {
+                    await page.evaluate(kind => openView(kind), kind);
+                    const pathView = page.locator('.workspace > .gpo-category-path');
+                    await pathView.waitFor();
+                    assert.equal(
+                        await page.locator('.workspace [data-category-path]').count(),
+                        1,
+                        kind + ' should have one path'
+                    );
+                    const metrics = await pathMetrics(page);
+                    if (!reference) reference = metrics;
+                    else assert.deepEqual(metrics, reference, kind + ' should match the common heading');
+                    assert.equal(metrics.fontWeight, '400');
+                    assert.equal(
+                        await pathView.getAttribute('aria-label'),
+                        await page.evaluate(() => translations.t('navigation.path'))
+                    );
+                    const titles = await pathView.locator('.gpo-category-path__segment').allTextContents();
+                    assert.deepEqual(
+                        titles,
+                        await page.evaluate(() => state.getPathToItem(state.selectedItem.item).map(node => node.title))
+                    );
+                    assert.equal(await pathView.locator('button[aria-current=page]').count(), 1);
+                    assert.equal(await page.locator('.workspace h2[data-category-path]').count(), 0);
+                }
+                const leaf = page.locator('.workspace > .gpo-category-path button[aria-current=page]');
+                assert.equal(await leaf.textContent(), await page.evaluate(() => labels().policy));
+                const modal = page.locator('.gpo-admx-dialog');
+                await modal.locator('[data-field-id=path] input').waitFor();
+                assert.equal(await modal.locator('.gpo-category-path, [data-category-path]').count(), 0);
+                await modal.locator('.btn-cancel').click();
+                await leaf.click();
+                await page.locator('.gpo-admx-dialog [data-field-id=path] input').waitFor();
+                assert.equal(await page.evaluate(() => state.selectedItem.item === nodes.policy), true);
+            });
+        }
+    );
 }
 
-test('Breadcrumb navigation uses the actual draft guard and reveals ancestors after discard', browserOptions, async () => {
-    await withPage(async page => {
-        await page.evaluate(() => openView('at'));
-        const input = page.locator('.gpo-admx-dialog [data-field-id=path] input');
-        await input.fill('unsaved draft');
-        await page.evaluate(() => {
-            state.getPathToItem(nodes.policy).slice(0, -1).forEach(node => state.setFolderOpened(node, false));
+test(
+    'Breadcrumb navigation uses the actual draft guard and reveals ancestors after discard',
+    browserOptions,
+    async () => {
+        await withPage(async page => {
+            await page.evaluate(() => openView('at'));
+            const input = page.locator('.gpo-admx-dialog [data-field-id=path] input');
+            await input.fill('unsaved draft');
+            await page.evaluate(() => {
+                state
+                    .getPathToItem(nodes.policy)
+                    .slice(0, -1)
+                    .forEach(node => state.setFolderOpened(node, false));
+            });
+            // A modal owns pointer interaction, but all programmatic navigation must still respect its draft.
+            const parent = page
+                .locator('.workspace > .gpo-category-path button')
+                .filter({ hasText: 'Package Control' });
+            await parent.evaluate(button => button.click());
+            assert.equal(
+                await page.evaluate(
+                    () => state.pendingNavigation.item === nodes.packages && state.selectedItem.item === nodes.policy
+                ),
+                true
+            );
+            assert.equal(await input.inputValue(), 'unsaved draft');
+            assert.equal(await page.evaluate(() => state.currentView.hasUnsavedChanges()), true);
+            await page.locator('#stay').click();
+            assert.equal(await input.inputValue(), 'unsaved draft');
+            assert.equal(
+                await page.evaluate(() => state.pendingNavigation === null && state.selectedItem.item === nodes.policy),
+                true
+            );
+            await parent.evaluate(button => button.click());
+            await page.locator('#discard').click();
+            await page.waitForFunction(() => state.selectedItem.item === nodes.packages);
+            assert.equal(await page.locator('.gpo-admx-dialog').count(), 0);
+            assert.deepEqual(
+                await page.evaluate(() =>
+                    state
+                        .getPathToItem(nodes.packages)
+                        .slice(0, -1)
+                        .map(node => node.opened)
+                ),
+                [true, true, true, true]
+            );
+            assert.equal(await page.evaluate(() => nodes.packages.opened), false);
+            assert.equal(
+                await page.locator('.workspace > .gpo-category-path button[aria-current=page]').textContent(),
+                'Package Control'
+            );
         });
-        // A modal owns pointer interaction, but all programmatic navigation must still respect its draft.
-        const parent = page.locator('.workspace > .gpo-category-path button').filter({ hasText: 'Package Control' });
-        await parent.evaluate(button => button.click());
-        assert.equal(await page.evaluate(() => state.pendingNavigation.item === nodes.packages && state.selectedItem.item === nodes.policy), true);
-        assert.equal(await input.inputValue(), 'unsaved draft');
-        assert.equal(await page.evaluate(() => state.currentView.hasUnsavedChanges()), true);
-        await page.locator('#stay').click();
-        assert.equal(await input.inputValue(), 'unsaved draft');
-        assert.equal(await page.evaluate(() => state.pendingNavigation === null && state.selectedItem.item === nodes.policy), true);
-        await parent.evaluate(button => button.click());
-        await page.locator('#discard').click();
-        await page.waitForFunction(() => state.selectedItem.item === nodes.packages);
-        assert.equal(await page.locator('.gpo-admx-dialog').count(), 0);
-        assert.deepEqual(await page.evaluate(() => state.getPathToItem(nodes.packages).slice(0, -1).map(node => node.opened)), [true, true, true, true]);
-        assert.equal(await page.evaluate(() => nodes.packages.opened), false);
-        assert.equal(await page.locator('.workspace > .gpo-category-path button[aria-current=page]').textContent(), 'Package Control');
-    });
-});
+    }
+);
 
 test('Catalog titles remain plaintext in clickable path labels and attributes', browserOptions, async () => {
     await withPage(async page => {

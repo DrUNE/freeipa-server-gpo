@@ -1,8 +1,6 @@
 import * as __dep0 from '../../util/element-creator';
 
-
 var { createElement } = __dep0;
-
 
 /**
  * Renders the fallback template when no template is defined.

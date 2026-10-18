@@ -16,6 +16,17 @@
         }
     },
 
+    // Frontend: Prettier formats only where a config exists (frontend/.prettierrc.json), so the
+    // hand-written plugin/ui/grouppolicy/{chain,gpo}.js and the generated bundle are left alone.
+    "prettier.requireConfig": true,
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
     "files.exclude": {
         "**/__pycache__": true,
         "**/.pytest_cache": true

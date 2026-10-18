@@ -16,8 +16,9 @@ async function harness() {
             this.isConnected = false;
             this.listeners = {};
             this.attrs = { ...(options.attrs || {}) };
-            const classes = new Set((Array.isArray(options.className)
-                ? options.className : [options.className]).filter(Boolean));
+            const classes = new Set(
+                (Array.isArray(options.className) ? options.className : [options.className]).filter(Boolean)
+            );
             this.classList = {
                 add: name => classes.add(name),
                 remove: name => classes.delete(name),
@@ -37,7 +38,9 @@ async function harness() {
             }
             this.isConnected = false;
         }
-        focus() { document.activeElement = this; }
+        focus() {
+            document.activeElement = this;
+        }
         addEventListener(name, callback) {
             (this.listeners[name] ||= []).push(callback);
         }
@@ -45,21 +48,29 @@ async function harness() {
             const value = { type: name, preventDefault() {}, stopPropagation() {}, ...event };
             (this.listeners[name] || []).forEach(callback => callback(value));
         }
-        get offsetHeight() { return 20; }
+        get offsetHeight() {
+            return 20;
+        }
     }
 
     function createElement(tag, options) {
         const element = new FakeElement(tag, options);
         return {
             getElement: () => element,
-            on: (name, callback) => { element.addEventListener(name, callback); }
+            on: (name, callback) => {
+                element.addEventListener(name, callback);
+            }
         };
     }
 
-    const dialog = await loadModule('components/confirmation-dialog.js', {
-        '../util/element-creator': { createElement },
-        '../locales/translations': { t: key => key }
-    }, { document });
+    const dialog = await loadModule(
+        'components/confirmation-dialog.js',
+        {
+            '../util/element-creator': { createElement },
+            '../locales/translations': { t: key => key }
+        },
+        { document }
+    );
     const host = new FakeElement('div');
     const opener = new FakeElement('button');
     opener.isConnected = true;
@@ -72,8 +83,12 @@ test('shared contextual confirmation cancels, confirms, and restores focus', asy
     let result = null;
     const prompt = dialog.open(host, {
         message: 'Discard?',
-        onCancel: () => { result = 'cancel'; },
-        onConfirm: () => { result = 'confirm'; }
+        onCancel: () => {
+            result = 'cancel';
+        },
+        onConfirm: () => {
+            result = 'confirm';
+        }
     });
     assert.equal(prompt.root.classList.contains('active'), true);
     assert.equal(document.activeElement, prompt.root.children[0].children[2].children[0]);
@@ -83,7 +98,12 @@ test('shared contextual confirmation cancels, confirms, and restores focus', asy
     assert.equal(host.children.length, 0);
     assert.equal(document.activeElement, opener);
 
-    const next = dialog.open(host, { message: 'Discard?', onConfirm: () => { result = 'confirm'; } });
+    const next = dialog.open(host, {
+        message: 'Discard?',
+        onConfirm: () => {
+            result = 'confirm';
+        }
+    });
     next.root.children[0].children[2].children[1].fire('click');
     assert.equal(result, 'confirm');
     assert.equal(host.children.length, 0);
@@ -94,10 +114,14 @@ test('Escape cancels the shared prompt and Tab remains inside it', async () => {
     const { dialog, document, host, opener } = await harness();
     let cancelled = 0;
     const prompt = dialog.open(host, {
-        message: 'Discard?', onCancel: () => { cancelled += 1; }
+        message: 'Discard?',
+        onCancel: () => {
+            cancelled += 1;
+        }
     });
     const footer = prompt.root.children[0].children[2];
-    const no = footer.children[0], yes = footer.children[1];
+    const no = footer.children[0],
+        yes = footer.children[1];
     prompt.root.fire('keydown', { key: 'Tab', shiftKey: true });
     assert.equal(document.activeElement, yes);
     prompt.root.fire('keydown', { key: 'Tab', shiftKey: false });
@@ -113,9 +137,14 @@ test('shared confirmation accepts structured content without replacing text or c
     const table = createElement('table', { children: [createElement('tr', { text: 'Minimum password age: 0' })] });
     let confirmed = false;
     const prompt = dialog.open(host, {
-        title: 'Related settings', message: 'Apply these values:', content: table,
-        cancelLabel: 'Cancel', confirmLabel: 'Apply changes',
-        onConfirm: () => { confirmed = true; }
+        title: 'Related settings',
+        message: 'Apply these values:',
+        content: table,
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Apply changes',
+        onConfirm: () => {
+            confirmed = true;
+        }
     });
     const content = prompt.root.children[0].children[1];
     assert.equal(content.textContent, 'Apply these values:');

@@ -9,10 +9,14 @@ function hiddenFieldControl(field) {
     return {
         id: field.id,
         field: field,
-        read: function() { return dto.clone(field.value); },
-        setError: function() {},
-        setDynamicDisabled: function() { return false; },
-        focus: function() {}
+        read: function () {
+            return dto.clone(field.value);
+        },
+        setError: function () {},
+        setDynamicDisabled: function () {
+            return false;
+        },
+        focus: function () {}
     };
 }
 
@@ -36,14 +40,16 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             }
         });
         checkbox.getElement().checked = Boolean(checked);
-        checkbox.on('change', function() { optionalBooleanTouched = true; });
+        checkbox.on('change', function () {
+            optionalBooleanTouched = true;
+        });
         inputElement = checkbox.getElement();
         return createElement('span', {
             className: 'gpo-editor-boolean',
             children: [
                 checkbox,
                 createElement('label', {
-                    attrs: { 'for': controlId, 'aria-label': field.label || field.id }
+                    attrs: { for: controlId, 'aria-label': field.label || field.id }
                 })
             ]
         });
@@ -64,7 +70,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
     } else if (value.kind === 'action') {
         input = createElement('select', {
             attrs: { disabled: disabled ? 'disabled' : null },
-            children: ['create', 'replace', 'update', 'delete'].map(function(action) {
+            children: ['create', 'replace', 'update', 'delete'].map(function (action) {
                 return createElement('option', { attrs: { value: action }, text: action });
             })
         });
@@ -72,7 +78,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
     } else if (value.kind === 'filter_combine') {
         input = createElement('select', {
             attrs: { disabled: disabled ? 'disabled' : null },
-            children: ['and', 'or'].map(function(combine) {
+            children: ['and', 'or'].map(function (combine) {
                 return createElement('option', { attrs: { value: combine }, text: combine.toUpperCase() });
             })
         });
@@ -80,7 +86,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
     } else if (controlKind === 'choice') {
         input = createElement('select', {
             attrs: { disabled: disabled ? 'disabled' : null },
-            children: (Array.isArray(field.choices) ? field.choices : []).map(function(choice) {
+            children: (Array.isArray(field.choices) ? field.choices : []).map(function (choice) {
                 return createElement('option', {
                     attrs: { value: choice.key },
                     text: choice.label
@@ -91,8 +97,11 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
     } else if (value.kind === 'text_list' || textarea) {
         input = createElement('textarea', {
             attrs: { disabled: disabled ? 'disabled' : null },
-            text: Array.isArray(value.value) ? value.value.join('\n')
-                : (value.value === null || value.value === undefined ? '' : String(value.value))
+            text: Array.isArray(value.value)
+                ? value.value.join('\n')
+                : value.value === null || value.value === undefined
+                  ? ''
+                  : String(value.value)
         });
     } else if (value.kind === 'optional_text') {
         input = createElement('input', {
@@ -103,7 +112,8 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             }
         });
     } else {
-        var numeric = value.kind === 'integer' || value.kind === 'unsigned_byte' || value.kind === 'optional_unsigned_byte';
+        var numeric =
+            value.kind === 'integer' || value.kind === 'unsigned_byte' || value.kind === 'optional_unsigned_byte';
         input = createElement('input', {
             attrs: {
                 type: numeric ? 'number' : 'text',
@@ -128,8 +138,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         } else if (Array.isArray(value.value)) {
             inputElement.value = value.value.join('\n');
         } else {
-            inputElement.value = value.value === null || value.value === undefined
-                ? '' : value.value;
+            inputElement.value = value.value === null || value.value === undefined ? '' : value.value;
         }
         optionalBooleanTouched = false;
     }
@@ -141,11 +150,9 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         inputElement: inputElement,
         errorElement: errorElement,
         checkboxControlId: checkboxControlId,
-        read: function() {
-            if (disabled || dynamicDisabled
-                    || controlKind.indexOf('generated_') === 0) return dto.clone(value);
-            if (checkboxValueKind && value.value === null
-                    && !materializeOptionalDefault && !optionalBooleanTouched) {
+        read: function () {
+            if (disabled || dynamicDisabled || controlKind.indexOf('generated_') === 0) return dto.clone(value);
+            if (checkboxValueKind && value.value === null && !materializeOptionalDefault && !optionalBooleanTouched) {
                 return dto.clone(value);
             }
             if (checkboxValueKind === 'optional_boolean_u8') {
@@ -156,14 +163,14 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             }
             return dto.preferenceValueFromInput(value, inputElement.value, inputElement.checked);
         },
-        setInputError: function(message) {
+        setInputError: function (message) {
             if (inputElement && typeof inputElement.setAttribute === 'function') {
                 if (message) inputElement.setAttribute('aria-invalid', 'true');
                 else inputElement.removeAttribute('aria-invalid');
             }
             errorElement.setText(message || '');
         },
-        setDynamicDisabled: function(nextDisabled) {
+        setDynamicDisabled: function (nextDisabled) {
             if (controlKind.indexOf('generated_') === 0) return false;
             var next = Boolean(nextDisabled);
             if (next === dynamicDisabled) return false;
@@ -172,7 +179,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             if (dynamicDisabled) applyBaselineToInput();
             return true;
         },
-        focus: function() {
+        focus: function () {
             if (inputElement && typeof inputElement.focus === 'function') inputElement.focus();
         }
     };
@@ -183,14 +190,10 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
     var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
     var wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
     var wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-    var builderIsInput = builder.checkboxControlId === null
-            && builder.inputElement.tagName === 'INPUT';
-    var builderInputType = builderIsInput
-            ? String(builder.inputElement.getAttribute('type') || '').toLowerCase()
-            : '';
-    var wrapText = builderIsInput
-            && (builderInputType === 'number'
-                    || (Boolean(opts.wrapText) && builderInputType === 'text'));
+    var builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === 'INPUT';
+    var builderInputType = builderIsInput ? String(builder.inputElement.getAttribute('type') || '').toLowerCase() : '';
+    var wrapText =
+        builderIsInput && (builderInputType === 'number' || (Boolean(opts.wrapText) && builderInputType === 'text'));
     var element;
     if (wrapCheckbox) {
         element = createElement('div', {
@@ -207,12 +210,15 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                     children: [
                         createElement('label', {
                             className: 'gpo-editor-field__label',
-                            attrs: { 'for': builder.checkboxControlId },
+                            attrs: { for: builder.checkboxControlId },
                             children: [
                                 createElement('span', { text: field.label || field.id }),
-                                field.required ? createElement('span', {
-                                    className: 'gpo-editor-field__required', text: '*'
-                                }) : null
+                                field.required
+                                    ? createElement('span', {
+                                          className: 'gpo-editor-field__required',
+                                          text: '*'
+                                      })
+                                    : null
                             ]
                         })
                     ]
@@ -221,9 +227,12 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                     className: 'field__element',
                     children: [builder.input]
                 }),
-                builder.disabled ? createElement('span', {
-                    className: 'gpo-editor-field__hint', text: pt('readonly')
-                }) : null,
+                builder.disabled
+                    ? createElement('span', {
+                          className: 'gpo-editor-field__hint',
+                          text: pt('readonly')
+                      })
+                    : null,
                 builder.errorElement
             ]
         });
@@ -244,9 +253,12 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                             className: 'gpo-editor-field__label',
                             children: [
                                 createElement('span', { text: field.label || field.id }),
-                                field.required ? createElement('span', {
-                                    className: 'gpo-editor-field__required', text: '*'
-                                }) : null
+                                field.required
+                                    ? createElement('span', {
+                                          className: 'gpo-editor-field__required',
+                                          text: '*'
+                                      })
+                                    : null
                             ]
                         })
                     ]
@@ -255,9 +267,12 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                     className: 'field__element',
                     children: [builder.input, builder.errorElement]
                 }),
-                builder.disabled ? createElement('span', {
-                    className: 'gpo-editor-field__hint', text: pt('readonly')
-                }) : null
+                builder.disabled
+                    ? createElement('span', {
+                          className: 'gpo-editor-field__hint',
+                          text: pt('readonly')
+                      })
+                    : null
             ]
         });
     } else {
@@ -268,45 +283,59 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                 builder.disabled ? 'gpo-editor-field--readonly' : null
             ],
             attrs: { 'data-field-id': field.id },
-            children: wrapSelect ? [
-                createElement('div', {
-                    className: 'field__label',
-                    children: [
-                        createElement('span', {
-                            className: 'gpo-editor-field__label',
-                            children: [
-                                createElement('span', { text: field.label || field.id }),
-                                field.required ? createElement('span', {
-                                    className: 'gpo-editor-field__required', text: '*'
-                                }) : null
-                            ]
-                        })
-                    ]
-                }),
-                createElement('div', {
-                    className: 'field__element',
-                    children: [builder.input]
-                }),
-                builder.disabled ? createElement('span', {
-                    className: 'gpo-editor-field__hint', text: pt('readonly')
-                }) : null,
-                builder.errorElement
-            ] : [
-                createElement('span', {
-                    className: 'gpo-editor-field__label',
-                    children: [
-                        createElement('span', { text: field.label || field.id }),
-                        field.required ? createElement('span', {
-                            className: 'gpo-editor-field__required', text: '*'
-                        }) : null
-                    ]
-                }),
-                builder.input,
-                builder.disabled ? createElement('span', {
-                    className: 'gpo-editor-field__hint', text: pt('readonly')
-                }) : null,
-                builder.errorElement
-            ]
+            children: wrapSelect
+                ? [
+                      createElement('div', {
+                          className: 'field__label',
+                          children: [
+                              createElement('span', {
+                                  className: 'gpo-editor-field__label',
+                                  children: [
+                                      createElement('span', { text: field.label || field.id }),
+                                      field.required
+                                          ? createElement('span', {
+                                                className: 'gpo-editor-field__required',
+                                                text: '*'
+                                            })
+                                          : null
+                                  ]
+                              })
+                          ]
+                      }),
+                      createElement('div', {
+                          className: 'field__element',
+                          children: [builder.input]
+                      }),
+                      builder.disabled
+                          ? createElement('span', {
+                                className: 'gpo-editor-field__hint',
+                                text: pt('readonly')
+                            })
+                          : null,
+                      builder.errorElement
+                  ]
+                : [
+                      createElement('span', {
+                          className: 'gpo-editor-field__label',
+                          children: [
+                              createElement('span', { text: field.label || field.id }),
+                              field.required
+                                  ? createElement('span', {
+                                        className: 'gpo-editor-field__required',
+                                        text: '*'
+                                    })
+                                  : null
+                          ]
+                      }),
+                      builder.input,
+                      builder.disabled
+                          ? createElement('span', {
+                                className: 'gpo-editor-field__hint',
+                                text: pt('readonly')
+                            })
+                          : null,
+                      builder.errorElement
+                  ]
         });
     }
     var lastError = '';
@@ -316,7 +345,7 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
         builder.setInputError(message);
     }
     if (!builder.disabled) {
-        builder.inputElement.addEventListener('input', function() {
+        builder.inputElement.addEventListener('input', function () {
             if (lastError) applyError('');
         });
     }
@@ -326,10 +355,9 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
         element: element,
         read: builder.read,
         setError: applyError,
-        setDynamicDisabled: function(nextDisabled) {
+        setDynamicDisabled: function (nextDisabled) {
             if (!builder.setDynamicDisabled(nextDisabled)) return false;
-            element.getElement().classList.toggle(
-                'gpo-editor-field--readonly', Boolean(nextDisabled));
+            element.getElement().classList.toggle('gpo-editor-field--readonly', Boolean(nextDisabled));
             if (nextDisabled) {
                 lastError = '';
                 element.getElement().classList.remove('gpo-editor-field--error');
@@ -344,9 +372,10 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
 function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
     var opts = options || {};
     var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
-    var checkboxLike = builder.value.kind === 'boolean'
-        || builder.value.kind === 'optional_boolean'
-        || builder.controlKind === 'optional_boolean_u8';
+    var checkboxLike =
+        builder.value.kind === 'boolean' ||
+        builder.value.kind === 'optional_boolean' ||
+        builder.controlKind === 'optional_boolean_u8';
     var element;
     if (checkboxLike) {
         element = createElement('div', {
@@ -382,9 +411,12 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
                     className: 'field__label',
                     children: [
                         createElement('span', { text: field.label || field.id }),
-                        field.required ? createElement('span', {
-                            className: 'gpo-editor-field__required', text: '*'
-                        }) : null
+                        field.required
+                            ? createElement('span', {
+                                  className: 'gpo-editor-field__required',
+                                  text: '*'
+                              })
+                            : null
                     ]
                 }),
                 createElement('div', {
@@ -401,7 +433,7 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
         builder.setInputError(message);
     }
     if (!builder.disabled) {
-        builder.inputElement.addEventListener('input', function() {
+        builder.inputElement.addEventListener('input', function () {
             if (lastError) applyError('');
         });
     }
@@ -411,10 +443,9 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
         element: element,
         read: builder.read,
         setError: applyError,
-        setDynamicDisabled: function(nextDisabled) {
+        setDynamicDisabled: function (nextDisabled) {
             if (!builder.setDynamicDisabled(nextDisabled)) return false;
-            element.getElement().classList.toggle(
-                'field--readonly', Boolean(nextDisabled));
+            element.getElement().classList.toggle('field--readonly', Boolean(nextDisabled));
             if (nextDisabled) {
                 lastError = '';
                 element.getElement().classList.remove('gpo-editor-field--error');
@@ -427,9 +458,9 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
 }
 
 function valueKindIsSelect(builder) {
-    return builder.value.kind === 'action'
-        || builder.value.kind === 'filter_combine'
-        || builder.controlKind === 'choice';
+    return (
+        builder.value.kind === 'action' || builder.value.kind === 'filter_combine' || builder.controlKind === 'choice'
+    );
 }
 
 var nextFieldControlId = 1;
