@@ -2,8 +2,7 @@
 
 **English** | [Русский](./WEBUI-MIGRATION.ru.md)
 
-**Status:** a proposal, not a description of the current system. Replaces `INTEGRATION-PLAN.md` and `GPO-EDITOR-ANALYSIS.md`
-(they remain in git history). The tooling this needs (stages 1-4 of [FRONTEND-DX-PLAN.md](FRONTEND-DX-PLAN.md)) is already in place.
+**Status:** a proposal, not a description of the current system. The tooling it needs (the ESM build, the tests and the CI job — stages 1, 2 and 4 of [FRONTEND-DX-PLAN.md](FRONTEND-DX-PLAN.md)) is already in place.
 Facts were checked against this repository and against `freeipa-webui` on 2026-10-18.
 
 ## 1. What exists now
@@ -11,9 +10,9 @@ Facts were checked against this repository and against `freeipa-webui` on 2026-1
 | Layer | State |
 |---|---|
 | Server commands | `gpo_*`, `chain_*` (including `enable`/`disable`, `moveup_gpc`/`movedown_gpc`), `gpmaster_show`/`gpmaster_mod` (`add_chain`, `remove_chain`, `moveup_chain`, `movedown_chain`), about 30 `gpo_editor_*` commands |
-| Pages in the stock Web UI | `chain.js` (1193 lines) and `gpo.js` (395), FreeIPA jQuery facets |
-| GPUI editor | vanilla JS + AMD, about 20 thousand lines, 22 preferences layouts, a targeting editor (~1650 lines, drag-and-drop with a keyboard alternative), EN/RU locales, about 280 tests in 40 files |
-| Boundary with libadmix | Server side only. The browser sees the typed `gpo_editor_*` RPC (`util/API.js`, ~29 methods) and knows nothing about SYSVOL |
+| Pages in the stock Web UI | `chain.js` (1194 lines) and `gpo.js` (396), FreeIPA jQuery facets |
+| GPUI editor | vanilla JS + AMD, about 20 thousand lines, 22 preferences layouts, a targeting editor (about 3 thousand lines in 4 files, drag-and-drop with a keyboard alternative), EN/RU locales, about 280 tests in 40 files |
+| Boundary with libadmix | Server side only. The browser sees the typed `gpo_editor_*` RPC (`util/API.js`, ~28 methods) and knows nothing about SYSVOL |
 
 Hierarchy: GPMaster → Chain (ordered) → GPO. On a conflict the policy with the higher priority wins (higher in the list; `moveup_gpc` and `moveup_chain` raise the priority).
 
@@ -37,7 +36,7 @@ add and delete modals 495, `rpcHBACServices.ts` 177, a data hook 117, utilities 
 (features and steps) and edits to shared files (`rpc.ts`, `globalDataTypes.ts`, `utils.tsx`, `NavRoutes.ts`, `AppRoutes.tsx`).
 That is ≈2 thousand lines per entity without nested relations. For host groups the Cypress tests alone take ≈1000 lines.
 
-**What the original plan lacked:**
+**What the webui code adds to the picture:**
 
 | Finding | Consequence |
 |---|---|
@@ -50,7 +49,7 @@ That is ≈2 thousand lines per entity without nested relations. For host groups
 
 ## 4. Size and estimate
 
-Working days, one developer. The estimate is calibrated on the benchmark above; the previous one (34-39 days) understated chains and tests.
+Working days, one developer. The estimate is calibrated on the benchmark above.
 
 | # | Block | Days |
 |---|---|---|
@@ -76,8 +75,8 @@ Assumptions:
 
 1. **Do not rewrite the GPUI editor in the MVP.** It works, is covered by tests and is isolated by the RPC contract. Decide on a rewrite
    after a pilot (one screen, for example the script list) and measurements: code size, build time, passing of the
-   ported tests, keyboard accessibility. The previously claimed "50-70% less code" is not backed by anything.
-2. **Do not rewrite the targeting editor** and do not extract it into a library until there is a second consumer. The module is small,
+   ported tests, keyboard accessibility. Measure the code size rather than assume a reduction.
+2. **Do not rewrite the targeting editor** and do not extract it into a library until there is a second consumer. The module is of limited size (about 3 thousand lines),
    self-contained, and its drag-and-drop is duplicated by a keyboard scenario that is easy to lose.
 3. **Do not touch the backend.** The needed RPC commands already exist; the contract should be pinned with shared JSON response examples
    (stage 3 of the DX plan) so that pytest and the frontend tests check one format.
@@ -109,5 +108,4 @@ Production: unit-test coverage no lower than the agreed threshold, e2e for the k
 3. A prototype of connecting the editor (the `js/app.js` bundle is already built).
 
 Links: [FreeIPA API](https://freeipa.readthedocs.io/), [PatternFly React](https://www.patternfly.org/components),
-[RTK Query](https://redux-toolkit.js.org/rtk-query/). The `gpo-integration-guide.md` and
-`gpo-editor-patternfly.md` mentioned earlier do not exist in the repository.
+[RTK Query](https://redux-toolkit.js.org/rtk-query/).

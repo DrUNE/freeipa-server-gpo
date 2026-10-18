@@ -1,5 +1,7 @@
 # freeipa-server-gpo Architecture
 
+**English** | [Русский](./ARCHITECTURE.ru.md)
+
 ## 1. Overview
 
 **freeipa-server-gpo** is a package that adds Group Policy Object
@@ -121,7 +123,7 @@ JavaScript SPA in `/usr/share/ipa/ui/js/plugins/chain/`. Loaded
 as a FreeIPA Web UI plugin.
 
 - `app.js` — main module, routing, tree navigation
-- `API.js` — JSON-RPC client (~29 methods to gpo_editor_*)
+- `API.js` — JSON-RPC client (~28 methods to gpo_editor_*)
 - `preferences-view-template.js` — preferences editor
 - `admx-template.js` — ADMX form rendering
 - `tree-view-list.js` / `tree-view-list-data.js` — navigation tree

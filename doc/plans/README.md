@@ -14,17 +14,17 @@ The `plugin/ui/grouppolicy/` directory is installed into `/usr/share/ipa/ui/js/p
 
 | Layer | Files | Technology |
 |---|---|---|
-| Pages in the FreeIPA Web UI | `chain.js` (1193 lines), `gpo.js` (395) | AMD, jQuery facets `IPA.facet`, `reg`, `phases`; depend on `freeipa/*` modules |
+| Pages in the FreeIPA Web UI | `chain.js` (1194 lines), `gpo.js` (396) | AMD, jQuery facets `IPA.facet`, `reg`, `phases`; depend on `freeipa/*` modules |
 | GPUI editor | sources in `frontend/src/` (about 20 thousand lines), built into `js/app.js`, `css/` (about 2.4 thousand lines) | Vanilla JS, ES modules, one UMD/AMD bundle (Vite), a home-grown `ElementCreator`, EN/RU locales |
 
 The editor is opened from `gpo.js` in a modal window and is split into header, tree-view, workspace, footer and templates:
 ADMX, Preferences (22 layouts, targeting editor), Scripts, Security, Advanced Audit, All Policies.
-It talks to the server only through the typed JSON-RPC `gpo_editor_*` calls in `util/API.js` (~29 methods);
+It talks to the server only through the typed JSON-RPC `gpo_editor_*` calls in `util/API.js` (~28 methods);
 `libadmix` runs on the server, and SYSVOL paths are never passed to the browser.
 
 **Conclusions:**
 - The structure is acceptable: components are spread over files, and some templates (`security/`, `all-policies/`) are already split into model, dialog and view.
-- Weak spots: large files (`preferences-view-template.js` 2111 lines, `script-template.js` 1449, `chain.js` 1193, `main.css` 2430);
+- Weak spots: large files (`preferences-view-template.js` 1501 lines, `script-template.js` 2113, `chain.js` 1194, `main.css` 2430; Prettier made lines wrap, which is why the sizes differ from the pre-formatting ones);
   imperative rendering with manual race protection (`renderRequestId`, `currentViewCleanup`); state kept in closures.
 - The boundary with the backend is clean, but the response format is not described by any schema: it was inferred by hand (`editor-dto.js`).
 - The editor sources are now ES modules in `frontend/src/`; `plugin/ui/grouppolicy/js/` holds one built bundle, `app.js` (committed).

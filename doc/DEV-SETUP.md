@@ -3,7 +3,7 @@
 **English** | [Русский](./DEV-SETUP.ru.md)
 
 This document describes the state of the project at the point where the branch started, what changed in it, why, and how to work with the project now — as a backend or a frontend developer, in VS Code or in vim.
-State as of 2026-10-18. The branch point is commit `dfc4816` (merge of PR #17 into `master`, 2026-10-09); the branch has 15 commits (all by Andrey Litvinov, 15–18 October) plus changes in the git index that are not yet committed (section 8).
+State as of 2026-10-18. The branch point is commit `dfc4816` (merge of PR #17 into `master`, 2026-10-09); the branch has 17 commits (all by Andrey Litvinov, 15–18 October) plus a few small changes that are not yet committed (section 8).
 
 ## 1. Summary
 
@@ -41,6 +41,9 @@ The main change is not the frontend tools themselves but that the project now ha
 | 10-18 | `423a18a` | all JS tests moved into `frontend/tests/`, split into unit / integration / e2e |
 | 10-18 | `e3f626f` | tests moved to Vitest, unit tests onto real `import`s, coverage |
 | 10-18 | `647eb28` | all tests pass in the dev container (Chromium, `admix` 0.3.x) |
+| 10-18 | `ba9f2e0` | the first part of splitting the large files (functions without closures extracted) |
+| 10-18 | `4124b62` | Prettier: `frontend/` reformatted, the installer manifest `UI_PLUGIN_FILES` fixed, and accompanying edits |
+| 10-18 | `5b117e1` | documentation update |
 
 The analysis documents (`ARCHITECTURE.md`, `INTEGRATION-PLAN.md`, `GPO-EDITOR-ANALYSIS.md`) contained errors (file sizes in bytes instead of lines, an invented link with `admix`, a wrong `admix` version in the README and man pages, inaccurate estimates). They were fixed, the root `ARCHITECTURE.md` was removed as a duplicate of `doc/ARCHITECTURE*.md`, and the two plans were merged into `doc/plans/WEBUI-MIGRATION.md`.
 
@@ -174,12 +177,12 @@ All files in `frontend/` are ES modules (`import`/`export`); CommonJS and `.cjs`
 
 **A regression that was found and fixed.** The `ipa-gpo-install` installer checks that every UI file is present against the `UI_PLUGIN_FILES` list in `ipa_gpo_install/actions.py`; it still held 69 paths of the former `js/…` modules, which no longer exist after the move to one bundle. The installer would have reported missing UI files, and the test `test_ui_plugin_manifest_matches_all_runtime_source_assets` would have failed in the `%check` of the RPM build. This went unnoticed because the Python tests did not run on the host (no `ipalib`); in the dev container they exposed the problem at once. The manifest is fixed (`js/app.js` instead of 69 paths), the icon test now requires `js/app.js`; all 863 Python tests pass in the container.
 
-**Not committed** (sitting in the git index): the manifest fix, the Prettier formatting (137 files), the first part of splitting the large files, the documents and their bilingual versions. The formatting is best put in a separate commit and its hash added to `.git-blame-ignore-revs`.
+**Commit state.** The Prettier formatting and the manifest fix went into commit `4124b62` together with the configuration and document edits; its hash is listed in `.git-blame-ignore-revs` (enable once with `git config blame.ignoreRevsFile .git-blame-ignore-revs`), so `git blame` with that setting skips it. Not yet committed: small documentation edits (language switches, refreshed numbers).
 
 **Limitations:**
 
 - ESLint reports 73 warnings (mostly unused variables in tests); typing is non-strict (`strict: false`), dynamic members are described by open types in `types/globals.d.ts`.
-- The large functions `renderPreferencesTemplate` (about 1220 lines) and `renderScriptEventEditor` (about 1000) are not split — a separate refactoring that will probably lose its point after a move to freeipa-webui (`doc/plans/WEBUI-MIGRATION.md`).
+- The large functions `renderPreferencesTemplate` (about 1360 lines) and `renderScriptEventEditor` (about 1570, after Prettier formatting) are not split — a separate refactoring that will probably lose its point after a move to freeipa-webui (`doc/plans/WEBUI-MIGRATION.md`).
 - `chain.js` and `gpo.js` have no ES sources and are outside the stand, and are checked only on a live server; `chain.js` and `gpo.js` are not formatted by Prettier.
 - The `frontend` CI job has never been run on the Forgejo server: its steps were run locally in the same image. The image installs packages and a browser from the network every time — an open problem described in `doc/plans/FRONTEND-DX-PLAN.md`.
 - One test (`integration/targeting-editor`, the live descriptors check) is skipped on a plain machine: it needs `libadmix` in the host's Python; it runs in the container and in CI.
@@ -187,7 +190,23 @@ All files in `frontend/` are ES modules (`import`/`export`); CommonJS and `.cjs`
 
 ## 9. Links
 
-- `frontend/README.md` — commands, tests, CI; `frontend/dev/README.md` — the stand without FreeIPA.
-- `.devcontainer/` — `devcontainer.json`, `Containerfile`, `host-setup.sh`, `scripts/` (`setup-ipa.sh`, `dev-mounts.sh`, `ipa-dev-reload`).
-- `doc/plans/README.md` — frontend architecture; `doc/plans/FRONTEND-DX-PLAN.md` — the improvement plan and open problems; `doc/plans/WEBUI-MIGRATION.md` — the migration to freeipa-webui.
-- `doc/CI.md`, `doc/ARCHITECTURE.md` — the CI pipeline and the server architecture (Russian versions: `doc/CI.ru.md`, `doc/ARCHITECTURE.ru.md`).
+Documentation:
+
+- [README.md](../README.md) — project overview, installation, commands (the Russian version: [README.ru.md](../README.ru.md)).
+- [doc/README.md](./README.md) — the index of all documents.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — the server architecture; [CI.md](./CI.md) — the CI pipeline.
+- [frontend/README.md](../frontend/README.md) — frontend commands, tests, CI; [frontend/dev/README.md](../frontend/dev/README.md) — the stand without FreeIPA.
+- [plans/README.md](./plans/README.md) — frontend architecture and current workflow; [plans/FRONTEND-DX-PLAN.md](./plans/FRONTEND-DX-PLAN.md) — the improvement plan and open problems; [plans/WEBUI-MIGRATION.md](./plans/WEBUI-MIGRATION.md) — the migration to freeipa-webui.
+
+Dev container files (`.devcontainer/`):
+
+- [devcontainer.json](../.devcontainer/devcontainer.json) — container parameters, VS Code extensions, mounts.
+- [Containerfile](../.devcontainer/Containerfile) — the image (FreeIPA, Node, Chromium, fonts).
+- [host-setup.sh](../.devcontainer/host-setup.sh) — one-time host preparation (needs sudo).
+- [scripts/setup-ipa.sh](../.devcontainer/scripts/setup-ipa.sh) — installs FreeIPA on the first start and brings the container to working order.
+- [scripts/dev-mounts.sh](../.devcontainer/scripts/dev-mounts.sh) — mounts the working copy over the installed plugins and disables the UI cache.
+- [scripts/ipa-dev-reload](../.devcontainer/scripts/ipa-dev-reload) — reloads the Python plugins.
+- [frontend/scripts/ipa-up.sh](../frontend/scripts/ipa-up.sh) and [frontend/scripts/ipa-native.sh](../frontend/scripts/ipa-native.sh) — start the container and run the tests inside it.
+- [.vscode/settings.json](../.vscode/settings.json) and [.vscode/extensions.json](../.vscode/extensions.json) — editor settings and recommended extensions.
+
+The Russian version of this document: [DEV-SETUP.ru.md](./DEV-SETUP.ru.md).

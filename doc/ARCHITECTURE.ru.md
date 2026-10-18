@@ -1,5 +1,7 @@
 # Архитектура freeipa-server-gpo
 
+[English](./ARCHITECTURE.md) | **Русский**
+
 ## 1. Обзор
 
 **freeipa-server-gpo** — пакет, добавляющий управление групповыми
@@ -120,7 +122,7 @@ JavaScript SPA в `/usr/share/ipa/ui/js/plugins/chain/`. Загружается
 как плагин FreeIPA Web UI.
 
 - `app.js` — главный модуль, роутинг, навигация по дереву
-- `API.js` — JSON-RPC клиент (~29 методов к gpo_editor_*)
+- `API.js` — JSON-RPC клиент (~28 методов к gpo_editor_*)
 - `preferences-view-template.js` — редактор preferences
 - `admx-template.js` — рендеринг ADMX-форм
 - `tree-view-list.js` / `tree-view-list-data.js` — дерево навигации

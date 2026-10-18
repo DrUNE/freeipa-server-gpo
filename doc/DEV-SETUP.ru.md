@@ -3,7 +3,7 @@
 [English](./DEV-SETUP.md) | **Русский**
 
 Документ описывает, в каком состоянии был проект в точке ответвления ветки, что в ней изменилось, почему и как теперь работать с проектом — и бэкендеру, и фронтендеру, в VS Code или в vim.
-Состояние на 2026-10-18. Точка ответвления — коммит `dfc4816` (merge PR #17 в `master`, 2026-10-09); в ветке 15 коммитов (все — Andrey Litvinov, 15–18 октября) плюс правки в индексе git, не вошедшие в коммит (раздел 8).
+Состояние на 2026-10-18. Точка ответвления — коммит `dfc4816` (merge PR #17 в `master`, 2026-10-09); в ветке 17 коммитов (все — Andrey Litvinov, 15–18 октября) плюс небольшие правки, ещё не вошедшие в коммит (раздел 8).
 
 ## 1. Кратко
 
@@ -41,6 +41,9 @@
 | 10-18 | `423a18a` | все JS-тесты перенесены в `frontend/tests/`, разбиты на unit / integration / e2e |
 | 10-18 | `e3f626f` | тесты переведены на Vitest, юнит-тесты на настоящие `import`, покрытие |
 | 10-18 | `647eb28` | в dev-контейнере проходят все тесты (Chromium, `admix` 0.3.x) |
+| 10-18 | `ba9f2e0` | первая часть разбиения больших файлов (вынесены функции без замыканий) |
+| 10-18 | `4124b62` | Prettier: переформатирование `frontend/`, исправление манифеста установщика `UI_PLUGIN_FILES` и сопутствующие правки |
+| 10-18 | `5b117e1` | обновление документации |
 
 Документы анализа (`ARCHITECTURE.md`, `INTEGRATION-PLAN.md`, `GPO-EDITOR-ANALYSIS.md`) содержали ошибки (размеры файлов в байтах вместо строк, выдуманная связь с `admix`, неверная версия `admix` в README и man-страницах, неточные оценки). Они исправлены, корневой `ARCHITECTURE.md` удалён как дубль `doc/ARCHITECTURE*.md`, два плана объединены в `doc/plans/WEBUI-MIGRATION.ru.md`.
 
@@ -174,12 +177,12 @@ plugin/ui/grouppolicy/
 
 **Найденная и исправленная регрессия.** Установщик `ipa-gpo-install` проверяет наличие каждого файла UI по списку `UI_PLUGIN_FILES` в `ipa_gpo_install/actions.py`; в нём остались 69 путей прежних модулей `js/…`, которых после перехода на один бандл нет. Установщик сообщал бы об отсутствующих файлах UI, а тест `test_ui_plugin_manifest_matches_all_runtime_source_assets` падал бы в `%check` сборки RPM. Это не замечалось, потому что Python-тесты не запускались на хосте (нет `ipalib`); в dev-контейнере они сразу выявили проблему. Манифест исправлен (вместо 69 путей `js/app.js`), тест иконок теперь требует `js/app.js`; в контейнере проходят все 863 Python-теста.
 
-**Не закоммичено** (лежит в индексе git): исправление манифеста, форматирование Prettier (137 файлов), первая часть разбиения больших файлов, документы и их двуязычные версии. Форматирование лучше выделить в отдельный коммит и занести его хэш в `.git-blame-ignore-revs`.
+**Состояние коммитов.** Форматирование Prettier и исправление манифеста вошли в коммит `4124b62` вместе с конфигурацией и правками документов; его хэш занесён в `.git-blame-ignore-revs` (включить один раз: `git config blame.ignoreRevsFile .git-blame-ignore-revs`), поэтому `git blame` с этой настройкой его пропускает. Не закоммичены только небольшие правки документации (переключатели языка, обновлённые цифры).
 
 **Ограничения:**
 
 - ESLint даёт 73 предупреждения (в основном неиспользуемые переменные в тестах); типизация нестрогая (`strict: false`), динамические члены описаны открытыми типами в `types/globals.d.ts`.
-- Большие функции `renderPreferencesTemplate` (около 1220 строк) и `renderScriptEventEditor` (около 1000) не разбиты — отдельный рефакторинг, который при переходе на freeipa-webui, вероятно, потеряет смысл (`doc/plans/WEBUI-MIGRATION.ru.md`).
+- Большие функции `renderPreferencesTemplate` (около 1360 строк) и `renderScriptEventEditor` (около 1570, после форматирования Prettier) не разбиты — отдельный рефакторинг, который при переходе на freeipa-webui, вероятно, потеряет смысл (`doc/plans/WEBUI-MIGRATION.ru.md`).
 - `chain.js` и `gpo.js` без ES-исходников и вне стенда, проверяются только на живом сервере; `chain.js`, `gpo.js` не форматируются Prettier.
 - CI-задачу `frontend` ни разу не запускали на сервере Forgejo: шаги выполнялись локально в том же образе. Образ каждый раз ставит пакеты и браузер из сети — открытая проблема в `doc/plans/FRONTEND-DX-PLAN.ru.md`.
 - Один тест (`integration/targeting-editor`, проверка живых дескрипторов) на обычной машине пропускается: нужен `libadmix` в Python хоста; в контейнере и CI он выполняется.
@@ -187,7 +190,23 @@ plugin/ui/grouppolicy/
 
 ## 9. Ссылки
 
-- `frontend/README.ru.md` — команды, тесты, CI; `frontend/dev/README.ru.md` — стенд без FreeIPA.
-- `.devcontainer/` — `devcontainer.json`, `Containerfile`, `host-setup.sh`, `scripts/` (`setup-ipa.sh`, `dev-mounts.sh`, `ipa-dev-reload`).
-- `doc/plans/README.ru.md` — архитектура фронтенда; `doc/plans/FRONTEND-DX-PLAN.ru.md` — план улучшений и открытые проблемы; `doc/plans/WEBUI-MIGRATION.ru.md` — миграция в freeipa-webui.
-- `doc/CI.ru.md`, `doc/ARCHITECTURE.ru.md` — CI-конвейер и серверная архитектура (английские версии: `doc/CI.ru.md`, `doc/ARCHITECTURE.md`).
+Документация:
+
+- [README.ru.md](../README.ru.md) — обзор проекта, установка, команды (английская версия: [README.md](../README.md)).
+- [doc/README.ru.md](./README.ru.md) — оглавление всех документов.
+- [ARCHITECTURE.ru.md](./ARCHITECTURE.ru.md) — архитектура серверной части; [CI.ru.md](./CI.ru.md) — конвейер CI.
+- [frontend/README.ru.md](../frontend/README.ru.md) — команды фронтенда, тесты, CI; [frontend/dev/README.ru.md](../frontend/dev/README.ru.md) — стенд без FreeIPA.
+- [plans/README.ru.md](./plans/README.ru.md) — архитектура фронтенда и текущая разработка; [plans/FRONTEND-DX-PLAN.ru.md](./plans/FRONTEND-DX-PLAN.ru.md) — план улучшений и открытые проблемы; [plans/WEBUI-MIGRATION.ru.md](./plans/WEBUI-MIGRATION.ru.md) — миграция в freeipa-webui.
+
+Файлы dev-контейнера (`.devcontainer/`):
+
+- [devcontainer.json](../.devcontainer/devcontainer.json) — параметры контейнера, расширения VS Code, монтирования.
+- [Containerfile](../.devcontainer/Containerfile) — образ (FreeIPA, Node, Chromium, шрифты).
+- [host-setup.sh](../.devcontainer/host-setup.sh) — разовая подготовка хоста (нужен sudo).
+- [scripts/setup-ipa.sh](../.devcontainer/scripts/setup-ipa.sh) — ставит FreeIPA при первом запуске и приводит контейнер в рабочее состояние.
+- [scripts/dev-mounts.sh](../.devcontainer/scripts/dev-mounts.sh) — монтирует рабочую копию поверх установленных плагинов и отключает кэш UI.
+- [scripts/ipa-dev-reload](../.devcontainer/scripts/ipa-dev-reload) — перезагружает Python-плагины.
+- [frontend/scripts/ipa-up.sh](../frontend/scripts/ipa-up.sh) и [frontend/scripts/ipa-native.sh](../frontend/scripts/ipa-native.sh) — запускают контейнер и тесты внутри него.
+- [.vscode/settings.json](../.vscode/settings.json) и [.vscode/extensions.json](../.vscode/extensions.json) — настройки редактора и рекомендуемые расширения.
+
+Английская версия этого документа: [DEV-SETUP.md](./DEV-SETUP.md).

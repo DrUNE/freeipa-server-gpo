@@ -14,17 +14,17 @@
 
 | Слой | Файлы | Технологии |
 |---|---|---|
-| Страницы в Web UI FreeIPA | `chain.js` (1193 строки), `gpo.js` (395) | AMD, jQuery-фасеты `IPA.facet`, `reg`, `phases`; зависят от модулей `freeipa/*` |
+| Страницы в Web UI FreeIPA | `chain.js` (1194 строки), `gpo.js` (396) | AMD, jQuery-фасеты `IPA.facet`, `reg`, `phases`; зависят от модулей `freeipa/*` |
 | Редактор GPUI | исходники `frontend/src/` (около 20 тыс. строк), сборка `js/app.js`, `css/` (около 2,4 тыс. строк) | Vanilla JS, ES-модули, один UMD/AMD-бандл (Vite), самописный `ElementCreator`, EN/RU-локали |
 
 Редактор открывается из `gpo.js` в модальном окне и разбит на header, tree-view, workspace, footer и шаблоны:
 ADMX, Preferences (22 layout'а, targeting editor), Scripts, Security, Advanced Audit, All Policies.
-Он общается с сервером только типизированным JSON-RPC `gpo_editor_*` через `util/API.js` (~29 методов);
+Он общается с сервером только типизированным JSON-RPC `gpo_editor_*` через `util/API.js` (~28 методов);
 `libadmix` работает на сервере, пути SYSVOL браузеру не передаются.
 
 **Выводы:**
 - Структура приемлема: компоненты разнесены по файлам, а часть шаблонов (`security/`, `all-policies/`) уже разделена на model, dialog и view.
-- Слабые места: крупные файлы (`preferences-view-template.js` 2111 строк, `script-template.js` 1449, `chain.js` 1193, `main.css` 2430);
+- Слабые места: крупные файлы (`preferences-view-template.js` 1501 строка, `script-template.js` 2113, `chain.js` 1194, `main.css` 2430; Prettier переносит длинные строки, поэтому размеры отличаются от прежних);
   императивный рендер с ручной защитой от гонок (`renderRequestId`, `currentViewCleanup`); состояние в замыканиях.
 - Граница с бэкендом чистая, но формат ответов нигде не описан схемой: он выведен вручную (`editor-dto.js`).
 - Исходники редактора теперь ES-модули в `frontend/src/`; в `plugin/ui/grouppolicy/js/` лежит один собранный бандл `app.js` (коммитится).
