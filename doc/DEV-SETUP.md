@@ -3,7 +3,7 @@
 **English** | [Русский](./DEV-SETUP.ru.md)
 
 This document describes the state of the project at the point where the branch started, what changed in it, why, and how to work with the project now — as a backend or a frontend developer, in VS Code or in vim.
-State as of 2026-10-18. The branch point is commit `dfc4816` (merge of PR #17 into `master`, 2026-10-09); the branch has 17 commits (all by Andrey Litvinov, 15–18 October) plus a few small changes that are not yet committed (section 8).
+State as of 2026-10-18. The branch point is commit `dfc4816` (merge of PR #17 into `master`, 2026-10-09); the branch has 18 commits (all by Andrey Litvinov, 15–19 October).
 
 ## 1. Summary
 
@@ -177,7 +177,7 @@ All files in `frontend/` are ES modules (`import`/`export`); CommonJS and `.cjs`
 
 **A regression that was found and fixed.** The `ipa-gpo-install` installer checks that every UI file is present against the `UI_PLUGIN_FILES` list in `ipa_gpo_install/actions.py`; it still held 69 paths of the former `js/…` modules, which no longer exist after the move to one bundle. The installer would have reported missing UI files, and the test `test_ui_plugin_manifest_matches_all_runtime_source_assets` would have failed in the `%check` of the RPM build. This went unnoticed because the Python tests did not run on the host (no `ipalib`); in the dev container they exposed the problem at once. The manifest is fixed (`js/app.js` instead of 69 paths), the icon test now requires `js/app.js`; all 863 Python tests pass in the container.
 
-**Commit state.** The Prettier formatting and the manifest fix went into commit `4124b62` together with the configuration and document edits; its hash is listed in `.git-blame-ignore-revs` (enable once with `git config blame.ignoreRevsFile .git-blame-ignore-revs`), so `git blame` with that setting skips it. Not yet committed: small documentation edits (language switches, refreshed numbers).
+**Blame.** The Prettier formatting went into commit `4124b62`; its hash is listed in `.git-blame-ignore-revs` (enable once with `git config blame.ignoreRevsFile .git-blame-ignore-revs`), so `git blame` with that setting skips it.
 
 **Limitations:**
 
