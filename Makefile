@@ -9,7 +9,7 @@ PYTHON ?= python3
 COVERAGE ?= coverage
 COVERAGE_THRESHOLD ?= 93.90
 
-.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration
+.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui test-ui-ipa ui-dev ui-dev-install ui-lint ui-format ui-format-check
 
 all: build
 
@@ -27,6 +27,21 @@ test-coverage:
 test-integration:
 	$(PYTHON) -m pytest tests/integration
 
+UI_DEV_DIR = frontend
+NPM ?= npm
+
+test-ui:
+	$(NPM) --prefix $(UI_DEV_DIR) test
+
+test-ui-ipa:
+	$(NPM) --prefix $(UI_DEV_DIR) run test:ipa
+
+ui-dev-install:
+	$(NPM) --prefix $(UI_DEV_DIR) install
+
+ui-dev:
+	$(NPM) --prefix $(UI_DEV_DIR) run dev
+
 build: compile-po
 	@echo "Building $(PACKAGE_NAME) $(VERSION)..."
 
@@ -37,6 +52,15 @@ check-po:
 	find locale -name "*.po" -exec msgfmt --check -o /dev/null {} \;
 
 install: build install-ui
+
+ui-build-check:
+	cd frontend && npm run build:check
+
+ui-build:
+	@echo "Building frontend..."
+	cd frontend && npm run build
+	@echo "Frontend build complete."
+
 	@echo "Installing $(PACKAGE_NAME)..."
 
 	# Main executable
@@ -91,3 +115,12 @@ install-ui:
 clean:
 	find . -name "*.mo" -delete
 	find . -name "*.pyc" -delete
+
+ui-lint:
+	$(NPM) --prefix $(UI_DEV_DIR) run lint
+
+ui-format:
+	$(NPM) --prefix $(UI_DEV_DIR) run format
+
+ui-format-check:
+	$(NPM) --prefix $(UI_DEV_DIR) run format:check

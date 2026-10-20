@@ -1,5 +1,7 @@
 # freeipa-server-gpo Architecture
 
+**English** | [Русский](./ARCHITECTURE.ru.md)
+
 ## 1. Overview
 
 **freeipa-server-gpo** is a package that adds Group Policy Object
@@ -72,21 +74,21 @@ Three modules in
 `/usr/lib64/python3/site-packages/ipaserver/plugins/`.
 Run inside the Apache/WSGI process as user `ipaapi`.
 
-**gpo.py** (~2900 lines) — GPO CRUD + policy editor:
+**gpo.py** (~3900 lines) — GPO CRUD + policy editor:
 - `gpo_add` / `gpo_del` / `gpo_show` / `gpo_find` / `gpo_mod`
-- `gpo_editor_*` (~20 commands) — manage ADMX policies,
+- `gpo_editor_*` (~30 commands) — manage ADMX policies,
   preferences, scripts via libadmix
 - `_call_dbus_method()` — bridge to oddjob for SYSVOL operations
 - `_load_admix()` — load the libadmix Rust binding
 
-**chain.py** (~1000 lines) — policy chains:
+**chain.py** (~1200 lines) — policy chains:
 - `chain_add` / `chain_del` / `chain_show` / `chain_find`
 - `chain_enable` / `chain_disable` — manage active state
 - `chain_add_gpo` / `chain_remove_gpo` — link GPOs to chain
 - `chain_resolve_for_user` / `chain_resolve_for_host` — determine
   applicable policies for a client (called by gpupdate)
 
-**gpmaster.py** (~500 lines) — configuration singleton:
+**gpmaster.py** (~600 lines) — configuration singleton:
 - `gpmaster_show` — list of active chains (ipaGpoChainList)
 - `gpmaster_mod` — add/remove/move chains
 - `gpmaster_show_pdc` — PDC emulator
@@ -121,7 +123,7 @@ JavaScript SPA in `/usr/share/ipa/ui/js/plugins/chain/`. Loaded
 as a FreeIPA Web UI plugin.
 
 - `app.js` — main module, routing, tree navigation
-- `API.js` — JSON-RPC client (~20 methods to gpo_editor_*)
+- `API.js` — JSON-RPC client (~28 methods to gpo_editor_*)
 - `preferences-view-template.js` — preferences editor
 - `admx-template.js` — ADMX form rendering
 - `tree-view-list.js` / `tree-view-list-data.js` — navigation tree

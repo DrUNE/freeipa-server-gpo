@@ -1,0 +1,38 @@
+{
+    // The dev container publishes the FreeIPA Web UI on
+    // https://server.ipa.test/ itself. VS Code would otherwise forward every
+    // port FreeIPA opens (88, 389, 636, ...) to random localhost ports that
+    // are not usable from a browser.
+    "remote.autoForwardPorts": false,
+
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": ["tests", "--ignore=tests/integration"],
+
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+
+    // Frontend: Prettier formats only where a config exists (frontend/.prettierrc.json), so the
+    // hand-written plugin/ui/grouppolicy/{chain,gpo}.js and the generated bundle are left alone.
+    "prettier.requireConfig": true,
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.pytest_cache": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "frontend/package-lock.json": true
+    }
+}

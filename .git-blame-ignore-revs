@@ -1,0 +1,6 @@
+# Revisions that only reformat code. Enable once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub and Forgejo also read this file by default.
+
+# add prettier: reformatted frontend/ (src, tests, dev, scripts); the same commit also holds the Prettier config and documentation edits
+4124b625365cc2a09acb76fc0d793e02b1034522

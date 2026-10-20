@@ -1,0 +1,18 @@
+{
+    "recommendations": [
+        // Opens the project in the FreeIPA dev container (.devcontainer/).
+        "ms-vscode-remote.remote-containers",
+        // Python: plugins, installer and pytest suite; ruff per ruff.toml.
+        "ms-python.python",
+        "charliermarsh.ruff",
+        // Shell: dev container scripts, bin/, oddjob handlers, completions.
+        "timonwong.shellcheck",
+        // Frontend (frontend/): ESLint and Prettier, configured in frontend/.
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        // Forgejo CI workflows.
+        "redhat.vscode-yaml",
+        // Translations in locale/*.po.
+        "mrorz.language-gettext"
+    ]
+}

@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+.test-root/
+package-lock.json
+test-results.json
+*.html
+*.md
