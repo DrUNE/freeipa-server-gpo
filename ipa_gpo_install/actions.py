@@ -92,6 +92,7 @@ UI_PLUGIN_FILES = (
     'img/svg/ico/system.svg',
     'img/svg/ico/terminal.svg',
     'img/svg/ico/users.svg',
+    'js/app.css',
     'js/app.js',
 )
 

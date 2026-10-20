@@ -18,12 +18,64 @@
 | `make ui-dev` | Стенд Vite на http://127.0.0.1:8765/ipa/ui/ (`?gpo=Имя&lang=ru`), FreeIPA не нужен |
 | `make ui-build` | Пересобрать закоммиченный бандл (`npm run build`) |
 | `make ui-build-check` | Завершается ошибкой, если закоммиченный бандл отличается от свежей сборки |
+| `make ui-storybook` | Storybook на http://localhost:6006: компоненты в изоляции, переключатель языка (EN/RU) и настоящий CSS редактора |
 | `make ui-lint` | ESLint (`eslint.config.mjs`) |
 | `make ui-format` / `make ui-format-check` | Prettier (`.prettierrc.json`: 4 пробела, одинарные кавычки, ширина 120) форматирует / проверяет `src`, `dev`, `scripts`, `tests` и конфигурационные файлы; `*.md`, `*.html`, lock-файл и сгенерированный бандл не затрагиваются |
 | `npm run typecheck` (в `frontend/`) | `tsc --noEmit` по всему `src/` (JSDoc, `checkJs`, нестрогий режим). `types/globals.d.ts` описывает динамические члены редактора открытыми записями; прежние заглушки `@ts-expect-error` заменены точными аннотациями |
 
 Порядок работы: правка `src/`, проверка в стенде (перезагружается при сохранении), `make test-ui`, `make ui-build`,
 коммит `src/` вместе с пересобранным `js/app.js`.
+
+## Storybook: разработка компонентов по отдельности
+
+Компоненты разрабатываются и тестируются по одному в Storybook (`.storybook/`, stories лежат рядом с компонентом как `*.stories.js`).
+Story — это и документация, и тест: в `npm test` каждая story открывается в настоящем Chromium (проект Vitest `stories`),
+и её функция `play` (действия пользователя и проверки через `storybook/test`) должна проходить.
+
+Порядок работы с компонентом:
+
+1. `make ui-storybook`, создайте `src/components/<name>.stories.js` рядом с `<name>.js`.
+2. Отрисуйте компонент в функции `render`: она возвращает DOM-элемент (хост), в который монтируется компонент. Покройте важные
+   состояния: по умолчанию, пустое, ошибка, занято, длинный текст и другой язык (в тулбаре переключатель EN/RU).
+3. Опишите поведение в `play`: клик, ввод, клавиатура (`userEvent`), затем проверки (`expect`, шпионы `fn()` из `args`).
+4. `npm test` запускает stories вместе с unit- и integration-тестами; `npm run build-storybook` собирает статический сайт.
+
+Пример: `src/components/confirmation-dialog.stories.js`. Stories используют те же шимы `freeipa/*`, что и стенд
+(`.storybook/shared.mjs`), и `css/main.css` плагина. Файлы stories не входят в бандл и исключены из покрытия.
+Компоненты, которым нужен настоящий контекст редактора (всё дерево, RPC), по-прежнему проверяются integration-тестами; начинайте
+со stories для самодостаточных частей (диалоги, контролы, дерево, header, footer).
+
+## Стиль компонентов
+
+Новые и переносимые компоненты устроены одинаково (образец — `src/components/EditorStatus/`):
+
+```
+src/components/<Name>/
+  <Name>.js            createX(options) -> DOM-элемент, строится через h() из src/lib/dom.js
+  <Name>.module.css    приватные стили (CSS Modules, имена классов в camelCase)
+  <Name>.stories.js    состояния и play-тесты
+```
+
+- Компонент — функция, возвращающая обычный DOM-элемент. Его строит `h(tag, attrs, ...children)`: строки становятся текстовыми узлами,
+  а не HTML (никакого `innerHTML`); дочерние `null`/`false` пропускаются, поэтому работает `cond && h(...)`. `cx()` склеивает имена классов.
+- Стили приватны. Снаружи компонент по классу никто не выбирает: публичные «крючки» — атрибуты `data-*`, они перечислены в комментарии
+  в начале файла (`[data-editor-status]`, `[data-editor-status-action]`, ...). Родителю, которому нужно управлять раскладкой, достаточно
+  селектора по атрибуту в собственном CSS (`.gp__admx-wrapper > [data-editor-status]`). Контекст оболочки редактора в модуле
+  записывается как `:global(.gp__container)`.
+- Цвета, отступы и прочие значения остаются такими же, как были в `css/main.css`; story закрепляет их через `getComputedStyle`, чтобы
+  перенос не изменил внешний вид незаметно.
+- Старый код строит интерфейс через `ElementCreator`. Чтобы он работал во время переноса, прежний путь модуля остаётся адаптером,
+  оборачивающим новые элементы через `ElementCreator.wrap(element)` (см. `components/editor-status.js`); вызывающие переходят на новый API по мере переноса.
+
+Как стили попадают на страницу: `npm run build` выдаёт CSS Modules как `plugin/ui/grouppolicy/js/app.css` рядом с `app.js`; `gpo.js`
+подключает его после `css/main.css` и `css/other.css`, а манифест установщика (`UI_PLUGIN_FILES`) его перечисляет. Storybook и стенд
+получают те же стили от Vite. Для браузерных тестов `npm test` превращает каждый `*.module.css` в AMD-модуль через `postcss-modules`
+(`scripts/build-test-root.mjs`); `scripts/read-amd.mjs` понимает `import x from`, именованные импорты и `export function`,
+но не `export default`.
+
+Статус: `EditorStatus` перенесён. У `editor-dialog` есть story-тесты, закрепляющие поведение (роли, фокус, Escape, ловушка Tab,
+вопрос об отмене, состояние занятости, показ ошибки); его стили пока остаются общими правилами `preference__modal*`, и перенос их в модуль —
+следующий шаг (пять потребителей добавляют свои классы и переопределения, поэтому нужен API на параметрах вместо имён классов).
 
 ## Стенд (`dev/`)
 
@@ -38,7 +90,7 @@ Vite раздаёт `src/` напрямую. `freeipa/ipa` и `freeipa/rpc` ра
 
 | Задача | Make | Что запускает |
 |---|---|---|
-| `npm test` | `make test-ui` | `tests/unit` и `tests/integration` на моках; FreeIPA не нужен |
+| `npm test` | `make test-ui` | `tests/unit`, `tests/integration` и stories Storybook (проект `stories`) на моках; FreeIPA не нужен |
 | `npm run test:watch` | | юнит-тесты в режиме наблюдения |
 | `npm test -- --coverage` | | добавляет V8-покрытие `src/` (отчёт в `coverage/`); используется в CI |
 | `npm run test:ipa` | `make test-ui-ipa` | `tests/e2e` на настоящем сервере FreeIPA в dev-контейнере podman, а также тесты, которым нужно ПО серверной стороны FreeIPA (см. ниже) |
@@ -91,7 +143,7 @@ jQuery FreeIPA, живые дескрипторы фильтров).
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 280 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 302 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

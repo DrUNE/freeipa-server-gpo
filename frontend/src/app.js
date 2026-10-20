@@ -841,11 +841,11 @@ function init(options) {
                                 conflict: recovery.conflict
                             });
                         }
-                        var notice = button.closest('.gpo-editor-status');
+                        var notice = button.closest('[data-editor-status]');
                         if (notice) notice.remove();
                     })
                     .catch(function (error) {
-                        var notice = button.closest('.gpo-editor-status');
+                        var notice = button.closest('[data-editor-status]');
                         if (notice) {
                             notice.replaceWith(
                                 editorStatusModule

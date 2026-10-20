@@ -1,0 +1,37 @@
+._status_1wza4_1 {
+    margin: 10px 20px;
+    padding: 10px 12px;
+    border: 1px solid #c7c7c7;
+    border-radius: 3px;
+    background: #f7f7f7;
+}
+
+._error_1wza4_9 {
+    border-color: #c9190b;
+    color: #8c2b2b;
+    background: #fff4f4;
+}
+
+._pending_1wza4_15,
+._unsupported_1wza4_16 {
+    color: #664d03;
+    background: #fff8df;
+    border-color: #e0b400;
+}
+
+._actions_1wza4_22 {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/*
+ * The editor container makes everything unselectable; diagnostics stay copyable.
+ * `gp__container` is the editor's global root class (css/main.css).
+ */
+.gp__container :is(._message_1wza4_32, ._field_1wza4_32, ._diagnostics_1wza4_32),
+.gp__container :is(._message_1wza4_32, ._field_1wza4_32, ._diagnostics_1wza4_32) * {
+    user-select: text;
+    -webkit-user-select: text;
+}
+/*$vite$:1*/

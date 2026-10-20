@@ -1009,34 +1009,11 @@
 }
 
 /* High-level editor DTO surfaces. */
-.gpo-editor-status {
-  margin: 10px 20px;
-  padding: 10px 12px;
-  border: 1px solid #c7c7c7;
-  border-radius: 3px;
-  background: #f7f7f7;
-}
-.gpo-editor-status--error,
 .gpo-editor-field--error {
   border-color: #c9190b;
 }
-.gpo-editor-status--error {
-  color: #8c2b2b;
-  background: #fff4f4;
-}
-.gpo-editor-status--pending,
-.gpo-editor-status--unsupported {
-  color: #664d03;
-  background: #fff8df;
-  border-color: #e0b400;
-}
-.gpo-editor-status__actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
 .gpo-editor-form__error,
-.gp__admx-wrapper > .gpo-editor-status {
+.gp__admx-wrapper > [data-editor-status] {
   flex-basis: 100%;
 }
 .gp__admx-wrapper {
@@ -2161,7 +2138,7 @@
 .gpo-admx-dialog__explanation p:last-child { margin-bottom: 0; }
 .gpo-admx-dialog__loading { padding: 20px; }
 .gpo-admx-dialog .gpo-editor-form__error:empty { display: none; }
-.gpo-admx-dialog .gpo-editor-status { margin: 0 0 16px; }
+.gpo-admx-dialog [data-editor-status] { margin: 0 0 16px; }
 .gpo-admx-dialog .gpo-editor-unsupported { max-width: 100%; }
 .gp__preference .gpo-admx-dialog .gpo-editor-dialog__apply { min-width: 96px; }
 @media (max-width: 760px) {
@@ -2365,12 +2342,10 @@
 .gp__container :is(input, textarea, select, pre, [contenteditable="true"], .gpo-copyable,
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
-  .gpo-editor-status__message, .gpo-editor-status__field, .gpo-editor-status__diagnostics,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note),
 .gp__container :is(pre, [contenteditable="true"], .gpo-copyable,
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
-  .gpo-editor-status__message, .gpo-editor-status__field, .gpo-editor-status__diagnostics,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note) * {
   user-select: text;
   -webkit-user-select: text;

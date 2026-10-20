@@ -9,7 +9,7 @@ PYTHON ?= python3
 COVERAGE ?= coverage
 COVERAGE_THRESHOLD ?= 93.90
 
-.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui test-ui-ipa ui-dev ui-dev-install ui-lint ui-format ui-format-check
+.PHONY: all build install install-ui clean dist rpm compile-po check-po test test-python test-coverage test-integration ui-build ui-build-check test-ui test-ui-ipa ui-dev ui-dev-install ui-lint ui-format ui-format-check ui-storybook
 
 all: build
 
@@ -124,3 +124,6 @@ ui-format:
 
 ui-format-check:
 	$(NPM) --prefix $(UI_DEV_DIR) run format:check
+
+ui-storybook:
+	$(NPM) --prefix $(UI_DEV_DIR) run storybook

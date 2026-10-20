@@ -270,6 +270,18 @@ class ElementCreator {
     }
 
     /**
+     * Wraps an existing DOM element (for example one made by a component written with `h()`), so it can be
+     * used wherever an ElementCreator is expected: `getElement()`, `append()`, `on()`.
+     * @param {Element} element
+     * @returns {ElementCreator}
+     */
+    static wrap(element) {
+        const wrapper = Object.create(ElementCreator.prototype);
+        wrapper.element = element;
+        return wrapper;
+    }
+
+    /**
      * Creates an element from an HTML string.
      * @param {string} html HTML string.
      * @returns {GpuiElement} DOM element.

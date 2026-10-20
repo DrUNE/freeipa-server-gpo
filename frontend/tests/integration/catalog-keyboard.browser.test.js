@@ -283,7 +283,7 @@ test(
                 failDelete = true;
             });
             await page.keyboard.press('Delete');
-            await page.locator('.gpo-editor-preferences__error .gpo-editor-status').waitFor();
+            await page.locator('.gpo-editor-preferences__error [data-editor-status]').waitFor();
             await selectedAndFocused(rows, '["files","two"]', 'data-preference-identity');
             assert.equal(await rows.count(), 3);
             assert.equal(await page.evaluate(() => calls.length), 1);
@@ -331,7 +331,7 @@ test(
                 failDelete = true;
             });
             await dialog.locator('.btn-ok').click();
-            await dialog.locator('.gpo-editor-status').waitFor();
+            await dialog.locator('[data-editor-status]').waitFor();
             assert.equal(await rows.count(), 3);
             assert.equal(await rows.filter({ hasText: 'Beta' }).getAttribute('aria-selected'), 'true');
             await dialog.locator('.btn-cancel').click();
@@ -414,7 +414,7 @@ test(
                 failDelete = true;
             });
             await deleteConfirmation(page);
-            await page.locator('.gpo-editor-scripts .gpo-editor-status--error').waitFor();
+            await page.locator('.gpo-editor-scripts [data-editor-status="error"]').waitFor();
             await selectedAndFocused(rows, 'two', 'data-script-entry');
             assert.equal(await rows.count(), 3);
             for (const expected of ['one', 'three', null]) {

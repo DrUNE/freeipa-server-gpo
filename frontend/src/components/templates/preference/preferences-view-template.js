@@ -1074,7 +1074,7 @@ async function renderPreferencesTemplate(options) {
     function isRefreshSafeAction(state, element) {
         return (
             state.closeButtons.indexOf(element) !== -1 ||
-            Boolean(element.classList && element.classList.contains('gpo-editor-status__action'))
+            Boolean(element.hasAttribute && element.hasAttribute('data-editor-status-action'))
         );
     }
 
@@ -1197,8 +1197,8 @@ async function renderPreferencesTemplate(options) {
                 children: [
                     createElement('span', { text: pt('reconcileSucceededRefresh') }),
                     createElement('button', {
-                        className: ['button', 'gpo-editor-status__action'],
-                        attrs: { type: 'button' },
+                        className: 'button',
+                        attrs: { type: 'button', 'data-editor-status-action': '' },
                         text: pt('refresh'),
                         events: {
                             click: function () {

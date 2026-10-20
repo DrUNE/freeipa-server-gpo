@@ -257,13 +257,7 @@ function renderPolicyContents(root, policy, handlers) {
                   })
                 : null,
             errorSlot,
-            unknown
-                ? createElement('div', {
-                      className: ['gpo-editor-status', 'gpo-editor-status--unsupported'],
-                      attrs: { role: 'status' },
-                      text: t('policies.unsupportedSource')
-                  })
-                : null,
+            unknown ? editorStatus.renderUnsupported(t('policies.unsupportedSource')) : null,
             createElement('div', {
                 className: [
                     'gp__admx',
@@ -351,13 +345,7 @@ function renderPolicyContents(root, policy, handlers) {
             className: 'gpo-admx-dialog__settings',
             children: [
                 errorSlot,
-                unknown
-                    ? createElement('div', {
-                          className: ['gpo-editor-status', 'gpo-editor-status--unsupported'],
-                          attrs: { role: 'status' },
-                          text: t('policies.unsupportedSource')
-                      })
-                    : null,
+                unknown ? editorStatus.renderUnsupported(t('policies.unsupportedSource')) : null,
                 createElement('div', {
                     className: 'gp__admx-settings',
                     children: [

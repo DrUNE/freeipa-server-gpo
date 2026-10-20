@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
-import { test, vi } from 'vitest';
+import { test } from 'vitest';
 import * as dtoModule from '../../src/util/editor-dto.js';
 import * as enModule from '../../src/locales/en.js';
 import * as ruModule from '../../src/locales/ru.js';
 import * as translationsModule from '../../src/locales/translations.js';
-import * as statusModule from '../../src/components/editor-status.js';
-
-vi.mock('../../src/util/element-creator.js', () => ({ createElement: (tag, options) => ({ tag, ...options }) }));
+import * as statusModule from '../../src/components/EditorStatus/EditorStatus.js';
 
 import fs from 'node:fs';
 import path from 'node:path';

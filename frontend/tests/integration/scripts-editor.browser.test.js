@@ -335,7 +335,7 @@ test(
             assert.equal(await page.getByText('This script list cannot be edited.').count(), 1);
             assert.equal(
                 await page
-                    .locator('.gpo-editor-status__diagnostics')
+                    .locator('[data-editor-status-diagnostics]')
                     .textContent()
                     .then(value => value.includes('Malformed scripts.ini')),
                 true

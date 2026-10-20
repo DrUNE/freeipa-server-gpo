@@ -1,0 +1,36 @@
+.status {
+    margin: 10px 20px;
+    padding: 10px 12px;
+    border: 1px solid #c7c7c7;
+    border-radius: 3px;
+    background: #f7f7f7;
+}
+
+.error {
+    border-color: #c9190b;
+    color: #8c2b2b;
+    background: #fff4f4;
+}
+
+.pending,
+.unsupported {
+    color: #664d03;
+    background: #fff8df;
+    border-color: #e0b400;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/*
+ * The editor container makes everything unselectable; diagnostics stay copyable.
+ * `gp__container` is the editor's global root class (css/main.css).
+ */
+:global(.gp__container) :is(.message, .field, .diagnostics),
+:global(.gp__container) :is(.message, .field, .diagnostics) * {
+    user-select: text;
+    -webkit-user-select: text;
+}

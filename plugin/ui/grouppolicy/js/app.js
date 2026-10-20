@@ -42,7 +42,7 @@
 	//#region src/util/element-creator.js
 	var element_creator_exports = /* @__PURE__ */ __exportAll({
 		ElementCreator: () => ElementCreator,
-		createElement: () => createElement$18,
+		createElement: () => createElement$17,
 		default: () => ElementCreator,
 		fromHTML: () => fromHTML
 	});
@@ -251,6 +251,17 @@
 			return new ElementCreator(tagName, options);
 		}
 		/**
+		* Wraps an existing DOM element (for example one made by a component written with `h()`), so it can be
+		* used wherever an ElementCreator is expected: `getElement()`, `append()`, `on()`.
+		* @param {Element} element
+		* @returns {ElementCreator}
+		*/
+		static wrap(element) {
+			const wrapper = Object.create(ElementCreator.prototype);
+			wrapper.element = element;
+			return wrapper;
+		}
+		/**
 		* Creates an element from an HTML string.
 		* @param {string} html HTML string.
 		* @returns {GpuiElement} DOM element.
@@ -267,7 +278,7 @@
 	* @param {Object} [options] Element creation options.
 	* @returns {GpuiCreator} ElementCreator instance.
 	*/
-	function createElement$18(tagName = "div", options = {}) {
+	function createElement$17(tagName = "div", options = {}) {
 		return new ElementCreator(tagName, options);
 	}
 	/**
@@ -279,7 +290,7 @@
 		return ElementCreator.fromHTML(html);
 	}
 	if (typeof window !== "undefined")
- /** @type {any} */ window.createElement = createElement$18;
+ /** @type {any} */ window.createElement = createElement$17;
 	//#endregion
 	//#region src/locales/en.js
 	var en_exports = /* @__PURE__ */ __exportAll({
@@ -1603,51 +1614,51 @@
 	}
 	//#endregion
 	//#region src/components/header/header.js
-	var { createElement: createElement$17 } = element_creator_exports;
+	var { createElement: createElement$16 } = element_creator_exports;
 	var { t: t$11 } = translations_exports;
 	function renderHeader$1(container) {
-		const element = createElement$17("div", {
+		const element = createElement$16("div", {
 			className: "gp__header",
-			children: [createElement$17("div", {
+			children: [createElement$16("div", {
 				className: "gp__header-left",
 				children: [
-					createElement$17("div", { className: "gp__search" }),
-					createElement$17("div", { className: "gp__nav" }),
-					createElement$17("div", {
+					createElement$16("div", { className: "gp__search" }),
+					createElement$16("div", { className: "gp__nav" }),
+					createElement$16("div", {
 						className: "gp__control",
 						children: [
-							createElement$17("button", {
+							createElement$16("button", {
 								className: ["button", "preferences__btn-create"],
 								text: t$11("header.create")
 							}),
-							createElement$17("button", {
+							createElement$16("button", {
 								className: ["button", "preferences__btn-edit"],
 								text: t$11("header.edit")
 							}),
-							createElement$17("button", {
+							createElement$16("button", {
 								className: ["button", "preferences__btn-delete"],
 								text: t$11("header.delete")
 							})
 						]
 					})
 				]
-			}), createElement$17("div", {
+			}), createElement$16("div", {
 				className: "gp__control-actions",
 				children: [
-					createElement$17("div", {
+					createElement$16("div", {
 						className: "gp__control-admx",
-						children: [createElement$17("button", {
+						children: [createElement$16("button", {
 							className: ["button", "admx__btn-apply"],
 							text: t$11("header.apply")
-						}), createElement$17("button", {
+						}), createElement$16("button", {
 							className: ["button", "admx__btn-cancel"],
 							text: t$11("header.cancel")
 						})]
 					}),
-					createElement$17("div", { className: "gp__control-separator" }),
-					createElement$17("div", {
+					createElement$16("div", { className: "gp__control-separator" }),
+					createElement$16("div", {
 						className: "gp__control-help",
-						children: [createElement$17("button", {
+						children: [createElement$16("button", {
 							className: ["button", "btn-information"],
 							text: t$11("header.information")
 						})]
@@ -1667,7 +1678,7 @@
 		setFolderOpenedState: () => setFolderOpenedState$1,
 		setTreeItemActive: () => setTreeItemActive$1
 	});
-	var createElement$16 = createElement$18;
+	var createElement$15 = createElement$17;
 	var expansionRuns = /* @__PURE__ */ new WeakMap();
 	var selectionScrollRuns = /* @__PURE__ */ new WeakMap();
 	function scrollTreeItemIntoView(element) {
@@ -1842,7 +1853,7 @@
 		(items || []).forEach(function(item) {
 			if (item.showInTree === false && treeViewState) treeViewState.registerTreeNode(item, { parentItem: parentItem || null });
 		});
-		return createElement$16("ul", {
+		return createElement$15("ul", {
 			className: "tree-view__list",
 			attrs: {
 				role: parentItem ? "group" : "tree",
@@ -1857,7 +1868,7 @@
 		});
 	}
 	function renderLoadError() {
-		return createElement$16("li", {
+		return createElement$15("li", {
 			className: ["view", "tree-view__lazy-error"],
 			text: "Не удалось загрузить раздел"
 		});
@@ -1881,7 +1892,7 @@
 			console.error("[tree-view] Failed to load children.", error);
 			var oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(createElement$16("ul", {
+			listItem.appendChild(createElement$15("ul", {
 				className: "tree-view__list",
 				children: [renderLoadError()]
 			}).getElement());
@@ -1897,7 +1908,7 @@
 		var isFolder = item.type === "folder";
 		var classes = ["view", isFolder ? "folder" : "file"];
 		if (isFolder) classes.push(item.opened ? "opened" : "closed");
-		var treeItem = createElement$16("span", {
+		var treeItem = createElement$15("span", {
 			className: "tree-item",
 			attrs: {
 				role: "treeitem",
@@ -1907,22 +1918,22 @@
 				"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
 			},
 			children: [
-				isFolder ? createElement$16("span", {
+				isFolder ? createElement$15("span", {
 					className: ["icon-switcher", hasVisibleChildren(item) ? null : "icon-switcher--empty"],
 					attrs: { role: "button" }
 				}) : null,
-				isFolder ? createElement$16("span", {
+				isFolder ? createElement$15("span", {
 					className: "tree-view__status-spinner",
 					attrs: { "aria-hidden": "true" }
 				}) : null,
-				item.icon ? createElement$16("span", { className: ["icon", item.icon] }) : null,
-				createElement$16("span", {
+				item.icon ? createElement$15("span", { className: ["icon", item.icon] }) : null,
+				createElement$15("span", {
 					className: "tree-item__title",
 					text: item.title
 				})
 			]
 		});
-		var listItem = createElement$16("li", {
+		var listItem = createElement$15("li", {
 			className: classes,
 			children: [treeItem]
 		});
@@ -2932,7 +2943,7 @@
 	//#endregion
 	//#region src/components/tree-view/tree-view.js
 	var tree_view_exports = /* @__PURE__ */ __exportAll({ renderTreeView: () => renderTreeView$1 });
-	var { createElement: createElement$15 } = element_creator_exports;
+	var { createElement: createElement$14 } = element_creator_exports;
 	var { t: t$9 } = translations_exports;
 	var { renderTreeViewList } = tree_view_list_exports;
 	var { loadTreeViewList } = tree_view_list_data_exports;
@@ -2943,15 +2954,15 @@
 	function renderTreeViewStatus(type = "loading") {
 		const isError = type === "error";
 		const children = [];
-		if (!isError) children.push(createElement$15("span", {
+		if (!isError) children.push(createElement$14("span", {
 			className: "tree-view__status-spinner",
 			attrs: { "aria-hidden": "true" }
 		}));
-		children.push(createElement$15("span", {
+		children.push(createElement$14("span", {
 			className: "tree-view__status-text",
 			text: isError ? t$9(TREE_VIEW_MESSAGES.error) : t$9(TREE_VIEW_MESSAGES.loading)
 		}));
-		return createElement$15("div", {
+		return createElement$14("div", {
 			className: ["tree-view__status", isError ? "tree-view__status--error" : "tree-view__status--loading"],
 			attrs: {
 				role: isError ? "alert" : "status",
@@ -2991,30 +3002,30 @@
 	* @returns {ElementCreator} Tree container.
 	*/
 	function renderTreeView$1(workspace = null, treeViewState = null) {
-		const element = createElement$15("div", { className: "tree-view" });
+		const element = createElement$14("div", { className: "tree-view" });
 		initializeTreeView(element, workspace, treeViewState);
 		return element;
 	}
 	//#endregion
 	//#region src/components/divider/divider.js
 	var divider_exports = /* @__PURE__ */ __exportAll({ renderDivider: () => renderDivider$1 });
-	var { createElement: createElement$14 } = element_creator_exports;
+	var { createElement: createElement$13 } = element_creator_exports;
 	function renderDivider$1() {
-		return createElement$14("div", {
+		return createElement$13("div", {
 			className: "divider",
-			children: [createElement$14("div", { className: "divider__line" })]
+			children: [createElement$13("div", { className: "divider__line" })]
 		});
 	}
 	//#endregion
 	//#region src/components/workspace/workspace.js
 	var workspace_exports = /* @__PURE__ */ __exportAll({ renderWorkspace: () => renderWorkspace$1 });
-	var { createElement: createElement$13 } = element_creator_exports;
+	var { createElement: createElement$12 } = element_creator_exports;
 	function renderWorkspace$1() {
-		return createElement$13("div", { className: "workspace" });
+		return createElement$12("div", { className: "workspace" });
 	}
 	//#endregion
 	//#region src/components/main/main.js
-	var { createElement: createElement$12 } = element_creator_exports;
+	var { createElement: createElement$11 } = element_creator_exports;
 	var { renderTreeView } = tree_view_exports;
 	var { renderDivider } = divider_exports;
 	var { renderWorkspace } = workspace_exports;
@@ -3022,7 +3033,7 @@
 		const workspace = renderWorkspace();
 		const treeView = renderTreeView(workspace, treeViewState);
 		const divider = renderDivider();
-		const main = createElement$12("div", {
+		const main = createElement$11("div", {
 			className: "gp__main",
 			children: [
 				treeView,
@@ -3040,9 +3051,9 @@
 	}
 	//#endregion
 	//#region src/components/footer/footer.js
-	var { createElement: createElement$11 } = element_creator_exports;
+	var { createElement: createElement$10 } = element_creator_exports;
 	function renderFooter$1(container) {
-		const element = createElement$11("div", { className: "gp__footer" });
+		const element = createElement$10("div", { className: "gp__footer" });
 		container.appendChild(element.getElement());
 		return element.getElement();
 	}
@@ -3086,7 +3097,7 @@
 	}
 	//#endregion
 	//#region src/components/category-path.js
-	var create$12 = createElement$18;
+	var create$12 = createElement$17;
 	function render$4(segments, onNavigate) {
 		var parts = (segments || []).filter(function(segment) {
 			return segment && segment.title;
@@ -3161,15 +3172,15 @@
 	}
 	//#endregion
 	//#region src/components/templates/default-template.js
-	var { createElement: createElement$10 } = element_creator_exports;
+	var { createElement: createElement$9 } = element_creator_exports;
 	/**
 	* Renders the fallback template when no template is defined.
 	* @returns {ElementCreator} Element containing a template-not-defined message.
 	*/
 	function renderDefaultTemplate$1() {
-		return createElement$10("div", {
+		return createElement$9("div", {
 			className: "gp__default-template",
-			children: [createElement$10("div", {
+			children: [createElement$9("div", {
 				className: "default-template__message",
 				text: "Шаблон не определен"
 			})]
@@ -3755,8 +3766,53 @@
 		return String(error && (error.category || error.code) || "operational").toLowerCase();
 	}
 	//#endregion
-	//#region src/components/editor-status.js
-	var createElement$9 = createElement$18;
+	//#region src/lib/dom.js
+	/**
+	* Minimal DOM helpers for components written in the "component = function returning an element" style
+	* (see components/EditorStatus). Strings become text nodes, never HTML.
+	*/
+	/** @typedef {Node | string | null | undefined | false} Child */
+	/**
+	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
+	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
+	* @template {keyof HTMLElementTagNameMap} K
+	* @param {K} tag
+	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
+	* @param {...Child} children
+	* @returns {HTMLElementTagNameMap[K]}
+	*/
+	function h(tag, attrs = {}, ...children) {
+		const element = document.createElement(tag);
+		for (const [name, value] of Object.entries(attrs)) {
+			if (value === false || value === null || value === void 0) continue;
+			element.setAttribute(name, value === true ? "" : value);
+		}
+		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
+		return element;
+	}
+	/**
+	* Joins class names, skipping falsy values.
+	* @param {...(string | false | null | undefined)} names
+	*/
+	function cx(...names) {
+		return names.filter(Boolean).join(" ");
+	}
+	var EditorStatus_module_default = {
+		status: "_status_1wza4_1",
+		error: "_error_1wza4_9",
+		pending: "_pending_1wza4_15",
+		unsupported: "_unsupported_1wza4_16",
+		actions: "_actions_1wza4_22",
+		message: "_message_1wza4_32",
+		field: "_field_1wza4_32",
+		diagnostics: "_diagnostics_1wza4_32"
+	};
+	//#endregion
+	//#region src/components/EditorStatus/EditorStatus.js
+	/**
+	* What the editor passes as an error: an `EditorError` from util/API.js, or any object with the same fields.
+	* @typedef {{ message?: string, category?: string, field?: string, pendingPublication?: boolean } | null | undefined} EditorStatusError
+	*/
 	var DETAILS = {
 		"Security policy actions must be a list": "securityActionsList",
 		"Security element actions must be a list": "securityElementActionsList",
@@ -3767,82 +3823,85 @@
 	function text$1(key) {
 		return t$12("editorStatus." + key);
 	}
+	/** Localized message for an error: its category's text plus a translated detail when the server message is known. */
+	/** @param {EditorStatusError} error */
 	function messageForError(error) {
-		var key = "editorStatus.errors." + errorCategory(error).replace(/-/g, "_");
-		var prefix = t$12(key);
+		const key = "editorStatus.errors." + errorCategory(error).replace(/-/g, "_");
+		let prefix = t$12(key);
 		if (prefix === key) prefix = text$1("errors.operational");
-		var detail = DETAILS[(error && error.message ? String(error.message) : "").replace(/[.]$/, "")];
+		const detail = DETAILS[(error && error.message ? String(error.message) : "").replace(/[.]$/, "")];
 		return detail ? prefix + " " + text$1("details." + detail) : prefix;
 	}
+	function createAction(label, onClick) {
+		const button = h("button", {
+			class: "button",
+			type: "button",
+			"data-editor-status-action": true
+		}, label);
+		button.addEventListener("click", onClick);
+		return button;
+	}
+	/**
+	* @param {EditorStatusError} error
+	* @param {{ onRefresh?: (event: Event) => void, onReconcile?: (event: Event) => void }} [options]
+	*   actions are shown only for the callbacks that are given (reconcile also needs a publication error)
+	*/
+	function createErrorStatus(error, options = {}) {
+		const category = errorCategory(error).replace(/-/g, "_");
+		const actions = [];
+		if (typeof options.onRefresh === "function") actions.push(createAction(text$1("refresh"), options.onRefresh));
+		if ((category.indexOf("publication") !== -1 || error && error.pendingPublication) && typeof options.onReconcile === "function") actions.push(createAction(text$1("reconcile"), options.onReconcile));
+		return h("div", {
+			class: cx(EditorStatus_module_default.status, EditorStatus_module_default.error),
+			role: "alert",
+			"data-editor-status": "error",
+			"data-error-category": category
+		}, h("div", { class: EditorStatus_module_default.message }, messageForError(error)), error && error.field && h("div", { class: EditorStatus_module_default.field }, text$1("field") + ": " + error.field), actions.length > 0 && h("div", { class: EditorStatus_module_default.actions }, ...actions));
+	}
+	/** The "publication is pending" notice, or `null` when nothing is pending. */
+	function createPendingStatus(pending, onReconcile) {
+		if (!pending) return null;
+		return h("div", {
+			class: cx(EditorStatus_module_default.status, EditorStatus_module_default.pending),
+			role: "status",
+			"data-editor-status": "pending"
+		}, h("div", { class: EditorStatus_module_default.message }, text$1("pending")), typeof onReconcile === "function" && createAction(text$1("reconcile"), onReconcile));
+	}
+	/** A notice that the policy source is not supported by the editor. */
+	function createUnsupportedStatus(message) {
+		return h("div", {
+			class: cx(EditorStatus_module_default.status, EditorStatus_module_default.unsupported),
+			role: "status",
+			"data-editor-status": "unsupported"
+		}, message);
+	}
+	/** Collapsible technical details: one line per diagnostic, `code: message`. */
+	function createDiagnostics(diagnostics) {
+		return h("details", {
+			class: EditorStatus_module_default.diagnostics,
+			"data-editor-status-diagnostics": true
+		}, h("summary", {}, text$1("technicalDetails")), ...(diagnostics || []).map((diagnostic) => h("pre", {}, [diagnostic.code, diagnostic.message].filter(Boolean).join(": "))));
+	}
+	//#endregion
+	//#region src/components/editor-status.js
+	function wrap(element) {
+		return element && ElementCreator.wrap(element);
+	}
 	function renderError(error, options) {
-		var config = options || {};
-		var category = errorCategory(error).replace(/-/g, "_");
-		var actions = [];
-		if (typeof config.onRefresh === "function") actions.push(createElement$9("button", {
-			className: ["button", "gpo-editor-status__action"],
-			attrs: { type: "button" },
-			text: text$1("refresh"),
-			events: { click: config.onRefresh }
-		}));
-		if ((category.indexOf("publication") !== -1 || error && error.pendingPublication) && typeof config.onReconcile === "function") actions.push(createElement$9("button", {
-			className: ["button", "gpo-editor-status__action"],
-			attrs: { type: "button" },
-			text: text$1("reconcile"),
-			events: { click: config.onReconcile }
-		}));
-		return createElement$9("div", {
-			className: [
-				"gpo-editor-status",
-				"gpo-editor-status--error",
-				"gpo-editor-status--" + category
-			],
-			attrs: {
-				role: "alert",
-				"data-error-category": category
-			},
-			children: [
-				createElement$9("div", {
-					className: "gpo-editor-status__message",
-					text: messageForError(error)
-				}),
-				error && error.field ? createElement$9("div", {
-					className: "gpo-editor-status__field",
-					text: text$1("field") + ": " + error.field
-				}) : null,
-				actions.length ? createElement$9("div", {
-					className: "gpo-editor-status__actions",
-					children: actions
-				}) : null
-			]
-		});
+		return wrap(createErrorStatus(error, options));
 	}
 	function renderPending(pending, onReconcile) {
-		if (!pending) return null;
-		return createElement$9("div", {
-			className: ["gpo-editor-status", "gpo-editor-status--pending"],
-			attrs: { role: "status" },
-			children: [createElement$9("div", {
-				className: "gpo-editor-status__message",
-				text: text$1("pending")
-			}), typeof onReconcile === "function" ? createElement$9("button", {
-				className: ["button", "gpo-editor-status__action"],
-				attrs: { type: "button" },
-				text: text$1("reconcile"),
-				events: { click: onReconcile }
-			}) : null]
-		});
+		return wrap(createPendingStatus(pending, onReconcile));
 	}
 	function renderDiagnostics(diagnostics) {
-		return createElement$9("details", {
-			className: "gpo-editor-status__diagnostics",
-			children: [createElement$9("summary", { text: text$1("technicalDetails") })].concat((diagnostics || []).map(function(diagnostic) {
-				return createElement$9("pre", { text: [diagnostic.code, diagnostic.message].filter(Boolean).join(": ") });
-			}))
-		});
+		return wrap(createDiagnostics(diagnostics));
+	}
+	function renderUnsupported(message) {
+		return wrap(createUnsupportedStatus(message));
 	}
 	//#endregion
 	//#region src/components/confirmation-dialog.js
-	var create$11 = createElement$18;
+	var create$11 = createElement$17;
 	var nextId = 0;
 	function open$3(host, options) {
 		var config = options || {};
@@ -3942,7 +4001,7 @@
 		open: () => open$2,
 		trapTab: () => trapTab
 	});
-	var create$10 = createElement$18;
+	var create$10 = createElement$17;
 	var sequence$4 = 0;
 	function trapTab(event, modal) {
 		if (event.key !== "Tab" || event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== modal) return;
@@ -4320,7 +4379,7 @@
 	}
 	//#endregion
 	//#region src/components/collection-dialog.js
-	var create$9 = createElement$18;
+	var create$9 = createElement$17;
 	var sequence$2 = 0;
 	function tr$6(key, values) {
 		var text = t$12("collections." + key);
@@ -4951,7 +5010,7 @@
 	}
 	//#endregion
 	//#region src/components/collection-control.js
-	var create$8 = createElement$18;
+	var create$8 = createElement$17;
 	function tr$5(key, values) {
 		var text = t$12("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
@@ -5034,7 +5093,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/dialog.js
-	var create$7 = createElement$18;
+	var create$7 = createElement$17;
 	var sequence$1 = 0;
 	function tr$4(key, fallback) {
 		var value = t$12("security." + key);
@@ -5121,7 +5180,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/admx-template.js
-	var createElement$8 = createElement$18;
+	var createElement$8 = createElement$17;
 	var t$8 = t$12;
 	var nextParameterControlId = 1;
 	function appendLines(container, text) {
@@ -5314,11 +5373,7 @@
 					})]
 				}) : null,
 				errorSlot,
-				unknown ? createElement$8("div", {
-					className: ["gpo-editor-status", "gpo-editor-status--unsupported"],
-					attrs: { role: "status" },
-					text: t$8("policies.unsupportedSource")
-				}) : null,
+				unknown ? renderUnsupported(t$8("policies.unsupportedSource")) : null,
 				createElement$8("div", {
 					className: ["gp__admx", (policy.parameters || []).some(function(parameter) {
 						return parameter.kind === "list";
@@ -5394,11 +5449,7 @@
 				className: "gpo-admx-dialog__settings",
 				children: [
 					errorSlot,
-					unknown ? createElement$8("div", {
-						className: ["gpo-editor-status", "gpo-editor-status--unsupported"],
-						attrs: { role: "status" },
-						text: t$8("policies.unsupportedSource")
-					}) : null,
+					unknown ? renderUnsupported(t$8("policies.unsupportedSource")) : null,
 					createElement$8("div", {
 						className: "gp__admx-settings",
 						children: [createElement$8("div", {
@@ -5929,7 +5980,7 @@
 	//#endregion
 	//#region src/components/templates/script/helpers.js
 	var t$6 = t$12;
-	var create$6 = createElement$18;
+	var create$6 = createElement$17;
 	function st$1(key) {
 		return t$6("systemSettings." + key);
 	}
@@ -6007,7 +6058,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script-template.js
-	var create$5 = createElement$18;
+	var create$5 = createElement$17;
 	var t$5 = t$12;
 	var nextHeaderOwnerId$1 = 1;
 	var st = st$1;
@@ -10364,7 +10415,7 @@
 	};
 	//#endregion
 	//#region src/components/templates/preference/targeting-typed-input.js
-	var create$4 = createElement$18;
+	var create$4 = createElement$17;
 	var nextInputId$1 = 1;
 	var TYPES = {
 		ipv4: {
@@ -10737,7 +10788,7 @@
 	//#endregion
 	//#region src/components/templates/preference/targeting-operand-editor.js
 	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
-	var create$3 = createElement$18;
+	var create$3 = createElement$17;
 	var nextInputId = 1;
 	var COMMON = [
 		"filter.bool",
@@ -11939,7 +11990,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/targeting-editor.js
-	var create$2 = createElement$18;
+	var create$2 = createElement$17;
 	function render$1(options) {
 		var pt = options.pt;
 		var readonly = Boolean(options.readonly);
@@ -12801,7 +12852,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/field-control.js
-	var createElement$6 = createElement$18;
+	var createElement$6 = createElement$17;
 	var pt$2 = pt$3;
 	function hiddenFieldControl$1(field) {
 		return {
@@ -13183,7 +13234,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/field-tabs.js
-	var createElement$5 = createElement$18;
+	var createElement$5 = createElement$17;
 	var pt$1 = pt$3;
 	var nextControlId = nextControlId$1;
 	var hiddenFieldControl = hiddenFieldControl$1;
@@ -13437,7 +13488,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/preferences-view-template.js
-	var createElement$4 = createElement$18;
+	var createElement$4 = createElement$17;
 	var t$3 = t$12;
 	var nextHeaderOwnerId = 1;
 	var PREFERENCE_LAYOUTS = layouts_exports;
@@ -14320,7 +14371,7 @@
 			return elements;
 		}
 		function isRefreshSafeAction(state, element) {
-			return state.closeButtons.indexOf(element) !== -1 || Boolean(element.classList && element.classList.contains("gpo-editor-status__action"));
+			return state.closeButtons.indexOf(element) !== -1 || Boolean(element.hasAttribute && element.hasAttribute("data-editor-status-action"));
 		}
 		function syncFormBusy(state) {
 			if (!state) return;
@@ -14419,8 +14470,11 @@
 				className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--info"],
 				attrs: { role: "status" },
 				children: [createElement$4("span", { text: pt("reconcileSucceededRefresh") }), createElement$4("button", {
-					className: ["button", "gpo-editor-status__action"],
-					attrs: { type: "button" },
+					className: "button",
+					attrs: {
+						type: "button",
+						"data-editor-status-action": ""
+					},
 					text: pt("refresh"),
 					events: { click: function() {
 						if (!window.confirm(pt("confirmRefreshDiscard"))) return;
@@ -14696,7 +14750,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/value-editor.js
-	var createElement$3 = createElement$18;
+	var createElement$3 = createElement$17;
 	function tr$3(key, fallback) {
 		var value = translations_exports && t$12("security." + key);
 		return value && value !== "security." + key ? value : fallback;
@@ -15320,7 +15374,7 @@
 		var controls = headerElement && headerElement.querySelector(".gp__control");
 		var local = !controls;
 		if (local) {
-			var wrapper = createElement$18("div", { className: "gp__control" });
+			var wrapper = createElement$17("div", { className: "gp__control" });
 			fallbackHost.append(wrapper);
 			controls = wrapper.getElement();
 		}
@@ -15335,7 +15389,7 @@
 		].forEach(function(action) {
 			var button = controls.querySelector(".preferences__btn-" + action);
 			if (!button) {
-				var element = createElement$18("button", {
+				var element = createElement$17("button", {
 					className: ["button", "preferences__btn-" + action],
 					attrs: { type: "button" }
 				});
@@ -15399,7 +15453,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/workbench.js
-	var create$1 = createElement$18;
+	var create$1 = createElement$17;
 	function tr$2(key, fallback) {
 		var text = t$12("security." + key);
 		return text && text !== "security." + key ? text : fallback;
@@ -15874,7 +15928,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/security-template.js
-	var createElement$2 = createElement$18;
+	var createElement$2 = createElement$17;
 	function tr$1(key, fallback) {
 		var translated = t$12(key);
 		return translated && translated !== key ? translated : fallback;
@@ -16686,7 +16740,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/advanced-audit-template.js
-	var createElement$1 = createElement$18;
+	var createElement$1 = createElement$17;
 	var t$2 = t$12;
 	function tr(key, fallback) {
 		var value = t$2(key);
@@ -17197,7 +17251,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/all-policies-template.js
-	var create = createElement$18;
+	var create = createElement$17;
 	var t$1 = t$12;
 	var PAGE_SIZE = 100;
 	function format(key, values) {
@@ -17631,7 +17685,7 @@
 	var setTreeItemActive = setTreeItemActive$1;
 	var setFolderOpenedState = setFolderOpenedState$1;
 	var ensureLazyChildren = ensureLazyChildren$1;
-	var createElement = createElement$18;
+	var createElement = createElement$17;
 	var t = t$12;
 	function createTreeViewState() {
 		return {
@@ -18183,10 +18237,10 @@
 						category: "publication_conflict",
 						conflict: recovery.conflict
 					});
-					var notice = button.closest(".gpo-editor-status");
+					var notice = button.closest("[data-editor-status]");
 					if (notice) notice.remove();
 				}).catch(function(error) {
-					var notice = button.closest(".gpo-editor-status");
+					var notice = button.closest("[data-editor-status]");
 					if (notice) notice.replaceWith(renderError(error, { onReconcile: reconcilePending }).getElement());
 				}).finally(function() {
 					button.disabled = false;

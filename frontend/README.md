@@ -18,12 +18,65 @@ All code in `frontend/` uses `import`/`export` (no CommonJS, no `.cjs`). Node is
 | `make ui-dev` | Vite dev stand at http://127.0.0.1:8765/ipa/ui/ (`?gpo=Name&lang=ru`), no FreeIPA needed |
 | `make ui-build` | Rebuild the committed bundle (`npm run build`) |
 | `make ui-build-check` | Fail if the committed bundle differs from a fresh build |
+| `make ui-storybook` | Storybook at http://localhost:6006: components rendered in isolation, with a language switch (EN/RU) and the editor's real CSS |
 | `make ui-lint` | ESLint (`eslint.config.mjs`) |
 | `make ui-format` / `make ui-format-check` | Prettier (`.prettierrc.json`: 4 spaces, single quotes, width 120) writes / checks `src`, `dev`, `scripts`, `tests` and the config files; `*.md`, `*.html`, the lock file and the generated bundle are not touched |
 | `npm run typecheck` (in `frontend/`) | `tsc --noEmit` over all of `src/` (JSDoc, `checkJs`, non-strict). `types/globals.d.ts` models the editor's ad-hoc members as open records; the former `@ts-expect-error` placeholders have been replaced by precise annotations |
 
 Workflow: edit `src/`, check in the dev stand (reloads on save), run `make test-ui`, run `make ui-build`,
 commit `src/` together with the rebuilt `js/app.js`.
+
+## Storybook: developing components in isolation
+
+Components are developed and tested one at a time in Storybook (`.storybook/`, stories next to the component as `*.stories.js`).
+A story is both documentation and a test: in `npm test` every story is opened in a real Chromium (Vitest project `stories`) and
+its `play` function (user interactions + assertions with `storybook/test`) must pass.
+
+Workflow for a component:
+
+1. `make ui-storybook`, create `src/components/<name>.stories.js` next to `<name>.js`.
+2. Render the component in a `render` function: it returns a DOM element (host), the component is mounted into it. Cover the states
+   that matter: default, empty, error, busy, long text, and the other language (the toolbar switches EN/RU).
+3. Describe behavior in `play`: click, type, keyboard (`userEvent`), then assert (`expect`, `fn()` spies from `args`).
+4. `npm test` runs the stories together with the unit and integration tests; `npm run build-storybook` builds a static site.
+
+Example: `src/components/confirmation-dialog.stories.js`. Stories use the same `freeipa/*` shims as the dev stand
+(`.storybook/shared.mjs`) and the plugin's `css/main.css`. Story files are not part of the bundle and are excluded from coverage.
+Components that need the real editor context (the whole tree, RPC) still belong in the integration tests; use stories first for
+self-contained pieces (dialogs, controls, tree, header, footer).
+
+## Component style
+
+New and migrated components follow one pattern (the model is `src/components/EditorStatus/`):
+
+```
+src/components/<Name>/
+  <Name>.js            createX(options) -> DOM element, built with h() from src/lib/dom.js
+  <Name>.module.css    private styles (CSS Modules, camelCase class names)
+  <Name>.stories.js    states + play tests
+```
+
+- A component is a function that returns a plain DOM element. `h(tag, attrs, ...children)` builds it: strings become text nodes, never
+  HTML (no `innerHTML`); `null`/`false` children are skipped, so `cond && h(...)` works. `cx()` joins class names.
+- Styles are private. Nobody outside selects the component by its class: public hooks are `data-*` attributes, listed in the file's
+  header comment (`[data-editor-status]`, `[data-editor-status-action]`, ...). A parent that needs layout control uses an attribute
+  selector in its own CSS (`.gp__admx-wrapper > [data-editor-status]`). Context from the editor shell is referenced as
+  `:global(.gp__container)` in the module.
+- Colors, spacing and other values stay as they were in `css/main.css`; a story pins them with `getComputedStyle` so a migration
+  cannot change the look unnoticed.
+- Old code builds UI with `ElementCreator`. To keep it working while it migrates, the old module path stays as an adapter that
+  wraps the new elements with `ElementCreator.wrap(element)` (see `components/editor-status.js`); callers move to the new API as they
+  are migrated.
+
+How the styles reach the page: `npm run build` emits the CSS Modules as `plugin/ui/grouppolicy/js/app.css` next to `app.js`; `gpo.js`
+loads it after `css/main.css` and `css/other.css`, and the installer manifest (`UI_PLUGIN_FILES`) lists it. Storybook and the dev stand
+get the same styles from Vite. For the browser tests `npm test` builds each `*.module.css` into an AMD module with `postcss-modules`
+(`scripts/build-test-root.mjs`); `scripts/read-amd.mjs` understands `import x from`, named imports and inline `export function`
+but not `export default`.
+
+Status: `EditorStatus` is migrated. `editor-dialog` has story tests that pin its behavior (roles, focus, Escape, Tab trap, discard
+question, busy state, error display); its styles are still the shared `preference__modal*` rules, and moving them to a module is the
+next step (five consumers add their own classes and overrides, so it needs an options-based API instead of class names).
 
 ## Dev stand (`dev/`)
 
@@ -38,7 +91,7 @@ The runner is **Vitest** (`vitest.config.mjs`, three projects: `unit`, `integrat
 
 | Task | Make | What it runs |
 |---|---|---|
-| `npm test` | `make test-ui` | `tests/unit` and `tests/integration` against mocks; no FreeIPA needed |
+| `npm test` | `make test-ui` | `tests/unit`, `tests/integration` and the Storybook stories (project `stories`) against mocks; no FreeIPA needed |
 | `npm run test:watch` | | unit tests in watch mode |
 | `npm test -- --coverage` | | adds V8 coverage of `src/` (report in `coverage/`); CI uses it |
 | `npm run test:ipa` | `make test-ui-ipa` | `tests/e2e` against a real FreeIPA server in the podman dev container, plus the tests that need FreeIPA-side software (see below) |
@@ -91,7 +144,7 @@ Install the browser once: `npx playwright install chromium` (in `frontend/`).
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 280 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 302 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

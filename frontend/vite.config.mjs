@@ -87,7 +87,10 @@ export default defineConfig(({ command }) =>
                   emptyOutDir: true,
                   minify: false,
                   reportCompressedSize: false,
+                  // The styles of components written with CSS Modules (src/**/*.module.css) are emitted as js/app.css;
+                  // gpo.js loads it next to css/main.css.
                   lib: {
+                      cssFileName: 'app',
                       entry: path.join(root, 'src', 'app.js'),
                       name: 'gpui',
                       formats: ['umd'],
