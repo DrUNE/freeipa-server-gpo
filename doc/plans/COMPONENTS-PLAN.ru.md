@@ -42,9 +42,9 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 | 3 | ✅ `Field` + `FieldControl` по видам (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, только чтение, ошибка, подсказка) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
 | 4 | ✅ `Tabs` | `preference/view/field-tabs.js` | `Tabs`, `TabLayout` в webui | 1 |
 | 5 | `TreeView` (раскрытие, выбор, клавиатура, ленивые дочерние узлы) | `tree-view/*` | `TreeView` | 2-3 |
-| 6 | `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0,5 |
+| 6 | ✅ `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0,5 |
 | 7 | `CollectionEditor` (список и список «ключ/значение», правка в строке, проверка по строкам) | `collection-dialog.js`, `collection-control.js`; логика в `util/collection-value.ts` | таблица с правкой в строке | 2-3 |
-| 8 | `ConfirmationDialog` на `Dialog` и `h()` | `confirmation-dialog.js` | `ConfirmationModal.tsx` в webui | 0,5 |
+| 8 | ✅ `ConfirmationDialog` на `Dialog` и `h()` | `confirmation-dialog.js` | `ConfirmationModal.tsx` в webui | 0,5 |
 | 9 | `OrderableList` (кнопки вверх/вниз, перетаскивание с клавиатурной альтернативой) | порядок скриптов; затем таргетинг и цепочки в webui | в webui нет | 2 |
 
 **Итого 15-20 дней**, по одному компоненту за раз, каждый с историями, существующими тестами и снимками. `ElementCreator` уходит
@@ -102,7 +102,7 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 | 1 | ✅ Инфраструктура Storybook: поддельный RPC (mock стенда, ответы которого сверены с эталонами), сценарии, `Foundations/Tokens`, аддон доступности | 2-3 |
 | 2 | ✅ Компоненты 1-2 (`Toolbar`, `DataTable`) с историями | 4-6 |
 | 3 | ✅ Истории экранов «Расширенный аудит» и «Скрипты» (следующие пилоты миграции) | 2 |
-| 4 | Компоненты 3-8 с историями (сделаны `Field`, `Tabs`) | 9-12 |
+| 4 | Компоненты 3-8 с историями (сделаны `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`) | 9-12 |
 | 5 | Истории экранов «Безопасность», ADMX, форма предпочтения, дерево | 3-4 |
 | 6 | Компонент 9 (`OrderableList`), когда он понадобится таргетингу или цепочкам в webui | 2 |
 | | **Итого** | **22-29** |
@@ -119,7 +119,7 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 
 **Шаг 3 выполнен.** `Screens/Advanced Audit` (строки и фильтр, медленный ответ, ошибка сервера, пустой список) и `Screens/Scripts` (обзор области, страница события с правилами выбора, пустая и медленная страница события) отрисовывают настоящие шаблоны на поддельном сервере через `.storybook/screen.js` (`mountScreen`: открывает политику, показывает состояние загрузки, показывает ошибку так, как её показал бы редактор). Сценарий `empty` mock-сервера теперь очищает и строки расширенного аудита, и записи скриптов. Проверки доступности экранов нашли ещё три дефекта, исправлены: пустой заголовок `<h2>` на экране аудита (теперь подставляется локализованное название), список порядка выполнения на странице скриптов без доступного имени (новая подпись `executionOrder`, EN/RU) и активная вкладка с контрастом 4,4:1 (теперь `--gpui-accent-text`).
 
-**Шаг 4 выполнен частично: `Field` и `Tabs`.** `Field` (`createField`, layout'ы `checkbox|text|select|plain|mockup`) отвечает за подпись, связанную через `for`, подсказку, ошибку (`[data-field-part="error"]`) и `aria-describedby`; `field-control.js` построен на нём. `Tabs` (`createTabs`) отрисовывает настоящие `button` с `aria-controls`, панели и движение с клавиатуры; его использует `field-tabs.js`. Истории: `Primitives/Field`, `Primitives/Tabs`. Проверки доступности нашли последние цвета текста `#777` (теперь `--gpui-muted`) и список вкладок без имени (новая подпись `tabsLabel`). Осталось: `TreeView`, `Breadcrumb`, `CollectionEditor`, `ConfirmationDialog`.
+**Шаг 4 выполнен частично: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`.** `Field` (`createField`, layout'ы `checkbox|text|select|plain|mockup`) отвечает за подпись, связанную через `for`, подсказку, ошибку (`[data-field-part="error"]`) и `aria-describedby`; `field-control.js` построен на нём. `Tabs` (`createTabs`) отрисовывает настоящие `button` с `aria-controls`, панели и движение с клавиатуры; его использует `field-tabs.js`. Истории: `Primitives/Field`, `Primitives/Tabs`. Проверки доступности нашли последние цвета текста `#777` (теперь `--gpui-muted`) и список вкладок без имени (новая подпись `tabsLabel`). `Breadcrumb` (`createBreadcrumb`) и `ConfirmationDialog` (`open`, на `h()`) оставляют прежние модули (`category-path.js`, `confirmation-dialog.js`) адаптерами; юнит-тест окна подтверждения, которому нужен был поддельный DOM, заменён тремя историями (отмена, Escape и Tab, вложенное содержимое). Осталось: `TreeView`, `CollectionEditor`.
 
 ## 7. Чего не делать
 

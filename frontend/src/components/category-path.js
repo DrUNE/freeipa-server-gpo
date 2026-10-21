@@ -1,83 +1,9 @@
-import { createElement } from '@gpui/util/element-creator';
+import { ElementCreator } from '@gpui/util/element-creator';
+import { createBreadcrumb } from '@gpui/components/Breadcrumb/Breadcrumb';
 import { t } from '@gpui/locales/translations';
 
 function render(segments, onNavigate) {
-    const parts = (segments || []).filter(function (segment) {
-        return segment && segment.title;
-    });
-    const list = createElement('ol', { className: 'gpo-category-path__list' });
-    let focused = Math.max(0, parts.length - 1);
-    function syncFocus() {
-        const buttons = list.getElement().querySelectorAll('button');
-        Array.from(buttons).forEach(function (button, index) {
-            button.tabIndex = index === focused ? 0 : -1;
-        });
-    }
-    parts.forEach(function (segment, index) {
-        const last = index === parts.length - 1;
-        const label = createElement(segment.item && onNavigate ? 'button' : 'span', {
-            className: 'gpo-category-path__segment',
-            attrs: {
-                type: segment.item && onNavigate ? 'button' : null,
-                title: segment.title,
-                'aria-current': last ? 'page' : null
-            },
-            text: segment.title
-        });
-        if (segment.item && onNavigate) {
-            label.on('click', function () {
-                onNavigate(segment.item);
-            });
-            label.on('focus', function () {
-                focused = index;
-                syncFocus();
-            });
-        }
-        list.append(
-            createElement('li', {
-                children: [
-                    index
-                        ? createElement('span', {
-                              className: 'gpo-category-path__separator',
-                              attrs: { 'aria-hidden': 'true' },
-                              text: ' / '
-                          })
-                        : null,
-                    label
-                ]
-            })
-        );
-    });
-    list.on('keydown', function (event) {
-        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-        const buttons = Array.from(list.getElement().querySelectorAll('button'));
-        const index = buttons.indexOf(event.target);
-        if (index < 0) return;
-        const next =
-            event.key === 'ArrowLeft'
-                ? index - 1
-                : event.key === 'ArrowRight'
-                  ? index + 1
-                  : event.key === 'Home'
-                    ? 0
-                    : event.key === 'End'
-                      ? buttons.length - 1
-                      : null;
-        if (next === null) return;
-        event.preventDefault();
-        focused = Math.max(0, Math.min(buttons.length - 1, next));
-        syncFocus();
-        buttons[focused].focus({ preventScroll: true });
-    });
-    syncFocus();
-    return createElement('nav', {
-        className: 'gpo-category-path',
-        attrs: {
-            'data-category-path': '',
-            'aria-label': t('navigation.path')
-        },
-        children: [list]
-    });
+    return ElementCreator.wrap(createBreadcrumb({ label: t('navigation.path'), segments, onNavigate }));
 }
 
 function attachFilter(header, view) {

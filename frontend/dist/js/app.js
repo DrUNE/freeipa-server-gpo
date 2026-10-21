@@ -3078,66 +3078,99 @@
 		};
 	}
 	//#endregion
-	//#region src/components/category-path.js
-	function render$4(segments, onNavigate) {
-		const parts = (segments || []).filter(function(segment) {
-			return segment && segment.title;
-		});
-		const list = createElement("ol", { className: "gpo-category-path__list" });
+	//#region src/lib/dom.js
+	/**
+	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
+	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
+	* @template {keyof HTMLElementTagNameMap} K
+	* @param {K} tag
+	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
+	* @param {...Child} children
+	* @returns {HTMLElementTagNameMap[K]}
+	*/
+	function h(tag, attrs = {}, ...children) {
+		const element = document.createElement(tag);
+		for (const [name, value] of Object.entries(attrs)) {
+			if (value === false || value === null || value === void 0) continue;
+			element.setAttribute(name, value === true ? "" : value);
+		}
+		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
+		return element;
+	}
+	/**
+	* Joins class names, skipping falsy values.
+	* @param {...(string | false | null | undefined)} names
+	*/
+	function cx(...names) {
+		return names.filter(Boolean).join(" ");
+	}
+	//#endregion
+	//#region src/components/Breadcrumb/Breadcrumb.js
+	/**
+	* @param {{ label: string, segments: Array<{ title?: string, item?: unknown } | null | undefined>, onNavigate?: (item: any) => void }} options
+	* @returns {HTMLElement}
+	*/
+	function createBreadcrumb({ label, segments, onNavigate }) {
+		const parts = (segments || []).filter((segment) => segment && segment.title);
+		const list = h("ol", { class: "gpo-category-path__list" });
 		let focused = Math.max(0, parts.length - 1);
-		function syncFocus() {
-			const buttons = list.getElement().querySelectorAll("button");
-			Array.from(buttons).forEach(function(button, index) {
+		function render() {
+			Array.from(list.querySelectorAll("button")).forEach((button, index) => {
 				button.tabIndex = index === focused ? 0 : -1;
 			});
 		}
-		parts.forEach(function(segment, index) {
-			const last = index === parts.length - 1;
-			const label = createElement(segment.item && onNavigate ? "button" : "span", {
-				className: "gpo-category-path__segment",
-				attrs: {
-					type: segment.item && onNavigate ? "button" : null,
-					title: segment.title,
-					"aria-current": last ? "page" : null
-				},
-				text: segment.title
-			});
-			if (segment.item && onNavigate) {
-				label.on("click", function() {
-					onNavigate(segment.item);
-				});
-				label.on("focus", function() {
+		parts.forEach((segment, index) => {
+			const navigable = Boolean(segment.item && onNavigate);
+			const text = h(navigable ? "button" : "span", {
+				class: "gpo-category-path__segment",
+				type: navigable ? "button" : null,
+				title: segment.title,
+				"aria-current": index === parts.length - 1 ? "page" : null
+			}, segment.title);
+			if (navigable) {
+				text.addEventListener("click", () => onNavigate?.(segment.item));
+				text.addEventListener("focus", () => {
 					focused = index;
-					syncFocus();
+					render();
 				});
 			}
-			list.append(createElement("li", { children: [index ? createElement("span", {
-				className: "gpo-category-path__separator",
-				attrs: { "aria-hidden": "true" },
-				text: " / "
-			}) : null, label] }));
+			list.append(h("li", {}, index ? h("span", {
+				class: "gpo-category-path__separator",
+				"aria-hidden": "true"
+			}, " / ") : null, text));
 		});
-		list.on("keydown", function(event) {
+		list.addEventListener("keydown", (event) => {
 			if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-			const buttons = Array.from(list.getElement().querySelectorAll("button"));
+			const buttons = Array.from(list.querySelectorAll("button"));
 			const index = buttons.indexOf(event.target);
 			if (index < 0) return;
-			const next = event.key === "ArrowLeft" ? index - 1 : event.key === "ArrowRight" ? index + 1 : event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : null;
-			if (next === null) return;
+			const next = {
+				ArrowLeft: index - 1,
+				ArrowRight: index + 1,
+				Home: 0,
+				End: buttons.length - 1
+			}[event.key];
+			if (next === void 0) return;
 			event.preventDefault();
 			focused = Math.max(0, Math.min(buttons.length - 1, next));
-			syncFocus();
+			render();
 			buttons[focused].focus({ preventScroll: true });
 		});
-		syncFocus();
-		return createElement("nav", {
-			className: "gpo-category-path",
-			attrs: {
-				"data-category-path": "",
-				"aria-label": t("navigation.path")
-			},
-			children: [list]
-		});
+		render();
+		return h("nav", {
+			class: "gpo-category-path",
+			"data-category-path": "",
+			"aria-label": label
+		}, list);
+	}
+	//#endregion
+	//#region src/components/category-path.js
+	function render$4(segments, onNavigate) {
+		return ElementCreator.wrap(createBreadcrumb({
+			label: t("navigation.path"),
+			segments,
+			onNavigate
+		}));
 	}
 	function attachFilter(header, view) {
 		if (!header || !view) return;
@@ -3745,33 +3778,6 @@
 	function errorCategory(error) {
 		return String(error && (error.category || error.code) || "operational").toLowerCase();
 	}
-	//#endregion
-	//#region src/lib/dom.js
-	/**
-	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
-	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
-	* @template {keyof HTMLElementTagNameMap} K
-	* @param {K} tag
-	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
-	* @param {...Child} children
-	* @returns {HTMLElementTagNameMap[K]}
-	*/
-	function h(tag, attrs = {}, ...children) {
-		const element = document.createElement(tag);
-		for (const [name, value] of Object.entries(attrs)) {
-			if (value === false || value === null || value === void 0) continue;
-			element.setAttribute(name, value === true ? "" : value);
-		}
-		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
-		return element;
-	}
-	/**
-	* Joins class names, skipping falsy values.
-	* @param {...(string | false | null | undefined)} names
-	*/
-	function cx(...names) {
-		return names.filter(Boolean).join(" ");
-	}
 	var EditorStatus_module_default = {
 		status: "_status_1fqo6_1",
 		error: "_error_1fqo6_9",
@@ -3876,62 +3882,47 @@
 		return wrap$6(createUnsupportedStatus(message));
 	}
 	//#endregion
-	//#region src/components/confirmation-dialog.js
+	//#region src/components/ConfirmationDialog/ConfirmationDialog.js
 	var nextId$1 = 0;
+	/**
+	* @param {{ getElement?: () => HTMLElement, appendChild?: Function } | HTMLElement} host
+	* @param {{ title?: string, message?: string, content?: any, confirmLabel?: string, cancelLabel?: string,
+	*   onConfirm?: () => void, onCancel?: () => void }} [options]
+	*/
 	function open$3(host, options) {
 		const config = options || {};
-		const container = host && host.getElement ? host.getElement() : host;
+		const container = host && "getElement" in host && host.getElement ? host.getElement() : host;
 		if (!container || typeof container.appendChild !== "function") throw new TypeError("A confirmation dialog host is required.");
 		const previous = document.activeElement;
 		const id = "gpo-confirmation-" + ++nextId$1;
 		let closed = false;
-		const no = createElement("button", {
-			className: ["btn", "btn-no"],
-			attrs: { type: "button" },
-			text: config.cancelLabel || t("policyChangedModal.no")
-		});
-		const yes = createElement("button", {
-			className: ["btn", "btn-yes"],
-			attrs: { type: "button" },
-			text: config.confirmLabel || t("policyChangedModal.yes")
-		});
-		const content = createElement("div", {
+		const no = h("button", {
+			class: "btn btn-no",
+			type: "button"
+		}, config.cancelLabel || t("policyChangedModal.no"));
+		const yes = h("button", {
+			class: "btn btn-yes",
+			type: "button"
+		}, config.confirmLabel || t("policyChangedModal.yes"));
+		const content = h("div", {
 			id: id + "-message",
-			className: "policy-changed__modal-content",
-			text: config.message || ""
-		});
-		if (config.content) content.getElement().appendChild(config.content.getElement ? config.content.getElement() : config.content);
-		const modal = createElement("div", {
-			className: ["policy-changed__modal", "policy-changed__modal--discard"],
-			attrs: {
-				role: "alertdialog",
-				"aria-modal": "true",
-				"aria-labelledby": id + "-title",
-				"aria-describedby": id + "-message"
-			},
-			children: [createElement("div", {
-				className: "policy-changed__modal-wrapper",
-				children: [
-					createElement("div", {
-						className: "policy-changed__modal-header",
-						children: [createElement("div", {
-							id: id + "-title",
-							className: "title",
-							text: config.title || t("confirmModal.title")
-						})]
-					}),
-					content,
-					createElement("div", {
-						className: "policy-changed__modal-footer",
-						children: [no, yes]
-					})
-				]
-			})]
-		});
+			class: "policy-changed__modal-content"
+		}, config.message || "");
+		if (config.content) content.appendChild(config.content.getElement ? config.content.getElement() : config.content);
+		const modal = h("div", {
+			class: cx("policy-changed__modal", "policy-changed__modal--discard"),
+			role: "alertdialog",
+			"aria-modal": "true",
+			"aria-labelledby": id + "-title",
+			"aria-describedby": id + "-message"
+		}, h("div", { class: "policy-changed__modal-wrapper" }, h("div", { class: "policy-changed__modal-header" }, h("div", {
+			id: id + "-title",
+			class: "title"
+		}, config.title || t("confirmModal.title"))), content, h("div", { class: "policy-changed__modal-footer" }, no, yes)));
 		function close() {
 			if (closed) return;
 			closed = true;
-			modal.getElement().remove();
+			modal.remove();
 			if (previous && previous.isConnected && previous.focus) previous.focus();
 		}
 		function choose(confirmed) {
@@ -3940,34 +3931,30 @@
 			const callback = confirmed ? config.onConfirm : config.onCancel;
 			if (typeof callback === "function") callback();
 		}
-		no.on("click", function() {
-			choose(false);
-		});
-		yes.on("click", function() {
-			choose(true);
-		});
-		modal.on("keydown", function(event) {
+		no.addEventListener("click", () => choose(false));
+		yes.addEventListener("click", () => choose(true));
+		modal.addEventListener("keydown", (event) => {
 			if (event.key === "Escape") {
 				event.preventDefault();
 				event.stopPropagation();
 				choose(false);
 			} else if (event.key === "Tab") {
-				if (event.shiftKey && document.activeElement === no.getElement()) {
+				if (event.shiftKey && document.activeElement === no) {
 					event.preventDefault();
-					yes.getElement().focus();
-				} else if (!event.shiftKey && document.activeElement === yes.getElement()) {
+					yes.focus();
+				} else if (!event.shiftKey && document.activeElement === yes) {
 					event.preventDefault();
-					no.getElement().focus();
+					no.focus();
 				}
 			}
 		});
-		container.appendChild(modal.getElement());
-		modal.getElement().offsetHeight;
-		modal.getElement().classList.add("active");
-		no.getElement().focus();
+		container.appendChild(modal);
+		modal.offsetHeight;
+		modal.classList.add("active");
+		no.focus();
 		return {
 			close,
-			root: modal.getElement()
+			root: modal
 		};
 	}
 	var Dialog_module_default = {
