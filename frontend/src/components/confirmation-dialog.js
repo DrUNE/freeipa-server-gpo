@@ -1,32 +1,29 @@
-import * as elements from '@gpui/util/element-creator';
-import * as translations from '@gpui/locales/translations';
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 
-('use strict');
-
-var create = elements.createElement;
-var nextId = 0;
+let nextId = 0;
 
 function open(host, options) {
-    var config = options || {};
-    var container = host && host.getElement ? host.getElement() : host;
+    const config = options || {};
+    const container = host && host.getElement ? host.getElement() : host;
     if (!container || typeof container.appendChild !== 'function') {
         throw new TypeError('A confirmation dialog host is required.');
     }
 
-    var previous = /** @type {HTMLElement | null} */ (document.activeElement);
-    var id = 'gpo-confirmation-' + ++nextId;
-    var closed = false;
-    var no = create('button', {
+    const previous = /** @type {HTMLElement | null} */ (document.activeElement);
+    const id = 'gpo-confirmation-' + ++nextId;
+    let closed = false;
+    const no = createElement('button', {
         className: ['btn', 'btn-no'],
         attrs: { type: 'button' },
-        text: config.cancelLabel || translations.t('policyChangedModal.no')
+        text: config.cancelLabel || t('policyChangedModal.no')
     });
-    var yes = create('button', {
+    const yes = createElement('button', {
         className: ['btn', 'btn-yes'],
         attrs: { type: 'button' },
-        text: config.confirmLabel || translations.t('policyChangedModal.yes')
+        text: config.confirmLabel || t('policyChangedModal.yes')
     });
-    var content = create('div', {
+    const content = createElement('div', {
         id: id + '-message',
         className: 'policy-changed__modal-content',
         text: config.message || ''
@@ -34,7 +31,7 @@ function open(host, options) {
     if (config.content) {
         content.getElement().appendChild(config.content.getElement ? config.content.getElement() : config.content);
     }
-    var modal = create('div', {
+    const modal = createElement('div', {
         className: ['policy-changed__modal', 'policy-changed__modal--discard'],
         attrs: {
             role: 'alertdialog',
@@ -43,21 +40,21 @@ function open(host, options) {
             'aria-describedby': id + '-message'
         },
         children: [
-            create('div', {
+            createElement('div', {
                 className: 'policy-changed__modal-wrapper',
                 children: [
-                    create('div', {
+                    createElement('div', {
                         className: 'policy-changed__modal-header',
                         children: [
-                            create('div', {
+                            createElement('div', {
                                 id: id + '-title',
                                 className: 'title',
-                                text: config.title || translations.t('confirmModal.title')
+                                text: config.title || t('confirmModal.title')
                             })
                         ]
                     }),
                     content,
-                    create('div', {
+                    createElement('div', {
                         className: 'policy-changed__modal-footer',
                         children: [no, yes]
                     })
@@ -76,7 +73,7 @@ function open(host, options) {
     function choose(confirmed) {
         if (closed) return;
         close();
-        var callback = confirmed ? config.onConfirm : config.onCancel;
+        const callback = confirmed ? config.onConfirm : config.onCancel;
         if (typeof callback === 'function') callback();
     }
 

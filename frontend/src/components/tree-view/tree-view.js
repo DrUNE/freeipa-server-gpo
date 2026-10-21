@@ -1,12 +1,7 @@
-import * as __dep0 from '@gpui/util/element-creator';
-import * as __dep1 from '@gpui/locales/translations';
-import * as __dep2 from '@gpui/components/tree-view/tree-view-list';
-import * as __dep3 from '@gpui/components/tree-view/tree-view-list-data';
-
-var { createElement } = __dep0;
-var { t } = __dep1;
-var { renderTreeViewList } = __dep2;
-var { loadTreeViewList } = __dep3;
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
+import { renderTreeViewList } from '@gpui/components/tree-view/tree-view-list';
+import { loadTreeViewList } from '@gpui/components/tree-view/tree-view-list-data';
 
 const TREE_VIEW_MESSAGES = {
     loading: 'treeView.loadingPolicies',

@@ -1,53 +1,53 @@
-import * as elements from '@gpui/util/element-creator';
-import * as collections from '@gpui/util/collection-value';
-import * as translations from '@gpui/locales/translations';
+import { createElement } from '@gpui/util/element-creator';
+import { constraints, session } from '@gpui/util/collection-value';
+import { t } from '@gpui/locales/translations';
 import * as editorDialog from '@gpui/components/editor-dialog';
-import * as listNavigation from '@gpui/components/list-navigation';
+import { neighbor } from '@gpui/components/list-navigation';
 
-('use strict');
-var create = elements.createElement;
-var sequence = 0;
+let sequence = 0;
 function tr(key, values) {
-    var text = translations.t('collections.' + key);
+    let text = t('collections.' + key);
     Object.keys(values || {}).forEach(function (name) {
         text = text.replace('{' + name + '}', values[name]);
     });
     return text;
 }
 function open(host, options) {
-    var state = collections.session(options.parameter, options.value);
-    var readOnly = Boolean(options.readOnly);
-    var fields = state.mode === 'key_value' ? ['key', 'value'] : ['value'];
-    var rules = collections.constraints(options.parameter, options.value);
-    var prefix = 'collection-' + ++sequence;
-    var activeCell = { id: state.rows[0] && state.rows[0].id, field: fields[0] };
-    var editing = null;
-    var drag = null;
-    var scrollFrame = null;
-    var dialog;
-    var add = create('button', {
+    const state = session(options.parameter, options.value);
+    const readOnly = Boolean(options.readOnly);
+    const fields = state.mode === 'key_value' ? ['key', 'value'] : ['value'];
+    const rules = constraints(options.parameter, options.value);
+    const prefix = 'collection-' + ++sequence;
+    let activeCell = { id: state.rows[0] && state.rows[0].id, field: fields[0] };
+    let editing = null;
+    let drag = null;
+    let scrollFrame = null;
+    let dialog;
+    const add = createElement('button', {
         className: 'button',
         attrs: { type: 'button', 'data-collection-add': '' },
         text: tr('add')
     });
-    var remove = create('button', {
+    const remove = createElement('button', {
         className: 'button',
         attrs: { type: 'button', 'data-collection-remove': '' },
         text: tr('remove')
     });
-    var search = create('input', { attrs: { type: 'search', placeholder: tr('search'), 'aria-label': tr('search') } });
-    var toolbar = create('div', {
+    const search = createElement('input', {
+        attrs: { type: 'search', placeholder: tr('search'), 'aria-label': tr('search') }
+    });
+    const toolbar = createElement('div', {
         className: 'gpo-collection-editor__toolbar',
         children: [readOnly ? null : add, readOnly ? null : remove, search]
     });
-    var errors = create('div', { className: 'gpo-collection-editor__validation', attrs: { role: 'alert' } });
-    var count = create('div', { className: 'gpo-collection-editor__count' });
-    var live = create('div', {
+    const errors = createElement('div', { className: 'gpo-collection-editor__validation', attrs: { role: 'alert' } });
+    const count = createElement('div', { className: 'gpo-collection-editor__count' });
+    const live = createElement('div', {
         className: 'gpo-collection-editor__live',
         attrs: { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }
     });
-    var body = create('tbody');
-    var table = create('table', {
+    const body = createElement('tbody');
+    const table = createElement('table', {
         className: ['preference__table', 'gpo-collection-table'],
         attrs: {
             'aria-label': options.parameter.label || options.parameter.id,
@@ -55,28 +55,30 @@ function open(host, options) {
             'data-collection-mode': state.mode
         },
         children: [
-            create('colgroup', {
+            createElement('colgroup', {
                 children: [
-                    readOnly ? null : create('col', { className: 'gpo-collection-table__handle-column' }),
-                    create('col', {
+                    readOnly ? null : createElement('col', { className: 'gpo-collection-table__handle-column' }),
+                    createElement('col', {
                         className:
                             state.mode === 'key_value'
                                 ? 'gpo-collection-table__key-column'
                                 : 'gpo-collection-table__index-column'
                     }),
-                    create('col')
+                    createElement('col')
                 ]
             }),
-            create('thead', {
+            createElement('thead', {
                 children: [
-                    create('tr', {
+                    createElement('tr', {
                         children: [
-                            readOnly ? null : create('th', { attrs: { scope: 'col', 'aria-label': tr('reorder') } }),
-                            create('th', {
+                            readOnly
+                                ? null
+                                : createElement('th', { attrs: { scope: 'col', 'aria-label': tr('reorder') } }),
+                            createElement('th', {
                                 attrs: { scope: 'col' },
                                 text: state.mode === 'key_value' ? tr('key') : tr('index')
                             }),
-                            create('th', { attrs: { scope: 'col' }, text: tr('value') })
+                            createElement('th', { attrs: { scope: 'col' }, text: tr('value') })
                         ]
                     })
                 ]
@@ -84,8 +86,8 @@ function open(host, options) {
             body
         ]
     });
-    var scroll = create('div', { className: 'gpo-collection-editor__table-scroll', children: [table] });
-    var content = create('div', {
+    const scroll = createElement('div', { className: 'gpo-collection-editor__table-scroll', children: [table] });
+    const content = createElement('div', {
         className: 'gpo-collection-editor',
         children: [toolbar, errors, scroll, count, live]
     });
@@ -111,10 +113,10 @@ function open(host, options) {
     }
     function updateSelection() {
         Array.from(body.getElement().querySelectorAll('[data-collection-row]')).forEach(function (row) {
-            var id = row.getAttribute('data-collection-row');
+            const id = row.getAttribute('data-collection-row');
             row.classList.toggle('active', state.selectedId === id);
             row.setAttribute('aria-selected', String(state.selectedId === id));
-            var handle = row.querySelector('.gpo-collection-table__handle');
+            const handle = row.querySelector('.gpo-collection-table__handle');
             if (handle) handle.tabIndex = -1;
             /** @type {HTMLElement[]} */ (Array.from(row.querySelectorAll('[data-collection-field]'))).forEach(
                 function (cell) {
@@ -129,7 +131,7 @@ function open(host, options) {
         remove.getElement().disabled = readOnly || busy() || !state.selectedId;
     }
     function updateValidation() {
-        var problems = readOnly ? [] : state.errors(pending());
+        const problems = readOnly ? [] : state.errors(pending());
         errors.getElement().textContent = problems
             .filter(function (problem) {
                 return !problem.id;
@@ -139,19 +141,19 @@ function open(host, options) {
             })
             .join(' ');
         Array.from(body.getElement().querySelectorAll('[data-collection-field]')).forEach(function (cell) {
-            var id = cell.parentElement.getAttribute('data-collection-row');
-            var field = cell.getAttribute('data-collection-field');
-            var problem = problems.find(function (error) {
+            const id = cell.parentElement.getAttribute('data-collection-row');
+            const field = cell.getAttribute('data-collection-field');
+            const problem = problems.find(function (error) {
                 return error.id === id && error.field === field;
             });
-            var prior = cell.querySelector('.gpo-collection-cell__error');
+            const prior = cell.querySelector('.gpo-collection-cell__error');
             if (prior) prior.remove();
             cell.classList.toggle('gpo-collection-cell--invalid', Boolean(problem));
-            var input = cell.querySelector('[data-collection-input]');
+            const input = cell.querySelector('[data-collection-input]');
             if (problem) {
-                var errorId = prefix + '-' + id + '-' + field + '-error';
+                const errorId = prefix + '-' + id + '-' + field + '-error';
                 cell.appendChild(
-                    create('span', {
+                    createElement('span', {
                         id: errorId,
                         className: 'gpo-collection-cell__error',
                         text: tr('errors.' + problem.code)
@@ -166,7 +168,7 @@ function open(host, options) {
                 input.removeAttribute('aria-describedby');
             }
         });
-        var size = state.read(pending()).value.length;
+        const size = state.read(pending()).value.length;
         count.getElement().textContent = search.getElement().value
             ? tr('shownCount', { shown: state.visible(search.getElement().value).length, total: state.rows.length })
             : tr(state.mode === 'key_value' ? 'pairsCount' : 'itemsCount', { count: size });
@@ -176,22 +178,22 @@ function open(host, options) {
     function showCell(cell, row, field) {
         cell.classList.remove('gpo-collection-cell--editing');
         cell.replaceChildren(
-            create('span', { className: 'gpo-collection-cell__text', text: row[field] || '\u00a0' }).getElement()
+            createElement('span', { className: 'gpo-collection-cell__text', text: row[field] || '\u00a0' }).getElement()
         );
     }
     function finishEdit(commit) {
         if (!editing) return;
-        var current = editing;
+        const current = editing;
         editing = null;
         if (commit) state.edit(current.id, current.field, current.input.value);
-        var row = state.find(current.id);
+        const row = state.find(current.id);
         if (row) showCell(current.cell, row, current.field);
         updateValidation();
     }
     function focusCell(id, field) {
         activeCell = { id: id, field: field };
         updateSelection();
-        var cell = cellFor(id, field);
+        const cell = cellFor(id, field);
         if (cell) {
             cell.focus({ preventScroll: true });
             cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -200,15 +202,15 @@ function open(host, options) {
     function editCell(id, field) {
         if (readOnly || drag || busy()) return;
         finishEdit(true);
-        var cell = cellFor(id, field);
-        var row = state.find(id);
+        const cell = cellFor(id, field);
+        const row = state.find(id);
         if (!cell || !row) return;
         activeCell = { id: id, field: field };
         updateSelection();
         // In supported bindings, unique list entries without explicit keys
         // are registry names too. Only data cells may contain line breaks.
-        var singleLine = field === 'key' || (state.mode === 'list' && rules.unique_keys);
-        var input = create(singleLine ? 'input' : 'textarea', {
+        const singleLine = field === 'key' || (state.mode === 'list' && rules.unique_keys);
+        const input = createElement(singleLine ? 'input' : 'textarea', {
             attrs: {
                 type: singleLine ? 'text' : null,
                 rows: singleLine ? null : '1',
@@ -251,8 +253,8 @@ function open(host, options) {
                 finishEdit(true);
                 focusCell(id, field);
             } else if (event.key === 'Tab') {
-                var visible = state.visible(search.getElement().value);
-                var position =
+                const visible = state.visible(search.getElement().value);
+                const position =
                     visible.findIndex(function (item) {
                         return item.id === id;
                     }) *
@@ -267,7 +269,7 @@ function open(host, options) {
                 } else {
                     event.preventDefault();
                     event.stopPropagation();
-                    var target = event.shiftKey
+                    const target = event.shiftKey
                         ? !search.getElement().hidden
                             ? search.getElement()
                             : add.getElement()
@@ -305,8 +307,8 @@ function open(host, options) {
     function focusHandle(id) {
         activeCell.id = id;
         updateSelection();
-        var row = body.getElement().querySelector('[data-collection-row="' + id + '"]');
-        var handle = row && row.querySelector('.gpo-collection-table__handle');
+        const row = body.getElement().querySelector('[data-collection-row="' + id + '"]');
+        const handle = row && row.querySelector('.gpo-collection-table__handle');
         if (handle) {
             focusCell(id, activeCell.field);
         }
@@ -316,7 +318,7 @@ function open(host, options) {
             scrollFrame = null;
             return;
         }
-        var rect = scroll.getElement().getBoundingClientRect();
+        const rect = scroll.getElement().getBoundingClientRect();
         if (drag.y >= rect.top && drag.y <= rect.bottom) {
             if (drag.y < rect.top + 28) scroll.getElement().scrollTop -= 8;
             else if (drag.y > rect.bottom - 28) scroll.getElement().scrollTop += 8;
@@ -326,7 +328,7 @@ function open(host, options) {
     function render() {
         finishEdit(true);
         body.getElement().replaceChildren();
-        var visible = state.visible(search.getElement().value);
+        const visible = state.visible(search.getElement().value);
         if (
             !visible.some(function (row) {
                 return row.id === activeCell.id;
@@ -336,10 +338,10 @@ function open(host, options) {
         search.getElement().hidden = state.rows.length < 20 && !search.getElement().value;
         if (!visible.length) {
             body.append(
-                create('tr', {
+                createElement('tr', {
                     className: 'gpo-collection-table__empty',
                     children: [
-                        create('td', {
+                        createElement('td', {
                             attrs: { colspan: readOnly ? 2 : 3 },
                             text: tr(state.rows.length ? 'noMatches' : 'empty')
                         })
@@ -348,10 +350,10 @@ function open(host, options) {
             );
         }
         visible.forEach(function (row) {
-            var index = state.rows.indexOf(row);
-            var record = create('tr', { attrs: { 'data-collection-row': row.id } });
+            const index = state.rows.indexOf(row);
+            const record = createElement('tr', { attrs: { 'data-collection-row': row.id } });
             if (!readOnly) {
-                var handle = create('button', {
+                const handle = createElement('button', {
                     className: 'gpo-collection-table__handle',
                     attrs: {
                         type: 'button',
@@ -404,12 +406,14 @@ function open(host, options) {
                         announce(tr('moved', { index: state.rows.indexOf(row) }));
                     }
                 });
-                record.append(create('td', { className: 'gpo-collection-table__handle-cell', children: [handle] }));
+                record.append(
+                    createElement('td', { className: 'gpo-collection-table__handle-cell', children: [handle] })
+                );
             }
             if (state.mode === 'list')
-                record.append(create('td', { className: 'gpo-collection-table__index', text: index }));
+                record.append(createElement('td', { className: 'gpo-collection-table__index', text: index }));
             fields.forEach(function (field) {
-                var cell = create('td', {
+                const cell = createElement('td', {
                     className: ['gpo-collection-cell', 'field__element'],
                     attrs: { 'data-collection-field': field, tabindex: '-1' }
                 });
@@ -436,7 +440,7 @@ function open(host, options) {
         if (readOnly || busy()) return;
         finishEdit(true);
         search.getElement().value = '';
-        var id = state.add();
+        const id = state.add();
         activeCell = { id: id, field: fields[0] };
         render();
         editCell(id, fields[0]);
@@ -445,15 +449,15 @@ function open(host, options) {
     function removeSelected() {
         if (readOnly || busy() || !state.selectedId) return;
         finishEdit(true);
-        var before = Array.from(body.getElement().querySelectorAll('[data-collection-row]')).map(function (row) {
+        const before = Array.from(body.getElement().querySelectorAll('[data-collection-row]')).map(function (row) {
             return row.getAttribute('data-collection-row');
         });
-        var removedId = state.selectedId;
+        const removedId = state.selectedId;
         if (!state.removeSelected()) return;
-        var after = state.visible(search.getElement().value).map(function (row) {
+        const after = state.visible(search.getElement().value).map(function (row) {
             return row.id;
         });
-        var nextId = listNavigation.neighbor(before, [removedId], after);
+        const nextId = neighbor(before, [removedId], after);
         state.select(nextId);
         activeCell.id = nextId;
         render();
@@ -473,7 +477,7 @@ function open(host, options) {
             event.target.closest('input,select,textarea,button,a,[contenteditable]:not([contenteditable="false"])')
         )
             return;
-        var cell = event.target.closest('[data-collection-field]');
+        const cell = event.target.closest('[data-collection-field]');
         if (!cell) return;
         activeCell = {
             id: cell.parentElement.getAttribute('data-collection-row'),
@@ -544,8 +548,8 @@ function open(host, options) {
             editCell(activeCell.id, activeCell.field);
             return;
         }
-        var visible = state.visible(search.getElement().value);
-        var index = visible.findIndex(function (row) {
+        const visible = state.visible(search.getElement().value);
+        const index = visible.findIndex(function (row) {
             return row.id === activeCell.id;
         });
         if (index < 0) return;
@@ -554,9 +558,9 @@ function open(host, options) {
             selectCell(activeCell.id, activeCell.field);
         } else if (['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].indexOf(event.key) !== -1) {
             event.preventDefault();
-            var position = index;
-            var row = body.getElement().querySelector('[data-collection-row="' + activeCell.id + '"]');
-            var pageSize = Math.max(
+            let position = index;
+            const row = body.getElement().querySelector('[data-collection-row="' + activeCell.id + '"]');
+            const pageSize = Math.max(
                 1,
                 Math.floor(scroll.getElement().clientHeight / Math.max(1, row.getBoundingClientRect().height)) - 1
             );
@@ -566,7 +570,7 @@ function open(host, options) {
                 position +=
                     (event.key === 'ArrowUp' || event.key === 'PageUp' ? -1 : 1) *
                     (event.key === 'PageUp' || event.key === 'PageDown' ? pageSize : 1);
-            var next = visible[Math.max(0, Math.min(visible.length - 1, position))];
+            const next = visible[Math.max(0, Math.min(visible.length - 1, position))];
             selectCell(next.id, activeCell.field);
         } else if (state.mode === 'key_value' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
             event.preventDefault();
@@ -578,14 +582,14 @@ function open(host, options) {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
         drag.y = event.clientY;
-        var target = event.target.closest('[data-collection-row]');
+        let target = event.target.closest('[data-collection-row]');
         Array.from(body.getElement().querySelectorAll('tr')).forEach(function (row) {
             row.classList.remove('gpo-collection-row--before', 'gpo-collection-row--after');
         });
         if (!target) target = body.getElement().lastElementChild;
         if (!target || !target.hasAttribute('data-collection-row')) return;
         drag.targetId = target.getAttribute('data-collection-row');
-        var rect = target.getBoundingClientRect();
+        const rect = target.getBoundingClientRect();
         drag.after = event.clientY > rect.top + rect.height / 2;
         if (drag.targetId !== drag.id)
             target.classList.add(drag.after ? 'gpo-collection-row--after' : 'gpo-collection-row--before');
@@ -594,15 +598,15 @@ function open(host, options) {
         if (!drag) return;
         event.preventDefault();
         event.stopPropagation();
-        var from = state.rows.findIndex(function (row) {
+        const from = state.rows.findIndex(function (row) {
             return row.id === drag.id;
         });
-        var to =
+        let to =
             state.rows.findIndex(function (row) {
                 return row.id === drag.targetId;
             }) + (drag.after ? 1 : 0);
         if (from < to) to -= 1;
-        var id = drag.id;
+        const id = drag.id;
         state.move(id, to);
         clearDrag();
         render();
@@ -616,7 +620,7 @@ function open(host, options) {
         );
     });
     content.append(
-        create('span', {
+        createElement('span', {
             id: prefix + '-reorder-help',
             className: 'gpo-collection-editor__live',
             text: tr('reorderHelp')
@@ -636,7 +640,7 @@ function open(host, options) {
         },
         onApply: function () {
             finishEdit(true);
-            var problems = updateValidation();
+            const problems = updateValidation();
             if (problems.length) {
                 if (problems[0].id) focusCell(problems[0].id, problems[0].field);
                 else add.getElement().focus();

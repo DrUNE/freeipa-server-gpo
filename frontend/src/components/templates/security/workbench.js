@@ -1,28 +1,32 @@
-import * as elements from '@gpui/util/element-creator';
+import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import * as translations from '@gpui/locales/translations';
+import { t } from '@gpui/locales/translations';
+import {
+    writableElement,
+    collectionElement,
+    elementState,
+    buildSecurityModel
+} from '@gpui/components/templates/security/model';
 import * as modelTools from '@gpui/components/templates/security/model';
-import * as values from '@gpui/components/templates/security/value-editor';
-import * as dialogs from '@gpui/components/templates/security/dialog';
-import * as headerActions from '@gpui/components/templates/security/header-actions';
-import * as editorStatus from '@gpui/components/editor-status';
+import { rowKey, newRow } from '@gpui/components/templates/security/value-editor';
+import { open } from '@gpui/components/templates/security/dialog';
+import { bind } from '@gpui/components/templates/security/header-actions';
+import { renderError } from '@gpui/components/editor-status';
 import * as listNavigation from '@gpui/components/list-navigation';
 
-('use strict');
-var create = elements.createElement;
 function tr(key, fallback) {
-    var text = translations.t('security.' + key);
+    const text = t('security.' + key);
     return text && text !== 'security.' + key ? text : fallback;
 }
 function typedSummary(definition, state) {
     if (!state || state.state !== 'set') return tr('notConfigured', 'Not configured');
-    var value = state.value.value;
+    const value = state.value.value;
     if (state.value.kind === 'boolean') return value ? tr('enabled', 'Enabled') : tr('disabled', 'Disabled');
     if (state.value.kind === 'enum' || state.value.kind === 'flags') {
-        var selected = Array.isArray(value) ? value : [value];
+        const selected = Array.isArray(value) ? value : [value];
         return selected
             .map(function (id) {
-                var option = (definition.options || []).find(function (option) {
+                const option = (definition.options || []).find(function (option) {
                     return option.id === id;
                 });
                 return option ? option.display_name || id : id;
@@ -38,7 +42,7 @@ function policySummary(policy) {
     return (
         (policy.definition.elements || [])
             .filter(function (definition) {
-                var state = policy.state.elements && policy.state.elements[definition.id];
+                const state = policy.state.elements && policy.state.elements[definition.id];
                 return state && state.state === 'set';
             })
             .map(function (definition) {
@@ -48,19 +52,19 @@ function policySummary(policy) {
     );
 }
 function configuredRows(policy, definition) {
-    var state = modelTools.elementState(policy, definition.id);
+    const state = elementState(policy, definition.id);
     return state.state === 'set' ? state.value.value || [] : [];
 }
 async function openPolicyDialog(host, options, renderEditor) {
-    var config = options || {},
+    const config = options || {},
         item = config.item || {};
-    var model = item.securityModel || modelTools.buildSecurityModel(await API.securityDefinitionsShow());
+    const model = item.securityModel || buildSecurityModel(await API.securityDefinitionsShow());
     if (config.isCurrent && !config.isCurrent()) return null;
-    var policy = modelTools.policy(model, item.securityPolicy);
+    const policy = modelTools.policy(model, item.securityPolicy);
     if (!policy) throw new Error(tr('missingPolicy', 'The security definition is no longer available.'));
-    var definition = item.securityCollection && modelTools.collectionElement(policy);
-    var title = policy.definition.display_name || policy.policyId;
-    var editor;
+    const definition = item.securityCollection && collectionElement(policy);
+    let title = policy.definition.display_name || policy.policyId;
+    let editor;
     if (config.browseCollection && definition) {
         editor = await render(
             {
@@ -81,9 +85,9 @@ async function openPolicyDialog(host, options, renderEditor) {
             onSaved: config.onSaved
         });
         if (definition) {
-            var row =
+            const row =
                 config.rowIndex === undefined ? config.initialRow : configuredRows(policy, definition)[config.rowIndex];
-            var key = row && values.rowKey(definition, row);
+            const key = row && rowKey(definition, row);
             title = key ? String(key.value) : tr('addItem', 'Add item') + ' — ' + title;
         }
     }
@@ -92,8 +96,8 @@ async function openPolicyDialog(host, options, renderEditor) {
         if (editor.cleanup) editor.cleanup();
         return null;
     }
-    var readOnly = Boolean(config.browseCollection && definition) || editor.readOnly;
-    var dialog = dialogs.open(host, {
+    const readOnly = Boolean(config.browseCollection && definition) || editor.readOnly;
+    const dialog = open(host, {
         title: title,
         content: editor,
         readOnly: readOnly,
@@ -109,35 +113,36 @@ async function openPolicyDialog(host, options, renderEditor) {
     return { editor: editor, dialog: dialog };
 }
 async function render(options, renderEditor) {
-    var config = options || {},
+    const config = options || {},
         item = config.item || {};
-    var model =
-        (!item.searchReturnTo && item.securityModel) ||
-        modelTools.buildSecurityModel(await API.securityDefinitionsShow());
+    const model =
+        (!item.searchReturnTo && item.securityModel) || buildSecurityModel(await API.securityDefinitionsShow());
     if (config.isCurrent && !config.isCurrent()) return null;
     if (!item.searchReturnTo) item.securityModel = model;
     if (item.securityPreserved) return renderEditor(config);
-    var root = create('div', {
+    const root = createElement('div', {
         className: [
             'gp__preference',
             'gpo-security-workbench',
             config.embedded ? 'gpo-security-workbench--embedded' : null
         ]
     });
-    var panel = create('div', { className: 'gpo-security-workbench__panel' });
-    var toolbar = create('div', { className: 'gpo-security-workbench__toolbar' });
-    var table = create('table', { className: ['preference__table', 'gpo-catalog-table', 'gpo-security-table'] });
-    var body = create('tbody');
-    var error = create('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
-    var modalHost = create('div');
-    var activeDialog = null,
+    const panel = createElement('div', { className: 'gpo-security-workbench__panel' });
+    const toolbar = createElement('div', { className: 'gpo-security-workbench__toolbar' });
+    const table = createElement('table', {
+        className: ['preference__table', 'gpo-catalog-table', 'gpo-security-table']
+    });
+    const body = createElement('tbody');
+    const error = createElement('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
+    const modalHost = createElement('div');
+    let activeDialog = null,
         activeEditor = null,
         disposed = false,
         opening = false;
-    var selection = null;
-    var selectedId = null,
+    let selection = null;
+    let selectedId = null,
         pendingNeighbor = null;
-    var search = create('input', {
+    const search = createElement('input', {
         attrs: {
             type: 'search',
             'data-policy-filter': '',
@@ -147,7 +152,7 @@ async function render(options, renderEditor) {
     });
     if (!config.embedded && !config.hideHeading)
         toolbar.append(
-            create('h2', {
+            createElement('h2', {
                 text: config.categoryPath || item.title || tr('title', 'Security Settings'),
                 attrs: { 'data-category-path': '' }
             })
@@ -161,10 +166,9 @@ async function render(options, renderEditor) {
     function selectedPolicy() {
         return modelTools.policy(model, item.securityPolicy);
     }
-    var collection = item.securityCollection && modelTools.collectionElement(selectedPolicy());
-    var collectionWritable =
-        collection && collection.unique_by && modelTools.writableElement(selectedPolicy(), collection.id);
-    var actions = headerActions.bind(config.header, toolbar, {
+    const collection = item.securityCollection && collectionElement(selectedPolicy());
+    const collectionWritable = collection && collection.unique_by && writableElement(selectedPolicy(), collection.id);
+    const actions = bind(config.header, toolbar, {
         create: collectionWritable
             ? function () {
                   void edit(item);
@@ -185,7 +189,7 @@ async function render(options, renderEditor) {
             opening || Boolean(activeDialog)
         );
     }
-    var policies = item.securityCategory
+    const policies = item.securityCategory
         ? (item.children || []).filter(function (child) {
               return child.securityPolicy && !child.securityCollection;
           })
@@ -193,18 +197,18 @@ async function render(options, renderEditor) {
           ? []
           : [item];
     function updateModel(response) {
-        var next = modelTools.buildSecurityModel(response);
+        const next = buildSecurityModel(response);
         Object.keys(next).forEach(function (key) {
             model[key] = next[key];
         });
     }
     async function edit(node, rowIndex, initialRow) {
         if (activeDialog || opening || disposed) return;
-        var returnLabel = selection && selection.element.getAttribute('data-security-row');
+        const returnLabel = selection && selection.element.getAttribute('data-security-row');
         opening = true;
         syncActions();
         try {
-            var opened = await openPolicyDialog(
+            const opened = await openPolicyDialog(
                 modalHost,
                 {
                     item: Object.assign({}, node, { securityModel: model }),
@@ -214,7 +218,7 @@ async function render(options, renderEditor) {
                         return !disposed;
                     },
                     restoreFocus: function () {
-                        var rows = Array.from(body.getElement().querySelectorAll('[data-security-row]'));
+                        const rows = Array.from(body.getElement().querySelectorAll('[data-security-row]'));
                         return (
                             rows.find(function (row) {
                                 return row.getAttribute('data-security-row') === returnLabel;
@@ -243,7 +247,7 @@ async function render(options, renderEditor) {
         } catch (problem) {
             if (!disposed) {
                 error.getElement().replaceChildren();
-                error.append(editorStatus.renderError(problem));
+                error.append(renderError(problem));
             }
         } finally {
             opening = false;
@@ -252,27 +256,27 @@ async function render(options, renderEditor) {
     }
     function removeRow(index) {
         if (activeDialog || opening || disposed || !collectionWritable) return;
-        var policy = selectedPolicy();
-        var key = values.rowKey(collection, configuredRows(policy, collection)[index]);
-        var content = create('div', {
+        const policy = selectedPolicy();
+        const key = rowKey(collection, configuredRows(policy, collection)[index]);
+        const content = createElement('div', {
             children: [
-                create('p', { text: tr('removeQuestion', 'Remove this item from the policy?') }),
-                create('p', { text: String(key.value) })
+                createElement('p', { text: tr('removeQuestion', 'Remove this item from the policy?') }),
+                createElement('p', { text: String(key.value) })
             ]
         });
-        var failure = create('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
+        const failure = createElement('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
         content.append(failure);
-        var beforeIds = Array.from(body.getElement().querySelectorAll('[data-list-id]')).map(function (row) {
+        const beforeIds = Array.from(body.getElement().querySelectorAll('[data-list-id]')).map(function (row) {
             return row.getAttribute('data-list-id');
         });
-        var removedId = selectedId;
-        activeDialog = dialogs.open(modalHost, {
+        const removedId = selectedId;
+        activeDialog = open(modalHost, {
             title: tr('removeItem', 'Remove item'),
             content: content,
             applyLabel: tr('remove', 'Remove'),
             onApply: async function () {
                 try {
-                    var response = await API.securityDefinitionsUpdate({
+                    const response = await API.securityDefinitionsUpdate({
                         expected_semantic_revision: model.catalog.semantic_revision,
                         policies: [
                             {
@@ -296,7 +300,7 @@ async function render(options, renderEditor) {
                     return true;
                 } catch (problem) {
                     failure.getElement().replaceChildren();
-                    failure.append(editorStatus.renderError(problem));
+                    failure.append(renderError(problem));
                     return false;
                 }
             },
@@ -317,7 +321,7 @@ async function render(options, renderEditor) {
             (label + ' ' + setting).toLocaleLowerCase().indexOf(search.getElement().value.toLocaleLowerCase()) === -1
         )
             return;
-        var row = create('tr', {
+        const row = createElement('tr', {
             attrs: {
                 tabindex: '-1',
                 'data-security-row': label,
@@ -325,8 +329,8 @@ async function render(options, renderEditor) {
                 'aria-selected': 'false'
             },
             children: [
-                create('td', { attrs: { title: label }, text: label }),
-                create('td', { attrs: { title: setting }, text: setting })
+                createElement('td', { attrs: { title: label }, text: label }),
+                createElement('td', { attrs: { title: setting }, text: setting })
             ]
         });
         function select() {
@@ -363,24 +367,24 @@ async function render(options, renderEditor) {
     function renderRows() {
         selection = null;
         syncActions();
-        var heldFocus = table.getElement().contains(document.activeElement);
+        const heldFocus = table.getElement().contains(document.activeElement);
         body.getElement().innerHTML = '';
         if (collection) {
-            var policy = selectedPolicy();
-            var rows = configuredRows(policy, collection);
-            var names = new Set();
+            const policy = selectedPolicy();
+            const rows = configuredRows(policy, collection);
+            const names = new Set();
             rows.map(function (row, index) {
                 return { row: row, index: index };
             })
                 .sort(function (a, b) {
-                    return String(values.rowKey(collection, a.row).value).localeCompare(
-                        String(values.rowKey(collection, b.row).value)
+                    return String(rowKey(collection, a.row).value).localeCompare(
+                        String(rowKey(collection, b.row).value)
                     );
                 })
                 .forEach(function (entry) {
-                    var key = values.rowKey(collection, entry.row);
+                    const key = rowKey(collection, entry.row);
                     names.add(String(key.value).toLowerCase());
-                    var summaries = collection.fields
+                    const summaries = collection.fields
                         .filter(function (field) {
                             return field.id !== collection.unique_by;
                         })
@@ -409,7 +413,7 @@ async function render(options, renderEditor) {
                     })
                     .forEach(function (service) {
                         if (names.has(service.name.toLowerCase())) return;
-                        var row = values.newRow(collection);
+                        const row = newRow(collection);
                         row.service_name = { state: 'set', value: { kind: 'service_name', value: service.name } };
                         if (service.startup_mode)
                             row.startup_mode = { state: 'set', value: { kind: 'enum', value: service.startup_mode } };
@@ -441,7 +445,7 @@ async function render(options, renderEditor) {
                     );
                 });
             policies.forEach(function (node) {
-                var policy = modelTools.policy(model, node.securityPolicy);
+                const policy = modelTools.policy(model, node.securityPolicy);
                 if (policy)
                     addRow(
                         policy.definition.display_name || policy.policyId,
@@ -455,7 +459,7 @@ async function render(options, renderEditor) {
             });
         }
         if (pendingNeighbor) {
-            var all = Array.from(body.getElement().querySelectorAll('[data-list-id]'));
+            const all = Array.from(body.getElement().querySelectorAll('[data-list-id]'));
             selectedId = listNavigation.neighbor(
                 pendingNeighbor.before,
                 pendingNeighbor.removed,
@@ -468,7 +472,7 @@ async function render(options, renderEditor) {
                 selection.element.setAttribute('aria-selected', 'false');
             }
             selection = null;
-            var neighbor = all.find(function (row) {
+            const neighbor = all.find(function (row) {
                 return row.getAttribute('data-list-id') === selectedId;
             });
             if (neighbor) /** @type {any} */ (neighbor).__select();
@@ -477,9 +481,9 @@ async function render(options, renderEditor) {
         if (!selection) selectedId = null;
         if (!body.getElement().children.length)
             body.append(
-                create('tr', {
+                createElement('tr', {
                     children: [
-                        create('td', {
+                        createElement('td', {
                             attrs: { colspan: '2' },
                             className: 'gpo-security-table__empty',
                             text: search.getElement().value
@@ -495,7 +499,7 @@ async function render(options, renderEditor) {
     if (collection) {
         if (collection.unique_by === 'service_name' && !serviceCatalog().length)
             panel.append(
-                create('p', {
+                createElement('p', {
                     className: 'gpo-security-workbench__notice',
                     text: tr(
                         'serviceCatalogMissing',
@@ -505,19 +509,19 @@ async function render(options, renderEditor) {
             );
     }
     table.append(
-        create('thead', {
+        createElement('thead', {
             children: [
-                create('tr', {
+                createElement('tr', {
                     children: [
-                        create('th', { text: collection ? tr('item', 'Item') : tr('policy', 'Policy') }),
-                        create('th', { text: tr('policySetting', 'Policy setting') })
+                        createElement('th', { text: collection ? tr('item', 'Item') : tr('policy', 'Policy') }),
+                        createElement('th', { text: tr('policySetting', 'Policy setting') })
                     ]
                 })
             ]
         })
     );
     table.append(body);
-    var navigation = listNavigation.bind(table.getElement(), {
+    const navigation = listNavigation.bind(table.getElement(), {
         rows: function () {
             return Array.from(body.getElement().querySelectorAll('[data-list-id]'));
         },
@@ -547,7 +551,7 @@ async function render(options, renderEditor) {
     };
     root.applyChanges = async function () {
         if (!activeEditor) return true;
-        var saved = await activeEditor.applyChanges();
+        const saved = await activeEditor.applyChanges();
         if (saved && activeDialog) activeDialog.close();
         return saved;
     };

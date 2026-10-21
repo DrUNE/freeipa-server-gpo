@@ -1,5 +1,5 @@
 import { expect, fn, userEvent, within } from 'storybook/test';
-import * as dialog from '@gpui/components/confirmation-dialog';
+import { open } from '@gpui/components/confirmation-dialog';
 
 export default {
     title: 'Dialogs/ConfirmationDialog',
@@ -9,7 +9,7 @@ export default {
         const opener = document.createElement('button');
         opener.textContent = 'Open';
         host.append(opener);
-        opener.addEventListener('click', () => dialog.open(host, args));
+        opener.addEventListener('click', () => open(host, args));
         return host;
     },
     args: { message: 'Discard unsaved changes?', onConfirm: fn(), onCancel: fn() }

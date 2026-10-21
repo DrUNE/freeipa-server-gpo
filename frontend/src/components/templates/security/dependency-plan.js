@@ -1,11 +1,9 @@
-'use strict';
-
 // These are the cross-policy constraints in the bundled SDMX 1.0 catalog.
 // Keep the namespace in the match: other vendors may use the same policy ID.
-var BASE = 'urn:altlinux:sdmx:policies:';
-var AGE_BASED = 'overwrite_events_older_than_the_retention_period';
-var AS_NEEDED = 'overwrite_events_as_needed';
-var SHAPES = {
+const BASE = 'urn:altlinux:sdmx:policies:';
+const AGE_BASED = 'overwrite_events_older_than_the_retention_period';
+const AS_NEEDED = 'overwrite_events_as_needed';
+const SHAPES = {
     'account.password.maximum_password_age': ['integer', [[0, 999]], []],
     'account.password.minimum_password_age': ['integer', [[0, 998]], []],
     'account.kerberos.max_ticket_age': ['integer', [[0, 99999]], []],
@@ -42,14 +40,14 @@ function sameRanges(actual, expected) {
         })
     )
         return false;
-    var sorted = actual
+    const sorted = actual
         .map(function (range) {
             return [range.min, range.max];
         })
         .sort(function (left, right) {
             return left[0] - right[0] || left[1] - right[1];
         });
-    var wanted = expected.slice().sort(function (left, right) {
+    const wanted = expected.slice().sort(function (left, right) {
         return left[0] - right[0] || left[1] - right[1];
     });
     return sorted.every(function (range, index) {
@@ -75,9 +73,9 @@ function compatible(element, shape) {
     )
         return false;
     if (!sameRanges(element.input_ranges, shape[2])) return false;
-    var initial = element.initial.value;
+    const initial = element.initial.value;
     if (shape[0] === 'integer') {
-        var domain = element.input_ranges.length
+        const domain = element.input_ranges.length
             ? element.input_ranges.map(function (range) {
                   return [range.min, range.max];
               })
@@ -93,7 +91,7 @@ function compatible(element, shape) {
     if (shape[0] === 'boolean') {
         return typeof initial === 'boolean' && !element.options.length;
     }
-    var options = element.options;
+    const options = element.options;
     if (
         !Array.isArray(options) ||
         options.some(function (option) {
@@ -101,7 +99,7 @@ function compatible(element, shape) {
         })
     )
         return false;
-    var choices = options.map(function (option) {
+    const choices = options.map(function (option) {
         return option.id;
     });
     return (
@@ -114,11 +112,11 @@ function compatible(element, shape) {
 
 function group(model, namespace, prefix, names) {
     if (!model || !model.policies || typeof model.policies.get !== 'function') return null;
-    var policies = {};
-    for (var i = 0; i < names.length; i += 1) {
-        var id = prefix + '.' + names[i];
-        var policy = model.policies.get(namespace + '\u0000' + id);
-        var elements = policy && policy.definition && policy.definition.elements;
+    const policies = {};
+    for (let i = 0; i < names.length; i += 1) {
+        const id = prefix + '.' + names[i];
+        const policy = model.policies.get(namespace + '\u0000' + id);
+        const elements = policy && policy.definition && policy.definition.elements;
         if (
             !policy ||
             policy.namespace !== namespace ||
@@ -135,9 +133,9 @@ function group(model, namespace, prefix, names) {
 }
 
 function draftFor(policy) {
-    var defined = policy.state && policy.state.state === 'defined';
-    var current = (defined && policy.state.elements) || {};
-    var elements = {};
+    const defined = policy.state && policy.state.state === 'defined';
+    const current = (defined && policy.state.elements) || {};
+    const elements = {};
     (policy.definition.elements || []).forEach(function (element) {
         elements[element.id] = defined
             ? clone(current[element.id] || { state: 'unset' })
@@ -149,19 +147,19 @@ function draftFor(policy) {
 }
 
 function valueOf(draft) {
-    var state = draft && draft.defined && draft.elements && draft.elements.value;
+    const state = draft && draft.defined && draft.elements && draft.elements.value;
     return state && state.state === 'set' && state.value ? state.value.value : null;
 }
 
 function initialOf(policy) {
-    var element = (policy.definition.elements || []).find(function (item) {
+    const element = (policy.definition.elements || []).find(function (item) {
         return item.id === 'value';
     });
     return element && element.initial ? element.initial.value : null;
 }
 
 function set(draft, policy, value) {
-    var element = policy.definition.elements.find(function (item) {
+    const element = policy.definition.elements.find(function (item) {
         return item.id === 'value';
     });
     draft.defined = true;
@@ -176,16 +174,16 @@ function unset(draft) {
 }
 
 function number(draft, policy) {
-    var value = valueOf(draft);
+    const value = valueOf(draft);
     return Number.isSafeInteger(value) ? value : initialOf(policy);
 }
 
 function finish(policies, names, primaryName, desired) {
-    var changes = names
+    const changes = names
         .filter(function (name) {
             if (name === primaryName) return false;
-            var previous = draftFor(policies[name]);
-            var next = desired[name];
+            const previous = draftFor(policies[name]);
+            const next = desired[name];
             return (
                 previous.defined !== next.defined ||
                 (next.defined && JSON.stringify(previous.elements) !== JSON.stringify(next.elements))
@@ -198,7 +196,7 @@ function finish(policies, names, primaryName, desired) {
 }
 
 function begin(policies, names, primaryName, primaryDraft) {
-    var desired = {};
+    const desired = {};
     names.forEach(function (name) {
         desired[name] = draftFor(policies[name]);
     });
@@ -207,24 +205,24 @@ function begin(policies, names, primaryName, primaryDraft) {
 }
 
 function password(model, policy, draft) {
-    var names = ['maximum_password_age', 'minimum_password_age'];
-    var policies = group(model, BASE + 'account-password', 'account.password', names);
+    const names = ['maximum_password_age', 'minimum_password_age'];
+    const policies = group(model, BASE + 'account-password', 'account.password', names);
     if (!policies) return null;
-    var primary = names.find(function (name) {
+    const primary = names.find(function (name) {
         return policies[name] === policy;
     });
     if (!primary) return null;
-    var other = names.find(function (name) {
+    const other = names.find(function (name) {
         return name !== primary;
     });
-    var desired = begin(policies, names, primary, draft);
+    const desired = begin(policies, names, primary, draft);
     if (!draft.defined) {
         unset(desired[other]);
         return finish(policies, names, primary, desired);
     }
-    var chosen = valueOf(draft);
+    const chosen = valueOf(draft);
     if (!Number.isSafeInteger(chosen)) return null;
-    var counterpart = number(desired[other], policies[other]);
+    let counterpart = number(desired[other], policies[other]);
     if (primary === 'maximum_password_age') {
         if (chosen < 0 || chosen > 999) return null;
         counterpart = Math.max(0, Math.min(998, counterpart));
@@ -239,25 +237,25 @@ function password(model, policy, draft) {
 }
 
 function kerberos(model, policy, draft) {
-    var names = ['max_ticket_age', 'max_service_age', 'max_renew_age'];
-    var policies = group(model, BASE + 'account-kerberos', 'account.kerberos', names);
+    const names = ['max_ticket_age', 'max_service_age', 'max_renew_age'];
+    const policies = group(model, BASE + 'account-kerberos', 'account.kerberos', names);
     if (!policies) return null;
-    var primary = names.find(function (name) {
+    const primary = names.find(function (name) {
         return policies[name] === policy;
     });
     if (!primary) return null;
-    var desired = begin(policies, names, primary, draft);
+    const desired = begin(policies, names, primary, draft);
     if (!draft.defined) {
         names.forEach(function (name) {
             if (name !== primary) unset(desired[name]);
         });
         return finish(policies, names, primary, desired);
     }
-    var chosen = valueOf(draft);
+    const chosen = valueOf(draft);
     if (!Number.isSafeInteger(chosen)) return null;
-    var ticket = number(desired.max_ticket_age, policies.max_ticket_age);
-    var service = number(desired.max_service_age, policies.max_service_age);
-    var renew = number(desired.max_renew_age, policies.max_renew_age);
+    let ticket = number(desired.max_ticket_age, policies.max_ticket_age);
+    let service = number(desired.max_service_age, policies.max_service_age);
+    let renew = number(desired.max_renew_age, policies.max_renew_age);
     // Unlimited user tickets require unlimited service and renewal values.
     if (primary === 'max_ticket_age' && ticket === 0) {
         service = 0;
@@ -284,22 +282,22 @@ function kerberos(model, policy, draft) {
     )
         return null;
     names.forEach(function (name) {
-        var next = name === 'max_ticket_age' ? ticket : name === 'max_service_age' ? service : renew;
+        const next = name === 'max_ticket_age' ? ticket : name === 'max_service_age' ? service : renew;
         if (name !== primary) set(desired[name], policies[name], next);
     });
     return finish(policies, names, primary, desired);
 }
 
 function lockout(model, policy, draft) {
-    var names = ['lockout_bad_count', 'reset_lockout_count', 'lockout_duration', 'allow_administrator_lockout'];
-    var policies = group(model, BASE + 'account-lockout', 'account.lockout', names);
+    const names = ['lockout_bad_count', 'reset_lockout_count', 'lockout_duration', 'allow_administrator_lockout'];
+    const policies = group(model, BASE + 'account-lockout', 'account.lockout', names);
     if (!policies) return null;
-    var primary = names.find(function (name) {
+    const primary = names.find(function (name) {
         return policies[name] === policy;
     });
     if (!primary) return null;
-    var desired = begin(policies, names, primary, draft);
-    var threshold = number(desired.lockout_bad_count, policies.lockout_bad_count);
+    const desired = begin(policies, names, primary, draft);
+    let threshold = number(desired.lockout_bad_count, policies.lockout_bad_count);
     if (primary === 'lockout_bad_count' && draft.defined && !Number.isSafeInteger(valueOf(draft))) return null;
     if (
         (primary === 'lockout_bad_count' && (!draft.defined || threshold === 0)) ||
@@ -323,9 +321,9 @@ function lockout(model, policy, draft) {
     if (!desired.lockout_bad_count.defined || threshold === 0) {
         threshold = initialOf(policies.lockout_bad_count);
     }
-    var reset = number(desired.reset_lockout_count, policies.reset_lockout_count);
-    var duration = number(desired.lockout_duration, policies.lockout_duration);
-    var administrator = valueOf(desired.allow_administrator_lockout);
+    let reset = number(desired.reset_lockout_count, policies.reset_lockout_count);
+    let duration = number(desired.lockout_duration, policies.lockout_duration);
+    let administrator = valueOf(desired.allow_administrator_lockout);
     if (typeof administrator !== 'boolean') {
         administrator = initialOf(policies.allow_administrator_lockout);
     }
@@ -334,7 +332,7 @@ function lockout(model, policy, draft) {
         else duration = reset;
     }
     if (threshold < 1 || threshold > 999 || reset < 1 || reset > 99999 || duration < 0 || duration > 99999) return null;
-    var planned = {
+    const planned = {
         lockout_bad_count: threshold,
         reset_lockout_count: reset,
         lockout_duration: duration,
@@ -347,20 +345,20 @@ function lockout(model, policy, draft) {
 }
 
 function eventLog(model, policy, draft) {
-    var namespace = BASE + 'event-log';
-    for (var i = 0; i < 3; i += 1) {
-        var stream = ['security', 'application', 'system'][i];
-        var names = [stream + '_log_audit_log_retention_period', stream + '_log_retention_days'];
-        var policies = group(model, namespace, 'event_log', names);
+    const namespace = BASE + 'event-log';
+    for (let i = 0; i < 3; i += 1) {
+        const stream = ['security', 'application', 'system'][i];
+        const names = [stream + '_log_audit_log_retention_period', stream + '_log_retention_days'];
+        const policies = group(model, namespace, 'event_log', names);
         if (!policies) continue;
-        var primary = names.find(function (name) {
+        const primary = names.find(function (name) {
             return policies[name] === policy;
         });
         if (!primary) continue;
-        var other = names.find(function (name) {
+        const other = names.find(function (name) {
             return name !== primary;
         });
-        var desired = begin(policies, names, primary, draft);
+        const desired = begin(policies, names, primary, draft);
         if (primary === names[0]) {
             if (draft.defined && valueOf(draft) === AGE_BASED) {
                 set(desired[other], policies[other], number(desired[other], policies[other]));

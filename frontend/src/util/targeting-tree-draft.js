@@ -1,20 +1,18 @@
 /** Local, path-independent targeting draft. Persistence belongs to the parent form. */
 
-import * as dto from '@gpui/util/editor-dto';
+import { preferenceFieldEdits, clone, preferenceFieldIds, validatePreferenceField, equal } from '@gpui/util/editor-dto';
 
-('use strict');
-
-var MAX_DEPTH = 64;
+const MAX_DEPTH = 64;
 
 function copy(value) {
-    return dto.clone(value);
+    return clone(value);
 }
 function pathKey(path) {
     return JSON.stringify(path);
 }
 
 function comparePaths(left, right) {
-    for (var index = 0; index < Math.min(left.length, right.length); index++) {
+    for (let index = 0; index < Math.min(left.length, right.length); index++) {
         if (left[index] !== right[index]) return left[index] - right[index];
     }
     return left.length - right.length;
@@ -25,10 +23,10 @@ function validIndex(index, length) {
 }
 
 function flattenRoots(roots) {
-    var result = [];
+    const result = [];
     function visit(nodes, parentPath) {
         nodes.forEach(function (node, index) {
-            var path = parentPath.concat(index);
+            const path = parentPath.concat(index);
             result.push({ node: node, path: path, depth: path.length - 1 });
             visit(node.children, path);
         });
@@ -38,11 +36,11 @@ function flattenRoots(roots) {
 }
 
 function locate(roots, id) {
-    var result = null;
+    let result = null;
     function visit(nodes, parent, parentPath) {
-        for (var index = 0; index < nodes.length && !result; index++) {
-            var path = parentPath.concat(index);
-            var node = nodes[index];
+        for (let index = 0; index < nodes.length && !result; index++) {
+            const path = parentPath.concat(index);
+            const node = nodes[index];
             if (node.id === id) {
                 result = {
                     node: node,
@@ -70,10 +68,10 @@ function subtreeCollectionHeight(node) {
 }
 
 function collectionDepth(roots, path) {
-    var nodes = roots;
-    var depth = 0;
+    let nodes = roots;
+    let depth = 0;
     path.forEach(function (index) {
-        var node = nodes[index];
+        const node = nodes[index];
         if (node.supports_children) depth++;
         nodes = node.children;
     });
@@ -90,8 +88,8 @@ function contains(node, id) {
 }
 
 function inventory(showResult) {
-    var result = new Map();
-    var raw = showResult.filter_fields || [];
+    const result = new Map();
+    const raw = showResult.filter_fields || [];
     if (Array.isArray(raw)) {
         raw.forEach(function (entry) {
             if (entry && Array.isArray(entry.path))
@@ -109,16 +107,16 @@ function inventory(showResult) {
 }
 
 function defaults(showResult, kind) {
-    var raw = showResult.new_filter_fields || {};
+    const raw = showResult.new_filter_fields || {};
     if (Array.isArray(raw)) {
-        var entry = raw.find(function (candidate) {
+        const entry = raw.find(function (candidate) {
             return candidate.kind === kind;
         });
         if (entry) return entry.fields || [];
     } else if (raw[kind]) {
         return raw[kind];
     }
-    var descriptor = (showResult.filter_kinds || []).find(function (candidate) {
+    const descriptor = (showResult.filter_kinds || []).find(function (candidate) {
         return candidate.kind === kind;
     });
     return descriptor ? descriptor.fields || [] : [];
@@ -140,15 +138,15 @@ function Draft(showResult, restored) {
 
     this.roots = [];
     this._nextId = 1;
-    var fieldsByPath = inventory(this._showResult);
-    var nodesByPath = new Map();
-    var self = this;
+    const fieldsByPath = inventory(this._showResult);
+    const nodesByPath = new Map();
+    const self = this;
     copy(this._showResult.filters || [])
         .sort(function (left, right) {
             return comparePaths(left.path || [], right.path || []);
         })
         .forEach(function (filter) {
-            var path = filter.path;
+            const path = filter.path;
             if (
                 !Array.isArray(path) ||
                 !path.length ||
@@ -159,11 +157,11 @@ function Draft(showResult, restored) {
             ) {
                 throw new Error('Invalid targeting filter snapshot');
             }
-            var descriptor = fieldsByPath.get(pathKey(path)) || {
+            const descriptor = fieldsByPath.get(pathKey(path)) || {
                 fields: filter.fields || [],
                 available: Boolean(filter.kind)
             };
-            var node = {
+            const node = {
                 id: 'filter-' + self._nextId++,
                 originalPath: copy(path),
                 kind: filter.kind || null,
@@ -178,8 +176,8 @@ function Draft(showResult, restored) {
                 fields: copy(descriptor.fields || []),
                 children: []
             };
-            var parent = path.length > 1 ? nodesByPath.get(pathKey(path.slice(0, -1))) : null;
-            var siblings = parent ? parent.children : self.roots;
+            const parent = path.length > 1 ? nodesByPath.get(pathKey(path.slice(0, -1))) : null;
+            const siblings = parent ? parent.children : self.roots;
             if ((path.length > 1 && !parent) || path[path.length - 1] !== siblings.length) {
                 throw new Error('Invalid targeting filter snapshot');
             }
@@ -190,7 +188,7 @@ function Draft(showResult, restored) {
 }
 
 Draft.prototype.find = function (id) {
-    var found = locate(this.roots, id);
+    const found = locate(this.roots, id);
     return found ? found.node : null;
 };
 
@@ -207,22 +205,22 @@ Draft.prototype.flatten = function () {
 };
 
 Draft.prototype.add = function (kind, parentId, index) {
-    var descriptor = this._kinds.get(kind);
-    var parent = parentId === null || parentId === undefined ? null : locate(this.roots, parentId);
+    const descriptor = this._kinds.get(kind);
+    const parent = parentId === null || parentId === undefined ? null : locate(this.roots, parentId);
     if (
         !descriptor ||
         (parentId !== null && parentId !== undefined && !parent) ||
         (parent && !parent.node.supports_children)
     )
         return null;
-    var siblings = parent ? parent.node.children : this.roots;
-    var position = index === undefined || index === null ? siblings.length : index;
+    const siblings = parent ? parent.node.children : this.roots;
+    const position = index === undefined || index === null ? siblings.length : index;
     if (
         !validIndex(position, siblings.length) ||
         (parent ? collectionDepth(this.roots, parent.path) : 0) + (descriptor.supports_children ? 1 : 0) > MAX_DEPTH
     )
         return null;
-    var node = {
+    const node = {
         id: 'filter-' + this._nextId++,
         originalPath: null,
         kind: kind,
@@ -239,7 +237,7 @@ Draft.prototype.add = function (kind, parentId, index) {
 };
 
 Draft.prototype.remove = function (id) {
-    var found = locate(this.roots, id);
+    const found = locate(this.roots, id);
     if (!found) return false;
     found.siblings.splice(found.index, 1);
     return true;
@@ -247,17 +245,17 @@ Draft.prototype.remove = function (id) {
 
 /** Both identities are stable; index addresses destination siblings after source removal. */
 Draft.prototype.move = function (id, parentId, index) {
-    var source = locate(this.roots, id);
-    var parent = parentId === null || parentId === undefined ? null : locate(this.roots, parentId);
+    const source = locate(this.roots, id);
+    const parent = parentId === null || parentId === undefined ? null : locate(this.roots, parentId);
     if (
         !source ||
         (parentId !== null && parentId !== undefined && !parent) ||
         (parent && (!parent.node.supports_children || contains(source.node, parentId)))
     )
         return false;
-    var siblings = parent ? parent.node.children : this.roots;
-    var length = siblings.length - (siblings === source.siblings ? 1 : 0);
-    var position = index === undefined || index === null ? length : index;
+    const siblings = parent ? parent.node.children : this.roots;
+    const length = siblings.length - (siblings === source.siblings ? 1 : 0);
+    const position = index === undefined || index === null ? length : index;
     if (
         !validIndex(position, length) ||
         (parent ? collectionDepth(this.roots, parent.path) : 0) + subtreeCollectionHeight(source.node) > MAX_DEPTH
@@ -270,16 +268,16 @@ Draft.prototype.move = function (id, parentId, index) {
 };
 
 Draft.prototype.updateFields = function (id, fields) {
-    var node = this.find(id);
+    const node = this.find(id);
     if (!node || !node.available || !Array.isArray(fields)) return false;
-    var values = new Map(
+    const values = new Map(
         fields.map(function (field) {
             return [field.id, field.value];
         })
     );
-    var changed = false;
+    let changed = false;
     node.fields = node.fields.map(function (field) {
-        if (!field.editable || !values.has(field.id) || dto.equal(field.value, values.get(field.id))) return field;
+        if (!field.editable || !values.has(field.id) || equal(field.value, values.get(field.id))) return field;
         changed = true;
         return Object.assign({}, field, { value: copy(values.get(field.id)) });
     });
@@ -288,28 +286,28 @@ Draft.prototype.updateFields = function (id, fields) {
 
 /** Replacing a kind is an intentional new node; its former descendants are discarded. */
 Draft.prototype.replace = function (id, kind) {
-    var source = locate(this.roots, id);
+    const source = locate(this.roots, id);
     if (!source || !this._kinds.has(kind)) return null;
-    var node = this.add(kind, source.parent ? source.parent.id : null, source.index);
+    const node = this.add(kind, source.parent ? source.parent.id : null, source.index);
     if (!node) return null;
     this.remove(id);
     return node;
 };
 
 Draft.prototype.compile = function (options) {
-    var opts = options || {};
-    var desired = this.flatten();
-    var desiredById = new Map(
+    const opts = options || {};
+    const desired = this.flatten();
+    const desiredById = new Map(
         desired.map(function (entry) {
             return [entry.node.id, entry.node];
         })
     );
-    var wanted = new Set(
+    const wanted = new Set(
         desired.map(function (entry) {
             return entry.node.id;
         })
     );
-    var wantedParents = new Map();
+    const wantedParents = new Map();
     function rememberParents(nodes, parentId) {
         nodes.forEach(function (node) {
             wantedParents.set(node.id, parentId);
@@ -317,19 +315,19 @@ Draft.prototype.compile = function (options) {
         });
     }
     rememberParents(this.roots, null);
-    var errors = [];
-    var roots = this.roots;
+    const errors = [];
+    const roots = this.roots;
     desired.forEach(function (entry) {
-        var node = entry.node;
+        const node = entry.node;
         if (collectionDepth(roots, entry.path) > MAX_DEPTH) {
             errors.push({ id: node.id, fieldId: null, code: 'max_depth' });
         }
         if (!node.available) return;
-        var duplicates = dto.preferenceFieldIds(node.fields).duplicates;
+        const duplicates = preferenceFieldIds(node.fields).duplicates;
         duplicates.forEach(function (id) {
             errors.push({ id: node.id, fieldId: id, code: 'duplicate_descriptor' });
         });
-        var specificErrors = typeof opts.validateNode === 'function' ? opts.validateNode(node) : null;
+        const specificErrors = typeof opts.validateNode === 'function' ? opts.validateNode(node) : null;
         if (Array.isArray(specificErrors)) {
             specificErrors.forEach(function (error) {
                 errors.push({ id: node.id, fieldId: error.fieldId, code: error.code });
@@ -338,19 +336,19 @@ Draft.prototype.compile = function (options) {
         }
         node.fields.forEach(function (field) {
             if (!field.editable || duplicates.indexOf(field.id) !== -1) return;
-            var code = dto.validatePreferenceField(field, field.value);
+            const code = validatePreferenceField(field, field.value);
             if (code) errors.push({ id: node.id, fieldId: field.id, code: code });
         });
     });
     if (errors.length) return { operations: [], errors: errors };
 
-    var working = copy(this._original);
-    var originalById = new Map(
+    const working = copy(this._original);
+    const originalById = new Map(
         flattenRoots(this._original).map(function (entry) {
             return [entry.node.id, entry.node];
         })
     );
-    var operations = [];
+    const operations = [];
 
     function removeAt(found) {
         operations.push({ op: 'remove', path: copy(found.path) });
@@ -358,8 +356,8 @@ Draft.prototype.compile = function (options) {
     }
 
     function moveAt(found, parentId, index) {
-        var parent = parentId === null ? null : locate(working, parentId);
-        var destination = parent ? parent.node.children : working;
+        const parent = parentId === null ? null : locate(working, parentId);
+        const destination = parent ? parent.node.children : working;
         operations.push({
             op: 'move',
             source_path: copy(found.path),
@@ -388,7 +386,7 @@ Draft.prototype.compile = function (options) {
             .reverse()
             .forEach(function (entry) {
                 if (!wanted.has(entry.node.id)) return;
-                var found = locate(working, entry.node.id);
+                const found = locate(working, entry.node.id);
                 if (found.parent && wantedParents.get(found.node.id) !== found.parent.id) {
                     moveAt(found, null, working.length);
                 }
@@ -397,18 +395,18 @@ Draft.prototype.compile = function (options) {
 
     function reconcile(nodes, parentId) {
         nodes.forEach(function (node, index) {
-            var found = locate(working, node.id);
-            var parent = parentId === null ? null : locate(working, parentId);
-            var siblings = parent ? parent.node.children : working;
+            let found = locate(working, node.id);
+            const parent = parentId === null ? null : locate(working, parentId);
+            const siblings = parent ? parent.node.children : working;
             if (!found) {
                 operations.push({
                     op: 'insert',
                     collection_path: parent ? copy(parent.path) : [],
                     index: index,
                     filter_kind: node.kind,
-                    fields: dto.preferenceFieldEdits(node.fields, node.fields, false)
+                    fields: preferenceFieldEdits(node.fields, node.fields, false)
                 });
-                var inserted = copy(node);
+                const inserted = copy(node);
                 inserted.children = [];
                 siblings.splice(index, 0, inserted);
             } else if (found.siblings !== siblings || found.index !== index) {
@@ -432,17 +430,17 @@ Draft.prototype.compile = function (options) {
 
     // Apply field edits only after every structural edit, at the final paths.
     flattenRoots(working).forEach(function (entry) {
-        var original = originalById.get(entry.node.id);
-        var node = desiredById.get(entry.node.id);
+        const original = originalById.get(entry.node.id);
+        const node = desiredById.get(entry.node.id);
         if (!original || !node.available) return;
-        var fields = dto.preferenceFieldEdits(original.fields, node.fields, true);
+        const fields = preferenceFieldEdits(original.fields, node.fields, true);
         if (fields.length) operations.push({ op: 'edit', path: copy(entry.path), fields: fields });
     });
     return { operations: operations, errors: [] };
 };
 
-const __export_create = function (showResult) {
+const create = function (showResult) {
     return new Draft(showResult);
 };
 
-export { __export_create as create, MAX_DEPTH as maxDepth };
+export { create, MAX_DEPTH as maxDepth };

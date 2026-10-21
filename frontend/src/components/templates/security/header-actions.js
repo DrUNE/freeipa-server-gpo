@@ -1,41 +1,40 @@
-import * as elements from '@gpui/util/element-creator';
-import * as translations from '@gpui/locales/translations';
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 
-('use strict');
-var sequence = 0;
+let sequence = 0;
 
 // Use the same header controls as Preferences, including their order and styling.
 function bind(header, fallbackHost, handlers) {
-    var headerElement = header && header.getElement ? header.getElement() : null;
-    var controls = headerElement && headerElement.querySelector('.gp__control');
-    var local = !controls;
+    const headerElement = header && header.getElement ? header.getElement() : null;
+    let controls = headerElement && headerElement.querySelector('.gp__control');
+    const local = !controls;
     if (local) {
-        var wrapper = elements.createElement('div', { className: 'gp__control' });
+        const wrapper = createElement('div', { className: 'gp__control' });
         fallbackHost.append(wrapper);
         controls = wrapper.getElement();
     }
-    var owner = 'security-' + ++sequence;
+    const owner = 'security-' + ++sequence;
     controls.setAttribute('data-security-owner', owner);
     controls.style.display = 'flex';
-    var states = {};
+    const states = {};
     ['create', 'edit', 'delete'].forEach(function (action) {
-        var button = controls.querySelector('.preferences__btn-' + action);
+        let button = controls.querySelector('.preferences__btn-' + action);
         if (!button) {
-            var element = elements.createElement('button', {
+            const element = createElement('button', {
                 className: ['button', 'preferences__btn-' + action],
                 attrs: { type: 'button' }
             });
             controls.appendChild(element.getElement());
             button = element.getElement();
         }
-        var initial = {
+        const initial = {
             text: button.textContent,
             display: button.style.display,
             disabled: button.disabled,
             active: button.classList.contains('active')
         };
-        var handler = handlers[action];
-        button.textContent = translations.t(
+        const handler = handlers[action];
+        button.textContent = t(
             action === 'create' ? 'security.addItem' : action === 'delete' ? 'security.remove' : 'header.edit'
         );
         button.style.display = handler ? '' : 'none';
@@ -51,7 +50,7 @@ function bind(header, fallbackHost, handlers) {
     function update(selection, busy) {
         if (!ownsHeader()) return;
         ['create', 'edit', 'delete'].forEach(function (action) {
-            var enabled =
+            const enabled =
                 !busy && Boolean(handlers[action]) && (action === 'create' || Boolean(selection && selection[action]));
             states[action].button.disabled = !enabled;
             states[action].button.classList.toggle('active', enabled);
@@ -62,7 +61,7 @@ function bind(header, fallbackHost, handlers) {
         update: update,
         cleanup: function () {
             Object.keys(states).forEach(function (action) {
-                var state = states[action];
+                const state = states[action];
                 state.button.removeEventListener('click', state.click);
                 if (!ownsHeader()) return;
                 state.button.textContent = state.initial.text;

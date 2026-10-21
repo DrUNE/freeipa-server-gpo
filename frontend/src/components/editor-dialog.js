@@ -1,7 +1,7 @@
-import * as elements from '@gpui/util/element-creator';
-import * as translations from '@gpui/locales/translations';
+import { ElementCreator } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 import * as confirmationDialog from '@gpui/components/confirmation-dialog';
-import * as editorStatus from '@gpui/components/editor-status';
+import { renderError } from '@gpui/components/editor-status';
 import {
     createBody,
     createButton,
@@ -11,8 +11,7 @@ import {
     setConfirming
 } from '@gpui/components/Dialog/Dialog';
 
-('use strict');
-var sequence = 0;
+let sequence = 0;
 
 function trapTab(event, modal) {
     if (
@@ -21,12 +20,12 @@ function trapTab(event, modal) {
         event.target.closest('[role="dialog"], [role="alertdialog"]') !== modal
     )
         return;
-    var focusable = Array.from(
+    const focusable = Array.from(
         modal.querySelectorAll(
             'button, input, select, textarea, summary, a[href], [contenteditable="true"], [tabindex]'
         )
     ).filter(function (element) {
-        var style = element.ownerDocument.defaultView.getComputedStyle(element);
+        const style = element.ownerDocument.defaultView.getComputedStyle(element);
         return (
             element.tabIndex >= 0 &&
             !element.disabled &&
@@ -43,7 +42,7 @@ function trapTab(event, modal) {
         modal.focus();
         return;
     }
-    var first = focusable[0],
+    const first = focusable[0],
         last = focusable[focusable.length - 1];
     if (focusable.indexOf(document.activeElement) === -1) {
         event.preventDefault();
@@ -58,29 +57,29 @@ function trapTab(event, modal) {
 }
 
 function open(host, options) {
-    var previous = document.activeElement;
-    var titleId = 'editor-dialog-' + ++sequence;
-    var busy = false;
-    var closed = false;
-    var applyDisabled = Boolean(options.applyDisabled);
-    var confirmation = null;
-    var wrap = elements.ElementCreator.wrap;
-    var classes = function (value) {
+    const previous = document.activeElement;
+    const titleId = 'editor-dialog-' + ++sequence;
+    let busy = false;
+    let closed = false;
+    let applyDisabled = Boolean(options.applyDisabled);
+    let confirmation = null;
+    const wrap = ElementCreator.wrap;
+    const classes = function (value) {
         return [].concat(value || []).join(' ');
     };
-    var body = wrap(createBody(null, classes(options.bodyClassName)));
+    const body = wrap(createBody(null, classes(options.bodyClassName)));
     body.append(options.content);
-    var failure = wrap(createErrorRegion(classes(options.errorClassName)));
+    const failure = wrap(createErrorRegion(classes(options.errorClassName)));
     body.getElement().prepend(failure.getElement());
-    var cancel = wrap(createButton('cancel', options.cancelLabel || translations.t('collections.cancel')));
-    var apply = wrap(
-        createButton('apply', options.applyLabel || translations.t('collections.ok'), classes(options.applyClassName))
+    const cancel = wrap(createButton('cancel', options.cancelLabel || t('collections.cancel')));
+    const apply = wrap(
+        createButton('apply', options.applyLabel || t('collections.ok'), classes(options.applyClassName))
     );
     apply.getElement().disabled = applyDisabled;
-    var closeButton = wrap(
-        createCloseButton(options.closeLabel || translations.t('collections.close'), classes(options.closeClassName))
+    const closeButton = wrap(
+        createCloseButton(options.closeLabel || t('collections.close'), classes(options.closeClassName))
     );
-    var shell = createDialogShell({
+    const shell = createDialogShell({
         titleId: titleId,
         title: options.title,
         body: body.getElement(),
@@ -91,8 +90,8 @@ function open(host, options) {
         className: classes(options.className),
         hostClassName: classes(options.hostClassName)
     });
-    var modal = wrap(shell.dialog);
-    var backdrop = wrap(shell.host);
+    const modal = wrap(shell.dialog);
+    const backdrop = wrap(shell.host);
     function close() {
         if (closed) return;
         closed = true;
@@ -102,7 +101,7 @@ function open(host, options) {
         }
         backdrop.getElement().remove();
         if (options.onClose) options.onClose();
-        var restored = previous && previous.isConnected ? previous : options.restoreFocus && options.restoreFocus();
+        const restored = previous && previous.isConnected ? previous : options.restoreFocus && options.restoreFocus();
         if (restored && restored.isConnected && restored.focus) restored.focus({ preventScroll: true });
     }
     function requestClose() {
@@ -115,7 +114,7 @@ function open(host, options) {
         modal.getElement().inert = true;
         setConfirming(modal.getElement(), true);
         confirmation = confirmationDialog.open(backdrop, {
-            message: options.discardMessage || translations.t('collections.discardQuestion'),
+            message: options.discardMessage || t('collections.discardQuestion'),
             onConfirm: close,
             onCancel: function () {
                 confirmation = null;
@@ -147,7 +146,7 @@ function open(host, options) {
             if (!options.onApply || (await options.onApply()) !== false) close();
         } catch (error) {
             failure.getElement().replaceChildren();
-            failure.append(editorStatus.renderError(error));
+            failure.append(renderError(error));
         } finally {
             busy = false;
             apply.getElement().disabled = applyDisabled;
@@ -174,7 +173,7 @@ function open(host, options) {
     host.append(backdrop);
     Promise.resolve().then(function () {
         if (closed) return;
-        var initial = options.initialFocus && options.initialFocus();
+        const initial = options.initialFocus && options.initialFocus();
         (initial || modal.getElement()).focus();
     });
     return {

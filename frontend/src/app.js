@@ -1,40 +1,30 @@
-import * as headerModule from '@gpui/components/header/header';
-import * as mainModule from '@gpui/components/main/main';
-import * as footerModule from '@gpui/components/footer/footer';
-import * as resizableModule from '@gpui/util/resizable';
-import * as categoryPathModule from '@gpui/components/category-path';
-import * as defaultTemplateModule from '@gpui/components/templates/default-template';
-import * as admxTemplateModule from '@gpui/components/templates/admx-template';
-import * as folderTemplateModule from '@gpui/components/templates/folder-template';
-import * as scriptsTemplateModule from '@gpui/components/templates/script-template';
-import * as preferencesTemplateModule from '@gpui/components/templates/preference/preferences-view-template';
-import * as securityTemplateModule from '@gpui/components/templates/security-template';
-import * as advancedAuditTemplateModule from '@gpui/components/templates/advanced-audit-template';
-import * as allPoliciesTemplateModule from '@gpui/components/templates/all-policies-template';
-import * as treeViewListModule from '@gpui/components/tree-view/tree-view-list';
-import * as elementCreatorModule from '@gpui/util/element-creator';
+import { renderHeader } from '@gpui/components/header/header';
+import { renderMain } from '@gpui/components/main/main';
+import { renderFooter } from '@gpui/components/footer/footer';
+import { resizable } from '@gpui/util/resizable';
+import { attachFilter, render } from '@gpui/components/category-path';
+import { renderDefaultTemplate } from '@gpui/components/templates/default-template';
+import { openAdmxDialog } from '@gpui/components/templates/admx-template';
+import { renderFolderTemplate, renderHelpBlock } from '@gpui/components/templates/folder-template';
+import { renderScriptsTemplate } from '@gpui/components/templates/script-template';
+import { renderPreferencesTemplate } from '@gpui/components/templates/preference/preferences-view-template';
+import { renderSecurityTemplate } from '@gpui/components/templates/security-template';
+import { renderAdvancedAuditTemplate } from '@gpui/components/templates/advanced-audit-template';
+import { renderAllPoliciesTemplate, updateCachedSource } from '@gpui/components/templates/all-policies-template';
+import {
+    setTreeItemActive,
+    setFolderOpenedState,
+    ensureLazyChildren,
+    hasVisibleChildren
+} from '@gpui/components/tree-view/tree-view-list';
+import { createElement } from '@gpui/util/element-creator';
+import { renderPending } from '@gpui/components/editor-status';
 import * as editorStatusModule from '@gpui/components/editor-status';
+import { t } from '@gpui/locales/translations';
+import { setLanguage } from '@gpui/locales/translations';
 import * as translationsModule from '@gpui/locales/translations';
-import * as APIModule from '@gpui/util/API';
+import * as API from '@gpui/util/API';
 import * as editorDialogModule from '@gpui/components/editor-dialog';
-
-var renderHeader = headerModule.renderHeader;
-var renderMain = mainModule.renderMain;
-var renderFooter = footerModule.renderFooter;
-var resizable = resizableModule.resizable;
-var renderDefaultTemplate = defaultTemplateModule.renderDefaultTemplate;
-var renderFolderTemplate = folderTemplateModule.renderFolderTemplate;
-var renderHelpBlock = folderTemplateModule.renderHelpBlock;
-var renderScriptsTemplate = scriptsTemplateModule.renderScriptsTemplate;
-var renderPreferencesTemplate = preferencesTemplateModule.renderPreferencesTemplate;
-var renderSecurityTemplate = securityTemplateModule.renderSecurityTemplate;
-var renderAdvancedAuditTemplate = advancedAuditTemplateModule.renderAdvancedAuditTemplate;
-var renderAllPoliciesTemplate = allPoliciesTemplateModule.renderAllPoliciesTemplate;
-var setTreeItemActive = treeViewListModule.setTreeItemActive;
-var setFolderOpenedState = treeViewListModule.setFolderOpenedState;
-var ensureLazyChildren = treeViewListModule.ensureLazyChildren;
-var createElement = elementCreatorModule.createElement;
-var t = translationsModule.t;
 
 function createTreeViewState() {
     return {
@@ -57,20 +47,20 @@ function createTreeViewState() {
 
         setWorkspace: function (workspace) {
             this.workspace = workspace;
-            var node = workspace && workspace.getElement();
+            const node = workspace && workspace.getElement();
             if (!node) return;
             node.setAttribute('role', 'region');
             node.setAttribute('aria-label', t('navigation.catalog'));
-            var container = node.closest('.gp__container');
+            const container = node.closest('.gp__container');
             if (!container) return;
             if (container._gpoPaneNavigation) container.removeEventListener('keydown', container._gpoPaneNavigation);
-            var state = this;
+            const state = this;
             container._gpoPaneNavigation = function (event) {
                 if (event.key !== 'F6' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey)
                     return;
-                var target = event.target;
+                const target = event.target;
                 if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
-                var ownerDialog = target.closest('[role="dialog"], [role="alertdialog"]');
+                const ownerDialog = target.closest('[role="dialog"], [role="alertdialog"]');
                 if (ownerDialog && !ownerDialog.matches('.modal-gpui')) return;
                 if (
                     Array.from(
@@ -86,8 +76,8 @@ function createTreeViewState() {
                     })
                 )
                     return;
-                var fromTree = Boolean(target.closest('.tree-view'));
-                var destination = fromTree
+                const fromTree = Boolean(target.closest('.tree-view'));
+                const destination = fromTree
                     ? node.querySelector(
                           '[data-list-navigation] [tabindex="0"], [data-list-navigation][tabindex="0"]'
                       ) ||
@@ -111,7 +101,7 @@ function createTreeViewState() {
         },
 
         initHelpControls: function () {
-            var btnInformation =
+            const btnInformation =
                 this.header && this.header.getElement && this.header.getElement()
                     ? this.header.getElement().querySelector('.gp__control-help .btn-information')
                     : null;
@@ -125,10 +115,10 @@ function createTreeViewState() {
         },
 
         registerTreeNode: function (item, options) {
-            var config = options || {};
-            var treeItemElement = config.treeItemElement || null;
-            var listItemElement = config.listItemElement || null;
-            var parentItem = config.parentItem || null;
+            const config = options || {};
+            const treeItemElement = config.treeItemElement || null;
+            const listItemElement = config.listItemElement || null;
+            const parentItem = config.parentItem || null;
 
             if (!item) {
                 return;
@@ -155,8 +145,8 @@ function createTreeViewState() {
                 return [];
             }
 
-            var path = [];
-            var currentItem = item;
+            const path = [];
+            let currentItem = item;
 
             while (currentItem) {
                 path.unshift(currentItem);
@@ -168,7 +158,7 @@ function createTreeViewState() {
 
         getCategoryHeading: function (item) {
             if (item && Array.isArray(item.categoryPath)) return item.categoryPath.join(' / ');
-            var path = this.getPathToItem(item);
+            const path = this.getPathToItem(item);
             return path
                 .map(function (node) {
                     return node.title || '';
@@ -178,8 +168,8 @@ function createTreeViewState() {
         },
 
         renderCategoryPath: function (item) {
-            var path = this.getPathToItem(item);
-            return categoryPathModule.render(
+            const path = this.getPathToItem(item);
+            return render(
                 path.map(function (node) {
                     return { title: node.title || '', item: node };
                 }),
@@ -190,10 +180,10 @@ function createTreeViewState() {
         },
 
         updateCachedSecurityModels: function (model) {
-            var updated = new Set();
+            const updated = new Set();
             function visit(nodes) {
                 (nodes || []).forEach(function (node) {
-                    var cached = node.securityModel;
+                    const cached = node.securityModel;
                     if (cached && cached !== model && !updated.has(cached)) {
                         Object.keys(model).forEach(function (key) {
                             cached[key] = model[key];
@@ -210,7 +200,7 @@ function createTreeViewState() {
             function visit(nodes) {
                 (nodes || []).forEach(function (node) {
                     if (node.template === 'all_policies' && node.scope === 'computer') {
-                        allPoliciesTemplateModule.updateCachedSource(node, name, response);
+                        updateCachedSource(node, name, response);
                     }
                     if (name === 'audit' && node.advancedAuditResponse) {
                         node.advancedAuditResponse = response;
@@ -226,17 +216,17 @@ function createTreeViewState() {
                 return Boolean(item && item.opened);
             }
 
-            var listItemElement = this.treeListItemElements.get(item) || null;
+            const listItemElement = this.treeListItemElements.get(item) || null;
             return setFolderOpenedState(listItemElement, item, opened);
         },
 
         toggleFolder: function (item) {
-            if (!item || item.type !== 'folder' || !treeViewListModule.hasVisibleChildren(item)) {
+            if (!item || item.type !== 'folder' || !hasVisibleChildren(item)) {
                 return Boolean(item && item.opened);
             }
-            var opened = this.setFolderOpened(item, !item.opened);
+            const opened = this.setFolderOpened(item, !item.opened);
             if (opened && item.lazy && !item.loaded) {
-                var element = this.treeListItemElements.get(item);
+                const element = this.treeListItemElements.get(item);
                 if (element)
                     return ensureLazyChildren(item, element, this)
                         .then(function () {
@@ -250,7 +240,7 @@ function createTreeViewState() {
         },
 
         openPathToItem: function (item) {
-            var path = this.getPathToItem(item);
+            const path = this.getPathToItem(item);
 
             path.slice(0, -1).forEach(function (pathItem) {
                 if (pathItem && pathItem.type === 'folder') {
@@ -262,7 +252,7 @@ function createTreeViewState() {
         },
 
         activateTreeItem: function (item, treeItemElement) {
-            var nextTreeItemElement = treeItemElement || this.treeItemElements.get(item) || null;
+            let nextTreeItemElement = treeItemElement || this.treeItemElements.get(item) || null;
 
             if (
                 !nextTreeItemElement &&
@@ -270,7 +260,7 @@ function createTreeViewState() {
                 item.showInTree === false &&
                 (item.template === 'admx' || item.searchReturnTo)
             ) {
-                var parentItem = this.parentItems.get(item) || null;
+                let parentItem = this.parentItems.get(item) || null;
                 while (parentItem && !nextTreeItemElement) {
                     nextTreeItemElement = this.treeItemElements.get(parentItem) || null;
                     parentItem = this.parentItems.get(parentItem) || null;
@@ -281,7 +271,7 @@ function createTreeViewState() {
                 return null;
             }
 
-            var treeContainer = nextTreeItemElement.closest('.tree-view') || document;
+            const treeContainer = nextTreeItemElement.closest('.tree-view') || document;
             return setTreeItemActive(nextTreeItemElement, treeContainer);
         },
 
@@ -349,8 +339,8 @@ function createTreeViewState() {
                 return view;
             }
 
-            var helpSourceItem = this.getCurrentHelpSourceItem();
-            var helpBlock = renderHelpBlock({
+            const helpSourceItem = this.getCurrentHelpSourceItem();
+            const helpBlock = renderHelpBlock({
                 help: helpSourceItem ? helpSourceItem.help : undefined,
                 isOpen: this.isHelpOpen
             });
@@ -366,7 +356,7 @@ function createTreeViewState() {
         },
 
         syncHelpButtonState: function () {
-            var btnInformation =
+            const btnInformation =
                 this.header && this.header.getElement && this.header.getElement()
                     ? this.header.getElement().querySelector('.gp__control-help .btn-information')
                     : null;
@@ -379,8 +369,8 @@ function createTreeViewState() {
         },
 
         syncHelpBlockState: function () {
-            var workspaceEl = this.workspace && this.workspace.getElement ? this.workspace.getElement() : null;
-            var helpBlocks = workspaceEl
+            const workspaceEl = this.workspace && this.workspace.getElement ? this.workspace.getElement() : null;
+            const helpBlocks = workspaceEl
                 ? workspaceEl.querySelectorAll('.gp__list-children-help, .gp__admx-help, .preference__info')
                 : null;
 
@@ -408,17 +398,17 @@ function createTreeViewState() {
         },
 
         renderSelectedItem: async function (item, element) {
-            var renderRequestId = ++this.renderRequestId;
+            const renderRequestId = ++this.renderRequestId;
 
             this.cleanupCurrentView();
 
-            var headerElement = this.header && this.header.getElement ? this.header.getElement() : null;
-            var preferenceControls = headerElement ? headerElement.querySelector('.gp__control') : null;
-            var editorActions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
+            const headerElement = this.header && this.header.getElement ? this.header.getElement() : null;
+            const preferenceControls = headerElement ? headerElement.querySelector('.gp__control') : null;
+            const editorActions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
             if (preferenceControls) preferenceControls.style.display = 'none';
             if (editorActions) editorActions.style.display = 'none';
-            var admxActions = headerElement ? headerElement.querySelector('.gp__control-admx') : null;
-            var helpSeparator = headerElement ? headerElement.querySelector('.gp__control-separator') : null;
+            const admxActions = headerElement ? headerElement.querySelector('.gp__control-admx') : null;
+            const helpSeparator = headerElement ? headerElement.querySelector('.gp__control-separator') : null;
             if (admxActions) admxActions.style.display = '';
             if (helpSeparator) helpSeparator.style.display = '';
 
@@ -429,11 +419,11 @@ function createTreeViewState() {
             this.setCurrentView(null);
             this.selectedPath = this.getPathToItem(item);
             this.selectedItem = { item: item, element: element };
-            var categoryPath = this.getCategoryHeading(item);
+            const categoryPath = this.getCategoryHeading(item);
             if (this.workspace) this.workspace.append(this.renderCategoryPath(item));
 
-            var templateResult = null;
-            var renderedWorkspaceView = null;
+            let templateResult = null;
+            let renderedWorkspaceView = null;
 
             if (item && item.template === 'all_policies') {
                 if (editorActions) editorActions.style.display = 'flex';
@@ -511,9 +501,9 @@ function createTreeViewState() {
                 if (item.template === 'admx') {
                     if (admxActions) admxActions.style.display = 'none';
                     if (helpSeparator) helpSeparator.style.display = 'none';
-                    var parentCategory = this.parentItems.get(item);
-                    var state = this;
-                    var policyDialog = null,
+                    const parentCategory = this.parentItems.get(item);
+                    const state = this;
+                    let policyDialog = null,
                         policyEditor = null;
                     templateResult = renderFolderTemplate({
                         hideHeading: true,
@@ -525,12 +515,12 @@ function createTreeViewState() {
                             state.navigateToNode(child, { openPath: true });
                         }
                     });
-                    var catalog = templateResult;
-                    var cleanupCatalog = catalog.cleanup;
-                    var mountCatalog = catalog.onMounted;
+                    const catalog = templateResult;
+                    const cleanupCatalog = catalog.cleanup;
+                    const mountCatalog = catalog.onMounted;
                     catalog.onMounted = function () {
                         if (mountCatalog) mountCatalog();
-                        var opened = admxTemplateModule.openAdmxDialog(catalog, {
+                        const opened = openAdmxDialog(catalog, {
                             item: item,
                             isCurrent: function () {
                                 return renderRequestId === state.renderRequestId;
@@ -555,7 +545,7 @@ function createTreeViewState() {
                     };
                     catalog.applyChanges = async function () {
                         if (!policyEditor) return true;
-                        var saved = await policyEditor.applyChanges();
+                        const saved = await policyEditor.applyChanges();
                         if (saved && policyDialog) policyDialog.close();
                         return saved;
                     };
@@ -615,7 +605,7 @@ function createTreeViewState() {
 
             if (this.workspace && renderedWorkspaceView) {
                 this.workspace.append(renderedWorkspaceView);
-                categoryPathModule.attachFilter(
+                attachFilter(
                     this.workspace.getElement().querySelector('.gpo-category-path'),
                     renderedWorkspaceView.getElement()
                 );
@@ -626,7 +616,7 @@ function createTreeViewState() {
             }
 
             if (item && item.searchReturnTo && editorActions) {
-                var back = createElement('button', {
+                const back = createElement('button', {
                     className: ['button', 'active', 'gpo-policy-search__back'],
                     attrs: { type: 'button', 'data-policy-search-back': '' },
                     text: t('policySearch.back'),
@@ -653,7 +643,7 @@ function createTreeViewState() {
                 return false;
             }
 
-            var config = Object.assign({}, options || {}, {
+            const config = Object.assign({}, options || {}, {
                 navigationRequestId: ++this.navigationRequestId
             });
 
@@ -665,7 +655,7 @@ function createTreeViewState() {
                 return false;
             }
 
-            var currentView = this.currentView;
+            const currentView = this.currentView;
             if (currentView && typeof currentView.hasUnsavedChanges === 'function' && currentView.hasUnsavedChanges()) {
                 this.pendingNavigation = { item: item, options: config };
                 this.showPolicyChangedModal();
@@ -680,16 +670,16 @@ function createTreeViewState() {
             if (config.navigationRequestId !== this.navigationRequestId) {
                 return false;
             }
-            var treeItemElement = config.treeItemElement || null;
-            var openPath = config.openPath !== undefined ? config.openPath : true;
-            var openCurrentFolder = config.openCurrentFolder;
+            const treeItemElement = config.treeItemElement || null;
+            const openPath = config.openPath !== undefined ? config.openPath : true;
+            const openCurrentFolder = config.openCurrentFolder;
 
             if (!item) {
                 return false;
             }
 
             if (item.type === 'folder' && item.lazy && !item.loaded && !config.lazyLoadComplete) {
-                var listItemElement = this.treeListItemElements.get(item) || null;
+                const listItemElement = this.treeListItemElements.get(item) || null;
                 if (!listItemElement) {
                     return Promise.resolve(false);
                 }
@@ -701,7 +691,7 @@ function createTreeViewState() {
                             if (config.navigationRequestId !== this.navigationRequestId) {
                                 return false;
                             }
-                            var nextConfig = Object.assign({}, config, { lazyLoadComplete: true });
+                            const nextConfig = Object.assign({}, config, { lazyLoadComplete: true });
                             // Expansion may have changed while the request was pending.
                             delete nextConfig.openCurrentFolder;
                             return this.guardNavigation(item, nextConfig);
@@ -720,7 +710,7 @@ function createTreeViewState() {
                 this.setFolderOpened(item, openCurrentFolder);
             }
 
-            var activeTreeItemElement = this.activateTreeItem(item, treeItemElement);
+            const activeTreeItemElement = this.activateTreeItem(item, treeItemElement);
             return this.renderSelectedItem(item, activeTreeItemElement);
         },
 
@@ -739,16 +729,16 @@ function createTreeViewState() {
         handlePolicyChangedYes: async function () {
             this.hidePolicyChangedModal();
 
-            var currentView = this.currentView;
+            const currentView = this.currentView;
             if (currentView && typeof currentView.applyChanges === 'function') {
-                var success = await currentView.applyChanges();
+                const success = await currentView.applyChanges();
                 if (!success) {
                     this.pendingNavigation = null;
                     return;
                 }
             }
 
-            var nav = this.pendingNavigation;
+            const nav = this.pendingNavigation;
             this.pendingNavigation = null;
             if (nav) {
                 return this.guardNavigation(nav.item, nav.options);
@@ -759,7 +749,7 @@ function createTreeViewState() {
         handlePolicyChangedNo: function () {
             this.hidePolicyChangedModal();
 
-            var currentView = this.currentView;
+            const currentView = this.currentView;
             if (currentView && typeof currentView.cancelChanges === 'function') {
                 if (currentView.cancelChanges() === false) {
                     this.pendingNavigation = null;
@@ -767,7 +757,7 @@ function createTreeViewState() {
                 }
             }
 
-            var nav = this.pendingNavigation;
+            const nav = this.pendingNavigation;
             this.pendingNavigation = null;
             if (nav) {
                 return this.guardNavigation(nav.item, nav.options);
@@ -780,7 +770,7 @@ function createTreeViewState() {
                 return;
             }
 
-            var firstRootItem = this.treeData[0] || null;
+            const firstRootItem = this.treeData[0] || null;
 
             if (!firstRootItem) {
                 return;
@@ -799,12 +789,12 @@ function resolveContainer(options) {
         return options.container;
     }
 
-    var containerId = options && options.containerId ? options.containerId : 'gp__container';
+    const containerId = options && options.containerId ? options.containerId : 'gp__container';
     return document.getElementById(containerId);
 }
 
 function init(options) {
-    var container = resolveContainer(options || {});
+    const container = resolveContainer(options || {});
 
     if (!container) {
         return null;
@@ -812,40 +802,40 @@ function init(options) {
 
     container.innerHTML = '';
 
-    var policyName = (options || {}).policyName;
+    const policyName = (options || {}).policyName;
 
-    var browserLang = (navigator.language || 'en').slice(0, 2).toLowerCase();
-    translationsModule.setLanguage(browserLang);
+    const browserLang = (navigator.language || 'en').slice(0, 2).toLowerCase();
+    setLanguage(browserLang);
 
-    APIModule.initialize(policyName)
+    API.initialize(policyName)
         .then(function (openResult) {
-            var treeViewState = createTreeViewState();
-            var header = renderHeader(container);
-            var headerElement = header.getElement();
-            var initialPreferenceControls = headerElement.querySelector('.gp__control');
-            var initialEditorActions = headerElement.querySelector('.gp__control-actions');
+            const treeViewState = createTreeViewState();
+            const header = renderHeader(container);
+            const headerElement = header.getElement();
+            const initialPreferenceControls = headerElement.querySelector('.gp__control');
+            const initialEditorActions = headerElement.querySelector('.gp__control-actions');
             if (initialPreferenceControls) initialPreferenceControls.style.display = 'none';
             if (initialEditorActions) initialEditorActions.style.display = 'none';
             treeViewState.setHeader(header);
             treeViewState.initHelpControls();
 
             function reconcilePending(event) {
-                var button = event.currentTarget;
+                const button = event.currentTarget;
                 button.disabled = true;
-                APIModule.reconcile()
+                API.reconcile()
                     .then(function (result) {
-                        var recovery = result.recovery || result.result || result;
+                        const recovery = result.recovery || result.result || result;
                         if (recovery && recovery.kind === 'conflict') {
-                            throw new APIModule.EditorError('Publication reconciliation found a third state.', {
+                            throw new API.EditorError('Publication reconciliation found a third state.', {
                                 category: 'publication_conflict',
                                 conflict: recovery.conflict
                             });
                         }
-                        var notice = button.closest('[data-editor-status]');
+                        const notice = button.closest('[data-editor-status]');
                         if (notice) notice.remove();
                     })
                     .catch(function (error) {
-                        var notice = button.closest('[data-editor-status]');
+                        const notice = button.closest('[data-editor-status]');
                         if (notice) {
                             notice.replaceWith(
                                 editorStatusModule
@@ -860,16 +850,13 @@ function init(options) {
                         button.disabled = false;
                     });
             }
-            var pendingNotice = editorStatusModule.renderPending(
-                openResult && openResult.pending_publication,
-                reconcilePending
-            );
+            const pendingNotice = renderPending(openResult && openResult.pending_publication, reconcilePending);
             if (pendingNotice) container.appendChild(pendingNotice.getElement());
 
-            var renderedMain = renderMain(container, treeViewState);
+            const renderedMain = renderMain(container, treeViewState);
             renderFooter(container);
 
-            var policyChangedModal = createElement('div', {
+            const policyChangedModal = createElement('div', {
                 className: 'policy-changed__modal',
                 children: [
                     createElement('div', {
@@ -909,8 +896,8 @@ function init(options) {
             container.appendChild(policyChangedModal.getElement());
             treeViewState.policyChangedModal = policyChangedModal.getElement();
 
-            var policyBtnNo = treeViewState.policyChangedModal.querySelector('.btn-no');
-            var policyBtnYes = treeViewState.policyChangedModal.querySelector('.btn-yes');
+            const policyBtnNo = treeViewState.policyChangedModal.querySelector('.btn-no');
+            const policyBtnYes = treeViewState.policyChangedModal.querySelector('.btn-yes');
             policyBtnNo.addEventListener('click', treeViewState.handlePolicyChangedNo.bind(treeViewState));
             policyBtnYes.addEventListener('click', treeViewState.handlePolicyChangedYes.bind(treeViewState));
 
@@ -938,10 +925,10 @@ function init(options) {
     };
 }
 
-const __export__test = {
+const _test = {
     createTreeViewState: createTreeViewState
 };
 
 // The FreeIPA-side entry points (gpo.js, chain.js) share these module instances
 // with the editor, because the whole editor ships as one bundle (js/app.js).
-export { init, __export__test as _test, translationsModule as translations, editorDialogModule as editorDialog };
+export { init, _test, translationsModule as translations, editorDialogModule as editorDialog };

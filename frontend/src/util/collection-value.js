@@ -1,6 +1,5 @@
 /** Typed collection values and isolated editor sessions; no DOM or persistence. */
 
-'use strict';
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -9,7 +8,7 @@ function mode(parameter, value) {
     return value && value.kind === 'key_value_list' ? 'key_value' : 'list';
 }
 function constraints(parameter, value) {
-    var declared = parameter.collection || {};
+    const declared = parameter.collection || {};
     return {
         mode: mode(parameter, value),
         unique_keys: declared.unique_keys === true || mode(parameter, value) === 'key_value',
@@ -32,18 +31,18 @@ function folded(key, rules) {
           });
 }
 function validate(parameter, value) {
-    var rules = constraints(parameter, value);
-    var errors = [];
-    var entries = value && value.value;
+    const rules = constraints(parameter, value);
+    const errors = [];
+    const entries = value && value.value;
     if (!Array.isArray(entries) || value.kind !== (rules.mode === 'key_value' ? 'key_value_list' : 'text_list')) {
         return [{ index: null, field: null, code: 'invalidValue' }];
     }
     if (entries.length < rules.min_items) errors.push({ index: null, field: null, code: 'minItems' });
-    var seen = new Map();
+    const seen = new Map();
     entries.forEach(function (entry, index) {
-        var key = rules.mode === 'key_value' ? entry && entry.key : entry;
-        var text = rules.mode === 'key_value' ? entry && entry.value : entry;
-        var keyField = rules.mode === 'key_value' ? 'key' : 'value';
+        const key = rules.mode === 'key_value' ? entry && entry.key : entry;
+        const text = rules.mode === 'key_value' ? entry && entry.value : entry;
+        const keyField = rules.mode === 'key_value' ? 'key' : 'value';
         if (typeof text !== 'string' || (rules.mode === 'key_value' && typeof key !== 'string')) {
             errors.push({ index: index, field: typeof text !== 'string' ? 'value' : keyField, code: 'invalidValue' });
             return;
@@ -54,7 +53,7 @@ function validate(parameter, value) {
         if (rules.max_length !== null && rules.max_length !== undefined && Array.from(text).length > rules.max_length) {
             errors.push({ index: index, field: 'value', code: 'tooLong' });
         }
-        var valueLength = rules.length_unit === 'utf16' ? text.length : Array.from(text).length;
+        const valueLength = rules.length_unit === 'utf16' ? text.length : Array.from(text).length;
         if (
             rules.max_value_length !== null &&
             rules.max_value_length !== undefined &&
@@ -71,14 +70,14 @@ function validate(parameter, value) {
             });
         if (/[\0\r\n]/.test(key) || key.indexOf('**') === 0)
             errors.push({ index: index, field: keyField, code: 'invalidKey' });
-        var keyLength = rules.length_unit === 'utf16' ? key.length : Array.from(key).length;
+        const keyLength = rules.length_unit === 'utf16' ? key.length : Array.from(key).length;
         if (rules.max_key_length !== null && rules.max_key_length !== undefined && keyLength > rules.max_key_length) {
             errors.push({ index: index, field: keyField, code: 'keyTooLong' });
         }
-        var name = folded(key, rules);
+        const name = folded(key, rules);
         if (seen.has(name)) {
             errors.push({ index: index, field: keyField, code: 'duplicateKey' });
-            var previous = seen.get(name);
+            const previous = seen.get(name);
             if (
                 !errors.some(function (error) {
                     return error.index === previous && error.code === 'duplicateKey';
@@ -94,22 +93,22 @@ function empty(parameter, value) {
     return { kind: mode(parameter, value) === 'key_value' ? 'key_value_list' : 'text_list', value: [] };
 }
 function summary(parameter, value) {
-    var entries = value && Array.isArray(value.value) ? value.value : [];
+    const entries = value && Array.isArray(value.value) ? value.value : [];
     return {
         mode: mode(parameter, value),
         count: entries.length,
         preview: entries.slice(0, 3).map(function (entry) {
-            var text = mode(parameter, value) === 'key_value' ? entry.key : entry;
+            const text = mode(parameter, value) === 'key_value' ? entry.key : entry;
             return String(text).replace(/[\r\n\t]+/g, ' ');
         }),
         more: entries.length > 3
     };
 }
 function session(parameter, value) {
-    var initial = value && Array.isArray(value.value) ? clone(value) : empty(parameter, value);
-    var rules = constraints(parameter, initial);
-    var sequence = 0;
-    var rows = initial.value.map(function (entry) {
+    const initial = value && Array.isArray(value.value) ? clone(value) : empty(parameter, value);
+    const rules = constraints(parameter, initial);
+    let sequence = 0;
+    const rows = initial.value.map(function (entry) {
         return rules.mode === 'key_value'
             ? { id: 'row-' + ++sequence, key: entry.key, value: entry.value, fresh: false }
             : { id: 'row-' + ++sequence, value: entry, fresh: false };
@@ -118,7 +117,7 @@ function session(parameter, value) {
         return rows
             .map(function (row) {
                 if (!pending || pending.id !== row.id) return row;
-                var copy = Object.assign({}, row);
+                const copy = Object.assign({}, row);
                 copy[pending.field] = pending.value;
                 return copy;
             })
@@ -134,7 +133,7 @@ function session(parameter, value) {
             })
         };
     }
-    var state = {
+    const state = {
         rows: rows,
         mode: rules.mode,
         selectedId: null,
@@ -151,14 +150,14 @@ function session(parameter, value) {
             state.selectedId = state.find(id) ? id : null;
         },
         add: function () {
-            var row = { id: 'row-' + ++sequence, value: '', fresh: true };
+            const row = { id: 'row-' + ++sequence, value: '', fresh: true };
             if (rules.mode === 'key_value') row.key = '';
             rows.push(row);
             state.selectedId = null;
             return row.id;
         },
         removeSelected: function () {
-            var index = rows.findIndex(function (row) {
+            const index = rows.findIndex(function (row) {
                 return row.id === state.selectedId;
             });
             if (index < 0) return false;
@@ -167,30 +166,30 @@ function session(parameter, value) {
             return true;
         },
         edit: function (id, field, text) {
-            var row = state.find(id);
+            const row = state.find(id);
             if (!row || (field !== 'value' && !(rules.mode === 'key_value' && field === 'key'))) return false;
             row[field] = String(text);
             return true;
         },
         move: function (id, index) {
-            var from = rows.findIndex(function (row) {
+            const from = rows.findIndex(function (row) {
                 return row.id === id;
             });
             if (from < 0 || !Number.isInteger(index)) return false;
-            var to = Math.max(0, Math.min(rows.length - 1, index));
+            const to = Math.max(0, Math.min(rows.length - 1, index));
             if (to === from) return false;
-            var row = rows.splice(from, 1)[0];
+            const row = rows.splice(from, 1)[0];
             rows.splice(to, 0, row);
             return true;
         },
         visible: function (query) {
-            var needle = String(query || '').toLocaleLowerCase();
+            const needle = String(query || '').toLocaleLowerCase();
             return rows.filter(function (row) {
                 return !needle || ((row.key || '') + '\n' + row.value).toLocaleLowerCase().indexOf(needle) !== -1;
             });
         },
         errors: function (pending) {
-            var effective = effectiveRows(pending);
+            const effective = effectiveRows(pending);
             return validate(parameter, read(pending)).map(function (error) {
                 return Object.assign({}, error, { id: error.index === null ? null : effective[error.index].id });
             });

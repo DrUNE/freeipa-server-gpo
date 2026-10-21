@@ -1,6 +1,4 @@
-'use strict';
-
-const __export_basic = [
+const basic = [
     { field: 'properties.action' },
     { line: true },
     { field: 'properties.name' },
@@ -14,7 +12,7 @@ const __export_basic = [
     { field: 'properties.userLimit' },
     { field: 'properties.abe' }
 ];
-const __export_general = [
+const general = [
     { field: 'properties.comment', textarea: true },
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
@@ -22,8 +20,8 @@ const __export_general = [
     { field: 'properties.disabled' },
     { field: 'metadata.desc', textarea: true }
 ];
-const __export_filters = 'general';
-const __export_dependencies = [
+const filters = 'general';
+const dependencies = [
     { field: 'properties.path', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.comment', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.allRegular', enabledWhen: [{ source: 'properties.action', in: ['update', 'delete'] }] },
@@ -39,7 +37,7 @@ const __export_dependencies = [
     },
     { field: 'properties.abe', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] }
 ];
-const __export_columns = [
+const columns = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' },
@@ -48,10 +46,4 @@ const __export_columns = [
     { source: 'field', field: 'properties.abe', labelKey: 'columnAbe' }
 ];
 
-export {
-    __export_basic as basic,
-    __export_general as general,
-    __export_filters as filters,
-    __export_dependencies as dependencies,
-    __export_columns as columns
-};
+export { basic, general, filters, dependencies, columns };

@@ -1,6 +1,6 @@
 import { cx, h } from '@gpui/lib/dom';
-import * as dto from '@gpui/util/editor-dto';
-import * as translations from '@gpui/locales/translations';
+import { errorCategory } from '@gpui/util/editor-dto';
+import { t } from '@gpui/locales/translations';
 import styles from '@gpui/components/EditorStatus/EditorStatus.module.css';
 
 /*
@@ -28,15 +28,15 @@ const DETAILS = {
 };
 
 function text(key) {
-    return translations.t('editorStatus.' + key);
+    return t('editorStatus.' + key);
 }
 
 /** Localized message for an error: its category's text plus a translated detail when the server message is known. */
 /** @param {EditorStatusError} error */
 export function messageForError(error) {
-    const category = dto.errorCategory(error).replace(/-/g, '_');
+    const category = errorCategory(error).replace(/-/g, '_');
     const key = 'editorStatus.errors.' + category;
-    let prefix = translations.t(key);
+    let prefix = t(key);
     if (prefix === key) prefix = text('errors.operational');
     const message = error && error.message ? String(error.message) : '';
     // RPC diagnostics are not localized UI strings. Append only translated
@@ -57,7 +57,7 @@ function createAction(label, onClick) {
  *   actions are shown only for the callbacks that are given (reconcile also needs a publication error)
  */
 export function createErrorStatus(error, options = {}) {
-    const category = dto.errorCategory(error).replace(/-/g, '_');
+    const category = errorCategory(error).replace(/-/g, '_');
     const actions = [];
     if (typeof options.onRefresh === 'function') actions.push(createAction(text('refresh'), options.onRefresh));
     if (

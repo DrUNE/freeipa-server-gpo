@@ -1,9 +1,6 @@
-import * as editorIcons from '@gpui/components/editor-icons';
-import * as translations from '@gpui/locales/translations';
-import * as elements from '@gpui/util/element-creator';
-
-var t = translations.t;
-var create = elements.createElement;
+import { scriptFile } from '@gpui/components/editor-icons';
+import { t } from '@gpui/locales/translations';
+import { createElement } from '@gpui/util/element-creator';
 
 function st(key) {
     return t('systemSettings.' + key);
@@ -16,13 +13,13 @@ function eventLabel(event) {
 }
 
 function nameCell(label, icon) {
-    return create('td', {
+    return createElement('td', {
         children: [
-            create('span', {
+            createElement('span', {
                 className: 'gpo-catalog-name',
                 children: [
-                    create('span', { className: ['icon', icon], attrs: { 'aria-hidden': 'true' } }),
-                    create('span', { text: label })
+                    createElement('span', { className: ['icon', icon], attrs: { 'aria-hidden': 'true' } }),
+                    createElement('span', { text: label })
                 ]
             })
         ]
@@ -30,11 +27,11 @@ function nameCell(label, icon) {
 }
 
 function assetIcon(name) {
-    return editorIcons.scriptFile(/\.ps(?:1|m1|d1)$/i.test(name) ? 'powershell' : 'classic');
+    return scriptFile(/\.ps(?:1|m1|d1)$/i.test(name) ? 'powershell' : 'classic');
 }
 
 function button(label, action, disabled, extraClass) {
-    return create('button', {
+    return createElement('button', {
         className: ['button', disabled ? null : 'active', extraClass],
         attrs: { type: 'button', disabled: disabled ? 'disabled' : null },
         text: label,
@@ -44,13 +41,13 @@ function button(label, action, disabled, extraClass) {
 
 function fileBase64(file) {
     return new Promise(function (resolve, reject) {
-        var reader = new FileReader();
+        const reader = new FileReader();
         reader.onerror = function () {
             reject(reader.error || new Error('File reading failed.'));
         };
         reader.onload = function () {
-            var value = String(reader.result || '');
-            var comma = value.indexOf(',');
+            const value = String(reader.result || '');
+            const comma = value.indexOf(',');
             if (comma < 0) reject(new Error('File reading failed.'));
             else resolve(value.slice(comma + 1));
         };
@@ -73,17 +70,17 @@ function saveDownloadedAsset(asset) {
     ) {
         throw new Error(st('invalidDownload'));
     }
-    var binary;
+    let binary;
     try {
         binary = atob(asset.content_base64);
     } catch (_error) {
         throw new Error(st('invalidDownload'));
     }
     if (binary.length !== asset.byte_size) throw new Error(st('invalidDownload'));
-    var bytes = new Uint8Array(binary.length);
-    for (var index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-    var url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-    var link = document.createElement('a');
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+    const link = document.createElement('a');
     link.href = url;
     link.download = asset.name;
     document.body.appendChild(link);

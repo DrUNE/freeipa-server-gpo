@@ -1,42 +1,42 @@
-import * as elements from '@gpui/util/element-creator';
+import { createElement, ElementCreator } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import * as translations from '@gpui/locales/translations';
+import { t } from '@gpui/locales/translations';
+import { renderPending, renderError, renderDiagnostics } from '@gpui/components/editor-status';
 import * as editorStatus from '@gpui/components/editor-status';
-import * as confirmationDialog from '@gpui/components/confirmation-dialog';
+import { open } from '@gpui/components/confirmation-dialog';
+import { trapTab } from '@gpui/components/editor-dialog';
 import * as editorDialog from '@gpui/components/editor-dialog';
+import { bind } from '@gpui/components/list-navigation';
 import * as listNavigation from '@gpui/components/list-navigation';
-import * as editorIcons from '@gpui/components/editor-icons';
+import { scriptEvent, scriptFile } from '@gpui/components/editor-icons';
 import {
     createBody,
     createButton as createDialogButton,
     createCloseButton,
     createDialogShell
 } from '@gpui/components/Dialog/Dialog';
-import * as helpersModule from '@gpui/components/templates/script/helpers';
+import {
+    st,
+    eventLabel,
+    button,
+    nameCell,
+    assetIcon,
+    fileBase64,
+    saveDownloadedAsset
+} from '@gpui/components/templates/script/helpers';
 
-('use strict');
-
-var create = elements.createElement;
-var wrap = elements.ElementCreator.wrap;
-var t = translations.t;
-var nextHeaderOwnerId = 1;
-var st = helpersModule.st;
-var eventLabel = helpersModule.eventLabel;
-var button = helpersModule.button;
-var nameCell = helpersModule.nameCell;
-var assetIcon = helpersModule.assetIcon;
-var fileBase64 = helpersModule.fileBase64;
-var saveDownloadedAsset = helpersModule.saveDownloadedAsset;
-var GROUPS = ['classic', 'powershell'];
-var EVENTS = { computer: ['startup', 'shutdown'], user: ['logon', 'logoff'] };
+const wrap = ElementCreator.wrap;
+let nextHeaderOwnerId = 1;
+const GROUPS = ['classic', 'powershell'];
+const EVENTS = { computer: ['startup', 'shutdown'], user: ['logon', 'logoff'] };
 
 // All mutations are published individually; there is no unsaved local state.
 function renderScriptEventEditor(options) {
-    var config = options || {};
-    var scope = config.item && config.item.scope === 'user' ? 'user' : 'computer';
-    var event = config.item && config.item.event;
+    const config = options || {};
+    const scope = config.item && config.item.scope === 'user' ? 'user' : 'computer';
+    let event = config.item && config.item.event;
     if (EVENTS[scope].indexOf(event) === -1) event = EVENTS[scope][0];
-    var state = {
+    const state = {
         event: event,
         group: 'classic',
         view: null,
@@ -56,26 +56,26 @@ function renderScriptEventEditor(options) {
         orderDraft: null,
         saveStatus: null
     };
-    var navigations = {},
+    let navigations = {},
         pickerNavigation = null;
     state.assetFocus = null;
     state.removal = null;
-    var root = create('div', { className: ['gp__scripts', 'gp__preference', 'gpo-editor-scripts'] });
-    var rootElement = root.getElement();
-    var headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
-    var headerControls = headerElement && headerElement.querySelector('.gp__control');
-    var headerActions = headerElement && headerElement.querySelector('.gp__control-actions');
-    var admxActions = headerElement && headerElement.querySelector('.gp__control-admx');
-    var helpSeparator = headerElement && headerElement.querySelector('.gp__control-separator');
-    var createButton = headerControls && headerControls.querySelector('.preferences__btn-create');
-    var editButton = headerControls && headerControls.querySelector('.preferences__btn-edit');
-    var deleteButton = headerControls && headerControls.querySelector('.preferences__btn-delete');
-    var headerOwner = 'scripts-' + nextHeaderOwnerId++;
-    var headerLabels = [createButton, editButton, deleteButton].map(function (control) {
+    const root = createElement('div', { className: ['gp__scripts', 'gp__preference', 'gpo-editor-scripts'] });
+    const rootElement = root.getElement();
+    const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
+    const headerControls = headerElement && headerElement.querySelector('.gp__control');
+    const headerActions = headerElement && headerElement.querySelector('.gp__control-actions');
+    const admxActions = headerElement && headerElement.querySelector('.gp__control-admx');
+    const helpSeparator = headerElement && headerElement.querySelector('.gp__control-separator');
+    const createButton = headerControls && headerControls.querySelector('.preferences__btn-create');
+    const editButton = headerControls && headerControls.querySelector('.preferences__btn-edit');
+    const deleteButton = headerControls && headerControls.querySelector('.preferences__btn-delete');
+    const headerOwner = 'scripts-' + nextHeaderOwnerId++;
+    const headerLabels = [createButton, editButton, deleteButton].map(function (control) {
         return control ? control.textContent : null;
     });
-    var headerListeners = [];
-    var modalDisabledStates = new WeakMap();
+    const headerListeners = [];
+    const modalDisabledStates = new WeakMap();
     if (headerControls) {
         headerControls.setAttribute('data-script-owner', headerOwner);
         headerControls.style.display = 'flex';
@@ -89,8 +89,8 @@ function renderScriptEventEditor(options) {
     [createButton, editButton, deleteButton].forEach(function (control, index) {
         if (control) control.textContent = st(['add', 'edit', 'remove'][index]);
     });
-    var modalBody = create('div', { className: 'scripts__modal-content' });
-    var uploadInput = create('input', {
+    const modalBody = createElement('div', { className: 'scripts__modal-content' });
+    const uploadInput = createElement('input', {
         className: 'gpo-editor-scripts__file-input',
         attrs: { type: 'file', hidden: 'hidden', 'aria-label': st('upload') },
         style: { display: 'none' },
@@ -100,7 +100,7 @@ function renderScriptEventEditor(options) {
             }
         }
     });
-    var replaceInput = create('input', {
+    const replaceInput = createElement('input', {
         className: 'gpo-editor-scripts__file-input',
         attrs: { type: 'file', hidden: 'hidden', 'aria-label': st('replaceFile') },
         style: { display: 'none' },
@@ -112,7 +112,7 @@ function renderScriptEventEditor(options) {
     });
     if (!config.mode)
         root.append(
-            create('h2', {
+            createElement('h2', {
                 className: 'gpo-editor-scripts__title',
                 text: eventLabel(event)
             })
@@ -124,7 +124,7 @@ function renderScriptEventEditor(options) {
     }
     function setHeaderState() {
         if (!ownsHeader()) return;
-        var editable = Boolean(groupView().editable) && !state.busy && !state.loading && !state.form && !state.picker;
+        const editable = Boolean(groupView().editable) && !state.busy && !state.loading && !state.form && !state.picker;
         [createButton, editButton, deleteButton].forEach(function (control, index) {
             if (!control) return;
             control.classList.toggle('active', editable && (index === 0 || Boolean(selectedEntry())));
@@ -178,7 +178,7 @@ function renderScriptEventEditor(options) {
         renderBody();
     }
     function applyResponse(response) {
-        var previousOrder = state.view && state.view.execution_order;
+        const previousOrder = state.view && state.view.execution_order;
         state.envelope = response;
         state.view = (response && response.scripts) || null;
         state.error = null;
@@ -186,7 +186,7 @@ function renderScriptEventEditor(options) {
             state.orderDraft = state.view.execution_order || 'unspecified';
         }
         GROUPS.forEach(function (group) {
-            var rows = (state.view && state.view[group] && state.view[group].entries) || [];
+            const rows = (state.view && state.view[group] && state.view[group].entries) || [];
             if (state.removal && state.removal.group === group) {
                 state.selectedEntry[group] = listNavigation.neighbor(
                     state.removal.before,
@@ -221,14 +221,14 @@ function renderScriptEventEditor(options) {
             }
         });
         if (state.removal && state.removal.assets) {
-            var surviving = assets().map(function (asset) {
+            const surviving = assets().map(function (asset) {
                 return asset.name;
             });
-            var removed = state.removal.removed.filter(function (name) {
+            const removed = state.removal.removed.filter(function (name) {
                 return surviving.indexOf(name) === -1;
             });
             if (removed.length) {
-                var neighbor = listNavigation.neighbor(state.removal.before, removed, surviving);
+                const neighbor = listNavigation.neighbor(state.removal.before, removed, surviving);
                 state.selectedAssets = new Set(neighbor ? [neighbor] : []);
                 state.selectedAsset = neighbor;
                 state.assetFocus = neighbor;
@@ -243,13 +243,13 @@ function renderScriptEventEditor(options) {
         renderBody();
     }
     async function loadEvent() {
-        var requestId = ++state.requestId;
-        var event = state.event;
+        const requestId = ++state.requestId;
+        const event = state.event;
         state.loading = true;
         state.error = null;
         renderBody();
         try {
-            var response = await API.scriptsShow(scope, event);
+            const response = await API.scriptsShow(scope, event);
             if (!current() || requestId !== state.requestId || event !== state.event) return;
             state.loading = false;
             applyResponse(response);
@@ -261,17 +261,17 @@ function renderScriptEventEditor(options) {
     }
     async function mutate(operation, errorSlot) {
         if (state.busy || !current()) return false;
-        var focusedTable = document.activeElement && document.activeElement.closest('[data-script-list]');
-        var returnList =
+        const focusedTable = document.activeElement && document.activeElement.closest('[data-script-list]');
+        const returnList =
             focusedTable && rootElement.contains(focusedTable) ? focusedTable.getAttribute('data-script-list') : null;
-        var returnGroup = state.group;
+        const returnGroup = state.group;
         state.busy = true;
         state.error = null;
         state.saveStatus = 'saving';
         syncModalBusy();
         renderBody();
         try {
-            var response = await operation();
+            const response = await operation();
             if (!current()) return false;
             applyResponse(response);
             state.saveStatus = 'saved';
@@ -328,7 +328,7 @@ function renderScriptEventEditor(options) {
                     control.disabled = true;
                     control.classList.remove('active');
                 } else if (modalDisabledStates.has(control)) {
-                    var original = modalDisabledStates.get(control);
+                    const original = modalDisabledStates.get(control);
                     control.disabled = original.disabled;
                     control.classList.toggle('active', original.active);
                     modalDisabledStates.delete(control);
@@ -344,7 +344,7 @@ function renderScriptEventEditor(options) {
     }
     function confirm(message, onConfirm) {
         closeConfirmation();
-        state.confirmation = confirmationDialog.open(rootElement, {
+        state.confirmation = open(rootElement, {
             message: message,
             onCancel: function () {
                 state.confirmation = null;
@@ -402,12 +402,12 @@ function renderScriptEventEditor(options) {
     function openPicker(initialName, onSelect) {
         if (state.busy || state.picker) return;
         state.pickerFocus = document.activeElement;
-        var chosen = assets().some(function (asset) {
+        let chosen = assets().some(function (asset) {
             return asset.name === initialName;
         })
             ? initialName
             : null;
-        var selectButton = button(
+        const selectButton = button(
             st('selectFile'),
             function () {
                 choose();
@@ -416,13 +416,13 @@ function renderScriptEventEditor(options) {
             'btn-ok'
         );
         selectButton.addClass('gpo-editor-scripts__picker-select');
-        var rows = assets().map(function (asset) {
-            var row = create('tr', {
+        const rows = assets().map(function (asset) {
+            const row = createElement('tr', {
                 className: asset.name === chosen ? 'active' : null,
                 attrs: { tabindex: '-1', 'data-script-asset': asset.name },
                 children: [
                     nameCell(asset.name, assetIcon(asset.name)),
-                    create('td', { text: String(asset.byte_size) + ' ' + st('bytes') })
+                    createElement('td', { text: String(asset.byte_size) + ' ' + st('bytes') })
                 ]
             });
             function select() {
@@ -445,20 +445,20 @@ function renderScriptEventEditor(options) {
             });
             return row;
         });
-        var table = create('table', {
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table'],
             children: [
-                create('thead', {
+                createElement('thead', {
                     children: [
-                        create('tr', {
+                        createElement('tr', {
                             children: [
-                                create('th', { text: st('columnName') }),
-                                create('th', { text: st('columnSize') })
+                                createElement('th', { text: st('columnName') }),
+                                createElement('th', { text: st('columnSize') })
                             ]
                         })
                     ]
                 }),
-                create('tbody', { children: rows })
+                createElement('tbody', { children: rows })
             ]
         });
         function choose() {
@@ -466,14 +466,14 @@ function renderScriptEventEditor(options) {
             closePicker();
             onSelect(chosen);
         }
-        var pickerContent = assets().length
+        const pickerContent = assets().length
             ? table
-            : create('div', { className: 'gpo-editor-empty', text: st('emptyAssets') });
-        var cancelButton = wrap(createDialogButton('cancel', t('header.cancel')));
+            : createElement('div', { className: 'gpo-editor-empty', text: st('emptyAssets') });
+        const cancelButton = wrap(createDialogButton('cancel', t('header.cancel')));
         cancelButton.on('click', closePicker);
-        var closeButton = wrap(createCloseButton(st('close')));
+        const closeButton = wrap(createCloseButton(st('close')));
         closeButton.on('click', closePicker);
-        var shell = createDialogShell({
+        const shell = createDialogShell({
             titleId: 'gpo-editor-scripts-picker-title',
             title: st('browseFiles'),
             body: createBody(pickerContent.getElement()),
@@ -482,7 +482,7 @@ function renderScriptEventEditor(options) {
             className: 'gpo-editor-scripts__picker',
             hostClassName: 'gpo-editor-scripts__picker-overlay'
         });
-        var picker = wrap(shell.dialog);
+        const picker = wrap(shell.dialog);
         shell.dialog.setAttribute('aria-label', st('browseFiles'));
         shell.host.addEventListener('click', function (event) {
             if (event.target === shell.host) closePicker();
@@ -498,12 +498,12 @@ function renderScriptEventEditor(options) {
                 event.stopPropagation();
                 closePicker();
             }
-            editorDialog.trapTab(event, shell.dialog);
+            trapTab(event, shell.dialog);
         });
         rootElement.appendChild(shell.host);
         state.pickerOverlay = shell.host;
         state.picker = shell.dialog;
-        pickerNavigation = listNavigation.bind(table.getElement(), {
+        pickerNavigation = bind(table.getElement(), {
             rows: function () {
                 return Array.from(table.getElement().querySelectorAll('[data-script-asset]'));
             },
@@ -533,17 +533,17 @@ function renderScriptEventEditor(options) {
     }
     function openForm(kind) {
         if (state.busy || state.loading || !groupView().editable) return;
-        var entry = kind === 'edit' ? selectedEntry() : null;
+        const entry = kind === 'edit' ? selectedEntry() : null;
         if (kind === 'edit' && !entry) return;
         if (kind === 'select' && !selectedAsset()) return;
         closeForm();
         state.formFocus = document.activeElement;
-        var isEdit = kind === 'edit';
-        var modern = Boolean(config.mode);
-        var sourceSelect = create('select', {
+        const isEdit = kind === 'edit';
+        const modern = Boolean(config.mode);
+        const sourceSelect = createElement('select', {
             children: [
-                create('option', { attrs: { value: 'existing_asset' }, text: st('existingAsset') }),
-                create('option', { attrs: { value: 'external_command' }, text: st('externalCommand') })
+                createElement('option', { attrs: { value: 'existing_asset' }, text: st('existingAsset') }),
+                createElement('option', { attrs: { value: 'external_command' }, text: st('externalCommand') })
             ]
         });
         sourceSelect.getElement().value = entry
@@ -553,7 +553,7 @@ function renderScriptEventEditor(options) {
             : kind === 'select' || assets().length
               ? 'existing_asset'
               : 'external_command';
-        var assetInput = create('input', {
+        const assetInput = createElement('input', {
             attrs: {
                 type: 'text',
                 readonly: 'readonly',
@@ -563,10 +563,10 @@ function renderScriptEventEditor(options) {
                     ''
             }
         });
-        var browseButton = button(
+        const browseButton = button(
             config.mode ? '…' : st('browseFiles'),
             function () {
-                var input = modern ? commandInput : assetInput;
+                const input = modern ? commandInput : assetInput;
                 openPicker(input.getElement().value, function (name) {
                     input.getElement().value = name;
                     markDirty();
@@ -580,25 +580,25 @@ function renderScriptEventEditor(options) {
             browseButton.getElement().setAttribute('aria-label', st('selectFromSysvol'));
             browseButton.getElement().title = st('selectFromSysvol');
         }
-        var commandInput = create('input', {
+        const commandInput = createElement('input', {
             attrs: {
                 type: 'text',
                 value: entry ? entry.command_line : '',
                 placeholder: modern ? st('externalCommand') : null
             }
         });
-        var parametersInput = create('input', {
+        const parametersInput = createElement('input', {
             attrs: { type: 'text', value: entry ? entry.parameters : '' }
         });
-        var assetRow = field(
+        const assetRow = field(
             st('nameLabel'),
-            create('div', {
+            createElement('div', {
                 className: 'gpo-editor-scripts__asset-field',
                 children: [modern ? commandInput : assetInput, browseButton]
             })
         );
-        var commandRow = modern ? null : field(st('nameLabel'), commandInput);
-        var formError = create('div', { className: 'gpo-editor-scripts__form-error' });
+        const commandRow = modern ? null : field(st('nameLabel'), commandInput);
+        const formError = createElement('div', { className: 'gpo-editor-scripts__form-error' });
         function values() {
             if (modern) return [commandInput.getElement().value, parametersInput.getElement().value];
             return [
@@ -608,13 +608,13 @@ function renderScriptEventEditor(options) {
                 parametersInput.getElement().value
             ];
         }
-        var initialValues = JSON.stringify(values());
+        const initialValues = JSON.stringify(values());
         function markDirty() {
             setHeaderState();
         }
         function syncSource() {
             if (modern) return;
-            var existing = sourceSelect.getElement().value === 'existing_asset';
+            const existing = sourceSelect.getElement().value === 'existing_asset';
             assetRow.getElement().hidden = !existing;
             commandRow.getElement().hidden = existing;
             markDirty();
@@ -622,7 +622,7 @@ function renderScriptEventEditor(options) {
         sourceSelect.on('change', syncSource);
         commandInput.on('input', markDirty);
         parametersInput.on('input', markDirty);
-        var formBody = wrap(createBody(null));
+        const formBody = wrap(createBody(null));
         (modern
             ? [assetRow, field(st('argumentsLabel'), parametersInput), formError]
             : [
@@ -635,15 +635,15 @@ function renderScriptEventEditor(options) {
         ).forEach(function (child) {
             formBody.append(child);
         });
-        var formCancel = wrap(createDialogButton('cancel', t('header.cancel')));
+        const formCancel = wrap(createDialogButton('cancel', t('header.cancel')));
         formCancel.on('click', requestCloseForm);
-        var formApply = wrap(createDialogButton('apply', t('header.apply')));
+        const formApply = wrap(createDialogButton('apply', t('header.apply')));
         formApply.on('click', function () {
             void submit();
         });
-        var formClose = wrap(createCloseButton(st('close')));
+        const formClose = wrap(createCloseButton(st('close')));
         formClose.on('click', requestCloseForm);
-        var shell = createDialogShell({
+        const shell = createDialogShell({
             titleId: 'gpo-editor-scripts-form-title',
             title: st(isEdit ? 'editTitle' : 'addTitle'),
             body: formBody.getElement(),
@@ -651,7 +651,7 @@ function renderScriptEventEditor(options) {
             buttons: [formCancel.getElement(), formApply.getElement()],
             className: 'gpo-editor-scripts__form'
         });
-        var form = wrap(shell.dialog);
+        const form = wrap(shell.dialog);
         shell.host.addEventListener('click', function (event) {
             if (event.target === shell.host) requestCloseForm();
         });
@@ -666,27 +666,27 @@ function renderScriptEventEditor(options) {
                 event.stopPropagation();
                 requestCloseForm();
             }
-            editorDialog.trapTab(event, shell.dialog);
+            trapTab(event, shell.dialog);
         });
         async function submit() {
             if (state.busy) return false;
             formError.setText('');
-            var command = modern
+            const command = modern
                 ? commandInput.getElement().value.trim()
                 : sourceSelect.getElement().value === 'existing_asset'
                   ? assetInput.getElement().value
                   : commandInput.getElement().value.trim();
-            var matchedAsset =
+            const matchedAsset =
                 modern &&
                 assets().find(function (asset) {
                     return asset.name.toLowerCase() === command.toLowerCase();
                 });
-            var source = modern
+            const source = modern
                 ? matchedAsset
                     ? 'existing_asset'
                     : 'external_command'
                 : sourceSelect.getElement().value;
-            var name = modern && matchedAsset ? matchedAsset.name : assetInput.getElement().value;
+            const name = modern && matchedAsset ? matchedAsset.name : assetInput.getElement().value;
             if (
                 !modern &&
                 source === 'existing_asset' &&
@@ -701,11 +701,11 @@ function renderScriptEventEditor(options) {
                 formError.setText(st('chooseCommand'));
                 return false;
             }
-            var parameters = parametersInput.getElement().value.trim();
-            var group = state.group;
-            var event = state.event;
-            var snapshot = groupView().snapshot;
-            var ok = await mutate(function () {
+            const parameters = parametersInput.getElement().value.trim();
+            const group = state.group;
+            const event = state.event;
+            const snapshot = groupView().snapshot;
+            const ok = await mutate(function () {
                 if (isEdit)
                     return API.scriptEntryUpdate(scope, event, {
                         executable_group: group,
@@ -713,7 +713,7 @@ function renderScriptEventEditor(options) {
                         command_line: command,
                         parameters: parameters
                     });
-                var request = {
+                const request = {
                     mode: source,
                     executable_group: group,
                     snapshot: snapshot,
@@ -740,16 +740,16 @@ function renderScriptEventEditor(options) {
         (modern ? commandInput : sourceSelect).getElement().focus();
     }
     function field(label, input) {
-        return create('div', {
+        return createElement('div', {
             className: 'gpo-editor-field',
-            children: [create('div', { className: 'gpo-editor-field__label', text: label }), input]
+            children: [createElement('div', { className: 'gpo-editor-field__label', text: label }), input]
         });
     }
     function removeEntry() {
-        var entry = selectedEntry();
+        const entry = selectedEntry();
         if (!entry || !groupView().editable || state.busy) return;
-        var group = state.group;
-        var event = state.event;
+        const group = state.group;
+        const event = state.event;
         confirm(st('removeEntryConfirm'), function () {
             state.removal = {
                 group: group,
@@ -767,20 +767,20 @@ function renderScriptEventEditor(options) {
         });
     }
     function moveEntry(delta) {
-        var group = state.group;
-        var rows = entries();
-        var index = rows.findIndex(function (entry) {
+        const group = state.group;
+        const rows = entries();
+        const index = rows.findIndex(function (entry) {
             return entry.identity === state.selectedEntry[group];
         });
-        var target = index + delta;
+        const target = index + delta;
         if (!groupView().editable || state.busy || index < 0 || target < 0 || target >= rows.length) return;
-        var order = rows.map(function (entry) {
+        const order = rows.map(function (entry) {
             return entry.identity;
         });
-        var moved = order[index];
+        const moved = order[index];
         order[index] = order[target];
         order[target] = moved;
-        var snapshot = groupView().snapshot;
+        const snapshot = groupView().snapshot;
         void mutate(function () {
             return API.scriptEntriesReorder(scope, state.event, {
                 executable_group: group,
@@ -790,10 +790,10 @@ function renderScriptEventEditor(options) {
         });
     }
     async function uploadChosen(event, replace) {
-        var file = event.target.files && event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         event.target.value = '';
         if (!file || state.busy || !state.view) return;
-        var asset = replace ? selectedAsset() : null;
+        const asset = replace ? selectedAsset() : null;
         if (replace && !asset) return;
         if (file.size > state.view.upload_limit_bytes) {
             setError({ category: 'size_limit', message: st('uploadTooLarge') });
@@ -801,7 +801,7 @@ function renderScriptEventEditor(options) {
         }
         async function upload() {
             try {
-                var content = await fileBase64(file);
+                const content = await fileBase64(file);
                 if (!current() || !state.event) return;
                 await mutate(function () {
                     return replace
@@ -826,7 +826,7 @@ function renderScriptEventEditor(options) {
         else await upload();
     }
     function deleteAsset() {
-        var selected =
+        const selected =
             config.mode === 'assets'
                 ? assets().filter(function (asset) {
                       return state.selectedAssets.has(asset.name);
@@ -841,7 +841,7 @@ function renderScriptEventEditor(options) {
             setError({ category: 'validation', message: st('fileInUse') });
             return;
         }
-        var event = state.event;
+        const event = state.event;
         confirm(st(selected.length > 1 ? 'deleteSelectedFilesConfirm' : 'deleteFileConfirm'), function () {
             state.removal = {
                 assets: true,
@@ -853,9 +853,9 @@ function renderScriptEventEditor(options) {
                 })
             };
             void mutate(async function () {
-                var response = null;
+                let response = null;
                 try {
-                    for (var index = 0; index < selected.length; index++) {
+                    for (let index = 0; index < selected.length; index++) {
                         response = await API.scriptAssetDelete(scope, event, {
                             name: selected[index].name,
                             revision: selected[index].revision
@@ -873,12 +873,12 @@ function renderScriptEventEditor(options) {
         });
     }
     async function downloadAsset() {
-        var asset = selectedAsset();
+        const asset = selectedAsset();
         if (!asset || state.busy) return;
         state.busy = true;
         renderBody();
         try {
-            var response = await API.scriptAssetDownload(scope, state.event, {
+            const response = await API.scriptAssetDownload(scope, state.event, {
                 name: asset.name,
                 revision: asset.revision
             });
@@ -894,30 +894,30 @@ function renderScriptEventEditor(options) {
         }
     }
     function renderEntries() {
-        var rows = entries();
-        var editable = Boolean(groupView().editable) && !state.busy;
-        var table = create('table', {
+        const rows = entries();
+        const editable = Boolean(groupView().editable) && !state.busy;
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table'],
             children: [
-                create('thead', {
+                createElement('thead', {
                     children: [
-                        create('tr', {
+                        createElement('tr', {
                             children: [
-                                create('th', { text: st('columnName') }),
-                                create('th', { text: st('columnArguments') })
+                                createElement('th', { text: st('columnName') }),
+                                createElement('th', { text: st('columnArguments') })
                             ]
                         })
                     ]
                 }),
-                create('tbody', {
+                createElement('tbody', {
                     children: rows.length
                         ? rows.map(function (entry) {
-                              var row = create('tr', {
+                              const row = createElement('tr', {
                                   className: entry.identity === state.selectedEntry[state.group] ? 'active' : null,
                                   attrs: { tabindex: '-1', 'data-script-entry': entry.identity },
                                   children: [
-                                      nameCell(entry.command_line, editorIcons.scriptFile(state.group)),
-                                      create('td', { text: entry.parameters })
+                                      nameCell(entry.command_line, scriptFile(state.group)),
+                                      createElement('td', { text: entry.parameters })
                                   ]
                               });
                               function select() {
@@ -946,10 +946,10 @@ function renderScriptEventEditor(options) {
                               return row;
                           })
                         : [
-                              create('tr', {
+                              createElement('tr', {
                                   className: 'gpo-editor-scripts__empty-row',
                                   children: [
-                                      create('td', {
+                                      createElement('td', {
                                           attrs: { colspan: '2' },
                                           text: st('emptyEntries')
                                       })
@@ -959,7 +959,7 @@ function renderScriptEventEditor(options) {
                 })
             ]
         });
-        var controls = {
+        const controls = {
             add: button(
                 st('add'),
                 function () {
@@ -991,12 +991,12 @@ function renderScriptEventEditor(options) {
             )
         };
         function syncButtons() {
-            var index = rows.findIndex(function (entry) {
+            const index = rows.findIndex(function (entry) {
                 return entry.identity === state.selectedEntry[state.group];
             });
-            var selected = editable && index >= 0;
-            var up = editable && index >= 1;
-            var down = editable && index >= 0 && index < rows.length - 1;
+            const selected = editable && index >= 0;
+            const up = editable && index >= 1;
+            const down = editable && index >= 0 && index < rows.length - 1;
             [controls.edit, controls.remove].forEach(function (control) {
                 control.getElement().disabled = !selected;
                 control.getElement().classList.toggle('active', selected);
@@ -1032,14 +1032,14 @@ function renderScriptEventEditor(options) {
                 return Boolean(groupView().editable);
             }
         });
-        return create('section', {
+        return createElement('section', {
             className: 'gpo-editor-scripts__entries',
             children: [
-                create('div', {
+                createElement('div', {
                     className: 'gpo-editor-scripts__list',
                     children: [table]
                 }),
-                create('div', {
+                createElement('div', {
                     className: 'gpo-editor-scripts__toolbar',
                     children:
                         config.mode === 'event'
@@ -1050,17 +1050,17 @@ function renderScriptEventEditor(options) {
         });
     }
     function renderAssets() {
-        var all = assets();
-        var mayChange = !state.busy && Boolean(groupView().editable);
-        var explorer = config.mode === 'assets';
-        var rows = all.map(function (asset) {
-            var checkbox = explorer
-                ? create('input', {
+        const all = assets();
+        const mayChange = !state.busy && Boolean(groupView().editable);
+        const explorer = config.mode === 'assets';
+        const rows = all.map(function (asset) {
+            const checkbox = explorer
+                ? createElement('input', {
                       attrs: { type: 'checkbox', tabindex: '-1', 'aria-label': st('selectFile') + ': ' + asset.name }
                   })
                 : null;
             if (checkbox) checkbox.getElement().checked = state.selectedAssets.has(asset.name);
-            var row = create('tr', {
+            const row = createElement('tr', {
                 className: explorer
                     ? state.selectedAssets.has(asset.name)
                         ? 'active'
@@ -1070,19 +1070,19 @@ function renderScriptEventEditor(options) {
                       : null,
                 attrs: { tabindex: '-1', 'data-script-asset': asset.name },
                 children: [
-                    checkbox ? create('td', { children: [checkbox] }) : null,
+                    checkbox ? createElement('td', { children: [checkbox] }) : null,
                     nameCell(asset.name, assetIcon(asset.name)),
-                    create('td', { text: String(asset.byte_size) + ' ' + st('bytes') }),
-                    create('td', { text: String((asset.references || []).length) })
+                    createElement('td', { text: String(asset.byte_size) + ' ' + st('bytes') }),
+                    createElement('td', { text: String((asset.references || []).length) })
                 ]
             });
             function select(selected, exclusive, range) {
                 if (explorer) {
                     if (range && state.assetFocus) {
-                        var from = all.findIndex(function (entry) {
+                        const from = all.findIndex(function (entry) {
                             return entry.name === state.assetFocus;
                         });
-                        var to = all.indexOf(asset);
+                        const to = all.indexOf(asset);
                         if (exclusive) state.selectedAssets.clear();
                         all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function (entry) {
                             state.selectedAssets.add(entry.name);
@@ -1094,7 +1094,7 @@ function renderScriptEventEditor(options) {
                     Array.prototype.forEach.call(
                         table.getElement().querySelectorAll('[data-script-asset]'),
                         function (candidate) {
-                            var active = state.selectedAssets.has(candidate.getAttribute('data-script-asset'));
+                            const active = state.selectedAssets.has(candidate.getAttribute('data-script-asset'));
                             candidate.classList.toggle('active', active);
                             candidate.setAttribute('aria-selected', active ? 'true' : 'false');
                             candidate.querySelector('input[type=checkbox]').checked = active;
@@ -1139,29 +1139,29 @@ function renderScriptEventEditor(options) {
                 });
             return row;
         });
-        var table = create('table', {
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table'],
             children: [
-                create('thead', {
+                createElement('thead', {
                     children: [
-                        create('tr', {
+                        createElement('tr', {
                             children: [
-                                explorer ? create('th', { text: '' }) : null,
-                                create('th', { text: st('columnName') }),
-                                create('th', { text: st('columnSize') }),
-                                create('th', { text: st(explorer ? 'usedBy' : 'columnReferences') })
+                                explorer ? createElement('th', { text: '' }) : null,
+                                createElement('th', { text: st('columnName') }),
+                                createElement('th', { text: st('columnSize') }),
+                                createElement('th', { text: st(explorer ? 'usedBy' : 'columnReferences') })
                             ]
                         })
                     ]
                 }),
-                create('tbody', {
+                createElement('tbody', {
                     children: rows.length
                         ? rows
                         : [
-                              create('tr', {
+                              createElement('tr', {
                                   className: 'gpo-editor-scripts__empty-row',
                                   children: [
-                                      create('td', {
+                                      createElement('td', {
                                           attrs: { colspan: explorer ? '4' : '3' },
                                           text: st('emptyAssets')
                                       })
@@ -1171,7 +1171,7 @@ function renderScriptEventEditor(options) {
                 })
             ]
         });
-        var controls = {
+        const controls = {
             upload: button(
                 st('upload'),
                 function () {
@@ -1210,15 +1210,15 @@ function renderScriptEventEditor(options) {
             )
         };
         function syncButtons() {
-            var asset = selectedAsset();
-            var selected = explorer
+            const asset = selectedAsset();
+            const selected = explorer
                 ? all.filter(function (item) {
                       return state.selectedAssets.has(item.name);
                   })
                 : asset
                   ? [asset]
                   : [];
-            var enabled = [
+            const enabled = [
                 mayChange,
                 mayChange && Boolean(asset),
                 mayChange && Boolean(asset),
@@ -1275,7 +1275,7 @@ function renderScriptEventEditor(options) {
                 return explorer || Boolean(groupView().editable);
             },
             canRemove: function () {
-                var selected = explorer
+                const selected = explorer
                     ? all.filter(function (asset) {
                           return state.selectedAssets.has(asset.name);
                       })
@@ -1289,7 +1289,7 @@ function renderScriptEventEditor(options) {
                 );
             }
         });
-        var toolbar = create('div', {
+        const toolbar = createElement('div', {
             className: 'gpo-editor-scripts__toolbar',
             children: explorer
                 ? all.length
@@ -1297,18 +1297,18 @@ function renderScriptEventEditor(options) {
                     : [controls.upload]
                 : [controls.upload, controls.select, controls.replace, controls.download, controls.delete]
         });
-        var list = create('div', {
+        const list = createElement('div', {
             className: 'gpo-editor-scripts__list',
             children: [table]
         });
-        return create('section', {
+        return createElement('section', {
             className: 'gpo-editor-scripts__assets',
             children: [
-                explorer ? null : create('h3', { text: st('managedFiles') }),
+                explorer ? null : createElement('h3', { text: st('managedFiles') }),
                 explorer ? toolbar : list,
                 explorer ? list : toolbar,
                 selectedAsset() && selectedAsset().references && selectedAsset().references.length
-                    ? create('p', {
+                    ? createElement('p', {
                           className: 'gpo-editor-scripts__hint',
                           text: st('fileInUse')
                       })
@@ -1317,17 +1317,17 @@ function renderScriptEventEditor(options) {
         });
     }
     function renderOrder() {
-        var select = create('select', {
+        const select = createElement('select', {
             children: [
-                create('option', { attrs: { value: 'unspecified' }, text: st('orderUnspecified') }),
-                create('option', { attrs: { value: 'classic_first' }, text: st('orderClassicFirst') }),
-                create('option', { attrs: { value: 'powershell_first' }, text: st('orderPowershellFirst') })
+                createElement('option', { attrs: { value: 'unspecified' }, text: st('orderUnspecified') }),
+                createElement('option', { attrs: { value: 'classic_first' }, text: st('orderClassicFirst') }),
+                createElement('option', { attrs: { value: 'powershell_first' }, text: st('orderPowershellFirst') })
             ]
         });
         select.getElement().value = state.orderDraft || state.view.execution_order || 'unspecified';
-        var canApply =
+        const canApply =
             !state.busy && Boolean(state.view.powershell.editable) && state.orderDraft !== state.view.execution_order;
-        var apply = button(
+        const apply = button(
             st('applyOrder'),
             function () {
                 void saveOrderDraft();
@@ -1336,15 +1336,15 @@ function renderScriptEventEditor(options) {
         );
         select.on('change', function () {
             state.orderDraft = select.getElement().value;
-            var available =
+            const available =
                 !state.busy && state.view.powershell.editable && state.orderDraft !== state.view.execution_order;
             apply.getElement().disabled = !available;
             apply.getElement().classList.toggle('active', available);
         });
         select.getElement().disabled = state.busy || !state.view.powershell.editable;
-        return create('div', {
+        return createElement('div', {
             className: 'gpo-editor-scripts__order',
-            children: [create('label', { text: st('psOrderLabel') }), select, apply]
+            children: [createElement('label', { text: st('psOrderLabel') }), select, apply]
         });
     }
     function saveOrderDraft() {
@@ -1355,8 +1355,8 @@ function renderScriptEventEditor(options) {
             state.orderDraft === state.view.execution_order
         )
             return Promise.resolve(true);
-        var snapshot = state.view.powershell.snapshot;
-        var order = state.orderDraft;
+        const snapshot = state.view.powershell.snapshot;
+        const order = state.orderDraft;
         return mutate(function () {
             return API.scriptOrderUpdate(scope, state.event, {
                 snapshot: snapshot,
@@ -1367,10 +1367,11 @@ function renderScriptEventEditor(options) {
     function renderBody() {
         if (!current()) return;
         setHeaderState();
-        var slot = modalBody.getElement();
-        var activeTable = document.activeElement && document.activeElement.closest('[data-script-list]');
-        var heldList = activeTable && slot.contains(activeTable) ? activeTable.getAttribute('data-script-list') : null;
-        var heldGroupTab =
+        const slot = modalBody.getElement();
+        const activeTable = document.activeElement && document.activeElement.closest('[data-script-list]');
+        const heldList =
+            activeTable && slot.contains(activeTable) ? activeTable.getAttribute('data-script-list') : null;
+        const heldGroupTab =
             slot.contains(document.activeElement) && document.activeElement.getAttribute('data-script-group');
         Object.keys(navigations).forEach(function (kind) {
             navigations[kind].cleanup();
@@ -1378,7 +1379,7 @@ function renderScriptEventEditor(options) {
         navigations = {};
         slot.textContent = '';
         if (state.loading) {
-            slot.appendChild(create('div', { className: 'gpo-editor-empty', text: st('loading') }).getElement());
+            slot.appendChild(createElement('div', { className: 'gpo-editor-empty', text: st('loading') }).getElement());
             return;
         }
         if (state.error) {
@@ -1397,24 +1398,24 @@ function renderScriptEventEditor(options) {
         }
         if (!state.view) return;
         if (state.envelope && state.envelope.pending_publication) {
-            var pending = editorStatus.renderPending(state.envelope.pending_publication, function () {
+            const pending = renderPending(state.envelope.pending_publication, function () {
                 void API.reconcile().then(loadEvent, setError);
             });
             if (pending) slot.appendChild(pending.getElement());
         }
-        var diagnostics = groupView().diagnostics || [];
+        const diagnostics = groupView().diagnostics || [];
         if (!groupView().editable) {
             slot.appendChild(
-                create('p', {
+                createElement('p', {
                     className: 'gpo-editor-scripts__hint',
                     text: st('readOnlyScripts')
                 }).getElement()
             );
         }
-        if (diagnostics.length) slot.appendChild(editorStatus.renderDiagnostics(diagnostics).getElement());
+        if (diagnostics.length) slot.appendChild(renderDiagnostics(diagnostics).getElement());
         if (state.saveStatus)
             slot.appendChild(
-                create('p', {
+                createElement('p', {
                     className: 'gpo-editor-scripts__save-status',
                     attrs: { role: 'status', 'aria-live': 'polite' },
                     text: state.saveStatus === 'saving' ? st('saving') : state.saveStatus === 'saved' ? st('saved') : ''
@@ -1422,14 +1423,14 @@ function renderScriptEventEditor(options) {
             );
         if (config.mode !== 'assets') {
             slot.appendChild(
-                create('div', {
+                createElement('div', {
                     className: 'preference__modal-tabs',
                     children: [
-                        create('div', {
+                        createElement('div', {
                             className: 'tab-buttons',
                             attrs: { role: 'tablist' },
                             children: GROUPS.map(function (group) {
-                                return create('button', {
+                                return createElement('button', {
                                     className: ['preference__tab-button', group === state.group ? 'active' : null],
                                     attrs: {
                                         type: 'button',
@@ -1465,13 +1466,13 @@ function renderScriptEventEditor(options) {
         }
         if (config.mode !== 'event') slot.appendChild(renderAssets().getElement());
         if (heldGroupTab) {
-            var restoredTab = slot.querySelector('[data-script-group="' + heldGroupTab + '"]');
+            const restoredTab = slot.querySelector('[data-script-group="' + heldGroupTab + '"]');
             if (restoredTab) restoredTab.focus({ preventScroll: true });
         } else if (heldList && navigations[heldList]) navigations[heldList].focusSelected();
     }
     function bindTable(table, kind, options) {
         table.getElement().setAttribute('data-script-list', kind);
-        navigations[kind] = listNavigation.bind(
+        navigations[kind] = bind(
             table.getElement(),
             Object.assign({}, options, {
                 busy: function () {
@@ -1545,13 +1546,13 @@ function renderScriptEventEditor(options) {
 }
 
 function renderScriptsTemplate(options) {
-    var config = options || {};
+    const config = options || {};
     // Existing event links can still be opened while navigation migrates to one Scripts leaf.
     if (config.item && config.item.event) return renderScriptEventEditor(config);
 
-    var scope = config.item && config.item.scope === 'user' ? 'user' : 'computer';
-    var events = EVENTS[scope];
-    var state = {
+    const scope = config.item && config.item.scope === 'user' ? 'user' : 'computer';
+    const events = EVENTS[scope];
+    const state = {
         selectedEvent:
             events.indexOf(config.item && config.item.scriptEvent) !== -1 ? config.item.scriptEvent : events[0],
         summaries: {},
@@ -1561,13 +1562,13 @@ function renderScriptsTemplate(options) {
         confirmation: null,
         disposed: false
     };
-    var overviewNavigation = null;
-    var root = create('div', { className: ['gp__scripts', 'gp__preference', 'gpo-editor-scripts'] });
-    var rootElement = root.getElement();
-    var overview = create('div', { className: ['preference__data-table', 'gpo-editor-scripts__overview'] });
+    let overviewNavigation = null;
+    const root = createElement('div', { className: ['gp__scripts', 'gp__preference', 'gpo-editor-scripts'] });
+    const rootElement = root.getElement();
+    const overview = createElement('div', { className: ['preference__data-table', 'gpo-editor-scripts__overview'] });
     if (!config.hideHeading)
         root.append(
-            create('h2', {
+            createElement('h2', {
                 className: 'gpo-editor-scripts__title',
                 text: config.categoryPath || st('scripts'),
                 attrs: { 'data-category-path': '' }
@@ -1575,16 +1576,16 @@ function renderScriptsTemplate(options) {
         );
     root.append(overview);
 
-    var headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
-    var headerControls = headerElement && headerElement.querySelector('.gp__control');
-    var headerActions = headerElement && headerElement.querySelector('.gp__control-actions');
-    var admxActions = headerElement && headerElement.querySelector('.gp__control-admx');
-    var helpSeparator = headerElement && headerElement.querySelector('.gp__control-separator');
-    var createButton = headerControls && headerControls.querySelector('.preferences__btn-create');
-    var editButton = headerControls && headerControls.querySelector('.preferences__btn-edit');
-    var deleteButton = headerControls && headerControls.querySelector('.preferences__btn-delete');
-    var headerOwner = 'scripts-' + nextHeaderOwnerId++;
-    var oldHeader = [createButton, editButton, deleteButton].map(function (control) {
+    const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
+    const headerControls = headerElement && headerElement.querySelector('.gp__control');
+    const headerActions = headerElement && headerElement.querySelector('.gp__control-actions');
+    const admxActions = headerElement && headerElement.querySelector('.gp__control-admx');
+    const helpSeparator = headerElement && headerElement.querySelector('.gp__control-separator');
+    const createButton = headerControls && headerControls.querySelector('.preferences__btn-create');
+    const editButton = headerControls && headerControls.querySelector('.preferences__btn-edit');
+    const deleteButton = headerControls && headerControls.querySelector('.preferences__btn-delete');
+    const headerOwner = 'scripts-' + nextHeaderOwnerId++;
+    const oldHeader = [createButton, editButton, deleteButton].map(function (control) {
         return control
             ? {
                   text: control.textContent,
@@ -1594,7 +1595,7 @@ function renderScriptsTemplate(options) {
               }
             : null;
     });
-    var folderButton = button(
+    const folderButton = button(
         st('openFolder'),
         function () {
             openModal('assets');
@@ -1629,7 +1630,7 @@ function renderScriptsTemplate(options) {
     }
     function updateHeader() {
         if (!ownsHeader()) return;
-        var enabled = !state.modal;
+        const enabled = !state.modal;
         if (editButton) {
             editButton.disabled = !enabled;
             editButton.classList.toggle('active', enabled);
@@ -1638,7 +1639,7 @@ function renderScriptsTemplate(options) {
         folderButton.getElement().classList.toggle('active', enabled);
     }
     function refreshEvent(event) {
-        var generation = (state.generations[event] || 0) + 1;
+        const generation = (state.generations[event] || 0) + 1;
         state.generations[event] = generation;
         return API.scriptsShow(scope, event).then(
             function (response) {
@@ -1656,7 +1657,7 @@ function renderScriptsTemplate(options) {
     }
     function renderOverview() {
         if (!current()) return;
-        var heldFocus = overview.getElement().contains(document.activeElement);
+        const heldFocus = overview.getElement().contains(document.activeElement);
         if (overviewNavigation) overviewNavigation.cleanup();
         function selectRow(row, event) {
             state.selectedEvent = event;
@@ -1666,30 +1667,30 @@ function renderScriptsTemplate(options) {
             renderOverviewError();
             if (overviewNavigation) overviewNavigation.sync();
         }
-        var table = create('table', {
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table', 'gpo-editor-scripts__event-table'],
             children: [
-                create('thead', {
+                createElement('thead', {
                     children: [
-                        create('tr', {
+                        createElement('tr', {
                             children: [
-                                create('th', { text: st('eventColumn') }),
-                                create('th', { text: st('scriptsColumn') }),
-                                create('th', { text: st('powershellColumn') })
+                                createElement('th', { text: st('eventColumn') }),
+                                createElement('th', { text: st('scriptsColumn') }),
+                                createElement('th', { text: st('powershellColumn') })
                             ]
                         })
                     ]
                 }),
-                create('tbody', {
+                createElement('tbody', {
                     children: events.map(function (event) {
-                        var view = state.summaries[event];
-                        var row = create('tr', {
+                        const view = state.summaries[event];
+                        const row = createElement('tr', {
                             className: event === state.selectedEvent ? 'active' : null,
                             attrs: { tabindex: '-1', 'data-script-event': event },
                             children: [
-                                nameCell(eventLabel(event), editorIcons.scriptEvent(event)),
-                                create('td', { text: view ? String(view.classic.entries.length) : '—' }),
-                                create('td', { text: view ? String(view.powershell.entries.length) : '—' })
+                                nameCell(eventLabel(event), scriptEvent(event)),
+                                createElement('td', { text: view ? String(view.classic.entries.length) : '—' }),
+                                createElement('td', { text: view ? String(view.powershell.entries.length) : '—' })
                             ]
                         });
                         row.getElement().__select = function () {
@@ -1710,9 +1711,9 @@ function renderScriptsTemplate(options) {
                 })
             ]
         });
-        var slot = overview.getElement();
+        const slot = overview.getElement();
         slot.replaceChildren(table.getElement());
-        overviewNavigation = listNavigation.bind(table.getElement(), {
+        overviewNavigation = bind(table.getElement(), {
             rows: function () {
                 return Array.from(table.getElement().querySelectorAll('[data-script-event]'));
             },
@@ -1737,13 +1738,13 @@ function renderScriptsTemplate(options) {
         if (heldFocus) overviewNavigation.focusSelected();
     }
     function renderOverviewError() {
-        var slot = overview.getElement();
-        var prior = slot.querySelector('.gpo-editor-scripts__overview-error');
+        const slot = overview.getElement();
+        const prior = slot.querySelector('.gpo-editor-scripts__overview-error');
         if (prior) prior.remove();
         if (state.errors[state.selectedEvent]) {
-            var error = create('div', { className: 'gpo-editor-scripts__overview-error' });
+            const error = createElement('div', { className: 'gpo-editor-scripts__overview-error' });
             error.append(
-                editorStatus.renderError(state.errors[state.selectedEvent], {
+                renderError(state.errors[state.selectedEvent], {
                     onRefresh: function () {
                         void refreshEvent(state.selectedEvent);
                     }
@@ -1756,11 +1757,11 @@ function renderScriptsTemplate(options) {
         if (ownsHeader() && !state.modal) openModal('event');
     }
     function closeModal(force, afterClose) {
-        var active = state.modal;
+        const active = state.modal;
         if (!active || (active.detail && active.detail.isBusy())) return false;
         if (!force && active.detail && active.detail.hasUnsavedChanges()) {
             if (!state.confirmation)
-                state.confirmation = confirmationDialog.open(rootElement, {
+                state.confirmation = open(rootElement, {
                     message: st('discardFormConfirm'),
                     onCancel: function () {
                         state.confirmation = null;
@@ -1787,21 +1788,22 @@ function renderScriptsTemplate(options) {
     }
     function openModal(mode) {
         if (!current() || state.modal) return;
-        var event = state.selectedEvent;
-        var previousFocus = document.activeElement;
-        var host = create('div', { className: 'gpo-editor-scripts__detail-host' });
-        var title = mode === 'assets' ? st('folderForEvent').replace('{event}', eventLabel(event)) : eventLabel(event);
-        var detailBody = createBody(null);
+        const event = state.selectedEvent;
+        const previousFocus = document.activeElement;
+        const host = createElement('div', { className: 'gpo-editor-scripts__detail-host' });
+        const title =
+            mode === 'assets' ? st('folderForEvent').replace('{event}', eventLabel(event)) : eventLabel(event);
+        const detailBody = createBody(null);
         detailBody.append(host.getElement());
-        var closeAction = wrap(createDialogButton('cancel', st('closeDialog')));
+        const closeAction = wrap(createDialogButton('cancel', st('closeDialog')));
         closeAction.on('click', function () {
             closeModal();
         });
-        var closeX = wrap(createCloseButton(st('close')));
+        const closeX = wrap(createCloseButton(st('close')));
         closeX.on('click', function () {
             closeModal();
         });
-        var shell = createDialogShell({
+        const shell = createDialogShell({
             titleId: 'gpo-editor-scripts-modal-title',
             title: title,
             body: detailBody,
@@ -1810,7 +1812,7 @@ function renderScriptsTemplate(options) {
             width: mode === 'assets' ? 'min(620px, calc(100vw - 32px))' : 'min(600px, calc(100vw - 32px))',
             className: mode === 'assets' ? 'gpo-editor-scripts__explorer' : 'gpo-editor-scripts__event-dialog'
         });
-        var dialog = wrap(shell.dialog);
+        const dialog = wrap(shell.dialog);
         shell.host.addEventListener('click', function (clickEvent) {
             if (clickEvent.target === shell.host) closeModal();
         });
@@ -1825,7 +1827,7 @@ function renderScriptsTemplate(options) {
                 keyEvent.stopPropagation();
                 closeModal();
             }
-            editorDialog.trapTab(keyEvent, shell.dialog);
+            trapTab(keyEvent, shell.dialog);
         });
         rootElement.appendChild(shell.host);
         state.modal = {
@@ -1841,7 +1843,7 @@ function renderScriptsTemplate(options) {
         dialog.getElement().querySelector('.btn-cancel').focus();
 
         function mountDetail() {
-            var active = state.modal;
+            const active = state.modal;
             if (!active || active.dialog !== dialog.getElement()) return;
             if (active.detail) active.detail.cleanup();
             active.detail = renderScriptEventEditor({
@@ -1915,15 +1917,15 @@ function renderScriptsTemplate(options) {
 }
 
 function openScriptsDialog(host, options) {
-    var config = options || {};
-    var item = config.item || {};
-    var scope = item.scope === 'user' ? 'user' : 'computer';
-    var event = item.scriptEvent || item.event;
+    const config = options || {};
+    const item = config.item || {};
+    const scope = item.scope === 'user' ? 'user' : 'computer';
+    let event = item.scriptEvent || item.event;
     if (EVENTS[scope].indexOf(event) === -1) event = EVENTS[scope][0];
-    var closed = false;
-    var explorer = null;
-    var detailHost = create('div', { className: 'gpo-editor-scripts__detail-host' });
-    var editor = renderScriptEventEditor({
+    let closed = false;
+    let explorer = null;
+    const detailHost = createElement('div', { className: 'gpo-editor-scripts__detail-host' });
+    const editor = renderScriptEventEditor({
         item: { scope: scope, event: event },
         mode: 'event',
         isCurrent: current,
@@ -1931,7 +1933,7 @@ function openScriptsDialog(host, options) {
         openFolder: openFolder
     });
     detailHost.append(editor);
-    var dialog = editorDialog.open(host, {
+    const dialog = editorDialog.open(host, {
         title: eventLabel(event),
         className: ['gpo-editor-scripts__event-dialog'],
         width: 'min(600px, calc(100vw - 32px))',
@@ -1957,8 +1959,8 @@ function openScriptsDialog(host, options) {
     }
     function openFolder() {
         if (!current() || explorer || editor.isBusy()) return;
-        var filesHost = create('div', { className: 'gpo-editor-scripts__detail-host' });
-        var files = renderScriptEventEditor({
+        const filesHost = createElement('div', { className: 'gpo-editor-scripts__detail-host' });
+        const files = renderScriptEventEditor({
             item: { scope: scope, event: event },
             mode: 'assets',
             isCurrent: function () {
@@ -1971,7 +1973,7 @@ function openScriptsDialog(host, options) {
         });
         filesHost.append(files);
         dialog.root.getElement().inert = true;
-        var filesDialog = editorDialog.open(host, {
+        const filesDialog = editorDialog.open(host, {
             title: st('folderForEvent').replace('{event}', eventLabel(event)),
             className: ['gpo-editor-scripts__explorer'],
             width: 'min(620px, calc(100vw - 32px))',
@@ -2000,7 +2002,7 @@ function openScriptsDialog(host, options) {
     }
     // The All Policies controller owns one lifecycle even while the files
     // explorer is temporarily displayed above the selected script event.
-    var controller = {
+    const controller = {
         hasUnsavedChanges: function () {
             return editor.hasUnsavedChanges() || Boolean(explorer && explorer.editor.hasUnsavedChanges());
         },
@@ -2024,6 +2026,6 @@ function openScriptsDialog(host, options) {
     return { editor: controller, dialog: dialog };
 }
 
-const __export__test = { fileBase64: fileBase64, saveDownloadedAsset: saveDownloadedAsset };
+const _test = { fileBase64: fileBase64, saveDownloadedAsset: saveDownloadedAsset };
 
-export { renderScriptsTemplate, openScriptsDialog, __export__test as _test };
+export { renderScriptsTemplate, openScriptsDialog, _test };

@@ -1,8 +1,18 @@
-import * as elementCreator from '@gpui/util/element-creator';
+import { createElement, ElementCreator } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
+import {
+    buildPreferenceRequest,
+    preferenceParentIdentity,
+    errorCategory,
+    preferenceFieldIds,
+    equal,
+    clone
+} from '@gpui/util/editor-dto';
 import * as dto from '@gpui/util/editor-dto';
+import { renderError } from '@gpui/components/editor-status';
 import * as editorStatus from '@gpui/components/editor-status';
 import * as confirmationDialog from '@gpui/components/confirmation-dialog';
+import { trapTab } from '@gpui/components/editor-dialog';
 import * as editorDialog from '@gpui/components/editor-dialog';
 import {
     createBody,
@@ -10,73 +20,70 @@ import {
     createCloseButton,
     createDialogShell
 } from '@gpui/components/Dialog/Dialog';
-import * as listNavigation from '@gpui/components/list-navigation';
-import * as translations from '@gpui/locales/translations';
+import { neighbor, bind } from '@gpui/components/list-navigation';
+import { t, getLanguage } from '@gpui/locales/translations';
 import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
-import * as targetingEditor from '@gpui/components/templates/preference/targeting-editor';
-import * as commonModule from '@gpui/components/templates/preference/view/common';
-import * as fieldControlModule from '@gpui/components/templates/preference/view/field-control';
-import * as fieldTabsModule from '@gpui/components/templates/preference/view/field-tabs';
-import * as fieldDependenciesModule from '@gpui/components/templates/preference/view/field-dependencies';
+import { render } from '@gpui/components/templates/preference/targeting-editor';
+import {
+    pt,
+    tableColumns,
+    actionLabel,
+    itemFieldValue,
+    scopeField,
+    listFrom,
+    validationMessage,
+    parentCandidateLabel,
+    filterKey,
+    editableFields
+} from '@gpui/components/templates/preference/view/common';
+import { fieldControl, mockupFieldControl } from '@gpui/components/templates/preference/view/field-control';
+import {
+    buildFieldTabs,
+    orderedTabEntries,
+    isMetadataField
+} from '@gpui/components/templates/preference/view/field-tabs';
+import {
+    dependencyRulesFor,
+    attachFieldDependencies
+} from '@gpui/components/templates/preference/view/field-dependencies';
 
-('use strict');
+let nextHeaderOwnerId = 1;
 
-var createElement = elementCreator.createElement;
-var t = translations.t;
-var nextHeaderOwnerId = 1;
-
-var PREFERENCE_LAYOUTS = preferenceLayouts;
-var pt = commonModule.pt;
-var tableColumns = commonModule.tableColumns;
-var actionLabel = commonModule.actionLabel;
-var itemFieldValue = commonModule.itemFieldValue;
-var scopeField = commonModule.scopeField;
-var listFrom = commonModule.listFrom;
-var validationMessage = commonModule.validationMessage;
-var parentCandidateLabel = commonModule.parentCandidateLabel;
-var filterKey = commonModule.filterKey;
-var editableFields = commonModule.editableFields;
-var fieldControl = fieldControlModule.fieldControl;
-var mockupFieldControl = fieldControlModule.mockupFieldControl;
-var buildFieldTabs = fieldTabsModule.buildFieldTabs;
-var orderedTabEntries = fieldTabsModule.orderedTabEntries;
-var isMetadataField = fieldTabsModule.isMetadataField;
-var dependencyRulesFor = fieldDependenciesModule.dependencyRulesFor;
-var attachFieldDependencies = fieldDependenciesModule.attachFieldDependencies;
+const PREFERENCE_LAYOUTS = preferenceLayouts;
 
 async function renderPreferencesTemplate(options) {
-    var config = options || {};
-    var item = config.item || {};
-    var documentDto = item.document || {};
-    var root = createElement('div', {
+    const config = options || {};
+    const item = config.item || {};
+    const documentDto = item.document || {};
+    const root = createElement('div', {
         className: ['gp__preference', 'gpo-editor-preferences']
     });
-    var rootElement = root.getElement();
-    var headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
-    var headerControls = headerElement ? headerElement.querySelector('.gp__control') : null;
-    var headerActions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
-    var admxActions = headerElement ? headerElement.querySelector('.gp__control-admx') : null;
-    var helpSeparator = headerElement ? headerElement.querySelector('.gp__control-separator') : null;
-    var createButton = headerControls ? headerControls.querySelector('.preferences__btn-create') : null;
-    var editButton = headerControls ? headerControls.querySelector('.preferences__btn-edit') : null;
-    var deleteButton = headerControls ? headerControls.querySelector('.preferences__btn-delete') : null;
-    var headerOwner = 'preferences-' + nextHeaderOwnerId++;
-    var items = [];
-    var selectedIdentity = null;
-    var modalState = null;
-    var opening = false;
-    var pendingDiscard = null;
-    var discardModal = null;
-    var cleanups = [];
-    var formRequestId = 0;
-    var itemsRequestId = 0;
-    var infoRequestId = 0;
-    var itemFieldsCache = new Map();
-    var fieldsRequestId = 0;
-    var tableRefreshScheduled = false;
-    var deleting = false;
-    var disposed = false;
-    var tableNavigation;
+    const rootElement = root.getElement();
+    const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
+    const headerControls = headerElement ? headerElement.querySelector('.gp__control') : null;
+    const headerActions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
+    const admxActions = headerElement ? headerElement.querySelector('.gp__control-admx') : null;
+    const helpSeparator = headerElement ? headerElement.querySelector('.gp__control-separator') : null;
+    const createButton = headerControls ? headerControls.querySelector('.preferences__btn-create') : null;
+    const editButton = headerControls ? headerControls.querySelector('.preferences__btn-edit') : null;
+    const deleteButton = headerControls ? headerControls.querySelector('.preferences__btn-delete') : null;
+    const headerOwner = 'preferences-' + nextHeaderOwnerId++;
+    let items = [];
+    let selectedIdentity = null;
+    let modalState = null;
+    let opening = false;
+    let pendingDiscard = null;
+    let discardModal = null;
+    const cleanups = [];
+    let formRequestId = 0;
+    let itemsRequestId = 0;
+    let infoRequestId = 0;
+    const itemFieldsCache = new Map();
+    let fieldsRequestId = 0;
+    let tableRefreshScheduled = false;
+    let deleting = false;
+    let disposed = false;
+    let tableNavigation;
 
     if (headerControls) {
         headerControls.setAttribute('data-preference-owner', headerOwner);
@@ -96,8 +103,8 @@ async function renderPreferencesTemplate(options) {
     function setHeaderState() {
         if (typeof config.onFormStateChange === 'function') config.onFormStateChange(Boolean(modalState));
         if (!ownsHeader()) return;
-        var editable = Boolean(documentDto.editable);
-        var available = editable && !modalState && !opening && !deleting;
+        const editable = Boolean(documentDto.editable);
+        const available = editable && !modalState && !opening && !deleting;
         if (createButton) createButton.classList.toggle('active', available);
         if (editButton) editButton.classList.toggle('active', available && selectedIdentity !== null);
         if (deleteButton) deleteButton.classList.toggle('active', available && selectedIdentity !== null);
@@ -126,9 +133,9 @@ async function renderPreferencesTemplate(options) {
     }
 
     function recoveryConflict(response) {
-        var recovery = response && response.recovery;
+        const recovery = response && response.recovery;
         if (!recovery || recovery.kind !== 'conflict') return null;
-        var error = /** @type {Error & { category?: string, details?: any }} */ (
+        const error = /** @type {Error & { category?: string, details?: any }} */ (
             new Error('Preference publication reconciliation is still conflicted.')
         );
         error.category = 'publication_conflict';
@@ -139,8 +146,8 @@ async function renderPreferencesTemplate(options) {
     async function reconcilePage(event) {
         if (event && event.currentTarget) event.currentTarget.disabled = true;
         try {
-            var response = await API.reconcile();
-            var conflict = recoveryConflict(response);
+            const response = await API.reconcile();
+            const conflict = recoveryConflict(response);
             if (conflict) throw conflict;
             await loadItems();
         } catch (error) {
@@ -151,7 +158,7 @@ async function renderPreferencesTemplate(options) {
     }
 
     function showPageError(error) {
-        var slot = rootElement.querySelector('.gpo-editor-preferences__error');
+        const slot = rootElement.querySelector('.gpo-editor-preferences__error');
         if (!slot) return;
         slot.innerHTML = '';
         slot.appendChild(
@@ -165,9 +172,9 @@ async function renderPreferencesTemplate(options) {
     }
 
     function renderTable() {
-        var tableSlot = rootElement.querySelector('.gpo-editor-preferences__table');
+        const tableSlot = rootElement.querySelector('.gpo-editor-preferences__table');
         if (!tableSlot) return;
-        var heldFocus = tableSlot.contains(document.activeElement);
+        const heldFocus = tableSlot.contains(document.activeElement);
         tableSlot.innerHTML = '';
         if (!items.length) {
             tableSlot.appendChild(
@@ -182,9 +189,9 @@ async function renderPreferencesTemplate(options) {
             }
             return;
         }
-        var columns = tableColumns(item.preferenceKind);
-        var useTemplate = Boolean(columns);
-        var headerCells = useTemplate
+        const columns = tableColumns(item.preferenceKind);
+        const useTemplate = Boolean(columns);
+        const headerCells = useTemplate
             ? columns.map(function (column) {
                   return createElement('th', { text: pt(column.labelKey) });
               })
@@ -202,13 +209,13 @@ async function renderPreferencesTemplate(options) {
                 ];
             }
             return columns.map(function (column) {
-                var text = '';
+                let text = '';
                 if (column.source === 'name') {
                     text = preferenceItem.label;
                 } else if (column.source === 'order') {
                     text = String(index + 1);
                 } else if (column.source === 'field') {
-                    var value = cachedFieldValue(preferenceItem.identity, column.field);
+                    const value = cachedFieldValue(preferenceItem.identity, column.field);
                     text =
                         column.format === 'action'
                             ? actionLabel(value)
@@ -243,11 +250,11 @@ async function renderPreferencesTemplate(options) {
             });
         }
 
-        var bodyRows = items.map(function (preferenceItem, index) {
-            var selected = selectedIdentity !== null && dto.equal(selectedIdentity, preferenceItem.identity);
-            var cells = buildDataCells(preferenceItem, index);
+        const bodyRows = items.map(function (preferenceItem, index) {
+            const selected = selectedIdentity !== null && equal(selectedIdentity, preferenceItem.identity);
+            const cells = buildDataCells(preferenceItem, index);
             if (!useTemplate) cells.push(buildActionsCell(preferenceItem));
-            var row = createElement('tr', {
+            const row = createElement('tr', {
                 className: selected ? 'active' : null,
                 attrs: {
                     tabindex: '-1',
@@ -271,7 +278,7 @@ async function renderPreferencesTemplate(options) {
             return row;
         });
 
-        var table = createElement('table', {
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table'],
             children: [
                 createElement('thead', { children: [createElement('tr', { children: headerCells })] }),
@@ -286,9 +293,9 @@ async function renderPreferencesTemplate(options) {
     }
 
     function selectItem(identity) {
-        selectedIdentity = dto.clone(identity);
+        selectedIdentity = clone(identity);
         Array.prototype.forEach.call(rootElement.querySelectorAll('[data-preference-identity]'), function (row) {
-            var selected = dto.equal(row.__preferenceIdentity, selectedIdentity);
+            const selected = equal(row.__preferenceIdentity, selectedIdentity);
             row.classList.toggle('active', selected);
             row.setAttribute('aria-selected', selected ? 'true' : 'false');
         });
@@ -308,7 +315,7 @@ async function renderPreferencesTemplate(options) {
     }
 
     function cachedFieldValue(identity, fieldId) {
-        var fields = itemFieldsCache.get(cacheKey(identity));
+        const fields = itemFieldsCache.get(cacheKey(identity));
         if (!fields) return '';
         return itemFieldValue({ fields: fields }, fieldId);
     }
@@ -316,7 +323,7 @@ async function renderPreferencesTemplate(options) {
     function scheduleTableRefresh() {
         if (tableRefreshScheduled) return;
         tableRefreshScheduled = true;
-        var run = function () {
+        const run = function () {
             tableRefreshScheduled = false;
             if (typeof config.isCurrent === 'function' && !config.isCurrent()) return;
             renderTable();
@@ -329,14 +336,14 @@ async function renderPreferencesTemplate(options) {
     }
 
     function ensureItemFields(identity) {
-        var key = cacheKey(identity);
+        const key = cacheKey(identity);
         if (itemFieldsCache.has(key)) {
             return Promise.resolve(itemFieldsCache.get(key));
         }
-        var startedGeneration = fieldsRequestId;
-        return API.preferenceShow(item.scope, item.preferenceKind, dto.clone(identity)).then(function (response) {
+        const startedGeneration = fieldsRequestId;
+        return API.preferenceShow(item.scope, item.preferenceKind, clone(identity)).then(function (response) {
             if (startedGeneration !== fieldsRequestId) return null;
-            var fields = dto.clone(response.fields || response.new_item_fields || []).map(function (field) {
+            const fields = clone(response.fields || response.new_item_fields || []).map(function (field) {
                 return scopeField(field, item.scope);
             });
             itemFieldsCache.set(key, fields);
@@ -345,7 +352,7 @@ async function renderPreferencesTemplate(options) {
     }
 
     function prefetchTableFields() {
-        var generation = ++fieldsRequestId;
+        const generation = ++fieldsRequestId;
         items.forEach(function (preferenceItem) {
             if (preferenceItem.identity === null || preferenceItem.identity === undefined) return;
             if (itemFieldsCache.has(cacheKey(preferenceItem.identity))) return;
@@ -364,19 +371,19 @@ async function renderPreferencesTemplate(options) {
     }
 
     async function loadItems() {
-        var requestId = ++itemsRequestId;
+        const requestId = ++itemsRequestId;
         try {
-            var response = await API.preferenceItems(item.scope, item.preferenceKind);
+            const response = await API.preferenceItems(item.scope, item.preferenceKind);
             if (requestId !== itemsRequestId || (typeof config.isCurrent === 'function' && !config.isCurrent())) return;
             items = listFrom(response, 'items');
             if (
                 selectedIdentity !== null &&
                 !items.some(function (entry) {
-                    return dto.equal(entry.identity, selectedIdentity);
+                    return equal(entry.identity, selectedIdentity);
                 })
             )
                 selectedIdentity = null;
-            var errorSlot = rootElement.querySelector('.gpo-editor-preferences__error');
+            const errorSlot = rootElement.querySelector('.gpo-editor-preferences__error');
             if (errorSlot) errorSlot.innerHTML = '';
             renderTable();
             setHeaderState();
@@ -393,10 +400,10 @@ async function renderPreferencesTemplate(options) {
     }
 
     function buildInfoPanel() {
-        var info = createElement('div', {
+        const info = createElement('div', {
             className: ['preference__info', config.isHelpOpen ? 'is-open' : null]
         });
-        var settings = createElement('div', { className: 'preference__settings' });
+        const settings = createElement('div', { className: 'preference__settings' });
         settings.append(
             createElement('div', {
                 className: 'preference__settings-title',
@@ -405,7 +412,7 @@ async function renderPreferencesTemplate(options) {
         );
         settings.append(createElement('div', { className: 'preference__settings-data' }));
         info.append(settings);
-        var description = createElement('div', { className: 'preference__description' });
+        const description = createElement('div', { className: 'preference__description' });
         description.append(
             createElement('div', {
                 className: 'preference__description-title',
@@ -431,8 +438,8 @@ async function renderPreferencesTemplate(options) {
     }
 
     function fieldCheckedState(field) {
-        var v = field && field.value;
-        var raw = v && typeof v === 'object' ? v.value : v;
+        const v = field && field.value;
+        const raw = v && typeof v === 'object' ? v.value : v;
         if (raw === null || raw === undefined) return null;
         if (raw === true || raw === 1) return true;
         if (raw === false || raw === 0) return false;
@@ -440,25 +447,25 @@ async function renderPreferencesTemplate(options) {
     }
 
     function fieldText(field) {
-        var v = field && field.value;
-        var raw = v && typeof v === 'object' ? v.value : v;
+        const v = field && field.value;
+        const raw = v && typeof v === 'object' ? v.value : v;
         if (Array.isArray(raw)) return raw.join('\n');
         return raw === null || raw === undefined ? '' : String(raw);
     }
 
     function renderInfoPanel(fields) {
-        var dataSlot = rootElement.querySelector('.preference__settings-data');
-        var descSlot = rootElement.querySelector('.preference__description-data');
+        const dataSlot = rootElement.querySelector('.preference__settings-data');
+        const descSlot = rootElement.querySelector('.preference__description-data');
         if (!dataSlot || !descSlot) return;
-        var byId = new Map();
+        const byId = new Map();
         (Array.isArray(fields) ? fields : []).forEach(function (field) {
             if (field && field.id !== undefined && !byId.has(field.id)) byId.set(field.id, field);
         });
         dataSlot.innerHTML = '';
         settingsItems().forEach(function (spec) {
-            var field = byId.get(spec.id);
-            var label = (field && field.label) || spec.label;
-            var value = fieldCheckedState(field);
+            const field = byId.get(spec.id);
+            const label = (field && field.label) || spec.label;
+            const value = fieldCheckedState(field);
             dataSlot.appendChild(
                 createElement('div', {
                     className: 'preference__settings-item',
@@ -472,8 +479,8 @@ async function renderPreferencesTemplate(options) {
                 }).getElement()
             );
         });
-        var descField = byId.get('metadata.desc');
-        var descText = fieldText(descField);
+        const descField = byId.get('metadata.desc');
+        const descText = fieldText(descField);
         descSlot.innerHTML = '';
         if (descText) {
             descSlot.classList.remove('empty');
@@ -489,9 +496,9 @@ async function renderPreferencesTemplate(options) {
     }
 
     async function requestInfoPanel(identity) {
-        var requestId = ++infoRequestId;
+        const requestId = ++infoRequestId;
         try {
-            var fields = await ensureItemFields(identity);
+            const fields = await ensureItemFields(identity);
             if (requestId !== infoRequestId || (typeof config.isCurrent === 'function' && !config.isCurrent())) return;
             if (fields) renderInfoPanel(fields);
             else resetInfoPanel();
@@ -503,7 +510,7 @@ async function renderPreferencesTemplate(options) {
 
     function renderShell() {
         rootElement.innerHTML = '';
-        var dataTable = createElement('div', { className: 'preference__data-table' });
+        const dataTable = createElement('div', { className: 'preference__data-table' });
         dataTable.append(
             createElement('div', {
                 className: 'gpo-editor-preferences__header',
@@ -534,12 +541,12 @@ async function renderPreferencesTemplate(options) {
     }
 
     function buildFilterEditor(showResult, formState, readonly) {
-        return targetingEditor.render({
+        return render({
             showResult: showResult,
             formState: formState,
             readonly: readonly,
             scope: item.scope,
-            language: translations.getLanguage(),
+            language: getLanguage(),
             pt: pt,
             fieldControl: fieldControl,
             validationMessage: validationMessage
@@ -547,19 +554,19 @@ async function renderPreferencesTemplate(options) {
     }
 
     async function openForm(identity) {
-        var creating = identity === null || identity === undefined;
+        const creating = identity === null || identity === undefined;
         if (creating && !documentDto.editable) return;
         if (opening) return false;
         if (modalState && !closeForm(false, 'close')) return;
-        var host = config.modalHost || rootElement.querySelector('.gpo-editor-preferences__modal-host');
+        const host = config.modalHost || rootElement.querySelector('.gpo-editor-preferences__modal-host');
         if (!host) return;
-        var requestId = ++formRequestId;
+        const requestId = ++formRequestId;
         setOpening(true);
         try {
-            var response = await API.preferenceShow(item.scope, item.preferenceKind, identity);
+            const response = await API.preferenceShow(item.scope, item.preferenceKind, identity);
             if (requestId !== formRequestId || (typeof config.isCurrent === 'function' && !config.isCurrent())) return;
-            var readonly = !documentDto.editable;
-            var fields = dto
+            const readonly = !documentDto.editable;
+            const fields = dto
                 .clone(creating ? response.new_item_fields || response.fields || [] : response.fields || [])
                 .map(function (field) {
                     return scopeField(field, item.scope);
@@ -568,35 +575,35 @@ async function renderPreferencesTemplate(options) {
                 infoRequestId += 1;
                 renderInfoPanel(fields);
             }
-            var parentCandidates =
-                creating && Array.isArray(response.parent_candidates) ? dto.clone(response.parent_candidates) : [];
-            var controls = [];
-            var controlsById = new Map();
-            var fieldTabs = buildFieldTabs(fields, {
+            const parentCandidates =
+                creating && Array.isArray(response.parent_candidates) ? clone(response.parent_candidates) : [];
+            const controls = [];
+            const controlsById = new Map();
+            const fieldTabs = buildFieldTabs(fields, {
                 controls: controls,
                 controlsById: controlsById,
                 readonly: readonly,
                 creating: creating,
                 layout: PREFERENCE_LAYOUTS[item.preferenceKind] || null
             });
-            var formState = {
+            const formState = {
                 dirty: false,
                 busy: false,
                 readFilterResult: function () {
                     return { operations: [], errors: [] };
                 }
             };
-            var errorSlot = createElement('div', { className: 'gpo-editor-preference-form__error' });
-            var validationSlot = createElement('div', {
+            const errorSlot = createElement('div', { className: 'gpo-editor-preference-form__error' });
+            const validationSlot = createElement('div', {
                 className: 'gpo-editor-preference-form__validation',
                 attrs: { role: 'alert' }
             });
-            var originalName = response.item && response.item.label !== undefined ? String(response.item.label) : '';
-            var nameInput = null;
-            var nameField = null;
-            var nameError = null;
-            var parentSelect = null;
-            var parentField = null;
+            const originalName = response.item && response.item.label !== undefined ? String(response.item.label) : '';
+            let nameInput = null;
+            let nameField = null;
+            let nameError = null;
+            let parentSelect = null;
+            let parentField = null;
             if (!creating) {
                 nameInput = createElement('input', {
                     attrs: {
@@ -635,7 +642,7 @@ async function renderPreferencesTemplate(options) {
                         });
                     })
                 });
-                var rootParentIndex = parentCandidates.findIndex(function (candidate) {
+                const rootParentIndex = parentCandidates.findIndex(function (candidate) {
                     return candidate && candidate.identity === null;
                 });
                 parentSelect.getElement().value = String(rootParentIndex < 0 ? 0 : rootParentIndex);
@@ -651,7 +658,7 @@ async function renderPreferencesTemplate(options) {
                     ]
                 });
             }
-            var saveButton = readonly
+            const saveButton = readonly
                 ? null
                 : createElement('button', {
                       className: ['button', 'btn-ok'],
@@ -663,17 +670,17 @@ async function renderPreferencesTemplate(options) {
                           }
                       }
                   });
-            var closeAction = function () {
+            const closeAction = function () {
                 closeForm(false, 'close');
             };
-            var cancelAction = function () {
+            const cancelAction = function () {
                 closeForm(false, 'cancel');
             };
-            var filterSection = createElement('div', { className: 'preference__modal-filters' });
+            const filterSection = createElement('div', { className: 'preference__modal-filters' });
             filterSection.append(buildFilterEditor(response, formState, readonly));
-            var targettingModalElement = null;
-            var targettingHost = null;
-            var closeTargettingModal = function (accept) {
+            let targettingModalElement = null;
+            let targettingHost = null;
+            const closeTargettingModal = function (accept) {
                 if (accept && !readonly && !formState.acceptFilterDraft()) return;
                 if (!accept) formState.cancelFilterDraft();
                 if (targettingModalElement) {
@@ -685,28 +692,28 @@ async function renderPreferencesTemplate(options) {
                 form.getElement().inert = false;
                 if (targettingButton) targettingButton.getElement().focus();
             };
-            var buildTargettingModal = function () {
+            const buildTargettingModal = function () {
                 if (targettingModalElement) return targettingHost;
-                var wrap = elementCreator.ElementCreator.wrap;
-                var closeX = wrap(createCloseButton(pt('close')));
+                const wrap = ElementCreator.wrap;
+                const closeX = wrap(createCloseButton(pt('close')));
                 closeX.on('click', function () {
                     closeTargettingModal(false);
                 });
-                var cancelButton = wrap(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
+                const cancelButton = wrap(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
                 cancelButton.on('click', function () {
                     closeTargettingModal(false);
                 });
-                var buttons = [cancelButton.getElement()];
+                const buttons = [cancelButton.getElement()];
                 if (!readonly) {
-                    var okButton = wrap(createDialogButton('apply', pt('targetingOk')));
+                    const okButton = wrap(createDialogButton('apply', pt('targetingOk')));
                     okButton.on('click', function () {
                         closeTargettingModal(true);
                     });
                     buttons.push(okButton.getElement());
                 }
-                var body = createBody(null);
+                const body = createBody(null);
                 body.append(filterSection.getElement());
-                var shell = createDialogShell({
+                const shell = createDialogShell({
                     titleId: 'gpo-editor-targeting-title',
                     title: pt('targettingTitle'),
                     body: body,
@@ -731,23 +738,23 @@ async function renderPreferencesTemplate(options) {
                         event.preventDefault();
                         closeTargettingModal(false);
                     }
-                    editorDialog.trapTab(event, targettingModalElement);
+                    trapTab(event, targettingModalElement);
                 });
                 targettingModalElement.inert = true;
                 targettingHost.style.display = 'none';
                 return targettingHost;
             };
-            var wrapElement = elementCreator.ElementCreator.wrap;
-            var formBody = createBody(null);
+            const wrapElement = ElementCreator.wrap;
+            const formBody = createBody(null);
             formBody.append(validationSlot.getElement());
             formBody.append(errorSlot.getElement());
             formBody.append(createElement('div', { className: 'gpo-editor-fields' }).getElement());
             if (fieldTabs) formBody.append(fieldTabs.getElement());
-            var formClose = wrapElement(createCloseButton(pt('close')));
+            const formClose = wrapElement(createCloseButton(pt('close')));
             formClose.on('click', closeAction);
-            var formCancel = wrapElement(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
+            const formCancel = wrapElement(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
             formCancel.on('click', readonly ? closeAction : cancelAction);
-            var formShell = createDialogShell({
+            const formShell = createDialogShell({
                 titleId: 'gpo-editor-preference-form-title',
                 title: creating ? pt('createTitle') : readonly ? pt('viewTitle') : pt('editTitle'),
                 body: formBody,
@@ -759,7 +766,7 @@ async function renderPreferencesTemplate(options) {
                     .join(' '),
                 hostClassName: 'gpo-editor-preference-host'
             });
-            var form = wrapElement(formShell.dialog);
+            const form = wrapElement(formShell.dialog);
             form.on('keydown', function (event) {
                 if (
                     event.defaultPrevented ||
@@ -771,12 +778,12 @@ async function renderPreferencesTemplate(options) {
                     event.stopPropagation();
                     closeAction();
                 }
-                editorDialog.trapTab(event, form.getElement());
+                trapTab(event, form.getElement());
             });
-            var fieldSlot = form.getElement().querySelector('.gpo-editor-fields');
+            const fieldSlot = form.getElement().querySelector('.gpo-editor-fields');
             if (nameField) {
-                var basicTab = form.getElement().querySelector('#tab-basic');
-                var targetTypeField = basicTab && basicTab.querySelector('[data-field-id="properties.targetType"]');
+                const basicTab = form.getElement().querySelector('#tab-basic');
+                const targetTypeField = basicTab && basicTab.querySelector('[data-field-id="properties.targetType"]');
                 if (targetTypeField && targetTypeField.parentNode) {
                     targetTypeField.parentNode.insertBefore(nameField.getElement(), targetTypeField);
                 } else if (basicTab) {
@@ -786,7 +793,7 @@ async function renderPreferencesTemplate(options) {
                 }
             }
             if (parentField && fieldSlot) fieldSlot.appendChild(parentField.getElement());
-            var targettingButton = createElement('button', {
+            const targettingButton = createElement('button', {
                 className: ['button', 'preference__tab-targetting-btn'],
                 attrs: { type: 'button' },
                 text: pt('targettingButton'),
@@ -794,15 +801,15 @@ async function renderPreferencesTemplate(options) {
                     click: function () {
                         if (formState.busy) return;
                         formState.beginFilterDraft();
-                        var modalHost = buildTargettingModal();
+                        const modalHost = buildTargettingModal();
                         if (!modalHost.parentNode) host.appendChild(modalHost);
-                        var modal = targettingModalElement;
+                        const modal = targettingModalElement;
                         modalHost.style.display = '';
                         modal.inert = false;
                         modal.classList.add('active');
                         form.getElement().classList.add('gpo-editor-preference-form--dimmed');
                         form.getElement().inert = true;
-                        var first = modal.querySelector(
+                        const first = modal.querySelector(
                             '.gpo-editor-filter-add:not(:disabled), [role="treeitem"], .btn-cancel'
                         );
                         if (first) first.focus();
@@ -810,15 +817,15 @@ async function renderPreferencesTemplate(options) {
                     }
                 }
             });
-            var generalTabElement = form.getElement().querySelector('#tab-general');
-            var descriptionField =
+            const generalTabElement = form.getElement().querySelector('#tab-general');
+            const descriptionField =
                 generalTabElement && generalTabElement.querySelector('[data-field-id="metadata.desc"]');
             if (generalTabElement && descriptionField && descriptionField.parentNode) {
                 descriptionField.parentNode.insertBefore(targettingButton.getElement(), descriptionField);
             } else if (generalTabElement) {
                 generalTabElement.appendChild(targettingButton.getElement());
             } else {
-                var formContentSlot = form.getElement().querySelector('[data-dialog-part="body"]');
+                const formContentSlot = form.getElement().querySelector('[data-dialog-part="body"]');
                 if (formContentSlot) formContentSlot.appendChild(targettingButton.getElement());
             }
             if (!readonly) {
@@ -836,7 +843,7 @@ async function renderPreferencesTemplate(options) {
             modalState = {
                 creating: creating,
                 readonly: readonly,
-                identity: dto.clone(identity),
+                identity: clone(identity),
                 descriptors: fields,
                 controls: controls,
                 controlsById: controlsById,
@@ -866,7 +873,7 @@ async function renderPreferencesTemplate(options) {
                     if (modalState.nameError.textContent) setNameError(modalState, '');
                 });
             }
-            var duplicates = dto.preferenceFieldIds(fields).duplicates;
+            const duplicates = preferenceFieldIds(fields).duplicates;
             if (!readonly && duplicates.length) {
                 modalState.blockedDescriptors = true;
                 modalState.formElement.classList.add('gpo-editor-preference-form--invalid');
@@ -877,9 +884,9 @@ async function renderPreferencesTemplate(options) {
                     });
                 });
             }
-            var dependencyRules = dependencyRulesFor(item.preferenceKind);
+            const dependencyRules = dependencyRulesFor(item.preferenceKind);
             if (dependencyRules.length && !readonly) {
-                var dependencies = attachFieldDependencies(modalState.formElement, controlsById, dependencyRules);
+                const dependencies = attachFieldDependencies(modalState.formElement, controlsById, dependencyRules);
                 modalState.dependencyDisabledIds = dependencies.disabledIds;
                 dependencies.sync();
             }
@@ -898,7 +905,7 @@ async function renderPreferencesTemplate(options) {
         if (modalState && modalState.formElement) {
             modalState.formElement.classList.add('gpo-editor-preference-form--confirming');
             if (modalState.formElement.closest('[data-dialog-host]')) {
-                var targettingModal = modalState.formElement
+                const targettingModal = modalState.formElement
                     .closest('[data-dialog-host]')
                     .parentNode.querySelector('.targetting__modal');
                 if (targettingModal) {
@@ -922,7 +929,7 @@ async function renderPreferencesTemplate(options) {
             discardModal.close();
             discardModal = null;
         }
-        var confirmingForms = (config.modalHost || rootElement).querySelectorAll(
+        const confirmingForms = (config.modalHost || rootElement).querySelectorAll(
             '.gpo-editor-preference-form--confirming'
         );
         Array.prototype.forEach.call(confirmingForms, function (formElement) {
@@ -931,7 +938,7 @@ async function renderPreferencesTemplate(options) {
     }
 
     function handleDiscardModalChoice(confirmed) {
-        var pending = pendingDiscard;
+        const pending = pendingDiscard;
         pendingDiscard = null;
         hideDiscardModal();
         if (!confirmed || !pending) return;
@@ -940,7 +947,7 @@ async function renderPreferencesTemplate(options) {
 
     function closeHostModals(host) {
         host.classList.remove('active');
-        var modals = Array.prototype.slice.call(host.children);
+        const modals = Array.prototype.slice.call(host.children);
         modals.forEach(function (element) {
             Array.prototype.forEach.call(element.querySelectorAll('[data-dialog].active'), function (dialog) {
                 dialog.classList.remove('active');
@@ -956,7 +963,7 @@ async function renderPreferencesTemplate(options) {
     }
 
     function closeForm(force, action) {
-        var state = modalState;
+        const state = modalState;
         if (state && (state.saving || state.reconciling) && action !== 'saved' && action !== 'cleanup') return false;
         if (!force && state && state.formState.dirty) {
             if (pendingDiscard) return false;
@@ -966,7 +973,7 @@ async function renderPreferencesTemplate(options) {
         pendingDiscard = null;
         hideDiscardModal();
         formRequestId += 1;
-        var host = config.modalHost || rootElement.querySelector('.gpo-editor-preferences__modal-host');
+        const host = config.modalHost || rootElement.querySelector('.gpo-editor-preferences__modal-host');
         if (host) closeHostModals(host);
         modalState = null;
         setHeaderState();
@@ -975,10 +982,10 @@ async function renderPreferencesTemplate(options) {
     }
 
     function formInteractiveElements(state) {
-        var elements = [];
-        var roots = [state.formElement];
+        const elements = [];
+        const roots = [state.formElement];
         if (state.formElement.closest('[data-dialog-host]')) {
-            var targettingModal = state.formElement
+            const targettingModal = state.formElement
                 .closest('[data-dialog-host]')
                 .parentNode.querySelector('.targetting__modal');
             if (targettingModal) roots.push(targettingModal);
@@ -1002,8 +1009,8 @@ async function renderPreferencesTemplate(options) {
 
     function syncFormBusy(state) {
         if (!state) return;
-        var busy = Boolean(state.saving || state.reconciling);
-        var elements = formInteractiveElements(state);
+        const busy = Boolean(state.saving || state.reconciling);
+        const elements = formInteractiveElements(state);
         if (busy) {
             elements.forEach(function (element) {
                 if (!state.busyDisabledStates.has(element)) {
@@ -1017,7 +1024,7 @@ async function renderPreferencesTemplate(options) {
             });
             state.busyDisabledStates.clear();
         }
-        var refreshLocked = Boolean(state.requiresRefresh);
+        const refreshLocked = Boolean(state.requiresRefresh);
         state.formState.busy = busy || refreshLocked;
         state.formElement.classList.toggle('gpo-editor-preference-form--busy', busy);
         state.formElement.classList.toggle('gpo-editor-preference-form--refresh-required', refreshLocked);
@@ -1056,8 +1063,8 @@ async function renderPreferencesTemplate(options) {
 
     function markServerFieldError(state, error) {
         if (!error || !error.field) return;
-        var field = String(error.field);
-        var message = error.message || pt('validationFixErrors');
+        const field = String(error.field);
+        const message = error.message || pt('validationFixErrors');
         if (field === 'name' || field.indexOf('name') !== -1) setNameError(state, message);
         state.controlsById.forEach(function (controls, id) {
             if (field === id || field.indexOf(id) !== -1) {
@@ -1071,17 +1078,17 @@ async function renderPreferencesTemplate(options) {
     function renderFormError(state, error) {
         if (modalState !== state) return;
         state.errorSlot.innerHTML = '';
-        var category = dto.errorCategory(error).replace(/-/g, '_');
-        var actions = {
+        const category = errorCategory(error).replace(/-/g, '_');
+        const actions = {
             onReconcile: async function (event) {
                 if (state.reconciling || state.saving) return;
-                var button = event && event.currentTarget;
+                const button = event && event.currentTarget;
                 if (button) button.disabled = true;
                 state.reconciling = true;
                 syncFormBusy(state);
                 try {
-                    var response = await API.reconcile();
-                    var conflict = recoveryConflict(response);
+                    const response = await API.reconcile();
+                    const conflict = recoveryConflict(response);
                     if (conflict) throw conflict;
                     if (modalState === state) {
                         state.requiresRefresh = true;
@@ -1104,7 +1111,7 @@ async function renderPreferencesTemplate(options) {
                 void loadItems();
             };
         }
-        state.errorSlot.appendChild(editorStatus.renderError(error, actions).getElement());
+        state.errorSlot.appendChild(renderError(error, actions).getElement());
         markServerFieldError(state, error);
         syncFormBusy(state);
     }
@@ -1138,14 +1145,14 @@ async function renderPreferencesTemplate(options) {
 
     async function saveForm() {
         if (!modalState || modalState.readonly) return true;
-        var state = modalState;
+        const state = modalState;
         if (state.saving || state.reconciling || state.requiresRefresh || state.blockedDescriptors) return false;
         clearFormErrors(state);
-        var draftFields = state.controls.map(function (control) {
+        const draftFields = state.controls.map(function (control) {
             return { id: control.id, value: control.read() };
         });
-        var filterResult = state.formState.readFilterResult();
-        var result = dto.buildPreferenceRequest({
+        const filterResult = state.formState.readFilterResult();
+        const result = buildPreferenceRequest({
             creating: state.creating,
             identity: state.identity,
             descriptors: state.descriptors,
@@ -1153,16 +1160,16 @@ async function renderPreferencesTemplate(options) {
             name: state.nameInput ? state.nameInput.value : null,
             originalName: state.originalName,
             parent: state.parentSelect
-                ? dto.preferenceParentIdentity(state.parentCandidates, state.parentSelect.value)
+                ? preferenceParentIdentity(state.parentCandidates, state.parentSelect.value)
                 : null,
             filters: filterResult.operations,
             validationExemptions: state.dependencyDisabledIds || []
         });
-        var errors = result.errors.concat(filterResult.errors || []);
+        const errors = result.errors.concat(filterResult.errors || []);
         if (errors.length) {
             state.formElement.classList.add('gpo-editor-preference-form--invalid');
             state.validationSlot.textContent = pt('validationFixErrors');
-            var firstControl = null;
+            let firstControl = null;
             errors.forEach(function (error) {
                 if (error.path) return;
                 if (error.id === 'name') {
@@ -1186,10 +1193,10 @@ async function renderPreferencesTemplate(options) {
         syncFormBusy(state);
         state.saveButton.textContent = pt('saving');
         try {
-            var response = state.creating
+            const response = state.creating
                 ? await API.preferenceCreate(item.scope, item.preferenceKind, result.request)
                 : await API.preferenceUpdate(item.scope, item.preferenceKind, result.request);
-            var conflict = recoveryConflict(response);
+            const conflict = recoveryConflict(response);
             if (conflict) throw conflict;
             if (!state.creating) invalidateCachedFields(state.identity);
             closeForm(true, 'saved');
@@ -1211,30 +1218,30 @@ async function renderPreferencesTemplate(options) {
     async function deleteSelected() {
         if (!documentDto.editable || selectedIdentity === null || modalState || opening || deleting || disposed) return;
         if (!window.confirm(pt('confirmDelete'))) return;
-        var identity = dto.clone(selectedIdentity);
-        var before = items.map(function (entry) {
+        const identity = clone(selectedIdentity);
+        const before = items.map(function (entry) {
             return cacheKey(entry.identity);
         });
-        var removed = false;
+        let removed = false;
         deleting = true;
         setHeaderState();
         if (deleteButton) deleteButton.disabled = true;
         try {
-            var response = await API.preferenceDelete(item.scope, item.preferenceKind, identity);
+            const response = await API.preferenceDelete(item.scope, item.preferenceKind, identity);
             invalidateCachedFields(identity);
             await loadItems();
             if (disposed || (typeof config.isCurrent === 'function' && !config.isCurrent())) return;
-            var next = listNavigation.neighbor(
+            const next = neighbor(
                 before,
                 [cacheKey(identity)],
                 items.map(function (entry) {
                     return cacheKey(entry.identity);
                 })
             );
-            var survivor = items.find(function (entry) {
+            const survivor = items.find(function (entry) {
                 return cacheKey(entry.identity) === next;
             });
-            selectedIdentity = survivor ? dto.clone(survivor.identity) : null;
+            selectedIdentity = survivor ? clone(survivor.identity) : null;
             renderTable();
             setHeaderState();
             removed = true;
@@ -1250,8 +1257,8 @@ async function renderPreferencesTemplate(options) {
     }
 
     renderShell();
-    var tableSlot = rootElement.querySelector('.gpo-editor-preferences__table');
-    tableNavigation = listNavigation.bind(tableSlot, {
+    const tableSlot = rootElement.querySelector('.gpo-editor-preferences__table');
+    tableNavigation = bind(tableSlot, {
         rows: function () {
             return Array.from(tableSlot.querySelectorAll('[data-preference-identity]'));
         },
@@ -1262,7 +1269,7 @@ async function renderPreferencesTemplate(options) {
             selectItem(row.__preferenceIdentity);
         },
         activate: function (row) {
-            void openForm(dto.clone(row.__preferenceIdentity));
+            void openForm(clone(row.__preferenceIdentity));
         },
         remove: function () {
             void deleteSelected();
@@ -1326,14 +1333,14 @@ async function renderPreferencesTemplate(options) {
 }
 
 async function openPreferencesDialog(host, options) {
-    var config = options || {};
-    var item = config.item || {};
-    var closed = false;
-    var editor = null;
-    var nestedHost = createElement('div', {
+    const config = options || {};
+    const item = config.item || {};
+    let closed = false;
+    let editor = null;
+    const nestedHost = createElement('div', {
         className: ['gp__preference', 'gpo-editor-preferences__modal-host']
     });
-    var controls = createElement('div', {
+    const controls = createElement('div', {
         className: ['gp__control', 'gpo-security-workbench__toolbar'],
         children: [
             createElement('button', {
@@ -1353,13 +1360,13 @@ async function openPreferencesDialog(host, options) {
             })
         ]
     });
-    var content = createElement('div', {
+    const content = createElement('div', {
         className: 'gpo-preferences-family-dialog__content',
         children: [controls, createElement('div', { className: 'gpo-editor-empty', text: t('policySearch.loading') })]
     });
     // The existing controller can own a local toolbar without touching the
     // All Policies header. Keep its controls in the visible dialog content.
-    var dialog = editorDialog.open(host, {
+    const dialog = editorDialog.open(host, {
         title: item.title || (item.document && item.document.label) || item.preferenceKind,
         className: ['gpo-preferences-family-dialog'],
         width: 'min(680px, calc(100vw - 32px))',
@@ -1383,7 +1390,7 @@ async function openPreferencesDialog(host, options) {
     // Place item dialogs beside the family modal within its backdrop:
     // transformed modal bounds must not clip their existing fixed layout.
     dialog.root.getElement().parentElement.appendChild(nestedHost.getElement());
-    var localDocument = Object.assign({}, item.document || {});
+    const localDocument = Object.assign({}, item.document || {});
     if (item.readOnly) localDocument.editable = false;
     editor = await renderPreferencesTemplate({
         item: Object.assign({}, item, { document: localDocument }),
@@ -1411,7 +1418,7 @@ async function openPreferencesDialog(host, options) {
     return { editor: editor, dialog: dialog };
 }
 
-const __export__test = {
+const _test = {
     fieldControl: fieldControl,
     mockupFieldControl: mockupFieldControl,
     buildFieldTabs: buildFieldTabs,
@@ -1421,4 +1428,4 @@ const __export__test = {
     editableFields: editableFields
 };
 
-export { renderPreferencesTemplate, openPreferencesDialog, __export__test as _test };
+export { renderPreferencesTemplate, openPreferencesDialog, _test };

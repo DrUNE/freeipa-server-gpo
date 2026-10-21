@@ -8,13 +8,11 @@
 
 import IPA from 'freeipa/ipa';
 import rpc from 'freeipa/rpc';
-import * as translations from '@gpui/locales/translations';
+import { getLanguage } from '@gpui/locales/translations';
 
-('use strict');
-
-var selectedDisplayName = null;
-var editorOpenPromise = null;
-var editorOpenResult = null;
+let selectedDisplayName = null;
+let editorOpenPromise = null;
+let editorOpenResult = null;
 
 function clone(value) {
     if (value === undefined) return undefined;
@@ -22,13 +20,13 @@ function clone(value) {
 }
 
 function unwrapResponse(data) {
-    var outer = data && data.result !== undefined ? data.result : data;
-    var payload = outer && outer.result !== undefined ? outer.result : outer;
+    const outer = data && data.result !== undefined ? data.result : data;
+    const payload = outer && outer.result !== undefined ? outer.result : outer;
     return payload === null || payload === undefined ? {} : payload;
 }
 
 function firstObject(candidates) {
-    for (var i = 0; i < candidates.length; i += 1) {
+    for (let i = 0; i < candidates.length; i += 1) {
         if (candidates[i] && typeof candidates[i] === 'object') {
             return candidates[i];
         }
@@ -37,11 +35,11 @@ function firstObject(candidates) {
 }
 
 function EditorError(message, details) {
-    var info = details || {};
+    const info = details || {};
     this.name = 'GpoEditorError';
     this.message = message || 'GPO editor request failed';
-    var inferredCategory = info.category || info.error_category || null;
-    var errorName = String(info.name || info.error_name || '');
+    let inferredCategory = info.category || info.error_category || null;
+    const errorName = String(info.name || info.error_name || '');
     if (!inferredCategory && /ACIError|Authorization|NotAllowed/i.test(errorName + ' ' + (message || ''))) {
         inferredCategory = 'authorization';
     }
@@ -49,7 +47,7 @@ function EditorError(message, details) {
     this.code = info.code || this.category;
     this.field = info.field || null;
     this.path = info.path || null;
-    var parsedDetails = info.details;
+    let parsedDetails = info.details;
     if (typeof parsedDetails === 'string') {
         try {
             parsedDetails = JSON.parse(parsedDetails);
@@ -71,10 +69,10 @@ EditorError.prototype.constructor = EditorError;
 function normalizeError(xhr, textStatus, thrown) {
     if (thrown instanceof EditorError) return thrown;
 
-    var response = xhr && (xhr.responseJSON || xhr.response || xhr.data);
-    var responseError = response && response.error ? response.error : response;
-    var thrownData = thrown && (thrown.data || thrown.details || thrown.error);
-    var details = firstObject([
+    const response = xhr && (xhr.responseJSON || xhr.response || xhr.data);
+    const responseError = response && response.error ? response.error : response;
+    const thrownData = thrown && (thrown.data || thrown.details || thrown.error);
+    const details = firstObject([
         thrownData && thrownData.error && thrownData.error.data,
         thrownData && thrownData.data,
         responseError && responseError.data,
@@ -82,7 +80,7 @@ function normalizeError(xhr, textStatus, thrown) {
         responseError,
         thrown
     ]);
-    var message =
+    const message =
         details.message ||
         (thrown && thrown.message) ||
         (responseError && responseError.message) ||
@@ -93,10 +91,10 @@ function normalizeError(xhr, textStatus, thrown) {
 }
 
 function normalizeLocale(locale) {
-    var value = String(locale || '').replace('_', '-');
-    var parts = value.split('-').filter(Boolean);
+    const value = String(locale || '').replace('_', '-');
+    const parts = value.split('-').filter(Boolean);
     if (parts.length === 0) return 'en-US';
-    var language = parts[0].toLowerCase();
+    const language = parts[0].toLowerCase();
     if (parts.length === 1) {
         if (language === 'ru') return 'ru-RU';
         if (language === 'en') return 'en-US';
@@ -106,8 +104,8 @@ function normalizeLocale(locale) {
 }
 
 function localePreferences() {
-    var uiLocale = translations && typeof translations.getLanguage === 'function' ? translations.getLanguage() : null;
-    var browserLocales = [];
+    const uiLocale = getLanguage();
+    let browserLocales = [];
     if (typeof navigator !== 'undefined') {
         browserLocales =
             Array.isArray(navigator.languages) && navigator.languages.length
@@ -115,9 +113,9 @@ function localePreferences() {
                 : [navigator.language];
     }
 
-    var result = [];
+    const result = [];
     [uiLocale].concat(browserLocales, ['en-US']).forEach(function (locale) {
-        var normalized = normalizeLocale(locale);
+        const normalized = normalizeLocale(locale);
         if (normalized && result.indexOf(normalized) === -1) result.push(normalized);
     });
     return result;
@@ -131,7 +129,7 @@ function requireDisplayName() {
 }
 
 function execute(method, args, options) {
-    var displayName;
+    let displayName;
     try {
         displayName = requireDisplayName();
     } catch (error) {
@@ -139,7 +137,7 @@ function execute(method, args, options) {
     }
 
     return new Promise(function (resolve, reject) {
-        var commandOptions = Object.assign({ version: IPA.api_version }, clone(options || {}));
+        const commandOptions = Object.assign({ version: IPA.api_version }, clone(options || {}));
         rpc.command({
             entity: 'gpo',
             method: method,
@@ -164,7 +162,7 @@ function withLocales(options) {
 }
 
 function rememberEnvelope(result) {
-    var cached = editorOpenResult;
+    const cached = editorOpenResult;
     if (!cached || !result || typeof result !== 'object') return result;
     ['gpo', 'template', 'diagnostics', 'pending_publication'].forEach(function (key) {
         if (Object.prototype.hasOwnProperty.call(result, key)) {
@@ -201,7 +199,7 @@ function open(options) {
 }
 
 function children(scope, categoryId) {
-    var options = {};
+    const options = {};
     if (categoryId !== null && categoryId !== undefined) options.category_id = categoryId;
     return execute('editor_children', [scope], withLocales(options));
 }
@@ -349,13 +347,13 @@ function advancedAuditUpdate(request) {
     }).then(rememberEnvelope);
 }
 
-const __export_getDisplayName = function () {
+const getDisplayName = function () {
     return selectedDisplayName;
 };
-const __export_getOpenResult = function () {
+const getOpenResult = function () {
     return editorOpenResult;
 };
-const __export__test = {
+const _test = {
     unwrapResponse: unwrapResponse,
     normalizeError: normalizeError,
     normalizeLocale: normalizeLocale
@@ -392,8 +390,8 @@ export {
     securityDefinitionsUpdate,
     advancedAuditShow,
     advancedAuditUpdate,
-    __export_getDisplayName as getDisplayName,
-    __export_getOpenResult as getOpenResult,
+    getDisplayName,
+    getOpenResult,
     localePreferences,
-    __export__test as _test
+    _test
 };

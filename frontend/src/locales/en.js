@@ -1,12 +1,12 @@
-const __export_navigation = {
+const navigation = {
     path: 'Current location',
     tree: 'Policy navigation',
     catalog: 'Policy catalog',
     keyboardHelp:
         'Arrow keys select items; Enter edits; Delete removes an item when allowed. F6 switches between the tree and catalog.'
 };
-const __export_tree = { expand: 'Expand category', collapse: 'Collapse category' };
-const __export_editorStatus = {
+const tree = { expand: 'Expand category', collapse: 'Collapse category' };
+const editorStatus = {
     errors: {
         authorization: 'You do not have permission to work with this Group Policy.',
         validation: 'Check the values in the affected fields.',
@@ -34,7 +34,7 @@ const __export_editorStatus = {
     technicalDetails: 'Technical details',
     pending: 'The previous policy publication has not completed.'
 };
-const __export_security = {
+const security = {
     dependency: {
         title: 'Related policy settings',
         intro: 'To save this policy, apply the following related settings as well.',
@@ -204,7 +204,7 @@ const __export_security = {
     auditUnavailable: 'Advanced Audit is temporarily unavailable. Other security settings remain available.',
     validationGroupRelationship: 'Define Members or Member of. An explicitly empty list is allowed.'
 };
-const __export_common = {
+const common = {
     help: 'Help:',
     description: 'Description:',
     options: 'Options:',
@@ -212,12 +212,12 @@ const __export_common = {
     edit: 'Edit',
     save: 'Save'
 };
-const __export_menu = {
+const menu = {
     groupPolicy: 'GROUP Policy',
     chains: 'Chains',
     groupPolicyObjects: 'Group Policy Objects'
 };
-const __export_chain = {
+const chain = {
     enable: 'Enable',
     disable: 'Disable',
     moveUp: 'Move Up',
@@ -274,7 +274,7 @@ const __export_chain = {
         gplinkDoc: 'Select Group Policy Objects to link to this chain'
     }
 };
-const __export_gpo = {
+const gpo = {
     title: 'Group Policy Objects',
     titleSingular: 'Group Policy Object',
     addTitle: 'Add Group Policy Object',
@@ -300,7 +300,7 @@ const __export_gpo = {
     addToChainTitle: 'Add Group Policy Objects to Chain',
     removeFromChainTitle: 'Remove Group Policy Objects from Chain'
 };
-const __export_collections = {
+const collections = {
     edit: 'Edit…',
     view: 'View…',
     editLabel: 'Edit {label}',
@@ -341,7 +341,7 @@ const __export_collections = {
         invalidValue: 'The collection contains an unsupported value.'
     }
 };
-const __export_policySearch = {
+const policySearch = {
     description: 'Find policies and preference settings by name without opening each category.',
     categoryPlaceholder: 'Search in this category',
     computerPlaceholder: 'Search computer policies',
@@ -361,7 +361,7 @@ const __export_policySearch = {
     invalidIndex: 'The policy index has an invalid response. Refresh the list or try again.',
     targetUnavailable: 'This setting is no longer available. Refresh the list.'
 };
-const __export_policies = {
+const policies = {
     parametersTab: 'Parameters',
     allPolicies: 'All Policies',
     title: 'Policies',
@@ -391,7 +391,7 @@ const __export_policies = {
     unsupportedSource: 'This policy contains unsupported source values and is read-only.',
     supportedOn: 'Supported on:'
 };
-const __export_preferences = {
+const preferences = {
     title: 'Preferences',
     description: 'Preferences policies.',
     windowsSettings: 'System Settings',
@@ -527,11 +527,11 @@ const __export_preferences = {
         actionDelete: 'Delete'
     }
 };
-const __export_treeView = {
+const treeView = {
     loadingPolicies: 'Loading policies...',
     unableToLoadPolicies: 'Unable to load policies.'
 };
-const __export_header = {
+const header = {
     create: 'Create',
     edit: 'Edit',
     delete: 'Delete',
@@ -539,7 +539,7 @@ const __export_header = {
     cancel: 'Cancel',
     information: 'Information'
 };
-const __export_systemSettings = {
+const systemSettings = {
     systemSettings: 'System settings',
     scripts: 'Scripts',
     startupScript: 'Startup script',
@@ -623,32 +623,32 @@ const __export_systemSettings = {
     nameRequired: 'Enter a script name.',
     ok: 'OK'
 };
-const __export_policyChangedModal = {
+const policyChangedModal = {
     title: 'Save settings dialog',
     message: 'Policy settings were modified do you want to save them?',
     no: 'No',
     yes: 'Yes'
 };
-const __export_confirmModal = {
+const confirmModal = {
     title: 'Confirmation'
 };
 
 export {
-    __export_navigation as navigation,
-    __export_tree as tree,
-    __export_editorStatus as editorStatus,
-    __export_security as security,
-    __export_common as common,
-    __export_menu as menu,
-    __export_chain as chain,
-    __export_gpo as gpo,
-    __export_collections as collections,
-    __export_policySearch as policySearch,
-    __export_policies as policies,
-    __export_preferences as preferences,
-    __export_treeView as treeView,
-    __export_header as header,
-    __export_systemSettings as systemSettings,
-    __export_policyChangedModal as policyChangedModal,
-    __export_confirmModal as confirmModal
+    navigation,
+    tree,
+    editorStatus,
+    security,
+    common,
+    menu,
+    chain,
+    gpo,
+    collections,
+    policySearch,
+    policies,
+    preferences,
+    treeView,
+    header,
+    systemSettings,
+    policyChangedModal,
+    confirmModal
 };

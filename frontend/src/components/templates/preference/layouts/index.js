@@ -21,8 +21,6 @@ import * as scheduledTasks from '@gpui/components/templates/preference/layouts/s
 import * as services from '@gpui/components/templates/preference/layouts/services';
 import * as startMenu from '@gpui/components/templates/preference/layouts/start-menu';
 
-('use strict');
-
 export {
     shortcuts,
     folders,

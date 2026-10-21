@@ -1,8 +1,6 @@
 /** Pure helpers for preserving libadmix discriminated values in browser forms. */
 
-import * as collections from '@gpui/util/collection-value';
-
-('use strict');
+import { validate } from '@gpui/util/collection-value';
 
 function clone(value) {
     if (value === undefined) return undefined;
@@ -43,7 +41,7 @@ function typedValueFromInput(original, kind, raw, checked) {
 }
 
 function preferenceValueFromInput(original, raw, checked) {
-    var value = clone(original || { kind: 'text', value: '' });
+    const value = clone(original || { kind: 'text', value: '' });
     switch (value.kind) {
         case 'boolean':
             value.value = Boolean(checked);
@@ -75,11 +73,11 @@ function preferenceValueFromInput(original, raw, checked) {
 }
 
 function buildPolicyUpdate(policy, draft, baselineDraft) {
-    var request = {};
-    var originalState = baselineDraft ? baselineDraft.state : policy.state;
+    const request = {};
+    const originalState = baselineDraft ? baselineDraft.state : policy.state;
     if (draft.state !== originalState) request.state = draft.state;
 
-    var baseline = new Map(
+    const baseline = new Map(
         baselineDraft
             ? (baselineDraft.parameters || []).map(function (parameter) {
                   return [parameter.parameter_id, parameter.value];
@@ -88,19 +86,19 @@ function buildPolicyUpdate(policy, draft, baselineDraft) {
                   return [parameter.id, parameter.value];
               })
     );
-    var sets = [];
-    var clears = [];
+    const sets = [];
+    const clears = [];
     if (draft.state === 'enabled') {
         (draft.parameters || []).forEach(function (parameter) {
-            var oldValue = baseline.get(parameter.parameter_id);
+            const oldValue = baseline.get(parameter.parameter_id);
             if (equal(oldValue, parameter.value)) return;
             if (parameter.value === null) clears.push(parameter.parameter_id);
             else sets.push({ parameter_id: parameter.parameter_id, value: clone(parameter.value) });
         });
 
-        var enableAction = policyStateAction(policy, 'enabled');
+        const enableAction = policyStateAction(policy, 'enabled');
         if (draft.state !== originalState && enableAction.requires_parameters) {
-            var alreadyEdited = new Set(
+            const alreadyEdited = new Set(
                 sets.map(function (item) {
                     return item.parameter_id;
                 })
@@ -108,7 +106,7 @@ function buildPolicyUpdate(policy, draft, baselineDraft) {
             clears.forEach(function (parameterId) {
                 alreadyEdited.add(parameterId);
             });
-            var draftById = new Map(
+            const draftById = new Map(
                 (draft.parameters || []).map(function (parameter) {
                     return [parameter.parameter_id, parameter.value];
                 })
@@ -119,7 +117,7 @@ function buildPolicyUpdate(policy, draft, baselineDraft) {
                 if (parameter.default_value === null || parameter.default_value === undefined) return;
                 if (parameter.default_value.kind === 'unsupported') return;
                 if (alreadyEdited.has(parameter.id)) return;
-                var value = draftById.get(parameter.id);
+                const value = draftById.get(parameter.id);
                 if (value === null || value === undefined) return;
                 if (value.kind === 'unsupported') return;
                 sets.push({ parameter_id: parameter.id, value: clone(value) });
@@ -130,10 +128,10 @@ function buildPolicyUpdate(policy, draft, baselineDraft) {
     if (sets.length) request.set_parameters = sets;
     if (clears.length) request.clear_parameters = clears;
 
-    var oldComment = baselineDraft ? baselineDraft.comment : policy.comment ? policy.comment.text : '';
+    const oldComment = baselineDraft ? baselineDraft.comment : policy.comment ? policy.comment.text : '';
     if (draft.comment !== oldComment) {
-        var source = policy.comment && policy.comment.source;
-        var target = source === 'locale' ? { kind: 'locale', locale: policy.comment.locale } : 'embedded';
+        const source = policy.comment && policy.comment.source;
+        const target = source === 'locale' ? { kind: 'locale', locale: policy.comment.locale } : 'embedded';
         request.comment =
             draft.comment === ''
                 ? { action: 'clear', target: target }
@@ -147,18 +145,18 @@ function hasOperations(request) {
 }
 
 function policyChoiceValue(choices, selectedIndex) {
-    var index = Number(selectedIndex);
+    const index = Number(selectedIndex);
     return selectedIndex === '' || !Array.isArray(choices) || !choices[index] ? null : clone(choices[index].value);
 }
 
 function legacyStateCapability(policy, state) {
-    var capability = state === 'not_configured' ? 'clear' : state === 'enabled' ? 'enable' : 'disable';
+    const capability = state === 'not_configured' ? 'clear' : state === 'enabled' ? 'enable' : 'disable';
     return Boolean(policy && policy.capabilities && policy.capabilities[capability]);
 }
 
 function policyStateAction(policy, state) {
-    var hasStateActions = Boolean(policy && Object.prototype.hasOwnProperty.call(policy, 'state_actions'));
-    var action = hasStateActions && policy.state_actions ? policy.state_actions[state] : null;
+    const hasStateActions = Boolean(policy && Object.prototype.hasOwnProperty.call(policy, 'state_actions'));
+    const action = hasStateActions && policy.state_actions ? policy.state_actions[state] : null;
     if (action && typeof action === 'object') {
         return {
             available: Boolean(action.available),
@@ -181,8 +179,8 @@ function canSelectPolicyState(policy, state) {
 }
 
 function canEditPolicyParameters(policy, draftState) {
-    var selectedState = draftState === undefined ? policy && policy.state : draftState;
-    var hasStateActions = Boolean(policy && Object.prototype.hasOwnProperty.call(policy, 'state_actions'));
+    const selectedState = draftState === undefined ? policy && policy.state : draftState;
+    const hasStateActions = Boolean(policy && Object.prototype.hasOwnProperty.call(policy, 'state_actions'));
     return Boolean(
         policy &&
         policy.state !== 'unknown_raw_values' &&
@@ -195,16 +193,16 @@ function canEditPolicyParameters(policy, draftState) {
 
 function validatePolicyDraft(policy, draft) {
     if (!draft || !canEditPolicyParameters(policy, draft.state)) return null;
-    var values = new Map(
+    const values = new Map(
         (draft.parameters || []).map(function (parameter) {
             return [parameter.parameter_id, parameter.value];
         })
     );
-    var lists = (policy.parameters || []).filter(function (parameter) {
+    const lists = (policy.parameters || []).filter(function (parameter) {
         return parameter.kind === 'list';
     });
-    for (var index = 0; index < lists.length; index++) {
-        var list = lists[index];
+    for (let index = 0; index < lists.length; index++) {
+        let list = lists[index];
         if (!list.collection && policyStateAction(policy, 'enabled').mode === 'dynamic_list_values') {
             list = Object.assign({}, list, {
                 collection: {
@@ -216,10 +214,10 @@ function validatePolicyDraft(policy, draft) {
                 }
             });
         }
-        var value = values.get(list.id);
+        const value = values.get(list.id);
         if (list.editable === false || (value && value.kind === 'unsupported')) continue;
         if (value === null && !list.required && !(list.collection && list.collection.min_items)) continue;
-        var problems = collections.validate(list, value);
+        const problems = validate(list, value);
         if (problems.length)
             return {
                 category: 'validation',
@@ -266,8 +264,8 @@ function optionalTextValue(present, text) {
 }
 
 function preferenceFieldIds(fields) {
-    var seen = new Set();
-    var duplicates = new Set();
+    const seen = new Set();
+    const duplicates = new Set();
     (fields || []).forEach(function (field) {
         if (!field || typeof field.id !== 'string') return;
         if (seen.has(field.id)) duplicates.add(field.id);
@@ -327,15 +325,15 @@ function validatePreferenceField(field, value) {
 }
 
 function preferenceFieldEdits(descriptors, draftFields, changedOnly) {
-    var draft = new Map(
+    const draft = new Map(
         (draftFields || []).map(function (field) {
             return [field.id, field.value];
         })
     );
-    var result = [];
+    const result = [];
     (descriptors || []).forEach(function (field) {
         if (!field || !field.editable) return;
-        var value = draft.has(field.id) ? draft.get(field.id) : field.value;
+        const value = draft.has(field.id) ? draft.get(field.id) : field.value;
         if (!changedOnly || !equal(value, field.value)) {
             result.push({ id: field.id, value: clone(value) });
         }
@@ -344,59 +342,59 @@ function preferenceFieldEdits(descriptors, draftFields, changedOnly) {
 }
 
 function preferenceParentIdentity(candidates, selectedIndex) {
-    var index = Number(selectedIndex);
+    const index = Number(selectedIndex);
     if (!Number.isInteger(index) || index < 0) return null;
-    var candidate = (candidates || [])[index];
+    const candidate = (candidates || [])[index];
     if (!candidate || candidate.identity === null) return null;
     return Array.isArray(candidate.identity) && candidate.identity.length ? clone(candidate.identity) : null;
 }
 
 function buildPreferenceRequest(options) {
-    var config = options || {};
-    var descriptors = config.descriptors || [];
-    var ids = preferenceFieldIds(descriptors);
-    var draftFields = config.fields || [];
-    var draft = new Map(
+    const config = options || {};
+    const descriptors = config.descriptors || [];
+    const ids = preferenceFieldIds(descriptors);
+    const draftFields = config.fields || [];
+    const draft = new Map(
         draftFields.map(function (field) {
             return [field.id, field.value];
         })
     );
-    var exemptions =
+    const exemptions =
         config.validationExemptions instanceof Set
             ? config.validationExemptions
             : new Set(Array.isArray(config.validationExemptions) ? config.validationExemptions : []);
-    var errors = ids.duplicates.map(function (id) {
+    const errors = ids.duplicates.map(function (id) {
         return { id: id, code: 'duplicate_descriptor' };
     });
 
     descriptors.forEach(function (field) {
         if (!field || !field.editable || ids.duplicates.indexOf(field.id) !== -1) return;
         if (exemptions.has(field.id)) return;
-        var value = draft.has(field.id) ? draft.get(field.id) : field.value;
-        var code = validatePreferenceField(field, value);
+        const value = draft.has(field.id) ? draft.get(field.id) : field.value;
+        const code = validatePreferenceField(field, value);
         if (code) errors.push({ id: field.id, code: code });
     });
 
-    var creating = Boolean(config.creating);
-    var nextName = config.name === undefined || config.name === null ? null : String(config.name);
-    var originalName =
+    const creating = Boolean(config.creating);
+    const nextName = config.name === undefined || config.name === null ? null : String(config.name);
+    const originalName =
         config.originalName === undefined || config.originalName === null ? null : String(config.originalName);
     if (!creating && nextName !== null && nextName !== originalName && nextName.trim() === '') {
         errors.push({ id: 'name', code: 'required' });
     }
     if (errors.length) return { request: null, errors: errors, changed: false };
 
-    var request = creating ? {} : { identity: clone(config.identity) };
-    var edits = preferenceFieldEdits(descriptors, draftFields, !creating);
+    const request = creating ? {} : { identity: clone(config.identity) };
+    const edits = preferenceFieldEdits(descriptors, draftFields, !creating);
     if (creating || edits.length) request.fields = edits;
     if (creating && Array.isArray(config.parent) && config.parent.length) {
         request.parent = clone(config.parent);
     }
     if (!creating && nextName !== null && nextName !== originalName) request.name = nextName;
-    var filters = clone(config.filters || []);
+    const filters = clone(config.filters || []);
     if (filters.length) request.filters = filters;
 
-    var changed =
+    const changed =
         creating ||
         Object.keys(request).some(function (key) {
             return key !== 'identity';
@@ -405,8 +403,8 @@ function buildPreferenceRequest(options) {
 }
 
 function pathWithin(path, ancestor) {
-    var candidate = Array.isArray(path) ? path : [];
-    var parent = Array.isArray(ancestor) ? ancestor : [];
+    const candidate = Array.isArray(path) ? path : [];
+    const parent = Array.isArray(ancestor) ? ancestor : [];
     if (candidate.length < parent.length) return false;
     return parent.every(function (value, index) {
         return candidate[index] === value;
@@ -414,8 +412,8 @@ function pathWithin(path, ancestor) {
 }
 
 function buildPreferenceFilterOperations(fieldEdits, structuralOperation) {
-    var structural = structuralOperation ? clone(structuralOperation) : null;
-    var result = [];
+    const structural = structuralOperation ? clone(structuralOperation) : null;
+    const result = [];
     (fieldEdits || []).forEach(function (edit) {
         if (!edit || !Array.isArray(edit.path) || !Array.isArray(edit.fields) || edit.fields.length === 0) return;
         if (structural && structural.op === 'remove' && pathWithin(edit.path, structural.path)) return;
@@ -427,7 +425,7 @@ function buildPreferenceFilterOperations(fieldEdits, structuralOperation) {
 }
 
 function submitPreservingDraft(draft, submit) {
-    var preservedDraft = clone(draft);
+    const preservedDraft = clone(draft);
     return Promise.resolve()
         .then(submit)
         .then(function (response) {

@@ -1,19 +1,29 @@
-import * as elementCreator from '@gpui/util/element-creator';
+import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import * as dto from '@gpui/util/editor-dto';
-import * as editorStatus from '@gpui/components/editor-status';
-import * as translations from '@gpui/locales/translations';
-import * as collectionControls from '@gpui/components/collection-control';
+import {
+    policyChoiceValue,
+    typedValueFromInput,
+    canEditPolicyParameters,
+    policyStateAction,
+    errorCategory,
+    submitPreservingDraft,
+    buildPolicyUpdate,
+    valuePayload,
+    canSelectPolicyState,
+    validatePolicyDraft,
+    hasOperations,
+    equal,
+    clone
+} from '@gpui/util/editor-dto';
+import { renderUnsupported, renderError } from '@gpui/components/editor-status';
+import { t } from '@gpui/locales/translations';
+import { createControl } from '@gpui/components/collection-control';
 import * as editorDialog from '@gpui/components/editor-dialog';
 import { setConfirming } from '@gpui/components/Dialog/Dialog';
 import * as policyTabs from '@gpui/components/templates/security/dialog';
 import * as confirmationDialog from '@gpui/components/confirmation-dialog';
 
-('use strict');
-
-var createElement = elementCreator.createElement;
-var t = translations.t;
-var nextParameterControlId = 1;
+let nextParameterControlId = 1;
 
 function appendLines(container, text) {
     String(text || '')
@@ -25,29 +35,29 @@ function appendLines(container, text) {
 }
 
 function inputValue(value) {
-    var payload = dto.valuePayload(value);
+    const payload = valuePayload(value);
     return Array.isArray(payload) ? payload.join('\n') : payload === null || payload === undefined ? '' : payload;
 }
 
 function createParameterControl(parameter, editable) {
-    var knownKinds = ['boolean', 'decimal', 'enum', 'text', 'list'];
-    var unsupportedValue = parameter.value && parameter.value.kind === 'unsupported';
-    var unsupportedDefault =
+    const knownKinds = ['boolean', 'decimal', 'enum', 'text', 'list'];
+    const unsupportedValue = parameter.value && parameter.value.kind === 'unsupported';
+    const unsupportedDefault =
         (parameter.value === null || parameter.value === undefined) &&
         parameter.default_value &&
         parameter.default_value.kind === 'unsupported';
-    var unsupported = unsupportedValue || knownKinds.indexOf(parameter.kind) === -1;
-    var disabled = !editable || parameter.editable === false || unsupported;
-    var input;
-    var inputElement = null;
-    var collectionControl = null;
-    var renderedValue =
+    const unsupported = unsupportedValue || knownKinds.indexOf(parameter.kind) === -1;
+    const disabled = !editable || parameter.editable === false || unsupported;
+    let input;
+    let inputElement = null;
+    let collectionControl = null;
+    const renderedValue =
         parameter.value === null || parameter.value === undefined
             ? unsupportedDefault
                 ? null
                 : parameter.default_value
             : parameter.value;
-    var choices = parameter.choices || [];
+    const choices = parameter.choices || [];
 
     if (unsupported) {
         input = createElement('pre', {
@@ -61,8 +71,8 @@ function createParameterControl(parameter, editable) {
             )
         });
     } else if (parameter.kind === 'boolean') {
-        var checkboxId = 'gpo-editor-parameter-' + nextParameterControlId++;
-        var checkbox = createElement('input', {
+        const checkboxId = 'gpo-editor-parameter-' + nextParameterControlId++;
+        const checkbox = createElement('input', {
             attrs: {
                 id: checkboxId,
                 type: 'checkbox',
@@ -95,17 +105,17 @@ function createParameterControl(parameter, editable) {
                             value: String(index),
                             disabled: choice.value && choice.value.kind === 'unsupported' ? 'disabled' : null
                         },
-                        text: choice.label || String(dto.valuePayload(choice.value))
+                        text: choice.label || String(valuePayload(choice.value))
                     });
                 })
             )
         });
-        var selectedIndex = choices.findIndex(function (choice) {
-            return dto.equal(choice.value, renderedValue);
+        const selectedIndex = choices.findIndex(function (choice) {
+            return equal(choice.value, renderedValue);
         });
         input.getElement().value = selectedIndex < 0 ? '' : String(selectedIndex);
     } else if (parameter.kind === 'list') {
-        collectionControl = collectionControls.createControl(parameter, renderedValue, !disabled);
+        collectionControl = createControl(parameter, renderedValue, !disabled);
         input = collectionControl.element;
         inputElement = collectionControl.button;
     } else {
@@ -124,22 +134,22 @@ function createParameterControl(parameter, editable) {
 
     if (!inputElement) inputElement = input.getElement();
     if (!unsupported && !collectionControl) inputElement.setAttribute('aria-label', parameter.label || parameter.id);
-    var stateDisabled = false;
+    let stateDisabled = false;
 
     function syncControlState() {
-        var unavailable = disabled || unsupported || stateDisabled;
+        const unavailable = disabled || unsupported || stateDisabled;
         if (collectionControl) collectionControl.setEditable(!unavailable);
         else inputElement.disabled = unavailable;
     }
     syncControlState();
 
     function read() {
-        if (unsupported) return dto.clone(parameter.value);
+        if (unsupported) return clone(parameter.value);
         if (collectionControl) return collectionControl.read();
         if (parameter.kind === 'enum') {
-            return dto.policyChoiceValue(choices, inputElement.value);
+            return policyChoiceValue(choices, inputElement.value);
         }
-        return dto.typedValueFromInput(parameter.value, parameter.kind, inputElement.value, inputElement.checked);
+        return typedValueFromInput(parameter.value, parameter.kind, inputElement.value, inputElement.checked);
     }
 
     return {
@@ -180,18 +190,18 @@ function createParameterControl(parameter, editable) {
 }
 
 function renderPolicyContents(root, policy, handlers) {
-    var capabilities = policy.capabilities || {};
-    var unknown = policy.state === 'unknown_raw_values';
-    var controls = new Map();
-    var stateNames = {
+    const capabilities = policy.capabilities || {};
+    const unknown = policy.state === 'unknown_raw_values';
+    const controls = new Map();
+    const stateNames = {
         not_configured: t('policies.notConfigured'),
         enabled: t('policies.enabled'),
         disabled: t('policies.disabled')
     };
 
-    var stateControls = Object.keys(stateNames).map(function (state) {
-        var allowed = dto.canSelectPolicyState(policy, state);
-        var radio = createElement('input', {
+    const stateControls = Object.keys(stateNames).map(function (state) {
+        const allowed = canSelectPolicyState(policy, state);
+        const radio = createElement('input', {
             attrs: {
                 type: 'radio',
                 name: 'admx-state',
@@ -206,12 +216,12 @@ function renderPolicyContents(root, policy, handlers) {
         });
     });
 
-    var parameterRows = (capabilities.inspect_parameters ? policy.parameters || [] : []).map(function (parameter) {
+    const parameterRows = (capabilities.inspect_parameters ? policy.parameters || [] : []).map(function (parameter) {
         // Compatibility with installed bindings that predate list metadata.
         if (
             parameter.kind === 'list' &&
             !parameter.collection &&
-            dto.policyStateAction(policy, 'enabled').mode === 'dynamic_list_values'
+            policyStateAction(policy, 'enabled').mode === 'dynamic_list_values'
         ) {
             parameter = Object.assign({}, parameter, {
                 collection: {
@@ -223,7 +233,7 @@ function renderPolicyContents(root, policy, handlers) {
                 }
             });
         }
-        var control = createParameterControl(parameter, Boolean(capabilities.edit_parameters) && !unknown);
+        const control = createParameterControl(parameter, Boolean(capabilities.edit_parameters) && !unknown);
         if (handlers.modalLayout) control.element.addClass('field__element');
         controls.set(parameter.id, control);
         return createElement('div', {
@@ -238,15 +248,15 @@ function renderPolicyContents(root, policy, handlers) {
         });
     });
 
-    var comment = createElement('textarea', {
+    const comment = createElement('textarea', {
         attrs: {
             name: 'comment',
             disabled: capabilities.edit_comments && !unknown ? null : 'disabled'
         },
         text: policy.comment ? policy.comment.text : ''
     });
-    var errorSlot = createElement('div', { className: 'gpo-editor-form__error' });
-    var wrapper = createElement('div', {
+    const errorSlot = createElement('div', { className: 'gpo-editor-form__error' });
+    const wrapper = createElement('div', {
         className: 'gp__admx-wrapper',
         children: [
             handlers.categoryPath
@@ -258,7 +268,7 @@ function renderPolicyContents(root, policy, handlers) {
                   })
                 : null,
             errorSlot,
-            unknown ? editorStatus.renderUnsupported(t('policies.unsupportedSource')) : null,
+            unknown ? renderUnsupported(t('policies.unsupportedSource')) : null,
             createElement('div', {
                 className: [
                     'gp__admx',
@@ -342,11 +352,11 @@ function renderPolicyContents(root, policy, handlers) {
     });
     root.innerHTML = '';
     if (handlers.modalLayout) {
-        var settings = createElement('div', {
+        const settings = createElement('div', {
             className: 'gpo-admx-dialog__settings',
             children: [
                 errorSlot,
-                unknown ? editorStatus.renderUnsupported(t('policies.unsupportedSource')) : null,
+                unknown ? renderUnsupported(t('policies.unsupportedSource')) : null,
                 createElement('div', {
                     className: 'gp__admx-settings',
                     children: [
@@ -371,11 +381,11 @@ function renderPolicyContents(root, policy, handlers) {
             ])
         });
         comment.getElement().id = 'admx-comment-' + nextParameterControlId++;
-        var supported = createElement('p');
+        const supported = createElement('p');
         appendLines(supported.getElement(), policy.supported_on || '—');
-        var help = createElement('p');
+        const help = createElement('p');
         appendLines(help.getElement(), policy.explain_text || t('security.noExplanation'));
-        var explanation = createElement('div', {
+        const explanation = createElement('div', {
             className: 'gpo-admx-dialog__explanation',
             children: [
                 createElement('h3', { text: t('policies.supportedOn') }),
@@ -384,7 +394,7 @@ function renderPolicyContents(root, policy, handlers) {
                 help
             ]
         });
-        var tabs = policyTabs.tabs(settings, explanation);
+        const tabs = policyTabs.tabs(settings, explanation);
         tabs.getElement().querySelector('[role="tab"]').textContent = t('policies.parametersTab');
         root.appendChild(tabs.getElement());
     } else {
@@ -393,12 +403,12 @@ function renderPolicyContents(root, policy, handlers) {
     }
 
     function selectedState() {
-        var selected = root.querySelector('input[name="admx-state"]:checked');
+        const selected = root.querySelector('input[name="admx-state"]:checked');
         return selected ? selected.value : policy.state;
     }
 
     function syncPolicyState() {
-        var editable = dto.canEditPolicyParameters(policy, selectedState());
+        const editable = canEditPolicyParameters(policy, selectedState());
         controls.forEach(function (control) {
             control.setDisabled(!editable);
         });
@@ -413,7 +423,7 @@ function renderPolicyContents(root, policy, handlers) {
             parameters: (policy.parameters || []).map(function (parameter) {
                 return {
                     parameter_id: parameter.id,
-                    value: controls.has(parameter.id) ? controls.get(parameter.id).read() : dto.clone(parameter.value)
+                    value: controls.has(parameter.id) ? controls.get(parameter.id).read() : clone(parameter.value)
                 };
             }),
             comment: comment.getElement().value
@@ -444,28 +454,28 @@ function renderPolicyContents(root, policy, handlers) {
 }
 
 async function renderAdmxTemplate(options) {
-    var config = options || {};
-    var item = config.item || {};
-    var root = createElement('div', { className: 'gpo-editor-policy' });
-    var headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
-    var actions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
-    var preferenceActions = headerElement ? headerElement.querySelector('.gp__control') : null;
-    var applyButton = headerElement ? headerElement.querySelector('.admx__btn-apply') : null;
-    var cancelButton = headerElement ? headerElement.querySelector('.admx__btn-cancel') : null;
-    var policy;
-    var view;
-    var baseline;
-    var saving = false;
+    const config = options || {};
+    const item = config.item || {};
+    const root = createElement('div', { className: 'gpo-editor-policy' });
+    const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
+    const actions = headerElement ? headerElement.querySelector('.gp__control-actions') : null;
+    const preferenceActions = headerElement ? headerElement.querySelector('.gp__control') : null;
+    const applyButton = headerElement ? headerElement.querySelector('.admx__btn-apply') : null;
+    const cancelButton = headerElement ? headerElement.querySelector('.admx__btn-cancel') : null;
+    let policy;
+    let view;
+    let baseline;
+    let saving = false;
 
     if (actions) actions.style.display = 'flex';
     if (preferenceActions) preferenceActions.style.display = 'none';
 
     try {
-        var response = await API.policyShow(item.scope, item.policyId);
+        const response = await API.policyShow(item.scope, item.policyId);
         policy = response.policy || response;
     } catch (error) {
         root.append(
-            editorStatus.renderError(error, {
+            renderError(error, {
                 onRefresh:
                     config.onLoadRefresh ||
                     function () {
@@ -500,7 +510,7 @@ async function renderAdmxTemplate(options) {
     }
 
     function hasUnsavedPolicyChanges() {
-        return Boolean(view) && !dto.equal(view.readDraft(), baseline);
+        return Boolean(view) && !equal(view.readDraft(), baseline);
     }
 
     function hasUnsavedChanges() {
@@ -508,7 +518,7 @@ async function renderAdmxTemplate(options) {
     }
 
     function refreshButtons() {
-        var active = !saving && hasUnsavedPolicyChanges();
+        const active = !saving && hasUnsavedPolicyChanges();
         if (applyButton) applyButton.classList.toggle('active', active);
         if (cancelButton) cancelButton.classList.toggle('active', active);
     }
@@ -516,8 +526,8 @@ async function renderAdmxTemplate(options) {
     function showError(error) {
         if (!view || !view.errorSlot) return;
         view.errorSlot.innerHTML = '';
-        var category = dto.errorCategory(error);
-        var errorActions = {
+        const category = errorCategory(error);
+        const errorActions = {
             onReconcile: async function (event) {
                 event.currentTarget.disabled = true;
                 try {
@@ -531,12 +541,12 @@ async function renderAdmxTemplate(options) {
         };
         if (category === 'storage_conflict' || category === 'publication_conflict' || category === 'not_found') {
             errorActions.onRefresh = async function () {
-                var confirmed = config.confirmRefresh
+                const confirmed = config.confirmRefresh
                     ? await config.confirmRefresh()
                     : window.confirm(t('collections.discardQuestion'));
                 if (!confirmed) return;
                 try {
-                    var response = await API.policyShow(item.scope, item.policyId);
+                    const response = await API.policyShow(item.scope, item.policyId);
                     policy = response.policy || response;
                     render();
                 } catch (refreshError) {
@@ -544,7 +554,7 @@ async function renderAdmxTemplate(options) {
                 }
             };
         }
-        view.errorSlot.appendChild(editorStatus.renderError(error, errorActions).getElement());
+        view.errorSlot.appendChild(renderError(error, errorActions).getElement());
         if (error && error.field) {
             view.controls.forEach(function (control, id) {
                 if (error.field === id || String(error.field).indexOf(id) !== -1) {
@@ -560,20 +570,20 @@ async function renderAdmxTemplate(options) {
         // otherwise new edits during an in-flight save would be lost when
         // its response replaces the form. OK/Cancel still belongs to it.
         if (view.hasOpenDialog()) return false;
-        var draft = view.readDraft();
-        var validationError = dto.validatePolicyDraft(policy, draft);
+        const draft = view.readDraft();
+        const validationError = validatePolicyDraft(policy, draft);
         if (validationError) {
             showError(validationError);
             return false;
         }
-        var request = dto.buildPolicyUpdate(policy, draft, baseline);
-        if (!dto.hasOperations(request)) return true;
+        const request = buildPolicyUpdate(policy, draft, baseline);
+        if (!hasOperations(request)) return true;
         saving = true;
         root.getElement().inert = true;
         refreshButtons();
         try {
             /** @type {{ ok: boolean, response?: any, error?: any, draft?: any }} */
-            var outcome = await dto.submitPreservingDraft(draft, function () {
+            const outcome = await submitPreservingDraft(draft, function () {
                 return API.policyUpdate(item.scope, item.policyId, request);
             });
             if (!outcome.ok) {
@@ -620,9 +630,9 @@ async function renderAdmxTemplate(options) {
             policy.state !== 'unknown_raw_values' &&
             ((policy.capabilities && policy.capabilities.edit_comments) ||
                 ['enabled', 'disabled', 'not_configured'].some(function (state) {
-                    return dto.canSelectPolicyState(policy, state);
+                    return canSelectPolicyState(policy, state);
                 }) ||
-                dto.canEditPolicyParameters(policy))
+                canEditPolicyParameters(policy))
         );
     };
     root.cleanup = function () {
@@ -640,9 +650,9 @@ async function renderAdmxTemplate(options) {
 }
 
 function openAdmxDialog(host, options) {
-    var config = options || {};
-    var item = config.item || {};
-    var content = createElement('div', {
+    const config = options || {};
+    const item = config.item || {};
+    const content = createElement('div', {
         className: 'gpo-admx-dialog__content',
         children: [
             createElement('div', {
@@ -652,11 +662,11 @@ function openAdmxDialog(host, options) {
             })
         ]
     });
-    var currentEditor = null;
-    var closed = false;
-    var refreshConfirmation = null;
-    var finishRefreshConfirmation = null;
-    var loadSequence = 0;
+    let currentEditor = null;
+    let closed = false;
+    let refreshConfirmation = null;
+    let finishRefreshConfirmation = null;
+    let loadSequence = 0;
     function isCurrent() {
         return !closed && (!config.isCurrent || config.isCurrent());
     }
@@ -669,7 +679,7 @@ function openAdmxDialog(host, options) {
         currentEditor = null;
         if (config.onClose) config.onClose();
     }
-    var editor = {
+    const editor = {
         getElement: function () {
             return content.getElement();
         },
@@ -693,7 +703,7 @@ function openAdmxDialog(host, options) {
             dialog.close();
         }
     };
-    var dialog = editorDialog.open(host, {
+    const dialog = editorDialog.open(host, {
         title: item.title || item.label || item.policyId,
         className: ['gpo-admx-dialog'],
         width: '640px',
@@ -710,8 +720,8 @@ function openAdmxDialog(host, options) {
     function confirmRefresh() {
         if (!isCurrent() || refreshConfirmation) return Promise.resolve(false);
         return new Promise(function (resolve) {
-            var modal = dialog.root.getElement();
-            var previousFocus = /** @type {HTMLElement | null} */ (document.activeElement);
+            const modal = dialog.root.getElement();
+            const previousFocus = /** @type {HTMLElement | null} */ (document.activeElement);
             modal.inert = true;
             setConfirming(modal, true);
             finishRefreshConfirmation = function (confirmed) {
@@ -734,7 +744,7 @@ function openAdmxDialog(host, options) {
         });
     }
     function load() {
-        var sequence = ++loadSequence;
+        const sequence = ++loadSequence;
         function ownsLoad() {
             return isCurrent() && sequence === loadSequence;
         }
@@ -762,7 +772,7 @@ function openAdmxDialog(host, options) {
             },
             onRendered: function (policy) {
                 if (!ownsLoad()) return;
-                var title = dialog.root.getElement().querySelector('[data-dialog-part="title"]');
+                const title = dialog.root.getElement().querySelector('[data-dialog-part="title"]');
                 title.textContent = policy.label || item.title || policy.policy_id;
             }
         })
@@ -778,7 +788,7 @@ function openAdmxDialog(host, options) {
                 return Boolean(loaded.applyChanges);
             })
             .catch(function (error) {
-                if (ownsLoad()) content.getElement().replaceChildren(editorStatus.renderError(error).getElement());
+                if (ownsLoad()) content.getElement().replaceChildren(renderError(error).getElement());
                 else if (!closed && !isCurrent()) dialog.close();
                 return false;
             });
@@ -787,6 +797,6 @@ function openAdmxDialog(host, options) {
     return { editor: editor, dialog: dialog };
 }
 
-const __export__test = { createParameterControl: createParameterControl };
+const _test = { createParameterControl: createParameterControl };
 
-export { renderAdmxTemplate, openAdmxDialog, __export__test as _test };
+export { renderAdmxTemplate, openAdmxDialog, _test };

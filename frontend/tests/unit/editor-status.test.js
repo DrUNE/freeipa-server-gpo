@@ -67,7 +67,7 @@ test('Security and editor-status locale keys are complete in both languages', ()
         translations.setLanguage(language);
         for (const file of files) {
             const source = fs.readFileSync(path.join(root, file), 'utf8');
-            const relative = source.includes("translations.t('security.' + key)");
+            const relative = source.includes("t('security.' + key)");
             for (const match of source.matchAll(/\btr\('([^']+)'\s*,/g)) {
                 const key = relative ? 'security.' + match[1] : match[1];
                 assert.notEqual(translations.t(key), key, language + ': ' + file + ': ' + key);

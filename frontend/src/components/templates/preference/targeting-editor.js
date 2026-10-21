@@ -1,66 +1,68 @@
-import * as elementCreator from '@gpui/util/element-creator';
-import * as dto from '@gpui/util/editor-dto';
-import * as targetingDraft from '@gpui/util/targeting-tree-draft';
-import * as listNavigation from '@gpui/components/list-navigation';
+import { createElement } from '@gpui/util/element-creator';
+import { validatePreferenceField, valuePayload, clone } from '@gpui/util/editor-dto';
+import { create } from '@gpui/util/targeting-tree-draft';
+import { neighbor, bind } from '@gpui/components/list-navigation';
 import * as editorIcons from '@gpui/components/editor-icons';
+import { supportedKinds, kindLabel } from '@gpui/components/templates/preference/targeting-presentations';
 import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import { initialize, validateFields } from '@gpui/components/templates/preference/targeting-operand-editor';
 import * as operandEditor from '@gpui/components/templates/preference/targeting-operand-editor';
 
-('use strict');
-var create = elementCreator.createElement;
-
 function render(options) {
-    var pt = options.pt;
-    var readonly = Boolean(options.readonly);
-    var formState = options.formState;
-    var kinds = options.showResult.filter_kinds || [];
-    var accepted = targetingDraft.create(options.showResult);
-    var draft = accepted.clone();
-    var selectedId = null;
-    var selectedControls = [];
-    var selectedOperands = null;
-    var combineTouched = false;
-    var notTouched = false;
-    var language = options.language || 'en';
-    var collapsed = new Set();
-    var errorIds = new Set();
-    var dragId = null;
-    var dropTarget = null;
-    var navigation = null;
-    var container = create('div', { className: 'gpo-editor-filters' });
-    var toolbar = create('div', { className: 'gpo-editor-filters__toolbar' });
-    var notice = create('div', {
+    const pt = options.pt;
+    const readonly = Boolean(options.readonly);
+    const formState = options.formState;
+    const kinds = options.showResult.filter_kinds || [];
+    let accepted = create(options.showResult);
+    let draft = accepted.clone();
+    let selectedId = null;
+    let selectedControls = [];
+    let selectedOperands = null;
+    let combineTouched = false;
+    let notTouched = false;
+    const language = options.language || 'en';
+    const collapsed = new Set();
+    let errorIds = new Set();
+    let dragId = null;
+    let dropTarget = null;
+    let navigation = null;
+    const container = createElement('div', { className: 'gpo-editor-filters' });
+    const toolbar = createElement('div', { className: 'gpo-editor-filters__toolbar' });
+    const notice = createElement('div', {
         className: 'gpo-editor-filters__notice',
         attrs: { role: 'status', 'aria-live': 'polite' }
     });
-    var tree = create('div', {
+    const tree = createElement('div', {
         className: 'gpo-editor-filters__tree',
         attrs: { role: 'tree', 'aria-label': pt('targettingTitle') }
     });
-    var properties = create('div', { className: 'gpo-editor-filters__fields' });
-    var menu = create('div', { className: 'gpo-editor-filters__menu', attrs: { role: 'menu', hidden: 'hidden' } });
-    var collectionKind = kinds.find(function (kind) {
+    const properties = createElement('div', { className: 'gpo-editor-filters__fields' });
+    const menu = createElement('div', {
+        className: 'gpo-editor-filters__menu',
+        attrs: { role: 'menu', hidden: 'hidden' }
+    });
+    const collectionKind = kinds.find(function (kind) {
         return kind.supports_children || kind.kind === 'collection';
     });
-    var createButton = create('button', {
+    const createButton = createElement('button', {
         className: ['button', 'gpo-editor-filter-add'],
         attrs: { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
         text: pt('createTargetingItem') + ' ▾'
     });
-    var addCollection = create('button', {
+    const addCollection = createElement('button', {
         className: 'button',
         attrs: { type: 'button' },
         text: pt('addTargetingCollection')
     });
-    var combineSelect = create('select', {
+    const combineSelect = createElement('select', {
         attrs: { 'aria-label': pt('targetingOperator') },
         children: [
-            create('option', { attrs: { value: 'and' }, text: pt('targetingAnd') }),
-            create('option', { attrs: { value: 'or' }, text: pt('targetingOr') })
+            createElement('option', { attrs: { value: 'and' }, text: pt('targetingAnd') }),
+            createElement('option', { attrs: { value: 'or' }, text: pt('targetingOr') })
         ]
     });
-    var notCheckbox = create('input', { attrs: { type: 'checkbox', 'aria-label': pt('targetingNot') } });
-    var removeButton = create('button', {
+    const notCheckbox = createElement('input', { attrs: { type: 'checkbox', 'aria-label': pt('targetingNot') } });
+    const removeButton = createElement('button', {
         className: ['button', 'gpo-editor-filter-remove'],
         attrs: {
             type: 'button',
@@ -68,13 +70,13 @@ function render(options) {
             title: pt('removeFilter')
         },
         children: [
-            create('span', {
+            createElement('span', {
                 attrs: { 'aria-hidden': 'true' },
                 html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg>'
             })
         ]
     });
-    var shortcutHelp = create('span', {
+    const shortcutHelp = createElement('span', {
         className: 'gpo-editor-visually-hidden',
         id: 'gpo-targeting-shortcuts',
         text: pt('targetingKeyboardHelp')
@@ -85,10 +87,10 @@ function render(options) {
         return readonly || formState.busy;
     }
     function locate(id, nodes, parent) {
-        var list = nodes || draft.roots;
-        for (var i = 0; i < list.length; i += 1) {
+        const list = nodes || draft.roots;
+        for (let i = 0; i < list.length; i += 1) {
             if (list[i].id === id) return { node: list[i], parent: parent || null, siblings: list, index: i };
-            var child = locate(id, list[i].children, list[i]);
+            const child = locate(id, list[i].children, list[i]);
             if (child) return child;
         }
         return null;
@@ -102,21 +104,21 @@ function render(options) {
         );
     }
     function capture() {
-        var location = locate(selectedId);
-        var node = location && location.node;
+        const location = locate(selectedId);
+        const node = location && location.node;
         if (!node || !node.available) return;
-        var operands = new Map(
+        const operands = new Map(
             (selectedOperands ? selectedOperands.readFields() : []).map(function (field) {
                 return [field.id, field];
             })
         );
-        var common = ['filter.bool', 'filter.not', 'filter.combine', 'filter.negate', 'filter.hidden'];
+        const common = ['filter.bool', 'filter.not', 'filter.combine', 'filter.negate', 'filter.hidden'];
         draft.updateFields(
             node.id,
             node.fields.map(function (current) {
-                var field =
+                const field =
                     common.indexOf(current.id) === -1 && operands.has(current.id) ? operands.get(current.id) : current;
-                var value = dto.clone(field.value);
+                const value = clone(field.value);
                 if (
                     combineTouched &&
                     location.index > 0 &&
@@ -145,14 +147,14 @@ function render(options) {
         createButton.getElement().disabled = blocked() || !kinds.length;
         addCollection.getElement().disabled = blocked() || !collectionKind;
         removeButton.getElement().disabled = blocked() || !selectedId;
-        var location = locate(selectedId);
-        var node = location && location.node;
-        var combine =
+        const location = locate(selectedId);
+        const node = location && location.node;
+        const combine =
             node &&
             node.fields.find(function (field) {
                 return field.id === 'filter.bool' || field.id === 'filter.combine';
             });
-        var negate =
+        const negate =
             node &&
             node.fields.find(function (field) {
                 return field.id === 'filter.not' || field.id === 'filter.negate';
@@ -161,13 +163,13 @@ function render(options) {
             blocked() || !node || location.index === 0 || !node.available || !combine || combine.editable === false;
         notCheckbox.getElement().disabled =
             blocked() || !node || !node.available || !negate || negate.editable === false;
-        combineSelect.getElement().value = combine ? dto.valuePayload(combine.value) : 'and';
-        notCheckbox.getElement().checked = Boolean(negate && dto.valuePayload(negate.value));
+        combineSelect.getElement().value = combine ? valuePayload(combine.value) : 'and';
+        notCheckbox.getElement().checked = Boolean(negate && valuePayload(negate.value));
         combineTouched = false;
         notTouched = false;
     }
     function focusNode(id) {
-        var row = /** @type {HTMLElement[]} */ (
+        const row = /** @type {HTMLElement[]} */ (
             Array.from(tree.getElement().querySelectorAll('[data-targeting-id]'))
         ).find(function (element) {
             return element.getAttribute('data-targeting-id') === id;
@@ -180,7 +182,7 @@ function render(options) {
     function select(id, focus) {
         capture();
         selectedId = id;
-        var current = locate(id);
+        let current = locate(id);
         while (current && current.parent) {
             collapsed.delete(current.parent.id);
             current = locate(current.parent.id);
@@ -193,7 +195,7 @@ function render(options) {
     function focusOperands(id) {
         if (blocked()) return;
         if (selectedId !== id) select(id);
-        var control = properties
+        const control = properties
             .getElement()
             .querySelector(
                 'input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled),[contenteditable="true"]'
@@ -205,20 +207,20 @@ function render(options) {
         }
     }
     function fieldPayload(node, id) {
-        var field = node.fields.find(function (candidate) {
+        const field = node.fields.find(function (candidate) {
             return candidate.id === id;
         });
-        return field ? dto.valuePayload(field.value) : null;
+        return field ? valuePayload(field.value) : null;
     }
     function summary(node) {
         if (node.kind === 'ip_range' && fieldPayload(node, 'filter.useIPv6') === true) {
-            var address = fieldPayload(node, 'filter.min'),
+            const address = fieldPayload(node, 'filter.min'),
                 prefix = fieldPayload(node, 'filter.max');
             return address
                 ? address + (prefix === null || prefix === undefined || prefix === '' ? '' : '/' + prefix)
                 : '';
         }
-        var common = [
+        const common = [
             'filter.bool',
             'filter.not',
             'filter.combine',
@@ -227,14 +229,14 @@ function render(options) {
             'filter.displayName',
             'filter.useIPv6'
         ];
-        var values = node.fields
+        const values = node.fields
             .filter(function (field) {
                 return common.indexOf(field.id) === -1 && field.editable;
             })
             .map(function (field) {
-                var value = dto.valuePayload(field.value);
-                var choices = presentations.choices(node.kind, field.id, language) || field.choices || [];
-                var choice = choices.find(function (candidate) {
+                const value = valuePayload(field.value);
+                const choices = presentations.choices(node.kind, field.id, language) || field.choices || [];
+                const choice = choices.find(function (candidate) {
                     return candidate.key === value;
                 });
                 if (field.id === 'filter.languageLocale')
@@ -273,14 +275,14 @@ function render(options) {
         container.removeClass('is-dragging');
     }
     function destination(node, event, row) {
-        var box = row.getBoundingClientRect();
-        var offset = (event.clientY - box.top) / Math.max(1, box.height);
-        var where =
+        const box = row.getBoundingClientRect();
+        const offset = (event.clientY - box.top) / Math.max(1, box.height);
+        const where =
             node.supports_children && offset > 0.25 && offset < 0.75 ? 'inside' : offset > 0.5 ? 'after' : 'before';
-        var location = locate(node.id);
-        var parent = where === 'inside' ? node : location.parent;
-        var index = where === 'inside' ? node.children.length : location.index + (where === 'after' ? 1 : 0);
-        var source = locate(dragId);
+        const location = locate(node.id);
+        const parent = where === 'inside' ? node : location.parent;
+        let index = where === 'inside' ? node.children.length : location.index + (where === 'after' ? 1 : 0);
+        const source = locate(dragId);
         if (source && source.parent === parent && source.index < index) index -= 1;
         return {
             parentId: parent && parent.id,
@@ -293,12 +295,12 @@ function render(options) {
         if (blocked() || !selectedId) return;
         capture();
         try {
-            var source = locate(selectedId);
-            var noop =
+            const source = locate(selectedId);
+            const noop =
                 source &&
                 ((source.parent && source.parent.id) || null) === (parentId || null) &&
                 source.index === index;
-            var changed = draft.move(selectedId, parentId, index);
+            const changed = draft.move(selectedId, parentId, index);
             if (parentId) collapsed.delete(parentId);
             setNotice(changed ? pt('targetingMoved') : noop ? '' : pt('targetingDepthLimit'));
             renderTree();
@@ -310,18 +312,18 @@ function render(options) {
     }
     function renderTree() {
         tree.getElement().innerHTML = '';
-        var first = true;
+        let first = true;
         function append(nodes, depth) {
             nodes.forEach(function (node, index) {
-                var combine = String(
+                const combine = String(
                     fieldPayload(node, 'filter.bool') || fieldPayload(node, 'filter.combine') || node.combine || 'and'
                 ).toLowerCase();
-                var logic = index === 0 ? '' : pt(combine === 'or' ? 'targetingOr' : 'targetingAnd') + ' ';
-                var negate = fieldPayload(node, 'filter.not');
+                let logic = index === 0 ? '' : pt(combine === 'or' ? 'targetingOr' : 'targetingAnd') + ' ';
+                let negate = fieldPayload(node, 'filter.not');
                 if (negate === null || negate === undefined) negate = fieldPayload(node, 'filter.negate');
                 if (negate === null || negate === undefined) negate = node.negate;
                 if (negate) logic += pt('targetingNot') + ' ';
-                var row = create('div', {
+                const row = createElement('div', {
                     className: [
                         'gpo-editor-filter-node',
                         node.id === selectedId ? 'active' : null,
@@ -339,7 +341,7 @@ function render(options) {
                     style: { paddingLeft: depth * 18 + 4 + 'px' }
                 });
                 first = false;
-                var handle = create('button', {
+                const handle = createElement('button', {
                     className: 'gpo-editor-filter-handle',
                     attrs: {
                         type: 'button',
@@ -369,7 +371,7 @@ function render(options) {
                     tree.getElement()
                         .querySelectorAll('[data-targeting-id]')
                         .forEach(function (element) {
-                            var selected = element.getAttribute('data-targeting-id') === node.id;
+                            const selected = element.getAttribute('data-targeting-id') === node.id;
                             element.classList.toggle('active', selected);
                             element.setAttribute('aria-selected', String(selected));
                             element.setAttribute('tabindex', selected ? '0' : '-1');
@@ -381,7 +383,7 @@ function render(options) {
                 });
                 handle.on('dragend', endDrag);
                 row.append(handle);
-                var arrow = create('button', {
+                const arrow = createElement('button', {
                     className: 'gpo-editor-filter-arrow',
                     attrs: {
                         type: 'button',
@@ -411,7 +413,7 @@ function render(options) {
                 });
                 row.append(arrow);
                 row.append(
-                    create('span', {
+                    createElement('span', {
                         className: [
                             'gpo-editor-filter-icon',
                             editorIcons.targeting(node.supports_children ? 'collection' : node.kind)
@@ -420,11 +422,11 @@ function render(options) {
                     })
                 );
                 row.append(
-                    create('span', {
+                    createElement('span', {
                         className: 'gpo-editor-filter-label',
                         children: [
-                            create('span', { text: logic + nodeLabel(node) }),
-                            create('span', { className: 'gpo-editor-filter-detail', text: summary(node) })
+                            createElement('span', { text: logic + nodeLabel(node) }),
+                            createElement('span', { className: 'gpo-editor-filter-detail', text: summary(node) })
                         ]
                     })
                 );
@@ -456,7 +458,7 @@ function render(options) {
                     if (!dragId || !dropTarget) return;
                     event.preventDefault();
                     event.stopPropagation();
-                    var target = dropTarget;
+                    const target = dropTarget;
                     selectedId = dragId;
                     if (target.valid) applyMove(target.parentId, target.index);
                     else setNotice(pt('invalidTargetingMove'));
@@ -468,13 +470,16 @@ function render(options) {
         }
         append(draft.roots, 0);
         if (!draft.roots.length)
-            tree.append(create('div', { className: 'gpo-editor-filters__empty', text: pt('targetingEmpty') }));
-        var rootDrop = create('div', { className: 'gpo-editor-filters__root-drop', text: pt('targetingRootDrop') });
+            tree.append(createElement('div', { className: 'gpo-editor-filters__empty', text: pt('targetingEmpty') }));
+        const rootDrop = createElement('div', {
+            className: 'gpo-editor-filters__root-drop',
+            text: pt('targetingRootDrop')
+        });
         rootDrop.on('dragover', function (event) {
             if (!dragId || blocked()) return;
             event.preventDefault();
             clearDrop();
-            var source = locate(dragId);
+            const source = locate(dragId);
             dropTarget = {
                 parentId: null,
                 index: draft.roots.length - (source && !source.parent ? 1 : 0),
@@ -496,16 +501,18 @@ function render(options) {
         properties.getElement().innerHTML = '';
         selectedControls = [];
         selectedOperands = null;
-        var node = draft.find(selectedId);
+        const node = draft.find(selectedId);
         container.setAttr('data-selected-kind', (node && node.kind) || '');
         if (!node) {
-            properties.append(create('div', { className: 'gpo-editor-filters__empty', text: pt('selectFilter') }));
+            properties.append(
+                createElement('div', { className: 'gpo-editor-filters__empty', text: pt('selectFilter') })
+            );
             return;
         }
-        properties.append(create('h3', { text: nodeLabel(node) }));
+        properties.append(createElement('h3', { text: nodeLabel(node) }));
         if (!node.available) {
             properties.append(
-                create('div', { className: 'gpo-editor-preference-notice', text: pt('unsupportedFilterFields') })
+                createElement('div', { className: 'gpo-editor-preference-notice', text: pt('unsupportedFilterFields') })
             );
             return;
         }
@@ -528,36 +535,32 @@ function render(options) {
     }
     function nodeLabel(node) {
         if (node.supports_children)
-            return (
-                fieldPayload(node, 'filter.name') ||
-                node.label ||
-                presentations.kindLabel(node.kind, node.kind, language)
-            );
-        return presentations.kindLabel(node.kind, node.label || node.kind || pt('unsupportedFilterFields'), language);
+            return fieldPayload(node, 'filter.name') || node.label || kindLabel(node.kind, node.kind, language);
+        return kindLabel(node.kind, node.label || node.kind || pt('unsupportedFilterFields'), language);
     }
     function add(kind) {
         if (blocked()) return;
         capture();
         hideMenu();
-        var location = locate(selectedId);
-        var parentId =
+        const location = locate(selectedId);
+        const parentId =
             location && location.node.supports_children
                 ? location.node.id
                 : location && location.parent
                   ? location.parent.id
                   : null;
-        var index =
+        const index =
             location && location.node.supports_children
                 ? location.node.children.length
                 : location
                   ? location.index + 1
                   : draft.roots.length;
-        var node = draft.add(kind, parentId, index);
+        const node = draft.add(kind, parentId, index);
         if (!node) {
             setNotice(pt('targetingDepthLimit'));
             return;
         }
-        draft.updateFields(node.id, operandEditor.initialize(node, { language: language, scope: options.scope }));
+        draft.updateFields(node.id, initialize(node, { language: language, scope: options.scope }));
         if (parentId) collapsed.delete(parentId);
         selectedId = node.id;
         setNotice('');
@@ -569,15 +572,15 @@ function render(options) {
     function remove() {
         if (blocked() || !selectedId) return;
         capture();
-        var location = locate(selectedId);
+        const location = locate(selectedId);
         if (!location) return;
-        var removedId = selectedId;
-        var siblings = location.siblings.map(function (node) {
+        const removedId = selectedId;
+        const siblings = location.siblings.map(function (node) {
             return node.id;
         });
         if (!draft.remove(removedId)) return;
         selectedId =
-            listNavigation.neighbor(
+            neighbor(
                 siblings,
                 [removedId],
                 location.siblings.map(function (node) {
@@ -598,14 +601,14 @@ function render(options) {
         .forEach(function (kind) {
             if (options.scope === 'computer' && ['dun', 'terminal', 'user'].indexOf(kind.kind) !== -1) return;
             menu.append(
-                create('button', {
+                createElement('button', {
                     attrs: { type: 'button', role: 'menuitem', 'data-kind': kind.kind },
                     children: [
-                        create('span', {
+                        createElement('span', {
                             className: ['gpo-editor-filter-icon', editorIcons.targeting(kind.kind)],
                             attrs: { 'aria-hidden': 'true' }
                         }),
-                        create('span', { text: presentations.kindLabel(kind.kind, kind.label || kind.kind, language) })
+                        createElement('span', { text: kindLabel(kind.kind, kind.label || kind.kind, language) })
                     ],
                     events: {
                         click: function () {
@@ -623,8 +626,8 @@ function render(options) {
             /** @type {HTMLElement} */ (menu.getElement().firstElementChild).focus();
     });
     menu.on('keydown', function (event) {
-        var entries = Array.from(menu.getElement().querySelectorAll('button'));
-        var index = entries.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+        const entries = Array.from(menu.getElement().querySelectorAll('button'));
+        const index = entries.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
         if (event.key === 'Escape') {
             event.preventDefault();
             hideMenu();
@@ -662,10 +665,10 @@ function render(options) {
             event.target.closest('input,select,textarea,a,summary,[contenteditable]:not([contenteditable="false"])')
         )
             return;
-        var row = event.target.closest('[data-targeting-id]');
+        const row = event.target.closest('[data-targeting-id]');
         if (!row) return;
-        var id = row.getAttribute('data-targeting-id');
-        var location = locate(id);
+        const id = row.getAttribute('data-targeting-id');
+        const location = locate(id);
         if (!location) return;
         if (event.ctrlKey && !blocked() && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
             event.preventDefault();
@@ -680,14 +683,14 @@ function render(options) {
             event.preventDefault();
             select(id, true);
             if (event.key === 'ArrowLeft' && location.parent) {
-                var parentLocation = locate(location.parent.id);
+                const parentLocation = locate(location.parent.id);
                 applyMove(parentLocation.parent && parentLocation.parent.id, parentLocation.index + 1);
             } else if (
                 event.key === 'ArrowRight' &&
                 location.index > 0 &&
                 location.siblings[location.index - 1].supports_children
             ) {
-                var previous = location.siblings[location.index - 1];
+                const previous = location.siblings[location.index - 1];
                 applyMove(previous.id, previous.children.length);
             } else setNotice(pt('targetingKeyboardMoveUnavailable'));
             return;
@@ -709,7 +712,7 @@ function render(options) {
             } else if (location.parent) select(location.parent.id, true);
         }
     });
-    navigation = listNavigation.bind(tree.getElement(), {
+    navigation = bind(tree.getElement(), {
         rows: function () {
             return tree.getElement().querySelectorAll('[data-targeting-id]');
         },
@@ -728,7 +731,7 @@ function render(options) {
         },
         remove: remove,
         canActivate: function (row) {
-            var node = draft.find(row.getAttribute('data-targeting-id'));
+            const node = draft.find(row.getAttribute('data-targeting-id'));
             return !readonly && Boolean(node && node.available);
         },
         canRemove: function () {
@@ -757,27 +760,27 @@ function render(options) {
     container.on('click', function (event) {
         if (!event.target.closest('.gpo-editor-filters__create')) hideMenu();
     });
-    toolbar.append(create('div', { className: 'gpo-editor-filters__create', children: [createButton, menu] }));
+    toolbar.append(createElement('div', { className: 'gpo-editor-filters__create', children: [createButton, menu] }));
     toolbar.append(addCollection);
     toolbar.append(
-        create('label', {
+        createElement('label', {
             className: 'gpo-editor-filter-operator',
             attrs: { 'data-field-id': 'filter.bool' },
             children: [combineSelect]
         })
     );
     toolbar.append(
-        create('label', {
+        createElement('label', {
             className: 'gpo-editor-filter-negation',
             attrs: { 'data-field-id': 'filter.not' },
-            children: [notCheckbox, create('span', { text: pt('targetingNot') })]
+            children: [notCheckbox, createElement('span', { text: pt('targetingNot') })]
         })
     );
     toolbar.append(removeButton);
     container.append(toolbar);
     container.append(shortcutHelp);
     container.append(notice);
-    container.append(create('div', { className: 'gpo-editor-filters__layout', children: [tree, properties] }));
+    container.append(createElement('div', { className: 'gpo-editor-filters__layout', children: [tree, properties] }));
     formState.beginFilterDraft = function () {
         draft = accepted.clone();
         selectedId = null;
@@ -795,7 +798,7 @@ function render(options) {
     };
     formState.acceptFilterDraft = function () {
         capture();
-        var result = validatedResult(draft);
+        const result = validatedResult(draft);
         errorIds = new Set(
             result.errors.map(function (error) {
                 return error.id;
@@ -817,7 +820,7 @@ function render(options) {
                             control.setError(options.validationMessage(error.code));
                         });
                 });
-            var first = selectedControls.find(function (control) {
+            const first = selectedControls.find(function (control) {
                 return control.id === result.errors[0].fieldId;
             });
             if (first) first.focus();
@@ -828,7 +831,7 @@ function render(options) {
         return true;
     };
     formState.readFilterResult = function () {
-        var result = validatedResult(accepted);
+        const result = validatedResult(accepted);
         return {
             operations: result.operations,
             errors: result.errors.map(function (error) {
@@ -845,8 +848,8 @@ function render(options) {
     function validatedResult(model) {
         return model.compile({
             validateNode: function (node) {
-                if (presentations.supportedKinds.indexOf(node.kind) === -1) return null;
-                var errors = [];
+                if (supportedKinds.indexOf(node.kind) === -1) return null;
+                const errors = [];
                 node.fields.forEach(function (field) {
                     if (
                         field.editable === false ||
@@ -855,10 +858,10 @@ function render(options) {
                         ) === -1
                     )
                         return;
-                    var code = dto.validatePreferenceField(field, field.value);
+                    const code = validatePreferenceField(field, field.value);
                     if (code) errors.push({ fieldId: field.id, code: code });
                 });
-                return errors.concat(operandEditor.validateFields(node));
+                return errors.concat(validateFields(node));
             }
         });
     }

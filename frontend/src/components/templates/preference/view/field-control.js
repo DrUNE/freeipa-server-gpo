@@ -1,16 +1,13 @@
-import * as dto from '@gpui/util/editor-dto';
-import * as elementCreator from '@gpui/util/element-creator';
-import * as commonModule from '@gpui/components/templates/preference/view/common';
-
-var createElement = elementCreator.createElement;
-var pt = commonModule.pt;
+import { preferenceValueFromInput, clone } from '@gpui/util/editor-dto';
+import { createElement } from '@gpui/util/element-creator';
+import { pt } from '@gpui/components/templates/preference/view/common';
 
 function hiddenFieldControl(field) {
     return {
         id: field.id,
         field: field,
         read: function () {
-            return dto.clone(field.value);
+            return clone(field.value);
         },
         setError: function () {},
         setDynamicDisabled: function () {
@@ -21,18 +18,18 @@ function hiddenFieldControl(field) {
 }
 
 function buildControlInput(field, forceReadonly, materializeOptionalDefault, textarea) {
-    var value = dto.clone(field.value || { kind: 'text', value: '' });
-    var disabled = Boolean(forceReadonly || field.editable === false);
-    var controlKind = field.control || '';
-    var input;
-    var inputElement = null;
-    var optionalBooleanTouched = false;
-    var checkboxValueKind = null;
-    var checkboxControlId = null;
+    const value = clone(field.value || { kind: 'text', value: '' });
+    const disabled = Boolean(forceReadonly || field.editable === false);
+    const controlKind = field.control || '';
+    let input;
+    let inputElement = null;
+    let optionalBooleanTouched = false;
+    let checkboxValueKind = null;
+    let checkboxControlId = null;
     function checkboxControl(checked) {
-        var controlId = nextControlId();
+        const controlId = nextControlId();
         checkboxControlId = controlId;
-        var checkbox = createElement('input', {
+        const checkbox = createElement('input', {
             attrs: {
                 id: controlId,
                 type: 'checkbox',
@@ -112,7 +109,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             }
         });
     } else {
-        var numeric =
+        const numeric =
             value.kind === 'integer' || value.kind === 'unsigned_byte' || value.kind === 'optional_unsigned_byte';
         input = createElement('input', {
             attrs: {
@@ -126,8 +123,8 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         });
     }
     if (!inputElement) inputElement = input.getElement();
-    var errorElement = createElement('span', { className: 'gpo-editor-field__error' });
-    var dynamicDisabled = false;
+    const errorElement = createElement('span', { className: 'gpo-editor-field__error' });
+    let dynamicDisabled = false;
     function applyBaselineToInput() {
         if (checkboxValueKind === 'optional_boolean_u8') {
             inputElement.checked = value.value === 1;
@@ -151,9 +148,9 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         errorElement: errorElement,
         checkboxControlId: checkboxControlId,
         read: function () {
-            if (disabled || dynamicDisabled || controlKind.indexOf('generated_') === 0) return dto.clone(value);
+            if (disabled || dynamicDisabled || controlKind.indexOf('generated_') === 0) return clone(value);
             if (checkboxValueKind && value.value === null && !materializeOptionalDefault && !optionalBooleanTouched) {
-                return dto.clone(value);
+                return clone(value);
             }
             if (checkboxValueKind === 'optional_boolean_u8') {
                 return { kind: value.kind, value: inputElement.checked ? 1 : 0 };
@@ -161,7 +158,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             if (checkboxValueKind === 'optional_boolean') {
                 return { kind: value.kind, value: Boolean(inputElement.checked) };
             }
-            return dto.preferenceValueFromInput(value, inputElement.value, inputElement.checked);
+            return preferenceValueFromInput(value, inputElement.value, inputElement.checked);
         },
         setInputError: function (message) {
             if (inputElement && typeof inputElement.setAttribute === 'function') {
@@ -172,7 +169,7 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         },
         setDynamicDisabled: function (nextDisabled) {
             if (controlKind.indexOf('generated_') === 0) return false;
-            var next = Boolean(nextDisabled);
+            const next = Boolean(nextDisabled);
             if (next === dynamicDisabled) return false;
             dynamicDisabled = next;
             inputElement.disabled = Boolean(disabled || dynamicDisabled);
@@ -186,15 +183,17 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
 }
 
 function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-    var opts = options || {};
-    var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
-    var wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
-    var wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-    var builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === 'INPUT';
-    var builderInputType = builderIsInput ? String(builder.inputElement.getAttribute('type') || '').toLowerCase() : '';
-    var wrapText =
+    const opts = options || {};
+    const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
+    const wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
+    const wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
+    const builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === 'INPUT';
+    const builderInputType = builderIsInput
+        ? String(builder.inputElement.getAttribute('type') || '').toLowerCase()
+        : '';
+    const wrapText =
         builderIsInput && (builderInputType === 'number' || (Boolean(opts.wrapText) && builderInputType === 'text'));
-    var element;
+    let element;
     if (wrapCheckbox) {
         element = createElement('div', {
             className: [
@@ -338,7 +337,7 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
                   ]
         });
     }
-    var lastError = '';
+    let lastError = '';
     function applyError(message) {
         lastError = message || '';
         element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
@@ -370,13 +369,13 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
 }
 
 function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-    var opts = options || {};
-    var builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
-    var checkboxLike =
+    const opts = options || {};
+    const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
+    const checkboxLike =
         builder.value.kind === 'boolean' ||
         builder.value.kind === 'optional_boolean' ||
         builder.controlKind === 'optional_boolean_u8';
-    var element;
+    let element;
     if (checkboxLike) {
         element = createElement('div', {
             className: ['field', 'field__checkbox', builder.disabled ? 'field--readonly' : null],
@@ -395,7 +394,7 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
             ]
         });
     } else {
-        var fieldClasses = ['field', 'field__input'];
+        const fieldClasses = ['field', 'field__input'];
         if (opts.textarea) {
             fieldClasses.push('field__description', 'h-auto');
         } else if (builder.controlKind === 'directory_path' || builder.controlKind === 'file_path') {
@@ -426,7 +425,7 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
             ]
         });
     }
-    var lastError = '';
+    let lastError = '';
     function applyError(message) {
         lastError = message || '';
         element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
@@ -463,7 +462,7 @@ function valueKindIsSelect(builder) {
     );
 }
 
-var nextFieldControlId = 1;
+let nextFieldControlId = 1;
 
 function nextControlId() {
     return 'gpo-preference-field-' + nextFieldControlId++;
