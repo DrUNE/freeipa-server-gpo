@@ -12654,25 +12654,241 @@
 		};
 	}
 	//#endregion
+	//#region src/components/templates/preference/targeting-tree.js
+	/**
+	* The condition tree of the targeting editor: the rows, drag and drop and keyboard reordering.
+	* @param {any} context the editor's state and operations
+	*/
+	function createTargetingTree({ applyMove, blocked, capture, clearDrop, collapsed, container, descendant, destination, endDrag, fieldPayload, focusNode, focusOperands, formState, language, locate, nodeLabel, pt, renderFields, select, setNotice, syncToolbar, tree, ui }) {
+		function summary(node) {
+			if (node.kind === "ip_range" && fieldPayload(node, "filter.useIPv6") === true) {
+				const address = fieldPayload(node, "filter.min"), prefix = fieldPayload(node, "filter.max");
+				return address ? address + (prefix === null || prefix === void 0 || prefix === "" ? "" : "/" + prefix) : "";
+			}
+			const common = [
+				"filter.bool",
+				"filter.not",
+				"filter.combine",
+				"filter.negate",
+				"filter.hidden",
+				"filter.displayName",
+				"filter.useIPv6"
+			];
+			const values = node.fields.filter(function(field) {
+				return common.indexOf(field.id) === -1 && field.editable;
+			}).map(function(field) {
+				const value = valuePayload(field.value);
+				const choice = (choices(node.kind, field.id, language) || field.choices || []).find(function(candidate) {
+					return candidate.key === value;
+				});
+				if (field.id === "filter.languageLocale") return fieldPayload(node, "filter.displayName") || choice && choice.label || value;
+				return choice ? choice.label : value;
+			}).filter(function(value) {
+				return value !== null && value !== void 0 && value !== "" && typeof value !== "boolean";
+			});
+			return values.length ? values.map(function(value) {
+				return Array.isArray(value) ? value.join(", ") : String(value);
+			}).join(" · ") : node.detail || "";
+		}
+		function renderTree() {
+			tree.getElement().innerHTML = "";
+			let first = true;
+			function append(nodes, depth) {
+				nodes.forEach(function(node, index) {
+					const combine = String(fieldPayload(node, "filter.bool") || fieldPayload(node, "filter.combine") || node.combine || "and").toLowerCase();
+					let logic = index === 0 ? "" : pt(combine === "or" ? "targetingOr" : "targetingAnd") + " ";
+					let negate = fieldPayload(node, "filter.not");
+					if (negate === null || negate === void 0) negate = fieldPayload(node, "filter.negate");
+					if (negate === null || negate === void 0) negate = node.negate;
+					if (negate) logic += pt("targetingNot") + " ";
+					const row = createElement("div", {
+						className: [
+							"gpo-editor-filter-node",
+							node.id === ui.selectedId ? "active" : null,
+							fieldPayload(node, "filter.hidden") ? "is-hidden-filter" : null,
+							ui.errorIds.has(node.id) ? "gpo-editor-filter-node--error" : null
+						],
+						attrs: {
+							role: "treeitem",
+							"data-targeting-id": node.id,
+							"aria-level": depth + 1,
+							"aria-selected": String(node.id === ui.selectedId),
+							"aria-expanded": node.supports_children ? String(!collapsed.has(node.id)) : null,
+							tabindex: node.id === ui.selectedId || !ui.selectedId && first ? "0" : "-1"
+						},
+						style: { paddingLeft: depth * 18 + 4 + "px" }
+					});
+					first = false;
+					const handle = createElement("button", {
+						className: "gpo-editor-filter-handle",
+						attrs: {
+							type: "button",
+							draggable: blocked() ? "false" : "true",
+							disabled: blocked() ? "disabled" : null,
+							tabindex: "-1",
+							"aria-label": pt("dragTargetingItem"),
+							title: pt("dragTargetingItem")
+						},
+						html: "<svg width=\"12\" height=\"16\" viewBox=\"0 0 12 16\" aria-hidden=\"true\" focusable=\"false\" fill=\"currentColor\"><circle cx=\"6\" cy=\"3\" r=\"1\"/><circle cx=\"6\" cy=\"8\" r=\"1\"/><circle cx=\"6\" cy=\"13\" r=\"1\"/></svg>"
+					});
+					handle.on("click", function(event) {
+						event.stopPropagation();
+						select(node.id, true);
+					});
+					handle.on("dragstart", function(event) {
+						if (blocked()) {
+							event.preventDefault();
+							return;
+						}
+						capture();
+						ui.selectedId = node.id;
+						ui.dragId = node.id;
+						ui.dropTarget = null;
+						renderFields();
+						syncToolbar();
+						tree.getElement().querySelectorAll("[data-targeting-id]").forEach(function(element) {
+							const selected = element.getAttribute("data-targeting-id") === node.id;
+							element.classList.toggle("active", selected);
+							element.setAttribute("aria-selected", String(selected));
+							element.setAttribute("tabindex", selected ? "0" : "-1");
+						});
+						event.dataTransfer.effectAllowed = "move";
+						event.dataTransfer.setData("text/plain", node.id);
+						container.addClass("is-dragging");
+						row.addClass("active");
+					});
+					handle.on("dragend", endDrag);
+					row.append(handle);
+					const arrow = createElement("button", {
+						className: "gpo-editor-filter-arrow",
+						attrs: {
+							type: "button",
+							tabindex: "-1",
+							"aria-label": pt(collapsed.has(node.id) ? "expandTargetingCollection" : "collapseTargetingCollection"),
+							disabled: !node.supports_children ? "disabled" : null
+						},
+						text: node.supports_children ? collapsed.has(node.id) ? "›" : "⌄" : ""
+					});
+					arrow.on("click", function(event) {
+						event.stopPropagation();
+						capture();
+						if (formState.busy) return;
+						if (collapsed.has(node.id)) collapsed.delete(node.id);
+						else {
+							collapsed.add(node.id);
+							if (ui.selectedId && ui.selectedId !== node.id && descendant(node, ui.selectedId)) {
+								ui.selectedId = node.id;
+								renderFields();
+								syncToolbar();
+							}
+						}
+						renderTree();
+						focusNode(ui.selectedId || node.id);
+					});
+					row.append(arrow);
+					row.append(createElement("span", {
+						className: ["gpo-editor-filter-icon", targeting(node.supports_children ? "collection" : node.kind)],
+						attrs: { "aria-hidden": "true" }
+					}));
+					row.append(createElement("span", {
+						className: "gpo-editor-filter-label",
+						children: [createElement("span", { text: logic + nodeLabel(node) }), createElement("span", {
+							className: "gpo-editor-filter-detail",
+							text: summary(node)
+						})]
+					}));
+					row.on("click", function(event) {
+						event.stopPropagation();
+						if (!formState.busy) select(node.id, true);
+					});
+					row.on("dblclick", function(event) {
+						if (event.target.closest("button,input,select,textarea,[contenteditable]:not([contenteditable=\"false\"])")) return;
+						event.preventDefault();
+						event.stopPropagation();
+						focusOperands(node.id);
+					});
+					row.on("dragover", function(event) {
+						if (!ui.dragId || blocked()) return;
+						event.preventDefault();
+						event.stopPropagation();
+						clearDrop();
+						ui.dropTarget = destination(node, event, row.getElement());
+						event.dataTransfer.dropEffect = ui.dropTarget.valid ? "move" : "none";
+						row.addClass(ui.dropTarget.valid ? "targeting-drop-" + ui.dropTarget.where : "targeting-drop-invalid");
+					});
+					row.on("drop", function(event) {
+						if (!ui.dragId || !ui.dropTarget) return;
+						event.preventDefault();
+						event.stopPropagation();
+						const target = ui.dropTarget;
+						ui.selectedId = ui.dragId;
+						if (target.valid) applyMove(target.parentId, target.index);
+						else setNotice(pt("invalidTargetingMove"));
+						endDrag();
+					});
+					tree.append(row);
+					if (!collapsed.has(node.id)) append(node.children, depth + 1);
+				});
+			}
+			append(ui.draft.roots, 0);
+			if (!ui.draft.roots.length) tree.append(createElement("div", {
+				className: "gpo-editor-filters__empty",
+				text: pt("targetingEmpty")
+			}));
+			const rootDrop = createElement("div", {
+				className: "gpo-editor-filters__root-drop",
+				text: pt("targetingRootDrop")
+			});
+			rootDrop.on("dragover", function(event) {
+				if (!ui.dragId || blocked()) return;
+				event.preventDefault();
+				clearDrop();
+				const source = locate(ui.dragId);
+				ui.dropTarget = {
+					parentId: null,
+					index: ui.draft.roots.length - (source && !source.parent ? 1 : 0),
+					valid: true
+				};
+				rootDrop.addClass("targeting-drop-inside");
+			});
+			rootDrop.on("drop", function(event) {
+				if (!ui.dragId || !ui.dropTarget) return;
+				event.preventDefault();
+				ui.selectedId = ui.dragId;
+				applyMove(ui.dropTarget.parentId, ui.dropTarget.index);
+				endDrag();
+			});
+			tree.append(rootDrop);
+			if (ui.navigation) ui.navigation.sync();
+		}
+		return {
+			renderTree,
+			summary
+		};
+	}
+	//#endregion
 	//#region src/components/templates/preference/targeting-editor.js
 	function render$1(options) {
 		const pt = options.pt;
 		const readonly = Boolean(options.readonly);
 		const formState = options.formState;
 		const kinds = options.showResult.filter_kinds || [];
-		let accepted = create(options.showResult);
-		let draft = accepted.clone();
-		let selectedId = null;
-		let selectedControls = [];
-		let selectedOperands = null;
-		let combineTouched = false;
-		let notTouched = false;
+		const ui = {
+			accepted: create(options.showResult),
+			draft: null,
+			selectedId: null,
+			selectedControls: [],
+			selectedOperands: null,
+			combineTouched: false,
+			notTouched: false,
+			errorIds: /* @__PURE__ */ new Set(),
+			dragId: null,
+			dropTarget: null,
+			navigation: null
+		};
+		ui.draft = ui.accepted.clone();
 		const language = options.language || "en";
 		const collapsed = /* @__PURE__ */ new Set();
-		let errorIds = /* @__PURE__ */ new Set();
-		let dragId = null;
-		let dropTarget = null;
-		let navigation = null;
 		const container = createElement("div", { className: "gpo-editor-filters" });
 		const toolbar = createElement("div", { className: "gpo-editor-filters__toolbar" });
 		const notice = createElement("div", {
@@ -12750,7 +12966,7 @@
 			return readonly || formState.busy;
 		}
 		function locate(id, nodes, parent) {
-			const list = nodes || draft.roots;
+			const list = nodes || ui.draft.roots;
 			for (let i = 0; i < list.length; i += 1) {
 				if (list[i].id === id) return {
 					node: list[i],
@@ -12769,10 +12985,10 @@
 			});
 		}
 		function capture() {
-			const location = locate(selectedId);
+			const location = locate(ui.selectedId);
 			const node = location && location.node;
 			if (!node || !node.available) return;
-			const operands = new Map((selectedOperands ? selectedOperands.readFields() : []).map(function(field) {
+			const operands = new Map((ui.selectedOperands ? ui.selectedOperands.readFields() : []).map(function(field) {
 				return [field.id, field];
 			}));
 			const common = [
@@ -12782,11 +12998,11 @@
 				"filter.negate",
 				"filter.hidden"
 			];
-			draft.updateFields(node.id, node.fields.map(function(current) {
+			ui.draft.updateFields(node.id, node.fields.map(function(current) {
 				const field = common.indexOf(current.id) === -1 && operands.has(current.id) ? operands.get(current.id) : current;
 				const value = clone$2(field.value);
-				if (combineTouched && location.index > 0 && (field.id === "filter.bool" || field.id === "filter.combine") && field.editable !== false) value.value = combineSelect.getElement().value;
-				if (notTouched && (field.id === "filter.not" || field.id === "filter.negate") && field.editable !== false) value.value = notCheckbox.getElement().checked;
+				if (ui.combineTouched && location.index > 0 && (field.id === "filter.bool" || field.id === "filter.combine") && field.editable !== false) value.value = combineSelect.getElement().value;
+				if (ui.notTouched && (field.id === "filter.not" || field.id === "filter.negate") && field.editable !== false) value.value = notCheckbox.getElement().checked;
 				return Object.assign({}, field, { value });
 			}));
 		}
@@ -12800,8 +13016,8 @@
 		function syncToolbar() {
 			createButton.getElement().disabled = blocked() || !kinds.length;
 			addCollection.getElement().disabled = blocked() || !collectionKind;
-			removeButton.getElement().disabled = blocked() || !selectedId;
-			const location = locate(selectedId);
+			removeButton.getElement().disabled = blocked() || !ui.selectedId;
+			const location = locate(ui.selectedId);
 			const node = location && location.node;
 			const combine = node && node.fields.find(function(field) {
 				return field.id === "filter.bool" || field.id === "filter.combine";
@@ -12813,8 +13029,8 @@
 			notCheckbox.getElement().disabled = blocked() || !node || !node.available || !negate || negate.editable === false;
 			combineSelect.getElement().value = combine ? valuePayload(combine.value) : "and";
 			notCheckbox.getElement().checked = Boolean(negate && valuePayload(negate.value));
-			combineTouched = false;
-			notTouched = false;
+			ui.combineTouched = false;
+			ui.notTouched = false;
 		}
 		function focusNode(id) {
 			const row = Array.from(tree.getElement().querySelectorAll("[data-targeting-id]")).find(function(element) {
@@ -12827,7 +13043,7 @@
 		}
 		function select(id, focus) {
 			capture();
-			selectedId = id;
+			ui.selectedId = id;
 			let current = locate(id);
 			while (current && current.parent) {
 				collapsed.delete(current.parent.id);
@@ -12840,7 +13056,7 @@
 		}
 		function focusOperands(id) {
 			if (blocked()) return;
-			if (selectedId !== id) select(id);
+			if (ui.selectedId !== id) select(id);
 			const control = properties.getElement().querySelector("input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled),[contenteditable=\"true\"]");
 			if (control) control.focus({ preventScroll: true });
 			else {
@@ -12854,45 +13070,40 @@
 			});
 			return field ? valuePayload(field.value) : null;
 		}
-		function summary(node) {
-			if (node.kind === "ip_range" && fieldPayload(node, "filter.useIPv6") === true) {
-				const address = fieldPayload(node, "filter.min"), prefix = fieldPayload(node, "filter.max");
-				return address ? address + (prefix === null || prefix === void 0 || prefix === "" ? "" : "/" + prefix) : "";
-			}
-			const common = [
-				"filter.bool",
-				"filter.not",
-				"filter.combine",
-				"filter.negate",
-				"filter.hidden",
-				"filter.displayName",
-				"filter.useIPv6"
-			];
-			const values = node.fields.filter(function(field) {
-				return common.indexOf(field.id) === -1 && field.editable;
-			}).map(function(field) {
-				const value = valuePayload(field.value);
-				const choice = (choices(node.kind, field.id, language) || field.choices || []).find(function(candidate) {
-					return candidate.key === value;
-				});
-				if (field.id === "filter.languageLocale") return fieldPayload(node, "filter.displayName") || choice && choice.label || value;
-				return choice ? choice.label : value;
-			}).filter(function(value) {
-				return value !== null && value !== void 0 && value !== "" && typeof value !== "boolean";
-			});
-			return values.length ? values.map(function(value) {
-				return Array.isArray(value) ? value.join(", ") : String(value);
-			}).join(" · ") : node.detail || "";
-		}
+		const { renderTree } = createTargetingTree({
+			applyMove,
+			blocked,
+			capture,
+			clearDrop,
+			collapsed,
+			container,
+			descendant,
+			destination,
+			endDrag,
+			fieldPayload,
+			focusNode,
+			focusOperands,
+			formState,
+			language,
+			locate,
+			nodeLabel,
+			pt,
+			renderFields,
+			select,
+			setNotice,
+			syncToolbar,
+			tree,
+			ui
+		});
 		function clearDrop() {
 			tree.getElement().querySelectorAll(".targeting-drop-before, .targeting-drop-after, .targeting-drop-inside, .targeting-drop-invalid").forEach(function(row) {
 				row.classList.remove("targeting-drop-before", "targeting-drop-after", "targeting-drop-inside", "targeting-drop-invalid");
 			});
-			dropTarget = null;
+			ui.dropTarget = null;
 		}
 		function endDrag() {
 			clearDrop();
-			dragId = null;
+			ui.dragId = null;
 			container.removeClass("is-dragging");
 		}
 		function destination(node, event, row) {
@@ -12902,207 +13113,36 @@
 			const location = locate(node.id);
 			const parent = where === "inside" ? node : location.parent;
 			let index = where === "inside" ? node.children.length : location.index + (where === "after" ? 1 : 0);
-			const source = locate(dragId);
+			const source = locate(ui.dragId);
 			if (source && source.parent === parent && source.index < index) index -= 1;
 			return {
 				parentId: parent && parent.id,
 				index,
 				where,
-				valid: Boolean(source && node.id !== dragId && (!parent || !descendant(source.node, parent.id)))
+				valid: Boolean(source && node.id !== ui.dragId && (!parent || !descendant(source.node, parent.id)))
 			};
 		}
 		function applyMove(parentId, index) {
-			if (blocked() || !selectedId) return;
+			if (blocked() || !ui.selectedId) return;
 			capture();
 			try {
-				const source = locate(selectedId);
+				const source = locate(ui.selectedId);
 				const noop = source && (source.parent && source.parent.id || null) === (parentId || null) && source.index === index;
-				const changed = draft.move(selectedId, parentId, index);
+				const changed = ui.draft.move(ui.selectedId, parentId, index);
 				if (parentId) collapsed.delete(parentId);
 				setNotice(changed ? pt("targetingMoved") : noop ? "" : pt("targetingDepthLimit"));
 				renderTree();
 				syncToolbar();
-				focusNode(selectedId);
+				focusNode(ui.selectedId);
 			} catch (_) {
 				setNotice(pt("invalidTargetingMove"));
 			}
 		}
-		function renderTree() {
-			tree.getElement().innerHTML = "";
-			let first = true;
-			function append(nodes, depth) {
-				nodes.forEach(function(node, index) {
-					const combine = String(fieldPayload(node, "filter.bool") || fieldPayload(node, "filter.combine") || node.combine || "and").toLowerCase();
-					let logic = index === 0 ? "" : pt(combine === "or" ? "targetingOr" : "targetingAnd") + " ";
-					let negate = fieldPayload(node, "filter.not");
-					if (negate === null || negate === void 0) negate = fieldPayload(node, "filter.negate");
-					if (negate === null || negate === void 0) negate = node.negate;
-					if (negate) logic += pt("targetingNot") + " ";
-					const row = createElement("div", {
-						className: [
-							"gpo-editor-filter-node",
-							node.id === selectedId ? "active" : null,
-							fieldPayload(node, "filter.hidden") ? "is-hidden-filter" : null,
-							errorIds.has(node.id) ? "gpo-editor-filter-node--error" : null
-						],
-						attrs: {
-							role: "treeitem",
-							"data-targeting-id": node.id,
-							"aria-level": depth + 1,
-							"aria-selected": String(node.id === selectedId),
-							"aria-expanded": node.supports_children ? String(!collapsed.has(node.id)) : null,
-							tabindex: node.id === selectedId || !selectedId && first ? "0" : "-1"
-						},
-						style: { paddingLeft: depth * 18 + 4 + "px" }
-					});
-					first = false;
-					const handle = createElement("button", {
-						className: "gpo-editor-filter-handle",
-						attrs: {
-							type: "button",
-							draggable: blocked() ? "false" : "true",
-							disabled: blocked() ? "disabled" : null,
-							tabindex: "-1",
-							"aria-label": pt("dragTargetingItem"),
-							title: pt("dragTargetingItem")
-						},
-						html: "<svg width=\"12\" height=\"16\" viewBox=\"0 0 12 16\" aria-hidden=\"true\" focusable=\"false\" fill=\"currentColor\"><circle cx=\"6\" cy=\"3\" r=\"1\"/><circle cx=\"6\" cy=\"8\" r=\"1\"/><circle cx=\"6\" cy=\"13\" r=\"1\"/></svg>"
-					});
-					handle.on("click", function(event) {
-						event.stopPropagation();
-						select(node.id, true);
-					});
-					handle.on("dragstart", function(event) {
-						if (blocked()) {
-							event.preventDefault();
-							return;
-						}
-						capture();
-						selectedId = node.id;
-						dragId = node.id;
-						dropTarget = null;
-						renderFields();
-						syncToolbar();
-						tree.getElement().querySelectorAll("[data-targeting-id]").forEach(function(element) {
-							const selected = element.getAttribute("data-targeting-id") === node.id;
-							element.classList.toggle("active", selected);
-							element.setAttribute("aria-selected", String(selected));
-							element.setAttribute("tabindex", selected ? "0" : "-1");
-						});
-						event.dataTransfer.effectAllowed = "move";
-						event.dataTransfer.setData("text/plain", node.id);
-						container.addClass("is-dragging");
-						row.addClass("active");
-					});
-					handle.on("dragend", endDrag);
-					row.append(handle);
-					const arrow = createElement("button", {
-						className: "gpo-editor-filter-arrow",
-						attrs: {
-							type: "button",
-							tabindex: "-1",
-							"aria-label": pt(collapsed.has(node.id) ? "expandTargetingCollection" : "collapseTargetingCollection"),
-							disabled: !node.supports_children ? "disabled" : null
-						},
-						text: node.supports_children ? collapsed.has(node.id) ? "›" : "⌄" : ""
-					});
-					arrow.on("click", function(event) {
-						event.stopPropagation();
-						capture();
-						if (formState.busy) return;
-						if (collapsed.has(node.id)) collapsed.delete(node.id);
-						else {
-							collapsed.add(node.id);
-							if (selectedId && selectedId !== node.id && descendant(node, selectedId)) {
-								selectedId = node.id;
-								renderFields();
-								syncToolbar();
-							}
-						}
-						renderTree();
-						focusNode(selectedId || node.id);
-					});
-					row.append(arrow);
-					row.append(createElement("span", {
-						className: ["gpo-editor-filter-icon", targeting(node.supports_children ? "collection" : node.kind)],
-						attrs: { "aria-hidden": "true" }
-					}));
-					row.append(createElement("span", {
-						className: "gpo-editor-filter-label",
-						children: [createElement("span", { text: logic + nodeLabel(node) }), createElement("span", {
-							className: "gpo-editor-filter-detail",
-							text: summary(node)
-						})]
-					}));
-					row.on("click", function(event) {
-						event.stopPropagation();
-						if (!formState.busy) select(node.id, true);
-					});
-					row.on("dblclick", function(event) {
-						if (event.target.closest("button,input,select,textarea,[contenteditable]:not([contenteditable=\"false\"])")) return;
-						event.preventDefault();
-						event.stopPropagation();
-						focusOperands(node.id);
-					});
-					row.on("dragover", function(event) {
-						if (!dragId || blocked()) return;
-						event.preventDefault();
-						event.stopPropagation();
-						clearDrop();
-						dropTarget = destination(node, event, row.getElement());
-						event.dataTransfer.dropEffect = dropTarget.valid ? "move" : "none";
-						row.addClass(dropTarget.valid ? "targeting-drop-" + dropTarget.where : "targeting-drop-invalid");
-					});
-					row.on("drop", function(event) {
-						if (!dragId || !dropTarget) return;
-						event.preventDefault();
-						event.stopPropagation();
-						const target = dropTarget;
-						selectedId = dragId;
-						if (target.valid) applyMove(target.parentId, target.index);
-						else setNotice(pt("invalidTargetingMove"));
-						endDrag();
-					});
-					tree.append(row);
-					if (!collapsed.has(node.id)) append(node.children, depth + 1);
-				});
-			}
-			append(draft.roots, 0);
-			if (!draft.roots.length) tree.append(createElement("div", {
-				className: "gpo-editor-filters__empty",
-				text: pt("targetingEmpty")
-			}));
-			const rootDrop = createElement("div", {
-				className: "gpo-editor-filters__root-drop",
-				text: pt("targetingRootDrop")
-			});
-			rootDrop.on("dragover", function(event) {
-				if (!dragId || blocked()) return;
-				event.preventDefault();
-				clearDrop();
-				const source = locate(dragId);
-				dropTarget = {
-					parentId: null,
-					index: draft.roots.length - (source && !source.parent ? 1 : 0),
-					valid: true
-				};
-				rootDrop.addClass("targeting-drop-inside");
-			});
-			rootDrop.on("drop", function(event) {
-				if (!dragId || !dropTarget) return;
-				event.preventDefault();
-				selectedId = dragId;
-				applyMove(dropTarget.parentId, dropTarget.index);
-				endDrag();
-			});
-			tree.append(rootDrop);
-			if (navigation) navigation.sync();
-		}
 		function renderFields() {
 			properties.getElement().innerHTML = "";
-			selectedControls = [];
-			selectedOperands = null;
-			const node = draft.find(selectedId);
+			ui.selectedControls = [];
+			ui.selectedOperands = null;
+			const node = ui.draft.find(ui.selectedId);
 			container.setAttr("data-selected-kind", node && node.kind || "");
 			if (!node) {
 				properties.append(createElement("div", {
@@ -13119,7 +13159,7 @@
 				}));
 				return;
 			}
-			selectedOperands = render$2({
+			ui.selectedOperands = render$2({
 				node,
 				blocked: blocked(),
 				scope: options.scope,
@@ -13128,13 +13168,13 @@
 				pt,
 				onChange: function() {
 					capture();
-					errorIds.clear();
+					ui.errorIds.clear();
 					setNotice("");
 					renderTree();
 				}
 			});
-			selectedControls = selectedOperands.controls;
-			properties.append(selectedOperands.element);
+			ui.selectedControls = ui.selectedOperands.controls;
+			properties.append(ui.selectedOperands.element);
 		}
 		function nodeLabel(node) {
 			if (node.supports_children) return fieldPayload(node, "filter.name") || node.label || kindLabel(node.kind, node.kind, language);
@@ -13144,44 +13184,44 @@
 			if (blocked()) return;
 			capture();
 			hideMenu();
-			const location = locate(selectedId);
+			const location = locate(ui.selectedId);
 			const parentId = location && location.node.supports_children ? location.node.id : location && location.parent ? location.parent.id : null;
-			const index = location && location.node.supports_children ? location.node.children.length : location ? location.index + 1 : draft.roots.length;
-			const node = draft.add(kind, parentId, index);
+			const index = location && location.node.supports_children ? location.node.children.length : location ? location.index + 1 : ui.draft.roots.length;
+			const node = ui.draft.add(kind, parentId, index);
 			if (!node) {
 				setNotice(pt("targetingDepthLimit"));
 				return;
 			}
-			draft.updateFields(node.id, initialize(node, {
+			ui.draft.updateFields(node.id, initialize(node, {
 				language,
 				scope: options.scope
 			}));
 			if (parentId) collapsed.delete(parentId);
-			selectedId = node.id;
+			ui.selectedId = node.id;
 			setNotice("");
 			renderTree();
 			renderFields();
 			syncToolbar();
-			focusNode(selectedId);
+			focusNode(ui.selectedId);
 		}
 		function remove() {
-			if (blocked() || !selectedId) return;
+			if (blocked() || !ui.selectedId) return;
 			capture();
-			const location = locate(selectedId);
+			const location = locate(ui.selectedId);
 			if (!location) return;
-			const removedId = selectedId;
+			const removedId = ui.selectedId;
 			const siblings = location.siblings.map(function(node) {
 				return node.id;
 			});
-			if (!draft.remove(removedId)) return;
-			selectedId = neighbor(siblings, [removedId], location.siblings.map(function(node) {
+			if (!ui.draft.remove(removedId)) return;
+			ui.selectedId = neighbor(siblings, [removedId], location.siblings.map(function(node) {
 				return node.id;
 			})) || (location.parent ? location.parent.id : null);
 			setNotice("");
 			renderTree();
 			renderFields();
 			syncToolbar();
-			if (selectedId) focusNode(selectedId);
+			if (ui.selectedId) focusNode(ui.selectedId);
 			else tree.getElement().focus({ preventScroll: true });
 		}
 		kinds.filter(function(kind) {
@@ -13233,12 +13273,12 @@
 		removeButton.on("click", remove);
 		combineSelect.on("change", function() {
 			if (combineSelect.getElement().disabled) return;
-			combineTouched = true;
+			ui.combineTouched = true;
 			capture();
 			renderTree();
 		});
 		notCheckbox.on("change", function() {
-			notTouched = true;
+			ui.notTouched = true;
 			capture();
 			renderTree();
 		});
@@ -13287,13 +13327,13 @@
 				} else if (location.parent) select(location.parent.id, true);
 			}
 		});
-		navigation = bind$1(tree.getElement(), {
+		ui.navigation = bind$1(tree.getElement(), {
 			rows: function() {
 				return tree.getElement().querySelectorAll("[data-targeting-id]");
 			},
 			selected: function() {
 				return Array.from(tree.getElement().querySelectorAll("[data-targeting-id]")).find(function(row) {
-					return row.getAttribute("data-targeting-id") === selectedId;
+					return row.getAttribute("data-targeting-id") === ui.selectedId;
 				}) || null;
 			},
 			select: function(row) {
@@ -13304,22 +13344,22 @@
 			},
 			remove,
 			canActivate: function(row) {
-				const node = draft.find(row.getAttribute("data-targeting-id"));
+				const node = ui.draft.find(row.getAttribute("data-targeting-id"));
 				return !readonly && Boolean(node && node.available);
 			},
 			canRemove: function() {
 				return !readonly;
 			},
 			busy: function() {
-				return Boolean(formState.busy || dragId);
+				return Boolean(formState.busy || ui.dragId);
 			}
 		});
 		container.cleanup = function() {
 			endDrag();
-			navigation.cleanup();
+			ui.navigation.cleanup();
 		};
 		container.on("keydown", function(event) {
-			if (event.key === "Escape" && (dragId || !menu.getElement().hidden)) {
+			if (event.key === "Escape" && (ui.dragId || !menu.getElement().hidden)) {
 				event.preventDefault();
 				event.stopPropagation();
 				endDrag();
@@ -13327,7 +13367,7 @@
 			}
 		});
 		container.on("input", function() {
-			errorIds.clear();
+			ui.errorIds.clear();
 			setNotice("");
 		});
 		container.on("click", function(event) {
@@ -13357,11 +13397,11 @@
 			children: [tree, properties]
 		}));
 		formState.beginFilterDraft = function() {
-			draft = accepted.clone();
-			selectedId = null;
-			selectedControls = [];
-			selectedOperands = null;
-			errorIds.clear();
+			ui.draft = ui.accepted.clone();
+			ui.selectedId = null;
+			ui.selectedControls = [];
+			ui.selectedOperands = null;
+			ui.errorIds.clear();
 			setNotice("");
 			hideMenu();
 			renderTree();
@@ -13373,39 +13413,39 @@
 		};
 		formState.acceptFilterDraft = function() {
 			capture();
-			const result = validatedResult(draft);
-			errorIds = new Set(result.errors.map(function(error) {
+			const result = validatedResult(ui.draft);
+			ui.errorIds = new Set(result.errors.map(function(error) {
 				return error.id;
 			}));
 			if (result.errors.length) {
 				select(result.errors[0].id);
 				setNotice(pt("validationFixErrors"));
 				result.errors.filter(function(error) {
-					return error.id === selectedId;
+					return error.id === ui.selectedId;
 				}).forEach(function(error) {
-					selectedControls.filter(function(control) {
+					ui.selectedControls.filter(function(control) {
 						return control.id === error.fieldId;
 					}).forEach(function(control) {
 						control.setError(options.validationMessage(error.code));
 					});
 				});
-				const first = selectedControls.find(function(control) {
+				const first = ui.selectedControls.find(function(control) {
 					return control.id === result.errors[0].fieldId;
 				});
 				if (first) first.focus();
 				return false;
 			}
-			accepted = draft.clone();
+			ui.accepted = ui.draft.clone();
 			if (result.operations.length) formState.dirty = true;
 			return true;
 		};
 		formState.readFilterResult = function() {
-			const result = validatedResult(accepted);
+			const result = validatedResult(ui.accepted);
 			return {
 				operations: result.operations,
 				errors: result.errors.map(function(error) {
 					return {
-						path: accepted.flatten().find(function(entry) {
+						path: ui.accepted.flatten().find(function(entry) {
 							return entry.node.id === error.id;
 						}).path,
 						id: error.fieldId,
