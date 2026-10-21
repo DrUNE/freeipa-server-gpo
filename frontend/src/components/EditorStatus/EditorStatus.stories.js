@@ -1,6 +1,11 @@
 import { expect, fn, userEvent, within } from 'storybook/test';
-import * as translations from '../../locales/translations';
-import { createDiagnostics, createErrorStatus, createPendingStatus, createUnsupportedStatus } from './EditorStatus';
+import * as translations from '@gpui/locales/translations';
+import {
+    createDiagnostics,
+    createErrorStatus,
+    createPendingStatus,
+    createUnsupportedStatus
+} from '@gpui/components/EditorStatus/EditorStatus';
 
 /** Mounts the notice into a plain host the way the editor's templates do. */
 function mount(element) {

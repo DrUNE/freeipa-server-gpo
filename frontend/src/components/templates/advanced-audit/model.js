@@ -1,4 +1,4 @@
-import * as translations from '../../../locales/translations';
+import * as translations from '@gpui/locales/translations';
 
 ('use strict');
 

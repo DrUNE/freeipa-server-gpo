@@ -1,5 +1,5 @@
-import * as elements from '../util/element-creator';
-import * as translations from '../locales/translations';
+import * as elements from '@gpui/util/element-creator';
+import * as translations from '@gpui/locales/translations';
 
 ('use strict');
 var create = elements.createElement;

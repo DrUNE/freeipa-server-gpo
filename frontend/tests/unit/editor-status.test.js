@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as enModule from '../../src/locales/en.js';
-import * as ruModule from '../../src/locales/ru.js';
-import * as translationsModule from '../../src/locales/translations.js';
-import * as statusModule from '../../src/components/EditorStatus/EditorStatus.js';
+import * as enModule from '@gpui/locales/en.js';
+import * as ruModule from '@gpui/locales/ru.js';
+import * as translationsModule from '@gpui/locales/translations.js';
+import * as statusModule from '@gpui/components/EditorStatus/EditorStatus.js';
 
 import fs from 'node:fs';
 import path from 'node:path';

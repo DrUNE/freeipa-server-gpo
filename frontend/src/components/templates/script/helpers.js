@@ -1,6 +1,6 @@
-import * as editorIcons from '../../editor-icons';
-import * as translations from '../../../locales/translations';
-import * as elements from '../../../util/element-creator';
+import * as editorIcons from '@gpui/components/editor-icons';
+import * as translations from '@gpui/locales/translations';
+import * as elements from '@gpui/util/element-creator';
 
 var t = translations.t;
 var create = elements.createElement;

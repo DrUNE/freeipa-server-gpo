@@ -8,6 +8,8 @@ depends on its `freeipa/ipa` and `freeipa/rpc`). The RPM installs the committed 
 not needed to build the package. `chain.js`, `gpo.js`, `css/` and `img/` live in `../plugin/ui/grouppolicy/` as before;
 `gpo.js` and `chain.js` take `translations` and `editorDialog` from the bundle (`js/app`).
 
+Imports inside `src/` (and from tests into `src/`) use the alias `@gpui/` (= `src/`) instead of relative `../` paths; it is configured in `vite.config.mjs`, `vitest.config.mjs`, `.storybook/shared.mjs` and `tsconfig.json`, and the test tree builder turns it back into relative AMD ids.
+
 All code in `frontend/` uses `import`/`export` (no CommonJS, no `.cjs`). Node is managed with fnm: `eval "$(fnm env)"` (or `fnm use`), Node >= 20.
 
 ## Commands (from the repository root)

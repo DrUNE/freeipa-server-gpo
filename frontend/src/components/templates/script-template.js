@@ -1,13 +1,18 @@
-import * as elements from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as confirmationDialog from '../confirmation-dialog';
-import * as editorDialog from '../editor-dialog';
-import * as listNavigation from '../list-navigation';
-import * as editorIcons from '../editor-icons';
-import { createBody, createButton as createDialogButton, createCloseButton, createDialogShell } from '../Dialog/Dialog';
-import * as helpersModule from './script/helpers';
+import * as elements from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as translations from '@gpui/locales/translations';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as confirmationDialog from '@gpui/components/confirmation-dialog';
+import * as editorDialog from '@gpui/components/editor-dialog';
+import * as listNavigation from '@gpui/components/list-navigation';
+import * as editorIcons from '@gpui/components/editor-icons';
+import {
+    createBody,
+    createButton as createDialogButton,
+    createCloseButton,
+    createDialogShell
+} from '@gpui/components/Dialog/Dialog';
+import * as helpersModule from '@gpui/components/templates/script/helpers';
 
 ('use strict');
 

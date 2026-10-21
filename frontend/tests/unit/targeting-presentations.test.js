@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
+import * as presentationModule from '@gpui/components/templates/preference/targeting-presentations.js';
 import fs from 'node:fs';
 import path from 'node:path';
 

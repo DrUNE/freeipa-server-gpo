@@ -1,7 +1,7 @@
-import { cx, h } from '../../lib/dom';
-import * as dto from '../../util/editor-dto';
-import * as translations from '../../locales/translations';
-import styles from './EditorStatus.module.css';
+import { cx, h } from '@gpui/lib/dom';
+import * as dto from '@gpui/util/editor-dto';
+import * as translations from '@gpui/locales/translations';
+import styles from '@gpui/components/EditorStatus/EditorStatus.module.css';
 
 /*
  * Status notices of the editor: an error with optional actions, a pending-publication notice, an

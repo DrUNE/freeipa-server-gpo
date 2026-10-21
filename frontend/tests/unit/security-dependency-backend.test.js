@@ -57,8 +57,8 @@ test(
         const template = await load('security-template.js', {
             '../../util/element-creator': { createElement: undefined },
             '../../locales/translations': { t: key => key },
-            './security/model': modelTools,
-            './security/value-editor': values
+            '@gpui/components/security/model': modelTools,
+            '@gpui/components/security/value-editor': values
         });
         const cases = [
             ['account-password', 'account.password.maximum_password_age', 42],

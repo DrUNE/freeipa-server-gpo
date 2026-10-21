@@ -1,5 +1,5 @@
-import * as dto from '../../../../util/editor-dto';
-import * as preferenceLayouts from '../layouts/index';
+import * as dto from '@gpui/util/editor-dto';
+import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
 
 var PREFERENCE_LAYOUTS = preferenceLayouts;
 

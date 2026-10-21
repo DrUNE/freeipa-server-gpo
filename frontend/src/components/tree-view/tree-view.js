@@ -1,7 +1,7 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../../locales/translations';
-import * as __dep2 from './tree-view-list';
-import * as __dep3 from './tree-view-list-data';
+import * as __dep0 from '@gpui/util/element-creator';
+import * as __dep1 from '@gpui/locales/translations';
+import * as __dep2 from '@gpui/components/tree-view/tree-view-list';
+import * as __dep3 from '@gpui/components/tree-view/tree-view-list-data';
 
 var { createElement } = __dep0;
 var { t } = __dep1;

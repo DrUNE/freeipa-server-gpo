@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as enModule from '../../src/locales/en.js';
-import * as ruModule from '../../src/locales/ru.js';
-import * as translationsModule from '../../src/locales/translations.js';
-import * as modelModule from '../../src/components/templates/advanced-audit/model.js';
+import * as enModule from '@gpui/locales/en.js';
+import * as ruModule from '@gpui/locales/ru.js';
+import * as translationsModule from '@gpui/locales/translations.js';
+import * as modelModule from '@gpui/components/templates/advanced-audit/model.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';

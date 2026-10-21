@@ -1,6 +1,6 @@
-import * as elements from '../../../util/element-creator';
-import * as translations from '../../../locales/translations';
-import * as editorDialog from '../../editor-dialog';
+import * as elements from '@gpui/util/element-creator';
+import * as translations from '@gpui/locales/translations';
+import * as editorDialog from '@gpui/components/editor-dialog';
 
 ('use strict');
 var create = elements.createElement;

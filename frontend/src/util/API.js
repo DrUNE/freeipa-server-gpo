@@ -8,7 +8,7 @@
 
 import IPA from 'freeipa/ipa';
 import rpc from 'freeipa/rpc';
-import * as translations from '../locales/translations';
+import * as translations from '@gpui/locales/translations';
 
 ('use strict');
 

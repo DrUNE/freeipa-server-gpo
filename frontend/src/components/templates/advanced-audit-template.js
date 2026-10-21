@@ -1,12 +1,12 @@
-import * as elementCreator from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as auditModel from './advanced-audit/model';
-import * as dialogs from './security/dialog';
-import * as headerActions from './security/header-actions';
-import * as searchModel from './all-policies/model';
-import * as listNavigation from '../list-navigation';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as translations from '@gpui/locales/translations';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as auditModel from '@gpui/components/templates/advanced-audit/model';
+import * as dialogs from '@gpui/components/templates/security/dialog';
+import * as headerActions from '@gpui/components/templates/security/header-actions';
+import * as searchModel from '@gpui/components/templates/all-policies/model';
+import * as listNavigation from '@gpui/components/list-navigation';
 
 ('use strict');
 

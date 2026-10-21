@@ -8,6 +8,8 @@
 пакета не нужен. `chain.js`, `gpo.js`, `css/` и `img/` по-прежнему лежат в `../plugin/ui/grouppolicy/`;
 `gpo.js` и `chain.js` берут `translations` и `editorDialog` из бандла (`js/app`).
 
+Импорты внутри `src/` (и из тестов в `src/`) используют алиас `@gpui/` (= `src/`) вместо относительных путей `../`; он настроен в `vite.config.mjs`, `vitest.config.mjs`, `.storybook/shared.mjs` и `tsconfig.json`, а сборщик тестового дерева превращает его обратно в относительные AMD-id.
+
 Весь код в `frontend/` использует `import`/`export` (без CommonJS и без `.cjs`). Node управляется через fnm: `eval "$(fnm env)"` (или `fnm use`), Node ≥ 20.
 
 ## Команды (из корня репозитория)

@@ -1,13 +1,13 @@
-import * as elementCreator from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as dto from '../../util/editor-dto';
-import * as editorStatus from '../editor-status';
-import * as translations from '../../locales/translations';
-import * as collectionControls from '../collection-control';
-import * as editorDialog from '../editor-dialog';
-import { setConfirming } from '../Dialog/Dialog';
-import * as policyTabs from './security/dialog';
-import * as confirmationDialog from '../confirmation-dialog';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as dto from '@gpui/util/editor-dto';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as translations from '@gpui/locales/translations';
+import * as collectionControls from '@gpui/components/collection-control';
+import * as editorDialog from '@gpui/components/editor-dialog';
+import { setConfirming } from '@gpui/components/Dialog/Dialog';
+import * as policyTabs from '@gpui/components/templates/security/dialog';
+import * as confirmationDialog from '@gpui/components/confirmation-dialog';
 
 ('use strict');
 

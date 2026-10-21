@@ -1,8 +1,8 @@
-import * as translations from '../../locales/translations';
-import * as API from '../../util/API';
-import * as securityModel from '../templates/security/model';
-import * as auditModel from '../templates/advanced-audit/model';
-import * as editorIcons from '../editor-icons';
+import * as translations from '@gpui/locales/translations';
+import * as API from '@gpui/util/API';
+import * as securityModel from '@gpui/components/templates/security/model';
+import * as auditModel from '@gpui/components/templates/advanced-audit/model';
+import * as editorIcons from '@gpui/components/editor-icons';
 
 ('use strict');
 

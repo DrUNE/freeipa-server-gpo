@@ -82,6 +82,7 @@ export default defineConfig(({ command }) =>
               // FreeIPA's RequireJS it registers as an AMD module that depends on the
               // Web UI's own freeipa/* modules.
               publicDir: false,
+              resolve: { alias: { '@gpui': path.join(root, 'src') } },
               build: {
                   outDir: path.join(pluginRoot, 'js'),
                   emptyOutDir: true,

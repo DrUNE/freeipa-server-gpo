@@ -1,5 +1,5 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../../locales/translations';
+import * as __dep0 from '@gpui/util/element-creator';
+import * as __dep1 from '@gpui/locales/translations';
 
 var { createElement } = __dep0;
 var { t } = __dep1;

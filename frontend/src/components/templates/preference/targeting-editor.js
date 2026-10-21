@@ -1,10 +1,10 @@
-import * as elementCreator from '../../../util/element-creator';
-import * as dto from '../../../util/editor-dto';
-import * as targetingDraft from '../../../util/targeting-tree-draft';
-import * as listNavigation from '../../list-navigation';
-import * as editorIcons from '../../editor-icons';
-import * as presentations from './targeting-presentations';
-import * as operandEditor from './targeting-operand-editor';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as dto from '@gpui/util/editor-dto';
+import * as targetingDraft from '@gpui/util/targeting-tree-draft';
+import * as listNavigation from '@gpui/components/list-navigation';
+import * as editorIcons from '@gpui/components/editor-icons';
+import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as operandEditor from '@gpui/components/templates/preference/targeting-operand-editor';
 
 ('use strict');
 var create = elementCreator.createElement;

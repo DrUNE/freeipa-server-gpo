@@ -1,6 +1,6 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../../locales/translations';
-import * as listNavigation from '../list-navigation';
+import * as __dep0 from '@gpui/util/element-creator';
+import * as __dep1 from '@gpui/locales/translations';
+import * as listNavigation from '@gpui/components/list-navigation';
 
 var { createElement } = __dep0;
 var { t } = __dep1;

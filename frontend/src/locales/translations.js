@@ -1,5 +1,5 @@
-import * as __dep0 from './en';
-import * as __dep1 from './ru';
+import * as __dep0 from '@gpui/locales/en';
+import * as __dep1 from '@gpui/locales/ru';
 
 var en = __dep0;
 var ru = __dep1;

@@ -1,8 +1,8 @@
-import * as elements from '../util/element-creator';
-import * as collections from '../util/collection-value';
-import * as translations from '../locales/translations';
-import * as editorDialog from './editor-dialog';
-import * as listNavigation from './list-navigation';
+import * as elements from '@gpui/util/element-creator';
+import * as collections from '@gpui/util/collection-value';
+import * as translations from '@gpui/locales/translations';
+import * as editorDialog from '@gpui/components/editor-dialog';
+import * as listNavigation from '@gpui/components/list-navigation';
 
 ('use strict');
 var create = elements.createElement;

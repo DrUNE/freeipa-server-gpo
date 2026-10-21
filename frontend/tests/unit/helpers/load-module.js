@@ -3,7 +3,7 @@
 //
 //   const api = await loadModule('util/API.js', {
 //       'freeipa/ipa': { default: IPA },        // bare ids are mocked as given
-//       '../locales/translations': { getLanguage: () => 'en' }   // relative to the module
+//       '@gpui/locales/translations': { getLanguage: () => 'en' }   // src-relative alias (relative ids work too)
 //   }, { navigator: { language: 'en-US' } });  // globals, removed after each test
 //
 // Modules whose doubles are the same for the whole file should use vi.mock instead.
@@ -36,7 +36,11 @@ export async function loadModule(file, mocks = {}, globals = {}) {
     const absolute = path.join(srcRoot, file);
     vi.resetModules();
     for (const [id, implementation] of Object.entries({ ...inertFreeipa, ...mocks })) {
-        const target = id.startsWith('.') ? path.resolve(path.dirname(absolute), id) + '.js' : id;
+        const target = id.startsWith('@gpui/')
+            ? path.join(srcRoot, id.slice('@gpui/'.length)) + '.js'
+            : id.startsWith('.')
+              ? path.resolve(path.dirname(absolute), id) + '.js'
+              : id;
         vi.doMock(target, () => implementation);
         mocked.push(target);
     }

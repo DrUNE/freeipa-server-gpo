@@ -6,7 +6,7 @@ import {
     createDialogShell,
     createErrorRegion,
     setConfirming
-} from './Dialog';
+} from '@gpui/components/Dialog/Dialog';
 
 /*
  * The chrome on its own: no behavior, only the look. The pinned values are the ones the dialogs had as global

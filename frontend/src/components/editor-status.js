@@ -1,5 +1,5 @@
-import * as elements from '../util/element-creator';
-import * as status from './EditorStatus/EditorStatus';
+import * as elements from '@gpui/util/element-creator';
+import * as status from '@gpui/components/EditorStatus/EditorStatus';
 
 /*
  * Compatibility layer: the notices themselves live in ./EditorStatus (plain DOM elements, private CSS Module).

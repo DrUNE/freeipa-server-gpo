@@ -1,12 +1,12 @@
-import * as elements from '../../../util/element-creator';
-import * as API from '../../../util/API';
-import * as translations from '../../../locales/translations';
-import * as modelTools from './model';
-import * as values from './value-editor';
-import * as dialogs from './dialog';
-import * as headerActions from './header-actions';
-import * as editorStatus from '../../editor-status';
-import * as listNavigation from '../../list-navigation';
+import * as elements from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as translations from '@gpui/locales/translations';
+import * as modelTools from '@gpui/components/templates/security/model';
+import * as values from '@gpui/components/templates/security/value-editor';
+import * as dialogs from '@gpui/components/templates/security/dialog';
+import * as headerActions from '@gpui/components/templates/security/header-actions';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as listNavigation from '@gpui/components/list-navigation';
 
 ('use strict');
 var create = elements.createElement;

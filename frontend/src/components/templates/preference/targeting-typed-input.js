@@ -1,4 +1,4 @@
-import * as elements from '../../../util/element-creator';
+import * as elements from '@gpui/util/element-creator';
 
 ('use strict');
 

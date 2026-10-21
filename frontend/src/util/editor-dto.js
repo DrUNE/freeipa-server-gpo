@@ -1,6 +1,6 @@
 /** Pure helpers for preserving libadmix discriminated values in browser forms. */
 
-import * as collections from './collection-value';
+import * as collections from '@gpui/util/collection-value';
 
 ('use strict');
 

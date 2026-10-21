@@ -20,7 +20,10 @@ export default defineConfig({
             thresholds: { statements: 16, branches: 16, functions: 21, lines: 17 }
         },
         projects: [
-            { test: { name: 'unit', include: ['tests/unit/**/*.test.js'] } },
+            {
+                resolve: { alias: { '@gpui': alias['@gpui'] } },
+                test: { name: 'unit', include: ['tests/unit/**/*.test.js'] }
+            },
             {
                 // Every story is a test: it must render, and its `play` function (user interactions and
                 // assertions) must pass, in a real Chromium.

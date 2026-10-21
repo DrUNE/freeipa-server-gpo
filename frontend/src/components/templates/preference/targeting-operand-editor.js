@@ -1,9 +1,9 @@
 /** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
 
-import * as elementCreator from '../../../util/element-creator';
-import * as dto from '../../../util/editor-dto';
-import * as presentations from './targeting-presentations';
-import * as typedInput from './targeting-typed-input';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as dto from '@gpui/util/editor-dto';
+import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as typedInput from '@gpui/components/templates/preference/targeting-typed-input';
 
 ('use strict');
 

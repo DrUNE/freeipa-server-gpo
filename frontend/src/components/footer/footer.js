@@ -1,4 +1,4 @@
-import * as __dep0 from '../../util/element-creator';
+import * as __dep0 from '@gpui/util/element-creator';
 
 var { createElement } = __dep0;
 

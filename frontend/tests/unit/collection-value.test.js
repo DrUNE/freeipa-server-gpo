@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as collectionModule from '../../src/util/collection-value.js';
-import * as enLocale from '../../src/locales/en.js';
-import * as ruLocale from '../../src/locales/ru.js';
+import * as collectionModule from '@gpui/util/collection-value.js';
+import * as enLocale from '@gpui/locales/en.js';
+import * as ruLocale from '@gpui/locales/ru.js';
 import fs from 'node:fs';
 import path from 'node:path';
 

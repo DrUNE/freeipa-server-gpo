@@ -25,7 +25,7 @@
 
 ## Фронтенд: устройство
 
-- Исходники редактора: `frontend/src/` (ES-модули, без `require` и CommonJS). Сборка Vite даёт **закоммиченный** бандл `plugin/ui/grouppolicy/js/app.js` и `app.css`; руками их не править, после правок `src/` делать `make ui-build` и коммитить вместе. Причина: RPM собирается без сети и без Node.
+- Исходники редактора: `frontend/src/` (ES-модули, без `require` и CommonJS). **Импорты внутри `src/` и из тестов в `src/` пишутся через алиас `@gpui/` (= `frontend/src/`), без относительных `../`**; алиас настроен в `vite.config.mjs`, `vitest.config.mjs`, `.storybook/shared.mjs`, `tsconfig.json`, `scripts/read-amd.mjs` (в AMD-дереве превращается в относительный id), `tests/unit/helpers/load-module.js`. Сборка Vite даёт **закоммиченный** бандл `plugin/ui/grouppolicy/js/app.js` и `app.css`; руками их не править, после правок `src/` делать `make ui-build` и коммитить вместе. Причина: RPM собирается без сети и без Node.
 - `plugin/ui/grouppolicy/{chain.js,gpo.js,css/,img/}` лежат вне `frontend/`, форматируются вручную. **Не запускать Prettier на `plugin/`** (`prettier` вызывать только в `frontend/` и только на `src dev scripts tests .storybook`).
 - Тесты: `frontend/tests/{unit,integration,e2e}`, раннер Vitest. Integration работают с `frontend/.test-root` (каждый модуль `src` как отдельный AMD-модуль; строит `scripts/build-test-root.mjs`, CSS-модули через `postcss-modules`). Заменили файл в `src/` — `npm test` пересоберёт дерево сам.
 - Тесты не должны пропускаться в CI (`scripts/assert-no-skips.mjs`). 22 теста на обычном хосте пропускаются (нужны `libadmix`, SDMX, jQuery FreeIPA, шрифты контейнера для снимков): их запускает `make test-ui-ipa` в контейнере.

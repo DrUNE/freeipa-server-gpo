@@ -1,6 +1,6 @@
 /** Local, path-independent targeting draft. Persistence belongs to the parent form. */
 
-import * as dto from './editor-dto';
+import * as dto from '@gpui/util/editor-dto';
 
 ('use strict');
 

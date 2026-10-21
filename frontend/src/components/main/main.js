@@ -1,7 +1,7 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../tree-view/tree-view';
-import * as __dep2 from '../divider/divider';
-import * as __dep3 from '../workspace/workspace';
+import * as __dep0 from '@gpui/util/element-creator';
+import * as __dep1 from '@gpui/components/tree-view/tree-view';
+import * as __dep2 from '@gpui/components/divider/divider';
+import * as __dep3 from '@gpui/components/workspace/workspace';
 
 var { createElement } = __dep0;
 var { renderTreeView } = __dep1;

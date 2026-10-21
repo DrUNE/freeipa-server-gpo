@@ -1,5 +1,5 @@
 import { expect, fn, userEvent, within } from 'storybook/test';
-import * as dialog from './confirmation-dialog';
+import * as dialog from '@gpui/components/confirmation-dialog';
 
 export default {
     title: 'Dialogs/ConfirmationDialog',

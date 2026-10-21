@@ -1,16 +1,16 @@
-import * as elements from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as searchModel from './all-policies/model';
-import * as headerActions from './security/header-actions';
-import * as securityTemplate from './security-template';
-import * as securityModel from './security/model';
-import * as auditTemplate from './advanced-audit-template';
-import * as admxTemplate from './admx-template';
-import * as scriptTemplate from './script-template';
-import * as preferencesTemplate from './preference/preferences-view-template';
-import * as listNavigation from '../list-navigation';
+import * as elements from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as translations from '@gpui/locales/translations';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as searchModel from '@gpui/components/templates/all-policies/model';
+import * as headerActions from '@gpui/components/templates/security/header-actions';
+import * as securityTemplate from '@gpui/components/templates/security-template';
+import * as securityModel from '@gpui/components/templates/security/model';
+import * as auditTemplate from '@gpui/components/templates/advanced-audit-template';
+import * as admxTemplate from '@gpui/components/templates/admx-template';
+import * as scriptTemplate from '@gpui/components/templates/script-template';
+import * as preferencesTemplate from '@gpui/components/templates/preference/preferences-view-template';
+import * as listNavigation from '@gpui/components/list-navigation';
 
 ('use strict');
 

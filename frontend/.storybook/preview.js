@@ -3,7 +3,7 @@
 // happens after this file, so the sheets are appended on the first render instead.
 import mainCss from '../../plugin/ui/grouppolicy/css/main.css?url';
 import otherCss from '../../plugin/ui/grouppolicy/css/other.css?url';
-import * as translations from '../src/locales/translations';
+import * as translations from '@gpui/locales/translations';
 
 let globalSheets = false;
 function addGlobalSheets() {

@@ -1,6 +1,6 @@
-import * as dto from '../../../../util/editor-dto';
-import * as translations from '../../../../locales/translations';
-import * as preferenceLayouts from '../layouts/index';
+import * as dto from '@gpui/util/editor-dto';
+import * as translations from '@gpui/locales/translations';
+import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
 
 var t = translations.t;
 var PREFERENCE_LAYOUTS = preferenceLayouts;

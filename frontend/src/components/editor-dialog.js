@@ -1,7 +1,7 @@
-import * as elements from '../util/element-creator';
-import * as translations from '../locales/translations';
-import * as confirmationDialog from './confirmation-dialog';
-import * as editorStatus from './editor-status';
+import * as elements from '@gpui/util/element-creator';
+import * as translations from '@gpui/locales/translations';
+import * as confirmationDialog from '@gpui/components/confirmation-dialog';
+import * as editorStatus from '@gpui/components/editor-status';
 import {
     createBody,
     createButton,
@@ -9,7 +9,7 @@ import {
     createDialogShell,
     createErrorRegion,
     setConfirming
-} from './Dialog/Dialog';
+} from '@gpui/components/Dialog/Dialog';
 
 ('use strict');
 var sequence = 0;

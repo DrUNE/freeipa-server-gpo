@@ -2,16 +2,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, vi } from 'vitest';
-import * as iconsModule from '../../src/components/editor-icons.js';
-import * as presentationsModule from '../../src/components/templates/preference/targeting-presentations.js';
-import * as treeModule from '../../src/components/tree-view/tree-view-list-data.js';
-import * as modelModule from '../../src/components/templates/all-policies/model.js';
+import * as iconsModule from '@gpui/components/editor-icons.js';
+import * as presentationsModule from '@gpui/components/templates/preference/targeting-presentations.js';
+import * as treeModule from '@gpui/components/tree-view/tree-view-list-data.js';
+import * as modelModule from '@gpui/components/templates/all-policies/model.js';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
-vi.mock('../../src/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
-vi.mock('../../src/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
-vi.mock('../../src/components/templates/security/model.js', () => ({}));
-vi.mock('../../src/components/templates/advanced-audit/model.js', () => ({}));
+vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
+vi.mock('@gpui/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
+vi.mock('@gpui/components/templates/security/model.js', () => ({}));
+vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
 
 const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
 const icons = iconsModule;

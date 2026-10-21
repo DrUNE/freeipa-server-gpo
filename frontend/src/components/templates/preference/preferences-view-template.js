@@ -1,23 +1,23 @@
-import * as elementCreator from '../../../util/element-creator';
-import * as API from '../../../util/API';
-import * as dto from '../../../util/editor-dto';
-import * as editorStatus from '../../editor-status';
-import * as confirmationDialog from '../../confirmation-dialog';
-import * as editorDialog from '../../editor-dialog';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as dto from '@gpui/util/editor-dto';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as confirmationDialog from '@gpui/components/confirmation-dialog';
+import * as editorDialog from '@gpui/components/editor-dialog';
 import {
     createBody,
     createButton as createDialogButton,
     createCloseButton,
     createDialogShell
-} from '../../Dialog/Dialog';
-import * as listNavigation from '../../list-navigation';
-import * as translations from '../../../locales/translations';
-import * as preferenceLayouts from './layouts/index';
-import * as targetingEditor from './targeting-editor';
-import * as commonModule from './view/common';
-import * as fieldControlModule from './view/field-control';
-import * as fieldTabsModule from './view/field-tabs';
-import * as fieldDependenciesModule from './view/field-dependencies';
+} from '@gpui/components/Dialog/Dialog';
+import * as listNavigation from '@gpui/components/list-navigation';
+import * as translations from '@gpui/locales/translations';
+import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
+import * as targetingEditor from '@gpui/components/templates/preference/targeting-editor';
+import * as commonModule from '@gpui/components/templates/preference/view/common';
+import * as fieldControlModule from '@gpui/components/templates/preference/view/field-control';
+import * as fieldTabsModule from '@gpui/components/templates/preference/view/field-tabs';
+import * as fieldDependenciesModule from '@gpui/components/templates/preference/view/field-dependencies';
 
 ('use strict');
 

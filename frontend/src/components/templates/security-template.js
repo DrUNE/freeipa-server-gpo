@@ -1,13 +1,13 @@
-import * as elementCreator from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as securityModel from './security/model';
-import * as values from './security/value-editor';
-import * as dependencies from './security/dependency-plan';
-import * as workbench from './security/workbench';
-import * as dialogs from './security/dialog';
-import * as confirmationDialog from '../confirmation-dialog';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import * as translations from '@gpui/locales/translations';
+import * as editorStatus from '@gpui/components/editor-status';
+import * as securityModel from '@gpui/components/templates/security/model';
+import * as values from '@gpui/components/templates/security/value-editor';
+import * as dependencies from '@gpui/components/templates/security/dependency-plan';
+import * as workbench from '@gpui/components/templates/security/workbench';
+import * as dialogs from '@gpui/components/templates/security/dialog';
+import * as confirmationDialog from '@gpui/components/confirmation-dialog';
 
 ('use strict');
 

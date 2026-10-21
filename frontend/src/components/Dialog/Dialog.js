@@ -1,5 +1,5 @@
-import { cx, h } from '../../lib/dom';
-import styles from './Dialog.module.css';
+import { cx, h } from '@gpui/lib/dom';
+import styles from '@gpui/components/Dialog/Dialog.module.css';
 
 /*
  * The chrome of the editor's modal dialogs (see Dialog.module.css). `editor-dialog.js` builds the behavior

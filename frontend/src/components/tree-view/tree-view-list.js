@@ -1,5 +1,5 @@
-import * as elementCreator from '../../util/element-creator';
-import * as translations from '../../locales/translations';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as translations from '@gpui/locales/translations';
 
 ('use strict');
 

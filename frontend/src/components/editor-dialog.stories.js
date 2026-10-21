@@ -1,6 +1,6 @@
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
-import { ElementCreator } from '../util/element-creator';
-import * as dialog from './editor-dialog';
+import { ElementCreator } from '@gpui/util/element-creator';
+import * as dialog from '@gpui/components/editor-dialog';
 
 /*
  * Characterization of the shared editor dialog: what every consumer (ADMX, security, scripts, preferences,

@@ -1,7 +1,7 @@
-import * as dto from '../../../../util/editor-dto';
-import * as elementCreator from '../../../../util/element-creator';
-import * as commonModule from './common';
-import * as fieldControlModule from './field-control';
+import * as dto from '@gpui/util/editor-dto';
+import * as elementCreator from '@gpui/util/element-creator';
+import * as commonModule from '@gpui/components/templates/preference/view/common';
+import * as fieldControlModule from '@gpui/components/templates/preference/view/field-control';
 
 var createElement = elementCreator.createElement;
 var pt = commonModule.pt;
