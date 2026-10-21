@@ -4,7 +4,7 @@
 
 **Date:** 2026-10-18
 **Scope:** `plugin/ui/grouppolicy/` (≈20 thousand lines of JS, 2.4 thousand lines of CSS), `frontend/`.
-**Status:** stages 1-5 are done, stage 6 is partly done, stage 7 has not started (each stage starts with its status).
+**Status:** stages 1-5 are done, stage 6 is partly done and continues in [COMPONENTS-PLAN.md](COMPONENTS-PLAN.md), stage 7 is decided as the strategy of [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md) (each stage starts with its status).
 **Principle:** improve the tooling around the existing code without rewriting the editor. The decision to change the framework is made after stage 6, based on measurements.
 
 ## 1. Starting point (checked against the repository)
@@ -101,7 +101,7 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 
 ### Stage 7. Framework decision (1-2 days of evaluation + 5-10 days of pilot)
 
-**Status: not started.**
+**Status: decided (2026-10-21).** The target is React + PatternFly in `freeipa-webui`, because the GPO pages have to live there anyway; the editor is first embedded as is and then replaced screen by screen, the first one being the pilot of [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md) (stage 4). The comparison below is kept for the record.
 
 After stages 1-6 the editor is typed, built from ESM and covered by snapshots. Only now does it make sense to compare the options on one screen (the script list is the most isolated):
 
@@ -170,7 +170,8 @@ Stages 1-4 of this plan are a prerequisite of the block "Connecting the existing
 
 ## 6. Next steps
 
-1. Run the `frontend` job on the Forgejo server and fix whatever the real runner shows (the open problem above describes its dependency on the network).
-2. Stage 3: shared golden JSON examples of RPC responses for pytest and the frontend tests.
-3. Stage 5: shims for `chain.js` and `gpo.js`, then scenario modes in the mock backend.
-4. ~~Capture baseline Playwright snapshots before continuing stage 6.~~ Done for the preference form and targeting (`dialogs-visual.browser.test.js`); add other screens (tree, ADMX, scripts, security) as they are refactored.
+1. Run the `frontend` job on the Forgejo server and fix whatever the real runner shows (the open problem above describes its dependency on the network); the screenshot baselines may have to be taken there.
+2. ~~Stage 3: shared golden JSON examples of RPC responses.~~ Done: the reference answers of every command and the generated types.
+3. ~~Stage 5: shims for `chain.js` and `gpo.js`, scenario modes.~~ Done as unit tests with doubles and the `?scenario=` modes.
+4. ~~Baseline Playwright snapshots before stage 6.~~ Done for the preference form and targeting; the other screens follow [COMPONENTS-PLAN.md](COMPONENTS-PLAN.md).
+5. Stage 0 of [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md) (logic without DOM into `frontend/src/core/`, an ES module output) and steps 1-3 of [COMPONENTS-PLAN.md](COMPONENTS-PLAN.md).

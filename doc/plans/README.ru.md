@@ -2,65 +2,73 @@
 
 [English](./README.md) | **Русский**
 
-Сводка по состоянию на 2026-10-18. Детали и оценки лежат в планах:
-[FRONTEND-DX-PLAN.ru.md](FRONTEND-DX-PLAN.ru.md) (улучшение опыта разработки) и
-[WEBUI-MIGRATION.ru.md](WEBUI-MIGRATION.ru.md) (управление GPO в `freeipa-webui`).
+Сводка по состоянию на 2026-10-21. Детали и оценки лежат в планах:
+[FRONTEND-DX-PLAN.ru.md](FRONTEND-DX-PLAN.ru.md) (улучшение опыта разработки),
+[WEBUI-MIGRATION.ru.md](WEBUI-MIGRATION.ru.md) (управление GPO в `freeipa-webui`) и
+[COMPONENTS-PLAN.ru.md](COMPONENTS-PLAN.ru.md) (компоненты и Storybook).
 Описание серверной части: [../ARCHITECTURE.ru.md](../ARCHITECTURE.ru.md) ([English](../ARCHITECTURE.md)).
 Что изменилось в ветке `dev-setup` и как теперь работать: [../DEV-SETUP.ru.md](../DEV-SETUP.ru.md).
 
 ## 1. Архитектура фронтенда
 
-Каталог `frontend/dist/` (собранный плагин; вручную написаны `frontend/public/chain.js` и `gpo.js`) ставится в `/usr/share/ipa/ui/js/plugins/chain` и состоит из двух слоёв.
+Каталог `frontend/dist/` (закоммиченная сборка `frontend/`) ставится в `/usr/share/ipa/ui/js/plugins/chain` и состоит из двух слоёв.
 
 | Слой | Файлы | Технологии |
 |---|---|---|
-| Страницы в Web UI FreeIPA | `chain.js` (1194 строки), `gpo.js` (396) | AMD, jQuery-фасеты `IPA.facet`, `reg`, `phases`; зависят от модулей `freeipa/*` |
-| Редактор GPUI | исходники `frontend/src/` (около 20 тыс. строк), сборка `js/app.js`, стили `frontend/src/styles/` (около 2,4 тыс. строк, собираются в `js/app.css`) | Vanilla JS, ES-модули, один UMD/AMD-бандл (Vite), самописный `ElementCreator`, EN/RU-локали |
+| Страницы в Web UI FreeIPA | `frontend/public/chain.js` (1194 строки), `gpo.js` (394) | AMD, jQuery-фасеты `IPA.facet`, `reg`, `phases`; зависят от модулей `freeipa/*`; действия покрыты юнит-тестами с подменами |
+| Редактор GPUI | исходники `frontend/src/` (≈19,9 тыс. строк без локалей), сборка `js/app.js`; стили `frontend/src/styles/` и CSS Modules, собираются в `js/app.css` | ES-модули (4 на TypeScript), один UMD/AMD-бандл (Vite), `h()` из `src/lib/dom.js` для новых компонентов и прежний `ElementCreator`, EN/RU-локали |
 
 Редактор открывается из `gpo.js` в модальном окне и разбит на header, tree-view, workspace, footer и шаблоны:
 ADMX, Preferences (22 layout'а, targeting editor), Scripts, Security, Advanced Audit, All Policies.
-Он общается с сервером только типизированным JSON-RPC `gpo_editor_*` через `util/API.js` (~28 методов);
+Он общается с сервером только типизированным JSON-RPC `gpo_editor_*` через `util/API.ts` (28 команд);
 `libadmix` работает на сервере, пути SYSVOL браузеру не передаются.
 
 **Выводы:**
-- Структура приемлема: компоненты разнесены по файлам, а часть шаблонов (`security/`, `all-policies/`) уже разделена на model, dialog и view.
-- Слабые места: крупные файлы (`preferences-view-template.js` 1501 строка, `script-template.js` 2113, `chain.js` 1194, `main.css` 2430; Prettier переносит длинные строки, поэтому размеры отличаются от прежних);
-  императивный рендер с ручной защитой от гонок (`renderRequestId`, `currentViewCleanup`); состояние в замыканиях.
-- Граница с бэкендом чистая, но формат ответов нигде не описан схемой: он выведен вручную (`editor-dto.js`).
-- Исходники редактора теперь ES-модули в `frontend/src/`; в `frontend/dist/` лежит собранный каталог плагина (коммитится): `js/app.js`, `js/app.css`, `chain.js`, `gpo.js`, `img/`.
+- Крупные шаблоны разбиты на модули по областям (`preference/view/*`, `script/*`, `security/*`, `admx/*`, `advanced-audit/*`);
+  состояние больших экранов — один объект (`view`, `ui`). Больше 600 строк остаются `targeting-operand-editor.js` 740 и
+  `targeting-editor.js` 674 (круговые вызовы между их функциями, см. DX-план) и `chain.js` 1194.
+- Граница с бэкендом закреплена: эталонный ответ каждой команды (`tests/contracts/gpo_editor/`), сверяемый с обеих сторон, и
+  сгенерированные из них типы `frontend/types/rpc.d.ts`.
+- ≈5,3 тыс. строк (≈27%) не трогают DOM; именно эта часть переходит в `freeipa-webui` без изменений.
+- Два компонента в целевом формате (`Dialog`, `EditorStatus`); `ElementCreator` используется в 49 файлах.
 
 ## 2. Как ведётся разработка сейчас
 
 | Что | Как |
 |---|---|
-| Запуск редактора без FreeIPA | `make ui-dev-install`, затем `make ui-dev`: Vite-стенд (`frontend/dev`: mock-бэкенд, ES-шимы `freeipa/*`), перезагрузка при сохранении |
-| Проверка на живом FreeIPA | devcontainer `.devcontainer/` (podman), перезагрузка плагинов `ipa-dev-reload`, e2e-тесты `frontend/tests/e2e/` |
-| UI-тесты | `make test-ui` (`frontend/tests/unit` и `integration`, моки) и `make test-ui-ipa` (`frontend/tests/e2e`, живой FreeIPA в контейнере); без Chromium браузерные тесты пропускаются |
+| Запуск редактора без FreeIPA | `make ui-dev-install`, затем `make ui-dev`: Vite-стенд (`frontend/dev`: mock-бэкенд с режимами `?scenario=error\|slow\|empty`, ES-шимы `freeipa/*`), горячее обновление без перезагрузки страницы |
+| Компоненты отдельно | `make ui-storybook` (Storybook 10, каждая история — тест) |
+| Проверка на живом FreeIPA | devcontainer `.devcontainer/` (podman), перезагрузка плагинов `ipa-dev-reload`, e2e-тесты `frontend/tests/e2e/`, `npm run watch` для dev-сборки с source maps |
+| UI-тесты | `make test-ui` (unit, integration, stories, моки) и `make test-ui-ipa` (плюс e2e и всё без пропусков, в контейнере) |
 | Бэкенд-тесты | `make test-python`, `make test-coverage` (порог 93,90%), `make test-integration` |
-| Линтер, форматтер, типы для JS | ESLint (`make ui-lint`), Prettier (`make ui-format-check`), `tsc --noEmit` по JSDoc (`npm run typecheck`), покрытие юнит-тестами с порогом (`npm test -- --coverage`) |
-| CI | `python-backend.yml`: сборка RPM, pytest, интеграция во FreeIPA, публикация. задача `frontend`: lint, форматирование, типы, проверка бандла, тесты с покрытием, запрет пропущенных тестов |
-| Ограничение стенда | `chain.js` и `gpo.js` в `frontend/dev` не работают (нужны модули FreeIPA), проверяются только на живом сервере |
+| Линтер, форматтер, типы для JS | ESLint (`make ui-lint`), Prettier (`make ui-format-check`), `npm run typecheck` (проверка JS по JSDoc и строгая проверка TypeScript), покрытие юнит-тестами с порогом |
+| CI | `python-backend.yml`: сборка RPM, pytest, интеграция во FreeIPA, публикация. Задача `frontend`: lint, форматирование, типы, проверка бандла, тесты с покрытием, запрет пропущенных тестов (на сервере Forgejo ещё не запускалась) |
 
 Подробности стенда: [../../frontend/dev/README.ru.md](../../frontend/dev/README.ru.md), CI: [../CI.ru.md](../CI.ru.md).
 
 ## 3. Планы
 
-**Улучшение опыта разработки** ([FRONTEND-DX-PLAN.ru.md](FRONTEND-DX-PLAN.ru.md)), 16-26 рабочих дней на этапы 1-6; статус:
-1. ✅ гигиена: проект `frontend/` с `package.json`, ESLint, Prettier (`.editorconfig` не добавлен);
+**Улучшение опыта разработки** ([FRONTEND-DX-PLAN.ru.md](FRONTEND-DX-PLAN.ru.md)); статус:
+1. ✅ гигиена: проект `frontend/`, ESLint, Prettier, `.editorconfig`;
 2. ✅ UI-тесты в CI (задача `frontend`; на сервере Forgejo ещё не запускалась);
-3. ✅ частично: типы через JSDoc и `tsc --noEmit`; общие JSON-примеры RPC-ответов для pytest и JS не сделаны;
-4. ✅ ESM-исходники, сборка Vite в один бандл (коммитится), проверка `make ui-build-check`;
-5. ✅ частично: Vite-стенд; шимы для `chain.js` и `gpo.js` не сделаны;
-6. ✅ частично: вынесены модульные функции из двух самых больших файлов; сами гигантские функции, CSS-переменные и скриншотные тесты не сделаны;
-7. пилот на выбор фреймворка по измерениям — не начат.
+3. ✅ типы и контракт: эталонные ответы всех команд, сгенерированные типы RPC, TypeScript для `util/`;
+4. ✅ ESM-исходники, сборка Vite (коммитится), `make ui-build-check`;
+5. ✅ dev-цикл: стенд со сценариями, горячее обновление, тесты для `chain.js`/`gpo.js`;
+6. ✅ частично: крупные файлы разбиты, CSS-токены и листы по областям, два компонента, снимки формы предпочтения и таргетинга;
+   продолжается в [COMPONENTS-PLAN.ru.md](COMPONENTS-PLAN.ru.md);
+7. решение о фреймворке — принято как стратегия [WEBUI-MIGRATION.ru.md](WEBUI-MIGRATION.ru.md): React + PatternFly в `freeipa-webui`,
+   редактор сначала встраивается как есть, затем заменяется экран за экраном после пилота.
 
-**Миграция UI в freeipa-webui** ([WEBUI-MIGRATION.md](WEBUI-MIGRATION.md)): три страницы (GPO, Chain, GPMaster) на React + PatternFly,
-редактор GPUI подключается как есть. Оценка 36-50 дней на MVP; переписывание самого редактора на React ещё 3-5 месяцев и
-принимается только по итогам пилота.
+**Миграция UI в freeipa-webui** ([WEBUI-MIGRATION.ru.md](WEBUI-MIGRATION.ru.md)): этап 0 здесь (код без DOM в
+`frontend/src/core/`, выход сборки в виде ES-модуля), затем три страницы (GPO, Chain, GPMaster) и редактор «островом» в webui.
+36-50 дней на MVP; замена экранов редактора необязательна, ещё 40-70 дней, решается после пилотного экрана.
+
+**Компоненты и Storybook** ([COMPONENTS-PLAN.ru.md](COMPONENTS-PLAN.ru.md)): девять компонентов по образцу PatternFly, истории с
+данными из эталонных ответов и `play`-тестами по ролям, которые без изменений переходят на React. 22-29 дней.
 
 ## 4. Порядок и зависимости
 
-1. Этапы 1-2 DX-плана выполнены; остальные этапы можно делать независимо.
-2. Этап 4 (ESM-сборка, выполнен) нужен и для разработки, и для встраивания редактора в webui.
-3. Прототип страницы GPO в `freeipa-webui` уточнит остальные оценки миграции.
-4. Решение о переписывании редактора откладывается до этапа 7 DX-плана.
+1. Этапы 1-5 DX-плана выполнены; этап 6 продолжается планом компонентов.
+2. Этап 0 миграции и шаги 1-3 плана компонентов можно вести параллельно, webui для них не нужен.
+3. Прототип страницы GPO и «острова» редактора в `freeipa-webui` уточнит оценки миграции.
+4. Решение о замене экранов редактора принимается после пилотного экрана («Расширенный аудит»), этап 4 миграции.

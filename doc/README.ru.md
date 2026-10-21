@@ -13,7 +13,8 @@
 | [../frontend/dev/README.ru.md](../frontend/dev/README.ru.md) ([en](../frontend/dev/README.md)) | Автономный стенд для разработки редактора |
 | [plans/README.ru.md](plans/README.ru.md) ([en](plans/README.md)) | Фронтенд: архитектура, текущая разработка, ссылки на планы |
 | [plans/FRONTEND-DX-PLAN.ru.md](plans/FRONTEND-DX-PLAN.ru.md) ([en](plans/FRONTEND-DX-PLAN.md)) | План улучшения опыта фронтенд-разработки со статусом |
-| [plans/WEBUI-MIGRATION.ru.md](plans/WEBUI-MIGRATION.ru.md) ([en](plans/WEBUI-MIGRATION.md)) | Предложение: управление GPO в freeipa-webui, оценки и решения |
+| [plans/WEBUI-MIGRATION.ru.md](plans/WEBUI-MIGRATION.ru.md) ([en](plans/WEBUI-MIGRATION.md)) | Предложение: управление GPO в freeipa-webui, этапы миграции, оценки и решения |
+| [plans/COMPONENTS-PLAN.ru.md](plans/COMPONENTS-PLAN.ru.md) ([en](plans/COMPONENTS-PLAN.md)) | План: компоненты по образцу PatternFly и истории Storybook как их спецификация |
 
 Файлы в `plans/` — предложения (со статусом того, что уже сделано), а не описание текущей системы.
 Пользовательская документация: [README.ru.md](../README.ru.md), [README.md](../README.md), man-страницы `ipa-gpo-install.8` (английская: `doc/ipa-gpo-install.8`, русская: `doc/ru/ipa-gpo-install.8`).
