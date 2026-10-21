@@ -1,18 +1,33 @@
 import { equal, valuePayload, clone } from '@gpui/core/editor-dto';
 import { t } from '@gpui/locales/translations';
 import * as preferenceLayouts from '@gpui/core/preference-layouts/index';
+import type { LayoutColumn } from '@gpui/core/preference-layouts/types';
+import type { FieldDescriptor, TypedValue } from '@gpui/core/dto-types';
 
-const PREFERENCE_LAYOUTS = preferenceLayouts;
+/** A control of the item form: reads the value the user entered. */
+export interface FormControl {
+    read(): TypedValue;
+}
 
-function pt(key) {
+/** A list item: its fields, or its flat properties (a typed value or a plain scalar). */
+export interface ItemLike {
+    fields?: { id?: string; value: TypedValue }[];
+    properties?: Record<string, unknown>;
+}
+
+// The layouts are looked up by the kind the server sends, so the module namespace is indexed by a string.
+const PREFERENCE_LAYOUTS: Record<string, { columns?: LayoutColumn[] } | undefined> =
+    preferenceLayouts as unknown as Record<string, { columns?: LayoutColumn[] } | undefined>;
+
+function pt(key: string): string {
     return t('preferences.editor.' + key);
 }
 
-function validationMessage(code) {
+function validationMessage(code: unknown): string {
     if (code === 'required') return pt('validationRequired');
     if (code === 'invalid_number') return pt('validationInvalidNumber');
     if (code === 'unsigned_byte_range') return pt('validationUnsignedByteRange');
-    const targetingCodes = {
+    const targetingCodes: Record<string, string> = {
         invalid_date: 'validationDate',
         invalid_time: 'validationTime',
         invalid_ip: 'validationIp',
@@ -23,23 +38,27 @@ function validationMessage(code) {
         invalid_range: 'validationRange',
         invalid_value: 'validationValue'
     };
-    if (targetingCodes[code]) return pt(targetingCodes[code]);
+    if (typeof code === 'string' && targetingCodes[code]) return pt(targetingCodes[code]);
     return pt('validationFixErrors');
 }
 
-function listFrom(result, key) {
+function listFrom(result: unknown, key: string): unknown[] {
     if (Array.isArray(result)) return result;
-    return result && Array.isArray(result[key]) ? result[key] : [];
+    const list = result ? (result as Record<string, unknown>)[key] : undefined;
+    return Array.isArray(list) ? list : [];
 }
 
-function parentCandidateLabel(candidate) {
+function parentCandidateLabel(candidate: { depth?: unknown; label?: unknown } | null | undefined): string {
     const depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
     let prefix = '';
     for (let index = 0; index < depth; index += 1) prefix += '\u00a0\u00a0';
     return prefix + String((candidate && candidate.label) || '');
 }
 
-function scopeField(field, scope) {
+/** Only id, label, hidden and editable are read, so any descriptor-like object is accepted (the value is not looked at). */
+type ScopedField = Pick<FieldDescriptor, 'id' | 'label' | 'hidden' | 'editable'>;
+
+function scopeField<T extends ScopedField>(field: T | null | undefined, scope: string): T | null | undefined {
     const result = clone(field);
     if (!result || result.id !== 'metadata.userContext') return result;
     if (scope === 'user') {
@@ -51,14 +70,17 @@ function scopeField(field, scope) {
     return result;
 }
 
-function actionLabel(value) {
-    const key = { create: 'actionCreate', replace: 'actionReplace', update: 'actionUpdate', delete: 'actionDelete' }[
-        value
-    ];
+function actionLabel(value: unknown): string {
+    const key = (
+        { create: 'actionCreate', replace: 'actionReplace', update: 'actionUpdate', delete: 'actionDelete' } as Record<
+            string,
+            string
+        >
+    )[value as string];
     return key ? pt(key) : value === null || value === undefined ? '' : String(value);
 }
 
-function itemFieldValue(item, fieldId) {
+function itemFieldValue(item: ItemLike | null | undefined, fieldId: string | null | undefined): any {
     if (!item || !fieldId) return '';
     if (Array.isArray(item.fields)) {
         for (let index = 0; index < item.fields.length; index++) {
@@ -74,14 +96,14 @@ function itemFieldValue(item, fieldId) {
                 : String(fieldId);
         if (Object.prototype.hasOwnProperty.call(item.properties, key)) {
             const raw = item.properties[key];
-            if (raw && typeof raw === 'object' && 'kind' in raw) return valuePayload(raw);
+            if (raw && typeof raw === 'object' && 'kind' in raw) return valuePayload(raw as TypedValue);
             return raw === null || raw === undefined ? '' : String(raw);
         }
     }
     return '';
 }
 
-function tableColumns(kind) {
+function tableColumns(kind: string): LayoutColumn[] | null {
     const layout = PREFERENCE_LAYOUTS[kind];
     if (layout && Array.isArray(layout.columns) && layout.columns.length) {
         return layout.columns;
@@ -89,8 +111,12 @@ function tableColumns(kind) {
     return null;
 }
 
-function editableFields(controls, baseline, changedOnly) {
-    const result = [];
+function editableFields(
+    controls: Map<string, FormControl>,
+    baseline: Map<string, FieldDescriptor>,
+    changedOnly?: boolean
+): { id: string; value: TypedValue }[] {
+    const result: { id: string; value: TypedValue }[] = [];
     controls.forEach(function (control, id) {
         const field = baseline.get(id);
         if (!field || !field.editable) return;
@@ -100,7 +126,7 @@ function editableFields(controls, baseline, changedOnly) {
     return result;
 }
 
-function filterKey(path) {
+function filterKey(path?: unknown[] | null): string {
     return JSON.stringify(path || []);
 }
 

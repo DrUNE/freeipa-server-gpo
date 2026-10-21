@@ -41,14 +41,21 @@ test('src/core is TypeScript only (checked strictly by tsconfig.strict.json)', (
 });
 
 test('src/core does not use the DOM or other browser globals', () => {
-    const forbidden =
-        /\b(document|window|navigator|localStorage|sessionStorage|HTMLElement|Element|Node|Event|CustomEvent)\b\s*[.([]/;
+    const names = ['document', 'window', 'navigator', 'localStorage', 'sessionStorage'];
+    const classes = ['HTMLElement', 'Element', 'Node', 'Event', 'CustomEvent'];
     for (const file of files(core)) {
         // Comments may name them; strip them before looking.
         const source = fs
             .readFileSync(file, 'utf8')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/(^|[^:])\/\/.*$/gm, '$1');
+        // A name the file declares itself (a parameter or a variable, e.g. a preference `document`) is not the global.
+        const declared = name =>
+            new RegExp(
+                `\\b(?:const|let|var)\\s+${name}\\b|\\b(?:function\\b[^(]*|\\w+\\s*=\\s*)\\([^)]*\\b${name}\\b[^)]*\\)|[(,]\\s*${name}\\s*(?::[^,)]*)?\\s*=>`
+            ).test(source);
+        const globals = names.filter(name => !declared(name)).concat(classes);
+        const forbidden = new RegExp(`\\b(${globals.join('|')})\\b\\s*[.([]`);
         assert.doesNotMatch(source, forbidden, `${path.relative(core, file)} uses a browser global`);
     }
 });

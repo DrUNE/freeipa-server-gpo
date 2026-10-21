@@ -10,7 +10,7 @@ import {
     matches,
     sortRows,
     securityRows
-} from '@gpui/components/templates/all-policies/model';
+} from '@gpui/core/all-policies/model';
 import { bind } from '@gpui/components/templates/security/header-actions';
 import { openSecurityDialog } from '@gpui/components/templates/security-template';
 import { buildSecurityModel } from '@gpui/core/security/model';

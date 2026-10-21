@@ -5,7 +5,7 @@ import { open } from '@gpui/components/confirmation-dialog';
 import { trapTab } from '@gpui/components/editor-dialog';
 import * as editorDialog from '@gpui/components/editor-dialog';
 import { bind } from '@gpui/components/list-navigation';
-import { scriptEvent } from '@gpui/components/editor-icons';
+import { scriptEvent } from '@gpui/core/editor-icons';
 import {
     createBody,
     createButton as createDialogButton,

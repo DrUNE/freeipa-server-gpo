@@ -1,4 +1,4 @@
-import { scriptFile } from '@gpui/components/editor-icons';
+import { scriptFile } from '@gpui/core/editor-icons';
 import { t } from '@gpui/locales/translations';
 import { createElement } from '@gpui/util/element-creator';
 

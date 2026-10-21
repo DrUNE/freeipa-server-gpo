@@ -1,7 +1,7 @@
 import { createElement, ElementCreator } from '@gpui/util/element-creator';
 import { createDataTable, rowId, setSelectedRows, tableRows } from '@gpui/components/DataTable/DataTable';
 import { createToolbar, setToolbarItem } from '@gpui/components/Toolbar/Toolbar';
-import { scriptFile } from '@gpui/components/editor-icons';
+import { scriptFile } from '@gpui/core/editor-icons';
 import { st, nameContent } from '@gpui/components/templates/script/helpers';
 
 const wrap = ElementCreator.wrap;

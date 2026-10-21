@@ -2075,6 +2075,42 @@
 	* opaque identifiers returned by the server.  Filesystem, registry and
 	* libadmix binding details never cross this boundary.
 	*/
+	var API_exports = /* @__PURE__ */ __exportAll({
+		EditorError: () => EditorError,
+		_test: () => _test$1,
+		advancedAuditShow: () => advancedAuditShow,
+		advancedAuditUpdate: () => advancedAuditUpdate,
+		children: () => children,
+		getDisplayName: () => getDisplayName,
+		getOpenResult: () => getOpenResult,
+		initialize: () => initialize$1,
+		localePreferences: () => localePreferences,
+		open: () => open$4,
+		policyIndex: () => policyIndex,
+		policyShow: () => policyShow,
+		policyUpdate: () => policyUpdate,
+		preferenceCreate: () => preferenceCreate,
+		preferenceDelete: () => preferenceDelete,
+		preferenceDocuments: () => preferenceDocuments,
+		preferenceItems: () => preferenceItems,
+		preferenceShow: () => preferenceShow,
+		preferenceUpdate: () => preferenceUpdate,
+		reconcile: () => reconcile,
+		scriptAssetDelete: () => scriptAssetDelete,
+		scriptAssetDownload: () => scriptAssetDownload,
+		scriptAssetReplace: () => scriptAssetReplace,
+		scriptAssetUpload: () => scriptAssetUpload,
+		scriptEntriesReorder: () => scriptEntriesReorder,
+		scriptEntryAdd: () => scriptEntryAdd,
+		scriptEntryRemove: () => scriptEntryRemove,
+		scriptEntryUpdate: () => scriptEntryUpdate,
+		scriptFiles: () => scriptFiles,
+		scriptOrderUpdate: () => scriptOrderUpdate,
+		scriptUploadAndAdd: () => scriptUploadAndAdd,
+		scriptsShow: () => scriptsShow,
+		securityDefinitionsShow: () => securityDefinitionsShow,
+		securityDefinitionsUpdate: () => securityDefinitionsUpdate
+	});
 	var selectedDisplayName = null;
 	var editorOpenPromise = null;
 	var editorOpenResult = null;
@@ -2242,6 +2278,9 @@
 	function policyUpdate(scope, policyId, request) {
 		return execute("editor_policy_update", [scope, policyId], withLocales({ request: clone$4(request || {}) })).then(rememberEnvelope);
 	}
+	function preferenceDocuments() {
+		return execute("editor_preference_documents", [], {});
+	}
 	function preferenceItems(scope, kind) {
 		return execute("editor_preference_items", [scope, kind], {});
 	}
@@ -2260,6 +2299,9 @@
 	function scriptsShow(scope, event) {
 		return execute("editor_scripts_show", [scope, event], {});
 	}
+	function scriptFiles(scope, event) {
+		return execute("editor_script_files", [scope, event], {});
+	}
 	function scriptEntryAdd(scope, event, request) {
 		return execute("editor_script_entry_add", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
@@ -2277,6 +2319,9 @@
 	}
 	function scriptAssetUpload(scope, event, request) {
 		return execute("editor_script_asset_upload", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
+	}
+	function scriptUploadAndAdd(scope, event, request) {
+		return execute("editor_script_upload_and_add", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
 	function scriptAssetReplace(scope, event, request) {
 		return execute("editor_script_asset_replace", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
@@ -2304,6 +2349,14 @@
 	}
 	var getDisplayName = function() {
 		return selectedDisplayName;
+	};
+	var getOpenResult = function() {
+		return editorOpenResult;
+	};
+	var _test$1 = {
+		unwrapResponse,
+		normalizeError,
+		normalizeLocale
 	};
 	//#endregion
 	//#region src/core/security/model.ts
@@ -2651,7 +2704,7 @@
 		}) || null;
 	}
 	//#endregion
-	//#region src/components/editor-icons.js
+	//#region src/core/editor-icons.ts
 	/** Semantic, presentation-only icons shared by the tree and editor catalogs. */
 	var preferenceIcons = Object.freeze({
 		applications: "applications",
@@ -2749,63 +2802,20 @@
 		return icon(group === "powershell" ? "powershell" : "script");
 	};
 	//#endregion
-	//#region src/components/tree-view/tree-view-list-data.js
+	//#region src/core/tree/tree-data.ts
 	function payloadList(result, key) {
 		if (Array.isArray(result)) return result;
-		return result && Array.isArray(result[key]) ? result[key] : [];
+		const list = result ? result[key] : void 0;
+		return Array.isArray(list) ? list : [];
 	}
-	function policyChildren(scope, result) {
-		const language = typeof getLanguage === "function" ? getLanguage() : void 0;
-		return payloadList(result, "children").map(function(node) {
-			return policyNode(scope, node);
-		}).sort(function(left, right) {
-			if (left.type !== right.type) return left.type === "folder" ? -1 : 1;
-			return left.title.localeCompare(right.title, language);
-		});
+	function preferenceOrder(value) {
+		return value === void 0 || value === null || value === "" || !Number.isFinite(Number(value)) ? 999 : Number(value);
 	}
-	function policyNode(scope, node) {
-		if (node.kind === "category") return {
-			title: node.label || node.id,
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			scope,
-			categoryId: node.id,
-			lazy: true,
-			help: node.explain_text || void 0,
-			children: [],
-			loadChildren: function() {
-				return children(scope, node.id).then(function(result) {
-					return policyChildren(scope, result);
-				});
-			}
-		};
-		return {
-			title: node.label || node.id,
-			type: "file",
-			showInTree: false,
-			icon: "ico-file",
-			template: "admx",
-			scope,
-			policyId: node.id
-		};
-	}
-	function administrativeTemplates(scope) {
-		return {
-			title: t("policies.adminTemplates"),
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			scope,
-			lazy: true,
-			help: t(scope === "computer" ? "policies.machineAdminTemplates" : "policies.userAdminTemplates"),
-			children: [],
-			loadChildren: function() {
-				return children(scope, null).then(function(result) {
-					return policyChildren(scope, result);
-				});
-			}
-		};
+	function preferenceCategoryTitle(category) {
+		if (category.id === "system_settings") return t("preferences.windowsSettings");
+		if (category.id === "control_panel_settings") return t("preferences.controlPanelSettings");
+		if (category.id === "other_settings") return t("preferences.otherSettings");
+		return category.label || category.id;
 	}
 	function preferenceNode(document) {
 		return {
@@ -2819,69 +2829,7 @@
 			readOnly: !document.editable || document.applicable === false
 		};
 	}
-	function scriptsNode(scope) {
-		return {
-			title: t(scope === "computer" ? "policies.scriptsComputer" : "policies.scriptsUser"),
-			type: "file",
-			icon: scripts(),
-			template: "scripts",
-			scope
-		};
-	}
-	function windowsPolicySettingsNode(scope) {
-		/** @type {any[]} */
-		const children = [scriptsNode(scope)];
-		if (scope === "computer") children.push(securityNode());
-		return {
-			title: t("policies.windowsSettings"),
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			scope,
-			children
-		};
-	}
-	function securityNode() {
-		return {
-			title: t("security.title"),
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			lazy: true,
-			children: [],
-			loadChildren: function() {
-				return Promise.all([securityDefinitionsShow(), advancedAuditShow().then(function(value) {
-					return { value };
-				}, function(error) {
-					return { error };
-				})]).then(function(responses) {
-					const nodes = navigationNodes(responses[0]);
-					if (responses[1].value) nodes.push(navigationNode(responses[1].value));
-					else nodes.push({
-						title: t("security.auditUnavailable"),
-						type: "file",
-						icon: "ico-file",
-						showInTree: false,
-						template: "advanced_audit",
-						advancedAuditError: responses[1].error
-					});
-					return nodes.sort(function(left, right) {
-						return left.title.localeCompare(right.title);
-					});
-				});
-			}
-		};
-	}
-	function preferenceCategoryTitle(category) {
-		if (category.id === "system_settings") return t("preferences.windowsSettings");
-		if (category.id === "control_panel_settings") return t("preferences.controlPanelSettings");
-		if (category.id === "other_settings") return t("preferences.otherSettings");
-		return category.label || category.id;
-	}
-	function preferenceOrder(value) {
-		return value === void 0 || value === null || value === "" || !Number.isFinite(Number(value)) ? 999 : Number(value);
-	}
-	function preferenceCategories(scope, documents) {
+	function preferenceCategories$1(scope, documents) {
 		const categories = /* @__PURE__ */ new Map();
 		documents.filter(function(document) {
 			return document.scope === scope;
@@ -2916,60 +2864,185 @@
 			};
 		});
 	}
-	function scopeNode(scope, documents) {
-		const isComputer = scope === "computer";
-		const preferenceChildren = preferenceCategories(scope, documents);
-		/** @type {any[]} */
-		const children = [{
-			title: t("policies.allPolicies"),
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			template: "all_policies",
-			scope,
-			children: [],
-			preferenceDocuments: documents.filter(function(document) {
-				return document.scope === scope;
-			}),
-			includePreferences: true,
-			help: t("policySearch.description")
-		}, {
-			title: t("policies.title"),
-			type: "folder",
-			opened: false,
-			icon: "ico-folder",
-			scope,
-			children: [windowsPolicySettingsNode(scope), administrativeTemplates(scope)]
-		}];
-		if (preferenceChildren.length) children.push({
-			title: t("preferences.title"),
-			type: "folder",
-			opened: false,
-			icon: preferencesRoot(),
-			scope,
-			children: preferenceChildren,
-			help: t("preferences.description")
-		});
+	function scriptsNode(scope) {
 		return {
-			title: isComputer ? t("policies.machine") : t("policies.user"),
-			type: "folder",
-			opened: false,
-			icon: isComputer ? "ico-computer" : "ico-user",
-			help: isComputer ? t("policies.machineLevelPolicies") : t("policies.userLevelPolicies"),
-			children
+			title: t(scope === "computer" ? "policies.scriptsComputer" : "policies.scriptsUser"),
+			type: "file",
+			icon: scripts(),
+			template: "scripts",
+			scope
 		};
 	}
-	function buildTreeViewList(openResult) {
-		const result = openResult || {};
-		const documents = payloadList(result, "preference_documents");
-		return [{
-			title: (result.gpo || {}).displayname || getDisplayName() || t("policies.localGroupPolicy"),
-			type: "folder",
-			opened: true,
-			help: t("policies.localGroupPolicies"),
-			children: [scopeNode("computer", documents), scopeNode("user", documents)]
-		}];
+	/** Builds the tree nodes; `api` supplies the server calls the lazy nodes and the root title need. */
+	function createTreeData(api) {
+		function policyChildren(scope, result) {
+			const language = typeof getLanguage === "function" ? getLanguage() : void 0;
+			return payloadList(result, "children").map(function(node) {
+				return policyNode(scope, node);
+			}).sort(function(left, right) {
+				if (left.type !== right.type) return left.type === "folder" ? -1 : 1;
+				return left.title.localeCompare(right.title, language);
+			});
+		}
+		function policyNode(scope, node) {
+			if (node.kind === "category") return {
+				title: node.label || node.id,
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				scope,
+				categoryId: node.id,
+				lazy: true,
+				help: node.explain_text || void 0,
+				children: [],
+				loadChildren: function() {
+					return api.children(scope, node.id).then(function(result) {
+						return policyChildren(scope, result);
+					});
+				}
+			};
+			return {
+				title: node.label || node.id,
+				type: "file",
+				showInTree: false,
+				icon: "ico-file",
+				template: "admx",
+				scope,
+				policyId: node.id
+			};
+		}
+		function administrativeTemplates(scope) {
+			return {
+				title: t("policies.adminTemplates"),
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				scope,
+				lazy: true,
+				help: t(scope === "computer" ? "policies.machineAdminTemplates" : "policies.userAdminTemplates"),
+				children: [],
+				loadChildren: function() {
+					return api.children(scope, null).then(function(result) {
+						return policyChildren(scope, result);
+					});
+				}
+			};
+		}
+		function securityNode() {
+			return {
+				title: t("security.title"),
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				lazy: true,
+				children: [],
+				loadChildren: function() {
+					return Promise.all([api.securityDefinitionsShow(), api.advancedAuditShow().then(function(value) {
+						return {
+							value,
+							error: void 0
+						};
+					}, function(error) {
+						return {
+							value: void 0,
+							error
+						};
+					})]).then(function(responses) {
+						const nodes = navigationNodes(responses[0]);
+						const audit = responses[1];
+						if (audit.value) nodes.push(navigationNode(audit.value));
+						else {
+							const unavailable = {
+								title: t("security.auditUnavailable"),
+								type: "file",
+								icon: "ico-file",
+								showInTree: false,
+								template: "advanced_audit",
+								advancedAuditError: audit.error
+							};
+							nodes.push(unavailable);
+						}
+						return nodes.sort(function(left, right) {
+							return left.title.localeCompare(right.title);
+						});
+					});
+				}
+			};
+		}
+		function windowsPolicySettingsNode(scope) {
+			const children = [scriptsNode(scope)];
+			if (scope === "computer") children.push(securityNode());
+			return {
+				title: t("policies.windowsSettings"),
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				scope,
+				children
+			};
+		}
+		function scopeNode(scope, documents) {
+			const isComputer = scope === "computer";
+			const preferenceChildren = preferenceCategories$1(scope, documents);
+			const children = [{
+				title: t("policies.allPolicies"),
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				template: "all_policies",
+				scope,
+				children: [],
+				preferenceDocuments: documents.filter(function(document) {
+					return document.scope === scope;
+				}),
+				includePreferences: true,
+				help: t("policySearch.description")
+			}, {
+				title: t("policies.title"),
+				type: "folder",
+				opened: false,
+				icon: "ico-folder",
+				scope,
+				children: [windowsPolicySettingsNode(scope), administrativeTemplates(scope)]
+			}];
+			if (preferenceChildren.length) children.push({
+				title: t("preferences.title"),
+				type: "folder",
+				opened: false,
+				icon: preferencesRoot(),
+				scope,
+				children: preferenceChildren,
+				help: t("preferences.description")
+			});
+			return {
+				title: isComputer ? t("policies.machine") : t("policies.user"),
+				type: "folder",
+				opened: false,
+				icon: isComputer ? "ico-computer" : "ico-user",
+				help: isComputer ? t("policies.machineLevelPolicies") : t("policies.userLevelPolicies"),
+				children
+			};
+		}
+		function buildTreeViewList(openResult) {
+			const result = openResult || {};
+			const documents = payloadList(result, "preference_documents");
+			return [{
+				title: (result.gpo || {}).displayname || api.getDisplayName() || t("policies.localGroupPolicy"),
+				type: "folder",
+				opened: true,
+				help: t("policies.localGroupPolicies"),
+				children: [scopeNode("computer", documents), scopeNode("user", documents)]
+			}];
+		}
+		return {
+			buildTreeViewList,
+			policyNode,
+			preferenceCategories: preferenceCategories$1
+		};
 	}
+	//#endregion
+	//#region src/components/tree-view/tree-view-list-data.js
+	var { buildTreeViewList, policyNode, preferenceCategories } = createTreeData(API_exports);
 	function loadTreeViewList() {
 		return open$4().then(buildTreeViewList);
 	}
@@ -9965,7 +10038,7 @@
 		start_menu: () => start_menu_exports
 	});
 	//#endregion
-	//#region src/components/templates/preference/view/common.js
+	//#region src/core/preference-view-common.ts
 	var PREFERENCE_LAYOUTS$2 = preference_layouts_exports;
 	function pt(key) {
 		return t("preferences.editor." + key);
@@ -9985,12 +10058,13 @@
 			invalid_range: "validationRange",
 			invalid_value: "validationValue"
 		};
-		if (targetingCodes[code]) return pt(targetingCodes[code]);
+		if (typeof code === "string" && targetingCodes[code]) return pt(targetingCodes[code]);
 		return pt("validationFixErrors");
 	}
 	function listFrom(result, key) {
 		if (Array.isArray(result)) return result;
-		return result && Array.isArray(result[key]) ? result[key] : [];
+		const list = result ? result[key] : void 0;
+		return Array.isArray(list) ? list : [];
 	}
 	function parentCandidateLabel(candidate) {
 		const depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
@@ -17091,7 +17165,7 @@
 		return openPolicyDialog(host, options, renderPolicyEditor);
 	};
 	//#endregion
-	//#region src/components/templates/all-policies/model.js
+	//#region src/core/all-policies/model.ts
 	function text(key, fallback) {
 		const value = t(key);
 		return value && value !== key ? value : fallback;
@@ -17140,8 +17214,9 @@
 			id: value[1]
 		} : value;
 	}
-	function securityRows(response, scope) {
+	function securityRows(input, scope) {
 		if (scope !== "computer") return [];
+		const response = input;
 		if (!response || !response.security_catalog || !Array.isArray(response.security_catalog.categories) || !Array.isArray(response.security_catalog.policies)) throw new TypeError(text("policySearch.invalidIndex", "Invalid policy index"));
 		const model = buildSecurityModel(response);
 		const categories = /* @__PURE__ */ new Map();
@@ -17202,8 +17277,9 @@
 		if (item.kind === "global_sacl") return item.object_kind === "registry" ? text("security.advancedAudit.registrySacl", "Registry global SACL") : text("security.advancedAudit.fileSacl", "File global SACL");
 		return text("security.advancedAudit.preserved", "Preserved source row");
 	}
-	function auditRows(response, scope) {
+	function auditRows(input, scope) {
 		if (scope !== "computer") return [];
+		const response = input;
 		if (!response || !response.advanced_audit || !Array.isArray(response.advanced_audit.rows) || !Array.isArray(response.advanced_audit.subcategory_catalog)) throw new TypeError(text("policySearch.invalidIndex", "Invalid policy index"));
 		const rows = [];
 		const duplicates = /* @__PURE__ */ new Map();

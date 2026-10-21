@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, vi } from 'vitest';
-import * as icons from '@gpui/components/editor-icons';
+import * as icons from '@gpui/core/editor-icons';
 import * as presentations from '@gpui/core/targeting/presentations';
 import * as tree from '@gpui/components/tree-view/tree-view-list-data';
-import * as model from '@gpui/components/templates/all-policies/model';
+import * as model from '@gpui/core/all-policies/model';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
 vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));

@@ -218,7 +218,7 @@ test(
         };
         const audit = await loadCore('advanced-audit/model.js');
         const tree = await load('../tree-view/tree-view-list-data.js', {
-            '@gpui/editor-icons': await load('../editor-icons.js'),
+            '@gpui/core/editor-icons': await loadCore('editor-icons.js'),
             '../../locales/translations': { t: key => key },
             '../../util/API': api,
             '@gpui/templates/security/model': model,

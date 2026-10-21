@@ -8,7 +8,7 @@ import { createFormLifecycle } from '@gpui/components/templates/preference/view/
 import { createPageActions } from '@gpui/components/templates/preference/view/page-actions';
 import { createItemForm } from '@gpui/components/templates/preference/view/item-form';
 import { createInfoPanel } from '@gpui/components/templates/preference/view/info-panel';
-import { pt, filterKey, editableFields } from '@gpui/components/templates/preference/view/common';
+import { pt, filterKey, editableFields } from '@gpui/core/preference-view-common';
 import { fieldControl, mockupFieldControl } from '@gpui/components/templates/preference/view/field-control';
 import {
     buildFieldTabs,

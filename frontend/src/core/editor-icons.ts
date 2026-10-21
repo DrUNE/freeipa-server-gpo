@@ -67,34 +67,34 @@ const scriptEvents = Object.freeze({
     logoff: 'script-logoff'
 });
 
-function icon(name) {
+function icon(name: string): string {
     return 'gpo-icon gpo-icon-' + name;
 }
-function mapped(table, key, fallback) {
-    return icon(Object.prototype.hasOwnProperty.call(table, key) ? table[key] : fallback);
+function mapped(table: Readonly<Record<string, string>>, key: unknown, fallback: string): string {
+    return icon(Object.prototype.hasOwnProperty.call(table, key as string) ? table[key as string] : fallback);
 }
 
-const preferenceKinds = Object.freeze(Object.keys(preferenceIcons));
-const targetingKinds = Object.freeze(Object.keys(targetingIcons));
-const preference = function (kind) {
+const preferenceKinds: readonly string[] = Object.freeze(Object.keys(preferenceIcons));
+const targetingKinds: readonly string[] = Object.freeze(Object.keys(targetingIcons));
+const preference = function (kind: unknown): string {
     return mapped(preferenceIcons, kind, 'preferences');
 };
-const preferenceCategory = function (category) {
+const preferenceCategory = function (category: unknown): string {
     return mapped(categories, category, 'other-settings');
 };
-const preferencesRoot = function () {
+const preferencesRoot = function (): string {
     return icon('preferences');
 };
-const targeting = function (kind) {
+const targeting = function (kind: unknown): string {
     return mapped(targetingIcons, kind, 'filter-unknown');
 };
-const scripts = function () {
+const scripts = function (): string {
     return icon('script');
 };
-const scriptEvent = function (event) {
+const scriptEvent = function (event: unknown): string {
     return mapped(scriptEvents, event, 'script');
 };
-const scriptFile = function (group) {
+const scriptFile = function (group: unknown): string {
     return icon(group === 'powershell' ? 'powershell' : 'script');
 };
 

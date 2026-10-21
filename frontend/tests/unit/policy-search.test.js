@@ -3,10 +3,10 @@ import { test } from 'vitest';
 import * as enModule from '@gpui/locales/en';
 import * as ruModule from '@gpui/locales/ru';
 import * as translations from '@gpui/locales/translations';
-import * as model from '@gpui/components/templates/all-policies/model';
+import * as model from '@gpui/core/all-policies/model';
 
 /*
- * Row projection and search for the All Policies view (components/templates/all-policies/model):
+ * Row projection and search for the All Policies view (core/all-policies/model):
  * admxRows, securityRows, auditRows, scriptRows and preferenceRows turn the backend payloads into
  * flat searchable rows (id, title, path, target for the editor); matches() filters and sortRows()
  * orders them.

@@ -1,7 +1,7 @@
 import { preferenceValueFromInput, clone } from '@gpui/core/editor-dto';
 import { createElement } from '@gpui/util/element-creator';
 import { ElementCreator } from '@gpui/util/element-creator';
-import { pt } from '@gpui/components/templates/preference/view/common';
+import { pt } from '@gpui/core/preference-view-common';
 import { createField, setFieldError } from '@gpui/components/Field/Field';
 
 function hiddenFieldControl(field) {

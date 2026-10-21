@@ -1,4 +1,4 @@
-import { pt } from '@gpui/components/templates/preference/view/common';
+import { pt } from '@gpui/core/preference-view-common';
 
 // Helpers of the preference form that work on its state object (modalState in preferences-view-template.js):
 // which controls the busy state locks, and the error marks on the name and the fields.

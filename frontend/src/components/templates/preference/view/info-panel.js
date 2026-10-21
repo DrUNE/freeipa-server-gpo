@@ -1,5 +1,5 @@
 import { createElement } from '@gpui/util/element-creator';
-import { pt } from '@gpui/components/templates/preference/view/common';
+import { pt } from '@gpui/core/preference-view-common';
 
 /**
  * The info panel under the preferences table: switches and description of the selected item.

@@ -1,7 +1,7 @@
 import { ElementCreator } from '@gpui/util/element-creator';
 import { trapTab } from '@gpui/components/editor-dialog';
 import { createBody, createButton, createCloseButton, createDialogShell } from '@gpui/components/Dialog/Dialog';
-import { pt } from '@gpui/components/templates/preference/view/common';
+import { pt } from '@gpui/core/preference-view-common';
 
 /**
  * The targeting modal of the preference form: a second dialog over the form (which is dimmed and inert while it

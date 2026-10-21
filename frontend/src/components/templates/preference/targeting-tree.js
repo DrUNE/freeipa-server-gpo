@@ -1,6 +1,6 @@
 import { createElement } from '@gpui/util/element-creator';
 import { valuePayload } from '@gpui/core/editor-dto';
-import * as editorIcons from '@gpui/components/editor-icons';
+import * as editorIcons from '@gpui/core/editor-icons';
 import * as presentations from '@gpui/core/targeting/presentations';
 
 /**

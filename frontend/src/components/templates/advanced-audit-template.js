@@ -5,7 +5,7 @@ import { renderError } from '@gpui/components/editor-status';
 import { familyById, state } from '@gpui/core/advanced-audit/model';
 import { tabs, open } from '@gpui/components/templates/security/dialog';
 import { bind } from '@gpui/components/templates/security/header-actions';
-import { auditIdentity } from '@gpui/components/templates/all-policies/model';
+import { auditIdentity } from '@gpui/core/all-policies/model';
 import * as listNavigation from '@gpui/components/list-navigation';
 import {
     configured,

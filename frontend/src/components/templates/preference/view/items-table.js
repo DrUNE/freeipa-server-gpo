@@ -2,14 +2,7 @@ import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
 import { equal, clone } from '@gpui/core/editor-dto';
 import { t } from '@gpui/locales/translations';
-import {
-    pt,
-    tableColumns,
-    actionLabel,
-    itemFieldValue,
-    scopeField,
-    listFrom
-} from '@gpui/components/templates/preference/view/common';
+import { pt, tableColumns, actionLabel, itemFieldValue, scopeField, listFrom } from '@gpui/core/preference-view-common';
 
 /**
  * The items table of the preferences page and everything that feeds it: the list request, the per-item field cache

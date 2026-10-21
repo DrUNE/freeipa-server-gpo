@@ -13,7 +13,7 @@ try {
     /* Optional browser dependencies. */
 }
 /*
- * Browser check of the semantic icon catalog (components/editor-icons).
+ * Browser check of the semantic icon catalog (core/editor-icons).
  * Fixture: a tiny static HTTP server serves an inline page plus .test-root (the AMD build of src/)
  * with require.js; the page renders every preference kind, targeting kind, category and script
  * icon as a .gpo-icon sample next to its label (the same page can be dumped to a PNG via
@@ -29,7 +29,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
 </head><body><h1>GPUI — semantic icon catalog · 16px</h1><main></main>
 <script src="/require.js"></script><script>
 require.config({baseUrl:'/js'});
-require(['components/editor-icons','core/targeting/presentations'],(icons,presentation)=>{
+require(['core/editor-icons','core/targeting/presentations'],(icons,presentation)=>{
  function add(title,entries){const section=document.createElement('section');const heading=document.createElement('h2');heading.textContent=title;section.append(heading);const sheet=document.createElement('div');sheet.className='sheet';section.append(sheet);for(const entry of entries){const row=document.createElement('div');row.className='sample';const icon=document.createElement('span');icon.className=entry[1];icon.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=entry[0];row.append(icon,label);sheet.append(row)}document.querySelector('main').append(section)}
  add('Preferences — 22 supported families',icons.preferenceKinds.map(kind=>[kind.replaceAll('_',' '),icons.preference(kind)]));
  add('Item-Level Targeting — 29 supported kinds',icons.targetingKinds.map(kind=>[presentation.kindLabel(kind,kind,'en'),icons.targeting(kind)]));

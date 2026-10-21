@@ -14,12 +14,7 @@ import * as preferenceLayouts from '@gpui/core/preference-layouts/index';
 import { render } from '@gpui/components/templates/preference/targeting-editor';
 import { syncFormBusy, setNameError } from '@gpui/components/templates/preference/view/form-state';
 import { createTargetingModal } from '@gpui/components/templates/preference/view/targeting-modal';
-import {
-    pt,
-    scopeField,
-    validationMessage,
-    parentCandidateLabel
-} from '@gpui/components/templates/preference/view/common';
+import { pt, scopeField, validationMessage, parentCandidateLabel } from '@gpui/core/preference-view-common';
 import { fieldControl } from '@gpui/components/templates/preference/view/field-control';
 import { buildFieldTabs } from '@gpui/components/templates/preference/view/field-tabs';
 import {

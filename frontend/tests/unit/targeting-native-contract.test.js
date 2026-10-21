@@ -397,7 +397,8 @@ function currentRoundtrip() {
  */
 test(
     'all 29 kinds and every advertised presentation/native-language enum roundtrip with original typed envelopes',
-    { skip },
+    // Runs the real libadmix roundtrip for every kind: about 3.5 s alone, over the 5 s default under a loaded full run.
+    { skip, timeout: 30000 },
     () => {
         const { cases, result } = currentRoundtrip();
         assert.equal(result.rows.length, cases.length);

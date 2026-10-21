@@ -2,18 +2,28 @@ import { getLanguage, t } from '@gpui/locales/translations';
 import { collectionElement, buildSecurityModel } from '@gpui/core/security/model';
 import * as securityModel from '@gpui/core/security/model';
 import { families } from '@gpui/core/advanced-audit/model';
-import { scriptEvent, preference } from '@gpui/components/editor-icons';
+import { scriptEvent, preference } from '@gpui/core/editor-icons';
+import type { SecurityResponse, SecurityPolicy, CatalogCategory, CategoryRef } from '@gpui/core/security/types';
+import type { AdvancedAuditResponse, AuditRow } from '@gpui/core/advanced-audit/types';
+import type {
+    PolicyIndexInput,
+    PolicyRow,
+    PolicyRowKind,
+    PolicyRowTarget,
+    PolicyScope,
+    PreferenceDocumentInput
+} from '@gpui/core/all-policies/types';
 
-function text(key, fallback) {
+function text(key: string, fallback: string): string {
     const value = t(key);
     return value && value !== key ? value : fallback;
 }
 
-function language() {
+function language(): string {
     return getLanguage();
 }
 
-function pathLabels(path) {
+function pathLabels(path: unknown): string[] {
     return Array.isArray(path)
         ? path.map(function (label) {
               return String(label);
@@ -21,11 +31,18 @@ function pathLabels(path) {
         : [];
 }
 
-function identity(kind, scope, parts) {
-    return kind + ':' + JSON.stringify([scope].concat(parts));
+function identity(kind: string, scope: string, parts: unknown[]): string {
+    return kind + ':' + JSON.stringify(([scope] as unknown[]).concat(parts));
 }
 
-function row(kind, scope, parts, title, path, properties) {
+function row(
+    kind: PolicyRowKind,
+    scope: PolicyScope,
+    parts: unknown[],
+    title: unknown,
+    path: unknown,
+    properties?: Partial<PolicyRowTarget>
+): PolicyRow {
     let categoryPath = [text(scope === 'computer' ? 'policies.machine' : 'policies.user', scope)];
     if (kind !== 'preferences') categoryPath.push(text('policies.title', 'Policies'));
     if (kind === 'security' || kind === 'advanced_audit')
@@ -51,7 +68,7 @@ function row(kind, scope, parts, title, path, properties) {
     };
 }
 
-function admxRows(result, scope) {
+function admxRows(result: PolicyIndexInput | null | undefined, scope: PolicyScope): PolicyRow[] {
     if (!result || !Array.isArray(result.policies)) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
@@ -68,12 +85,14 @@ function admxRows(result, scope) {
     });
 }
 
-function reference(value) {
+function reference(value: CategoryRef | string[] | null | undefined): CategoryRef | null | undefined {
     return Array.isArray(value) ? { namespace: value[0], id: value[1] } : value;
 }
 
-function securityRows(response, scope) {
+function securityRows(input: unknown, scope: PolicyScope): PolicyRow[] {
     if (scope !== 'computer') return [];
+    // The answer is open JSON: the shape is checked below, then read as the model's own view of it.
+    const response = input as SecurityResponse | null | undefined;
     if (
         !response ||
         !response.security_catalog ||
@@ -83,15 +102,15 @@ function securityRows(response, scope) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
     const model = buildSecurityModel(response);
-    const categories = new Map();
+    const categories = new Map<string, CatalogCategory>();
     const catalog = (response && response.security_catalog) || {};
     (catalog.categories || []).forEach(function (category) {
         categories.set(securityModel.identity(category.namespace, category.id), category);
     });
-    function categoryPath(policy) {
-        const path = [];
+    function categoryPath(policy: SecurityPolicy): string[] {
+        const path: string[] = [];
         let current = reference(policy.definition.category);
-        const visited = new Set();
+        const visited = new Set<string>();
         while (current) {
             const key = securityModel.identity(current.namespace, current.id);
             if (visited.has(key)) break;
@@ -105,7 +124,7 @@ function securityRows(response, scope) {
     }
     return Array.from(model.policies.values()).map(function (policy) {
         const collection = collectionElement(policy);
-        const properties = {
+        const properties: Partial<PolicyRowTarget> = {
             securityPolicy: { namespace: policy.namespace, policy_id: policy.policyId },
             openPolicyDialog: !collection
         };
@@ -121,8 +140,9 @@ function securityRows(response, scope) {
     });
 }
 
-function auditIdentity(value) {
-    const item = value || {};
+function auditIdentity(value: Partial<AuditRow> | null | undefined): string {
+    // The row is open JSON: read it through the widest view, every field optional.
+    const item: AuditItem = value || {};
     if (item.kind === 'subcategory') {
         const target = item.target || { kind: 'system' };
         return JSON.stringify([
@@ -139,7 +159,22 @@ function auditIdentity(value) {
     return JSON.stringify([item.kind, item.fields || [], item.raw || '', item.reason || '']);
 }
 
-function auditTitle(item) {
+/** An audit row read tolerantly: any of the kinds, every field optional (the server's JSON is not validated). */
+type AuditItem = {
+    kind?: string;
+    guid?: string;
+    display_name?: string;
+    machine_name?: string;
+    option?: string;
+    object_kind?: string;
+    target?: { kind?: string; sid?: string };
+    fields?: unknown;
+    raw?: string;
+    reason?: string;
+    editable?: boolean;
+};
+
+function auditTitle(item: AuditRow): string | undefined {
     if (item.kind === 'subcategory') return item.display_name || item.guid;
     if (item.kind === 'option') return item.display_name || item.machine_name || item.option;
     if (item.kind === 'global_sacl')
@@ -149,8 +184,9 @@ function auditTitle(item) {
     return text('security.advancedAudit.preserved', 'Preserved source row');
 }
 
-function auditRows(response, scope) {
+function auditRows(input: unknown, scope: PolicyScope): PolicyRow[] {
     if (scope !== 'computer') return [];
+    const response = input as AdvancedAuditResponse;
     if (
         !response ||
         !response.advanced_audit ||
@@ -159,12 +195,12 @@ function auditRows(response, scope) {
     ) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
-    const rows = [];
-    const duplicates = new Map();
+    const rows: PolicyRow[] = [];
+    const duplicates = new Map<string, number>();
     families(response).forEach(function (family) {
         family.rows.forEach(function (item) {
             const key = auditIdentity(item);
-            const parts = [family.id, key];
+            const parts: unknown[] = [family.id, key];
             const occurrenceKey = JSON.stringify(parts);
             const occurrence = duplicates.get(occurrenceKey) || 0;
             duplicates.set(occurrenceKey, occurrence + 1);
@@ -191,9 +227,9 @@ function auditRows(response, scope) {
     return rows;
 }
 
-function scriptRows(scope) {
+function scriptRows(scope: PolicyScope): PolicyRow[] {
     const events = scope === 'computer' ? ['startup', 'shutdown'] : scope === 'user' ? ['logon', 'logoff'] : [];
-    const labels = {
+    const labels: Record<string, string> = {
         startup: 'startupScripts',
         shutdown: 'shutdownScripts',
         logon: 'logonScript',
@@ -214,16 +250,16 @@ function scriptRows(scope) {
     });
 }
 
-function preferenceCategory(document) {
+function preferenceCategory(document: PreferenceDocumentInput): string {
     const id = document.category_id || 'other_settings';
     if (id === 'system_settings') return text('preferences.windowsSettings', 'System Settings');
     if (id === 'control_panel_settings') return text('preferences.controlPanelSettings', 'Component Settings');
     if (id === 'other_settings') return text('preferences.otherSettings', 'Other settings');
-    return document.category_label || id;
+    return (document.category_label as string) || id;
 }
 
-function preferenceRows(documents, scope) {
-    return (Array.isArray(documents) ? documents : [])
+function preferenceRows(documents: unknown, scope: PolicyScope): PolicyRow[] {
+    return (Array.isArray(documents) ? (documents as PreferenceDocumentInput[]) : [])
         .filter(function (document) {
             return document.scope === scope;
         })
@@ -244,7 +280,7 @@ function preferenceRows(documents, scope) {
         });
 }
 
-function normalized(value) {
+function normalized(value: unknown): string {
     return String(value === undefined || value === null ? '' : value)
         .normalize('NFC')
         .toLocaleLowerCase(language())
@@ -252,7 +288,7 @@ function normalized(value) {
         .trim();
 }
 
-function matches(item, query) {
+function matches(item: { title?: unknown; path?: unknown } | null | undefined, query: unknown): boolean {
     const needle = normalized(query);
     if (!needle) return true;
     return (
@@ -260,7 +296,7 @@ function matches(item, query) {
     );
 }
 
-function sortRows(rows) {
+function sortRows(rows: PolicyRow[] | null | undefined): PolicyRow[] {
     const locale = language();
     return (Array.isArray(rows) ? rows : []).slice().sort(function (left, right) {
         return (

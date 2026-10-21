@@ -1,5 +1,5 @@
 import * as confirmationDialog from '@gpui/components/confirmation-dialog';
-import { pt } from '@gpui/components/templates/preference/view/common';
+import { pt } from '@gpui/core/preference-view-common';
 
 /**
  * Closing the preference form: the discard question for unsaved changes and the removal of the form's dialogs from

@@ -10,7 +10,7 @@ import {
     clearFormErrors,
     markServerFieldError
 } from '@gpui/components/templates/preference/view/form-state';
-import { pt, validationMessage } from '@gpui/components/templates/preference/view/common';
+import { pt, validationMessage } from '@gpui/core/preference-view-common';
 
 /**
  * The page's actions that talk to the server and report the outcome: saving the form, deleting the selected item,

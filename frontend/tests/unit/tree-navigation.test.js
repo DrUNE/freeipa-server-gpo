@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-import * as editorIcons from '@gpui/components/editor-icons';
+import * as editorIcons from '@gpui/core/editor-icons';
 import * as enLocale from '@gpui/locales/en';
 import * as ruLocale from '@gpui/locales/ru';
 
@@ -30,7 +30,7 @@ async function treeModule(options = {}) {
         '@gpui/util/API': { getDisplayName: () => 'Example GPO', ...options.api },
         '@gpui/core/security/model': options.securityModel || {},
         '@gpui/core/advanced-audit/model': options.auditModel || {},
-        '@gpui/components/editor-icons': editorIcons
+        '@gpui/core/editor-icons': editorIcons
     });
 }
 
