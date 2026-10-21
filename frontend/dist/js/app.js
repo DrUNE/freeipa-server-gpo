@@ -5191,7 +5191,7 @@
 		}));
 	}
 	//#endregion
-	//#region src/components/templates/admx-template.js
+	//#region src/components/templates/admx/policy-contents.js
 	var nextParameterControlId = 1;
 	function appendLines(container, text) {
 		String(text || "").split(/\r?\n/).forEach(function(line, index) {
@@ -5547,6 +5547,8 @@
 			}
 		};
 	}
+	//#endregion
+	//#region src/components/templates/admx-template.js
 	async function renderAdmxTemplate(options) {
 		const config = options || {};
 		const item = config.item || {};
@@ -11446,9 +11448,8 @@
 		};
 	}
 	//#endregion
-	//#region src/components/templates/preference/targeting-operand-editor.js
+	//#region src/components/templates/preference/targeting-operand-model.js
 	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
-	var nextInputId = 1;
 	var COMMON = [
 		"filter.bool",
 		"filter.not",
@@ -11932,8 +11933,8 @@
 			if (generic) add(id, generic);
 			const value = raw(fields, id), numeric$2 = numeric(node.kind, id);
 			if (numeric$2 && value !== null && value !== "" && (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < numeric$2.min || Number(value) > numeric$2.max)) add(id, "invalid_number");
-			const choices$1 = choices(node.kind, id, "en");
-			if (choices$1 && value !== null && !choices$1.some(function(choice) {
+			const choices$2 = choices(node.kind, id, "en");
+			if (choices$2 && value !== null && !choices$2.some(function(choice) {
 				return String(choice.key) === String(value);
 			})) add(id, "invalid_value");
 		});
@@ -11976,6 +11977,10 @@
 		}
 		return errors;
 	}
+	//#endregion
+	//#region src/components/templates/preference/targeting-operand-editor.js
+	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
+	var nextInputId = 1;
 	function render$2(options) {
 		const node = options.node;
 		const kind = node.kind;
@@ -12148,20 +12153,20 @@
 				container.append(element);
 				return;
 			}
-			let choices$2 = opts.choices || choices(kind, id, language);
-			const booleanChoice = Boolean(choices$2 && (field.value.kind === "boolean" || field.value.kind === "optional_boolean"));
-			if (choices$2) {
-				choices$2 = clone$2(choices$2);
+			let choices$1 = opts.choices || choices(kind, id, language);
+			const booleanChoice = Boolean(choices$1 && (field.value.kind === "boolean" || field.value.kind === "optional_boolean"));
+			if (choices$1) {
+				choices$1 = clone$2(choices$1);
 				const current = value(id);
-				if (current !== null && current !== void 0 && !choices$2.some(function(choice) {
+				if (current !== null && current !== void 0 && !choices$1.some(function(choice) {
 					return String(choice.key) === String(current);
-				})) choices$2.unshift({
+				})) choices$1.unshift({
 					key: String(current),
 					label: words.saved + String(current)
 				});
 				displayed.control = "choice";
-				displayed.choices = choices$2;
-				if (current === null || current === void 0) displayed.value.value = opts.defaultKey !== void 0 ? opts.defaultKey : choices$2.length ? choices$2[0].key : "";
+				displayed.choices = choices$1;
+				if (current === null || current === void 0) displayed.value.value = opts.defaultKey !== void 0 ? opts.defaultKey : choices$1.length ? choices$1[0].key : "";
 				if (booleanChoice) displayed.value = {
 					kind: "text",
 					value: current === null || current === void 0 ? String(opts.defaultKey || "false") : String(Boolean(current))
@@ -16020,7 +16025,7 @@
 		return root;
 	}
 	//#endregion
-	//#region src/components/templates/security-template.js
+	//#region src/components/templates/security/policy-draft.js
 	function tr$1(key, fallback) {
 		const translated = t(key);
 		return translated && translated !== key ? translated : fallback;
@@ -16169,6 +16174,8 @@
 		root.append(list);
 		return root;
 	}
+	//#endregion
+	//#region src/components/templates/security-template.js
 	async function renderPolicyEditor(options) {
 		const config = options || {};
 		const item = config.item || {};
