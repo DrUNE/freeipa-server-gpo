@@ -110,6 +110,7 @@ Vite раздаёт `src/` напрямую. `freeipa/ipa` и `freeipa/rpc` ра
   `helpers/load-module.js`: `await loadModule('util/API.js', { 'freeipa/rpc': {...} }, { navigator })` загружает новый
   экземпляр с этими подменами и по умолчанию подставляет заглушки `freeipa/ipa` и `freeipa/rpc`. Vitest выбрасывает ошибку, если код
   читает экспорт, не определённый в подмене, поэтому такие экспорты нужно задавать явно (`getLanguage: undefined`).
+  `helpers/load-plugin.js` делает то же для написанных вручную страниц `public/chain.js` и `public/gpo.js` (AMD поверх `freeipa/*` FreeIPA): `loadPlugin('chain.js', { 'freeipa/rpc': createRpcDouble() })` возвращает экспорты модуля и подмены (`tests/unit/chain-actions.test.js`, `gpo-page.test.js`).
 - `integration/` (`*.browser.test.js`) — настоящие Chromium и DOM, RPC на моках. Работают с
   `frontend/.test-root/` (в `.gitignore`, пересоздаётся командой `npm test`): каждый модуль из `src` отдельным AMD-модулем
   плюс ссылки на `css/`, `img/`, `chain.js`, `gpo.js`. `bundle.browser.test.js` вместо этого загружает
@@ -160,7 +161,7 @@ integration tests/integration/dialogs-visual` и просмотреть разн
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 311 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 333 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

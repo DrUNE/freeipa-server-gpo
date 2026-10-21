@@ -76,7 +76,8 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 **Status: ✅ partly done.**
 
 - A stand on **Vite** replaces the hand-written server: it serves `frontend/src` directly, `freeipa/*` resolve to ES shims, and `/ipa/session/json` is answered by the mock backend `dev/backend.mjs` (or the stand can be pointed at a live FreeIPA from the dev container). The page reloads on save.
-- **Remaining:** extend the `freeipa/*` shims (`menu`, `phases`, `reg`, `text`, `jquery`) so that `chain.js` and `gpo.js` work in the stand — this closes the weakest spot, since these pages are checked only on a live server today; a `?scenario=error|slow|empty` mode in the mock backend to check error and loading states; HMR instead of a full reload.
+- **Partly done:** `chain.js` and `gpo.js` are now covered by unit tests with doubles of `freeipa/*` (`tests/unit/helpers/load-plugin.js`; 22 tests: the actions and their RPC commands, registration, the menu, the status formatter, saving with rename). Mutations of the pages break them. Rendering the pages in the stand is a different task: it needs a reimplementation of FreeIPA's facet and widget framework (`IPA.facet`, search facets, tables, jQuery widgets), so it is not planned.
+- **Remaining:** a `?scenario=error|slow|empty` mode in the mock backend to check error and loading states; HMR instead of a full reload.
 
 **Done when:** `make ui-dev` shows the editor and the Chains/GPO pages without FreeIPA, and saving a file updates the page.
 
@@ -126,7 +127,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 311 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 333 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -157,7 +158,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (311 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (333 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 
