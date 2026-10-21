@@ -1,7 +1,7 @@
 /** Local, path-independent targeting draft. Persistence belongs to the parent form. */
 
-import { preferenceFieldEdits, clone, preferenceFieldIds, validatePreferenceField, equal } from '@gpui/util/editor-dto';
-import type { FieldDescriptor, FieldEdit, FilterOperation } from '@gpui/util/dto-types';
+import { preferenceFieldEdits, clone, preferenceFieldIds, validatePreferenceField, equal } from '@gpui/core/editor-dto';
+import type { FieldDescriptor, FieldEdit, FilterOperation } from '@gpui/core/dto-types';
 
 /** A filter of the form as the server lists it (`filters` of a preference answer). */
 interface ServerFilter {

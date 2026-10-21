@@ -1,13 +1,8 @@
 import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
 import { t } from '@gpui/locales/translations';
-import {
-    writableElement,
-    collectionElement,
-    elementState,
-    buildSecurityModel
-} from '@gpui/components/templates/security/model';
-import * as modelTools from '@gpui/components/templates/security/model';
+import { writableElement, collectionElement, elementState, buildSecurityModel } from '@gpui/core/security/model';
+import * as modelTools from '@gpui/core/security/model';
 import { rowKey, newRow } from '@gpui/components/templates/security/value-editor';
 import { open } from '@gpui/components/templates/security/dialog';
 import { bind } from '@gpui/components/templates/security/header-actions';

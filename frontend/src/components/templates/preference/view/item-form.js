@@ -6,11 +6,11 @@ import {
 } from '@gpui/components/Dialog/Dialog';
 import { createElement, ElementCreator } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import { preferenceFieldIds, clone } from '@gpui/util/editor-dto';
-import * as dto from '@gpui/util/editor-dto';
+import { preferenceFieldIds, clone } from '@gpui/core/editor-dto';
+import * as dto from '@gpui/core/editor-dto';
 import { trapTab } from '@gpui/components/editor-dialog';
 import { getLanguage } from '@gpui/locales/translations';
-import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
+import * as preferenceLayouts from '@gpui/core/preference-layouts/index';
 import { render } from '@gpui/components/templates/preference/targeting-editor';
 import { syncFormBusy, setNameError } from '@gpui/components/templates/preference/view/form-state';
 import { createTargetingModal } from '@gpui/components/templates/preference/view/targeting-modal';

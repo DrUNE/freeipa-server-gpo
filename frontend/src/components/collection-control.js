@@ -1,6 +1,6 @@
 import { createElement } from '@gpui/util/element-creator';
-import { empty } from '@gpui/util/collection-value';
-import * as collections from '@gpui/util/collection-value';
+import { empty } from '@gpui/core/collection-value';
+import * as collections from '@gpui/core/collection-value';
 import { t } from '@gpui/locales/translations';
 import { open } from '@gpui/components/collection-dialog';
 

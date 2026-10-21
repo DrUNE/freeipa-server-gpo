@@ -28,8 +28,8 @@ async function treeModule(options = {}) {
     return loadModule('components/tree-view/tree-view-list-data.js', {
         '@gpui/locales/translations': translations,
         '@gpui/util/API': { getDisplayName: () => 'Example GPO', ...options.api },
-        '@gpui/components/templates/security/model': options.securityModel || {},
-        '@gpui/components/templates/advanced-audit/model': options.auditModel || {},
+        '@gpui/core/security/model': options.securityModel || {},
+        '@gpui/core/advanced-audit/model': options.auditModel || {},
         '@gpui/components/editor-icons': editorIcons
     });
 }

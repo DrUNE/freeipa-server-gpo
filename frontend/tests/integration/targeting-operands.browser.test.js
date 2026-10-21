@@ -32,7 +32,7 @@ const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css"></head>
 <body><main id="content" style="padding:20px;width:700px"></main><script src="/require.js"></script><script>
 require.config({baseUrl:'/js'});
-require(['util/element-creator','util/editor-dto','components/templates/preference/targeting-presentations','components/templates/preference/targeting-operand-editor'],(elements,dto,presentations,operands)=>{
+require(['util/element-creator','core/editor-dto','core/targeting/presentations','components/templates/preference/targeting-operand-editor'],(elements,dto,presentations,operands)=>{
  const create=elements.createElement;
  function field(id,kind,value,required=false){return {id:'filter.'+id,label:id,control:'text',editable:true,required,value:{kind,value}};}
  function fields(kind){

@@ -1,5 +1,5 @@
 import { cx, h } from '@gpui/lib/dom';
-import { errorCategory } from '@gpui/util/editor-dto';
+import { errorCategory } from '@gpui/core/editor-dto';
 import { t } from '@gpui/locales/translations';
 import styles from '@gpui/components/EditorStatus/EditorStatus.module.css';
 

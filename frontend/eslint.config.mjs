@@ -27,6 +27,24 @@ export default [
         }
     },
     {
+        // src/core is the part that moves to freeipa-webui unchanged: no DOM and no rendering code (see tests/unit/core-boundary.test.js).
+        files: ['src/core/**/*.js'],
+        languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.es2021 } },
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '^@gpui/(components|lib|util|styles)/',
+                            message: 'src/core may import only @gpui/core and @gpui/locales.'
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
         files: ['*.mjs', 'scripts/**/*.mjs', 'dev/**/*.mjs'],
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } }
     },

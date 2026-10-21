@@ -13,7 +13,7 @@ import {
 } from '@gpui/components/templates/all-policies/model';
 import { bind } from '@gpui/components/templates/security/header-actions';
 import { openSecurityDialog } from '@gpui/components/templates/security-template';
-import { buildSecurityModel } from '@gpui/components/templates/security/model';
+import { buildSecurityModel } from '@gpui/core/security/model';
 import { openAdvancedAuditDialog } from '@gpui/components/templates/advanced-audit-template';
 import { openAdmxDialog } from '@gpui/components/templates/admx-template';
 import { openScriptsDialog } from '@gpui/components/templates/script-template';

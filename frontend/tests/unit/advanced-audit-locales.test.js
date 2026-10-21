@@ -3,7 +3,7 @@ import { test } from 'vitest';
 import * as enModule from '@gpui/locales/en';
 import * as ruModule from '@gpui/locales/ru';
 import * as translations from '@gpui/locales/translations';
-import * as model from '@gpui/components/templates/advanced-audit/model';
+import * as model from '@gpui/core/advanced-audit/model';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 /*

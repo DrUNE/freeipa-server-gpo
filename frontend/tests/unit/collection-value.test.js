@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as collection from '@gpui/util/collection-value';
+import * as collection from '@gpui/core/collection-value';
 import * as enLocale from '@gpui/locales/en';
 import * as ruLocale from '@gpui/locales/ru';
 
 /*
- * Collection value model (util/collection-value): the editing session behind list and key/value
+ * Collection value model (core/collection-value): the editing session behind list and key/value
  * parameters of preference-like policies (Software Install packages, PKCS#11 providers and so
  * on). A session wraps a typed value (text_list or key_value_list) with stable row ids, selection,
  * add/edit/move/remove, a pending-editor buffer, dirty tracking, filtering and validation

@@ -1,9 +1,9 @@
 /** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
 
 import { createElement } from '@gpui/util/element-creator';
-import { valuePayload, clone } from '@gpui/util/editor-dto';
-import { fieldLabel, isTextarea } from '@gpui/components/templates/preference/targeting-presentations';
-import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import { valuePayload, clone } from '@gpui/core/editor-dto';
+import { fieldLabel, isTextarea } from '@gpui/core/targeting/presentations';
+import * as presentations from '@gpui/core/targeting/presentations';
 import * as typedInput from '@gpui/components/templates/preference/targeting-typed-input';
 
 import {
@@ -22,7 +22,7 @@ import {
     today,
     validateFields,
     weekday
-} from '@gpui/components/templates/preference/targeting-operand-model';
+} from '@gpui/core/targeting/operand-model';
 
 let nextInputId = 1;
 function render(options) {

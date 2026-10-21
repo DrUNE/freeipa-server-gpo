@@ -1,6 +1,6 @@
 /** Pure helpers for preserving libadmix discriminated values in browser forms. */
 
-import { validate } from '@gpui/util/collection-value';
+import { validate } from '@gpui/core/collection-value';
 
 import type {
     TypedValue,
@@ -17,7 +17,7 @@ import type {
     PreferenceRequest,
     PolicyUpdateRequest,
     RequestError
-} from '@gpui/util/dto-types';
+} from '@gpui/core/dto-types';
 
 export type {
     TypedValue,

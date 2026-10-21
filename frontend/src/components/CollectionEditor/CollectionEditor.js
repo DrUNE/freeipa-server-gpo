@@ -16,7 +16,7 @@ import { tr } from '@gpui/components/CollectionEditor/translate';
  *
  * The folder is split by concern, around one shared context (`ctx`): context.js (state), view.js (markup), table.js (rows),
  * cells.js (selection and inline edit), toolbar.js (Add, Remove, search), reorder.js, keyboard.js, validation.js,
- * translate.js. The rules and the editing session are `util/collection-value.ts` and carry no DOM. Callers keep using
+ * translate.js. The rules and the editing session are `core/collection-value.ts` and carry no DOM. Callers keep using
  * `components/collection-dialog.js` (an adapter) and `collection-control.js` (the form field).
  */
 

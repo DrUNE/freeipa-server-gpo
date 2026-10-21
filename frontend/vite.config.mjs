@@ -96,41 +96,65 @@ export default defineConfig(({ command, mode }) =>
               },
               server: { host: '127.0.0.1', port: 8765, fs: { allow: [root] } }
           }
-        : {
-              // The plugin directory, committed as frontend/dist (js/app.js is one UMD bundle). Under
-              // FreeIPA's RequireJS it registers as an AMD module that depends on the
-              // Web UI's own freeipa/* modules.
-              publicDir,
-              // app.css is served from <plugin>/js/ and the images from <plugin>/img/: /img/x in the CSS becomes ../img/x.
-              base: './',
-              // `--mode development` (npm run watch) is the dev build: source maps for scripts and styles and the
-              // data-source marks of h(); the committed build (production) has neither.
-              define: { __GPUI_DEV__: mode === 'development' },
-              css: {
-                  devSourcemap: true,
-                  postcss: { plugins: mode === 'development' ? [markStyleSources()] : [] }
-              },
-              resolve: { alias: { '@gpui': path.join(root, 'src') } },
-              build: {
-                  outDir,
-                  emptyOutDir: true,
-                  assetsDir: '',
-                  minify: false,
-                  sourcemap: mode === 'development',
-                  reportCompressedSize: false,
-                  // All styles (the components' CSS Modules, then src/styles/*.css) are emitted as js/app.css, the
-                  // only stylesheet gpo.js loads.
-                  lib: {
-                      cssFileName: 'js/app',
-                      entry: path.join(root, 'src', 'app.js'),
-                      name: 'gpui',
-                      formats: ['umd'],
-                      fileName: () => 'js/app.js'
-                  },
-                  rollupOptions: {
-                      external: [/^freeipa\//],
-                      output: { globals: { 'freeipa/ipa': 'IPA', 'freeipa/rpc': 'IPA_rpc' } }
-                  }
-              }
-          }
+        : mode === 'esm'
+          ? {
+                // The editor as an ES module for freeipa-webui (`npm run build:esm`, not committed): the same code as js/app.js
+                // without the UMD wrapper. `freeipa/ipa` and `freeipa/rpc` stay bare imports; the host maps them (an import map
+                // or a bundler alias) to its own adapter over the FreeIPA session and RPC client.
+                publicDir: false,
+                base: './',
+                define: { __GPUI_DEV__: false },
+                resolve: { alias: { '@gpui': path.join(root, 'src') } },
+                build: {
+                    outDir: path.join(root, 'dist-esm'),
+                    emptyOutDir: true,
+                    assetsDir: '',
+                    minify: false,
+                    reportCompressedSize: false,
+                    lib: {
+                        cssFileName: 'gpui',
+                        entry: path.join(root, 'src', 'app.js'),
+                        formats: ['es'],
+                        fileName: () => 'gpui.js'
+                    },
+                    rollupOptions: { external: [/^freeipa\//] }
+                }
+            }
+          : {
+                // The plugin directory, committed as frontend/dist (js/app.js is one UMD bundle). Under
+                // FreeIPA's RequireJS it registers as an AMD module that depends on the
+                // Web UI's own freeipa/* modules.
+                publicDir,
+                // app.css is served from <plugin>/js/ and the images from <plugin>/img/: /img/x in the CSS becomes ../img/x.
+                base: './',
+                // `--mode development` (npm run watch) is the dev build: source maps for scripts and styles and the
+                // data-source marks of h(); the committed build (production) has neither.
+                define: { __GPUI_DEV__: mode === 'development' },
+                css: {
+                    devSourcemap: true,
+                    postcss: { plugins: mode === 'development' ? [markStyleSources()] : [] }
+                },
+                resolve: { alias: { '@gpui': path.join(root, 'src') } },
+                build: {
+                    outDir,
+                    emptyOutDir: true,
+                    assetsDir: '',
+                    minify: false,
+                    sourcemap: mode === 'development',
+                    reportCompressedSize: false,
+                    // All styles (the components' CSS Modules, then src/styles/*.css) are emitted as js/app.css, the
+                    // only stylesheet gpo.js loads.
+                    lib: {
+                        cssFileName: 'js/app',
+                        entry: path.join(root, 'src', 'app.js'),
+                        name: 'gpui',
+                        formats: ['umd'],
+                        fileName: () => 'js/app.js'
+                    },
+                    rollupOptions: {
+                        external: [/^freeipa\//],
+                        output: { globals: { 'freeipa/ipa': 'IPA', 'freeipa/rpc': 'IPA_rpc' } }
+                    }
+                }
+            }
 );

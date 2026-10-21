@@ -1,7 +1,7 @@
 import { createElement } from '@gpui/util/element-creator';
-import { valuePayload } from '@gpui/util/editor-dto';
+import { valuePayload } from '@gpui/core/editor-dto';
 import * as editorIcons from '@gpui/components/editor-icons';
-import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as presentations from '@gpui/core/targeting/presentations';
 
 /**
  * The condition tree of the targeting editor: the rows, drag and drop and keyboard reordering.

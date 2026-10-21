@@ -1,4 +1,4 @@
-import { clone } from '@gpui/util/editor-dto';
+import { clone } from '@gpui/core/editor-dto';
 import { createElement, ElementCreator } from '@gpui/util/element-creator';
 import { createTabs } from '@gpui/components/Tabs/Tabs';
 import { pt } from '@gpui/components/templates/preference/view/common';

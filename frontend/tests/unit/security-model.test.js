@@ -11,7 +11,8 @@ import { execFileSync } from 'node:child_process';
  * needs the real libadmix catalog and is skipped without SDMX (container-only).
  */
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
-const model = await load('security/model.js');
+const loadCore = (name, mocks) => loadModule('core/' + name, mocks);
+const model = await loadCore('security/model.js');
 const values = await load('security/value-editor.js', {
     '../../../util/element-creator': { createElement: undefined }
 });
@@ -162,8 +163,8 @@ test('scalar-only folders have no empty tree expander but lazy and item folders 
 });
 // Advanced Audit exposes catalog rows and opaque global SACL rows as editable (no semantic ACL editor) and keeps the machine name from the server, not the localized label.
 test('Advanced Audit supports all catalog rows and opaque global SACL editing without relabeling machine metadata', async () => {
-    const audit = await load('advanced-audit/model.js', {
-        '../../../locales/translations': {
+    const audit = await loadCore('advanced-audit/model.js', {
+        '../../locales/translations': {
             t: key => (key.endsWith('.crash_on_audit_fail') ? 'Localized audit option' : key)
         }
     });
@@ -215,7 +216,7 @@ test(
                 throw Error('Audit offline');
             }
         };
-        const audit = await load('advanced-audit/model.js');
+        const audit = await loadCore('advanced-audit/model.js');
         const tree = await load('../tree-view/tree-view-list-data.js', {
             '@gpui/editor-icons': await load('../editor-icons.js'),
             '../../locales/translations': { t: key => key },

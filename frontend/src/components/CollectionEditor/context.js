@@ -1,4 +1,4 @@
-import { constraints, session } from '@gpui/util/collection-value';
+import { constraints, session } from '@gpui/core/collection-value';
 
 let sequence = 0;
 

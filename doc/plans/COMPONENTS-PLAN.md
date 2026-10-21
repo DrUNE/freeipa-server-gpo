@@ -59,7 +59,7 @@ A screen is a composition of the components above with real data. Each gets stor
 
 | Screen | Made of | Notes |
 |---|---|---|
-| Advanced Audit | `Toolbar`, `DataTable`, `Dialog`, `Field` | the pilot of migration stage 4; model in `advanced-audit/model.js` |
+| Advanced Audit | `Toolbar`, `DataTable`, `Dialog`, `Field` | the pilot of migration stage 4; model in `core/advanced-audit/model.js` |
 | Scripts (event, picker, entry form) | `Toolbar`, `DataTable`, `Dialog`, `Field`, `OrderableList` | split into modules already (`script/*`) |
 | Security | `Toolbar`, `DataTable`, `Field`, `CollectionEditor`, `Dialog` | controls in `security/controls.js`, dependency plan in `security/dependency-plan.js` |
 | ADMX policy | `Field`, `CollectionEditor`, `EditorStatus` | parameters in `admx/policy-contents.js` |

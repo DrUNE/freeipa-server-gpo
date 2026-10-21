@@ -1,5 +1,5 @@
-import { valuePayload } from '@gpui/util/editor-dto';
-import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
+import { valuePayload } from '@gpui/core/editor-dto';
+import * as preferenceLayouts from '@gpui/core/preference-layouts/index';
 
 const PREFERENCE_LAYOUTS = preferenceLayouts;
 

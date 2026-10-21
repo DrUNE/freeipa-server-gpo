@@ -1,6 +1,6 @@
 import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import { equal, clone } from '@gpui/util/editor-dto';
+import { equal, clone } from '@gpui/core/editor-dto';
 import { t } from '@gpui/locales/translations';
 import {
     pt,

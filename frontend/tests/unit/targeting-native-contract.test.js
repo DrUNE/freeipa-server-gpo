@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as presentation from '@gpui/components/templates/preference/targeting-presentations';
+import * as presentation from '@gpui/core/targeting/presentations';
 import * as operandEditor from '@gpui/components/templates/preference/targeting-operand-editor';
 import { spawnSync } from 'node:child_process';
 

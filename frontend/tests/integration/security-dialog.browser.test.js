@@ -41,7 +41,7 @@ elements:[{id:'value',value_type:'integer',required:true,ranges:[{min:0,max:998}
 window.requests=[];
 define('util/API',[],()=>({securityDefinitionsShow:async()=>response,securityDefinitionsUpdate:async request=>{requests.push(request);return response;}}));
 require.config({baseUrl:'/js'});
-require(['components/templates/security/model','components/templates/security-template','locales/translations'],(model,template,translations)=>{
+require(['core/security/model','components/templates/security-template','locales/translations'],(model,template,translations)=>{
 window.translations=translations;
 window.show=async()=>{
  const view=await template.renderSecurityTemplate({item:model.navigationNodes(response)[0]});

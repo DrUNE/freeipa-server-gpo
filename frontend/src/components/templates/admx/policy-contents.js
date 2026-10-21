@@ -8,7 +8,7 @@ import {
     canSelectPolicyState,
     equal,
     clone
-} from '@gpui/util/editor-dto';
+} from '@gpui/core/editor-dto';
 import { renderUnsupported } from '@gpui/components/editor-status';
 import { t } from '@gpui/locales/translations';
 import { createControl } from '@gpui/components/collection-control';

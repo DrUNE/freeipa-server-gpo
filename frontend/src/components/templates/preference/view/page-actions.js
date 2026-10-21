@@ -1,6 +1,6 @@
 import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
-import { buildPreferenceRequest, preferenceParentIdentity, errorCategory, clone } from '@gpui/util/editor-dto';
+import { buildPreferenceRequest, preferenceParentIdentity, errorCategory, clone } from '@gpui/core/editor-dto';
 import { renderError } from '@gpui/components/editor-status';
 import * as editorStatus from '@gpui/components/editor-status';
 import { neighbor } from '@gpui/components/list-navigation';

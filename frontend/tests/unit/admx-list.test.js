@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as dto from '@gpui/util/editor-dto';
+import * as dto from '@gpui/core/editor-dto';
 import * as en from '@gpui/locales/en';
 import * as ru from '@gpui/locales/ru';
 import * as translations from '@gpui/locales/translations';

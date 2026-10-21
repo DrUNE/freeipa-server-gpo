@@ -14,7 +14,7 @@ Facts were checked against this repository and against `freeipa-webui` on 2026-1
 | Server commands | `gpo_*`, `chain_*` (including `enable`/`disable`, `moveup_gpc`/`movedown_gpc`), `gpmaster_show`/`gpmaster_mod` (`add_chain`, `remove_chain`, `moveup_chain`, `movedown_chain`), 28 `gpo_editor_*` commands (plus two compatibility aliases) |
 | Pages in the stock Web UI | `frontend/public/chain.js` (1194 lines) and `gpo.js` (394), FreeIPA jQuery facets; their actions are covered by unit tests with doubles of `freeipa/*` |
 | GPUI editor | ES modules in `frontend/src/` (≈19.9 thousand lines without the locales, 4 modules in TypeScript), one UMD/AMD bundle `frontend/dist/js/app.js`, 22 preferences layouts, a targeting editor (≈3.1 thousand lines in 6 files, drag-and-drop with a keyboard alternative), EN/RU, 408 frontend tests in 49 files |
-| Code without DOM | ≈5.3 thousand lines (≈27%): `util/{editor-dto,collection-value,targeting-tree-draft,API}.ts`, the targeting operand model and presentations, the security, audit and all-policies models, the dependency plan, the preferences layouts |
+| Code without DOM | ≈5.3 thousand lines (≈27%): `core/{editor-dto,collection-value,targeting-tree-draft}.ts` and `util/API.ts`, the targeting operand model and presentations (`core/targeting/`), the security and audit models (`core/security/`, `core/advanced-audit/`), the dependency plan, the preferences layouts (`core/preference-layouts/`); the all-policies model is still in `templates/all-policies/` |
 | Boundary with libadmix | Server side only. The browser sees the typed `gpo_editor_*` RPC and knows nothing about SYSVOL |
 | RPC contract | `tests/contracts/gpo_editor/*.json`: a reference answer for every command, checked against the real commands (pytest) and against the dev stand and `API.ts` (vitest); `frontend/types/rpc.d.ts` is generated from them |
 | Entry point of the editor | `init({ containerId, policyName })` returns `{ container, cleanup }`; `cleanup()` releases everything the editor put outside its container |
@@ -69,7 +69,7 @@ Working days, one developer. The estimate is calibrated on the benchmark above.
 
 | # | Where | Stage | Days |
 |---|---|---|---|
-| 0 | here | Extract the logic without DOM into `frontend/src/core/` (TypeScript, strict, no imports from the rendering); a second build output: an ES module with `init` next to the UMD bundle | 4-6 |
+| 0 | here | ◐ Extract the logic without DOM into `frontend/src/core/` (TypeScript, strict, no imports from the rendering); a second build output: an ES module with `init` next to the UMD bundle | 4-6 |
 | 1 | webui | RPC services `rpcGpo.ts`, `rpcChain.ts`, `rpcGpmaster.ts`, `rpcGpoEditor.ts` (types from `rpc.d.ts`); the section is shown only when the GPO commands are available; the translations decision | 4-5 |
 | 2 | webui | Pages GPO, Chain, GPMaster: lists, tabs, add/rename/delete, two groups of a chain (typeahead), enable/disable, PDC Emulator, `OrderableList` | 15-20 |
 | 3 | webui | The editor as an island: a `<GpuiEditor policyName />` component that imports the ES module, calls `init()` in `useEffect` and returns `cleanup`; `chain.js` and `gpo.js` are no longer needed there | 3-5 |
@@ -85,6 +85,8 @@ Assumptions:
   are reused, and the stories and integration tests describe the behaviour to keep; it is still the largest item.
 - The webui Cypress tests run against a live FreeIPA, so the tests need a stand with the plugin installed (the dev container of
   this repository fits).
+
+**Stage 0 status (partly done).** `frontend/src/core/` exists (33 files, ≈4.2 thousand lines): the pure modules were moved there, and the boundary is checked (ESLint `no-restricted-imports` for the `.js` files and `tests/unit/core-boundary.test.js` for all files: only `@gpui/core` and `@gpui/locales` imports, no browser globals). `npm run build:esm` builds the editor as an ES module (`dist-esm/gpui.js` with `gpui.css`, not committed; `freeipa/ipa` and `freeipa/rpc` stay bare imports for the host to map; `/img/...` in the styles is resolved by the host), checked by `tests/unit/esm-build.test.js`. Not done: only 4 of the 33 files are TypeScript (strict), the rest are JavaScript checked loosely, so "TypeScript, strict" of the stage is open; `all-policies/model.js` and the view helpers (`preference/view/common.js`) are still outside `core`; `util/API.ts` stays in `util/` as the transport (the host replaces it with `rpcGpoEditor.ts`).
 
 ## 5. Decisions
 

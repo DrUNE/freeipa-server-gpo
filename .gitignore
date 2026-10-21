@@ -208,3 +208,6 @@ tools/ui-dev/package-lock.json
 
 # Dev container runtime state
 .devcontainer/.state/
+
+# Not committed: the ES-module build of the editor for freeipa-webui (npm run build:esm in frontend/)
+frontend/dist-esm/

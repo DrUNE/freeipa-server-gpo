@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as planner from '@gpui/components/templates/security/dependency-plan';
+import * as planner from '@gpui/core/security/dependency-plan';
 
 /*
- * Security dependency planner (components/templates/security/dependency-plan): when one policy of
+ * Security dependency planner (core/security/dependency-plan): when one policy of
  * a related group is edited, plan(model, policy, draft) proposes consistent values for the others
  * (password ages, Kerberos ticket/service/renew lifetimes, account lockout, event log retention)
  * or returns null when no coherent proposal exists.

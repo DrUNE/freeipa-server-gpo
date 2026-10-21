@@ -1,7 +1,7 @@
 /** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
 
-import { equal, validatePreferenceField, valuePayload, clone } from '@gpui/util/editor-dto';
-import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import { equal, validatePreferenceField, valuePayload, clone } from '@gpui/core/editor-dto';
+import * as presentations from '@gpui/core/targeting/presentations';
 
 // The data side of the operand forms: the field catalogs, value helpers, initial state and validation.
 const COMMON = ['filter.bool', 'filter.not', 'filter.combine', 'filter.negate', 'filter.hidden'];

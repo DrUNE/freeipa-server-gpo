@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as presentation from '@gpui/components/templates/preference/targeting-presentations';
+import * as presentation from '@gpui/core/targeting/presentations';
 
 // Unit tests for the targeting presentation registry (labels, enum choices,
 // numeric limits, notes) used by the targeting form renderer. Pure data

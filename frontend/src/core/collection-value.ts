@@ -1,6 +1,6 @@
 /** Typed collection values and isolated editor sessions; no DOM or persistence. */
 
-import type { Collection, TypedValue } from '@gpui/util/dto-types';
+import type { Collection, TypedValue } from '@gpui/core/dto-types';
 
 /** The part of a parameter that describes a list (or key/value list) value. */
 export interface CollectionParameter {

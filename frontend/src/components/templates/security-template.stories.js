@@ -1,6 +1,6 @@
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { renderSecurityTemplate } from '@gpui/components/templates/security-template';
-import { navigationNodes } from '@gpui/components/templates/security/model';
+import { navigationNodes } from '@gpui/core/security/model';
 import * as API from '@gpui/util/API';
 import { mountScreen } from '../../../.storybook/screen.js';
 

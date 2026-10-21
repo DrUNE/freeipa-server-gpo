@@ -1,7 +1,7 @@
 import { t, getLanguage } from '@gpui/locales/translations';
 import * as API from '@gpui/util/API';
-import { navigationNodes } from '@gpui/components/templates/security/model';
-import { navigationNode } from '@gpui/components/templates/advanced-audit/model';
+import { navigationNodes } from '@gpui/core/security/model';
+import { navigationNode } from '@gpui/core/advanced-audit/model';
 import { preferencesRoot, preference, scripts, preferenceCategory } from '@gpui/components/editor-icons';
 
 function payloadList(result, key) {

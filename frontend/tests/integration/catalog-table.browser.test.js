@@ -64,7 +64,7 @@ define('util/API',[],()=>({
 }));
 require.config({baseUrl:'/js'});
 require(['components/header/header','components/templates/preference/preferences-view-template',
- 'components/templates/script-template','components/templates/security-template','components/templates/security/model',
+ 'components/templates/script-template','components/templates/security-template','core/security/model',
  'components/templates/advanced-audit-template','components/templates/all-policies-template','locales/translations'],
  (headerModule,preferences,scripts,security,securityModel,audit,allPolicies,translations)=>{
  window.translations=translations;

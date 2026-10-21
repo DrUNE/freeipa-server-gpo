@@ -9,7 +9,7 @@ import {
     validatePolicyDraft,
     hasOperations,
     equal
-} from '@gpui/util/editor-dto';
+} from '@gpui/core/editor-dto';
 import { renderError } from '@gpui/components/editor-status';
 import { t } from '@gpui/locales/translations';
 import * as editorDialog from '@gpui/components/editor-dialog';

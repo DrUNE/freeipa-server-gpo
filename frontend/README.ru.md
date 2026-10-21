@@ -58,9 +58,9 @@ src/components/<Name>/
   <Name>.stories.js    состояния и play-тесты
 ```
 
-TypeScript необязателен и вводится постепенно: файл `.ts` лежит рядом с JavaScript (пилот — `src/util/editor-dto.ts`). `tsc -p tsconfig.strict.json`
+TypeScript необязателен и вводится постепенно: файл `.ts` лежит рядом с JavaScript (пилот — `src/core/editor-dto.ts`). `tsc -p tsconfig.strict.json`
 (часть `npm run typecheck`) проверяет `.ts` строго, а JavaScript остаётся на нестрогом `tsconfig.json`; ESLint `.ts` пропускает. Импортировать
-без расширения (`@gpui/util/editor-dto`); тестовое дерево превращает его в AMD-модуль `.js` через `transformWithOxc` из Vite.
+без расширения (`@gpui/core/editor-dto`); тестовое дерево превращает его в AMD-модуль `.js` через `transformWithOxc` из Vite.
 
 Source maps: стенд и Storybook отдают их для скриптов (Vite) и для стилей (`css.devSourcemap`: в панели Styles видно `File.module.css:строка`).
 `npm run watch` собирает dev-сборку (`--mode development`) с `app.js.map` и метками `data-source`; у стилей такой сборки карты нет (ограничение Vite), поэтому
@@ -102,6 +102,10 @@ Source maps: стенд и Storybook отдают их для скриптов (
 setup-файл Vitest подменял `chromium.launch` и записывал каждый диалог, который открывают интеграционные тесты (размеры и вычисленные
 стили окна, шапки, заголовка, крестика, тела, подвала, а также кнопок и полей внутри) по структуре, а не по классам, до и после изменения;
 72 снимка должны были остаться идентичными. В репозитории харнеса нет.
+
+## Ядро без DOM (`src/core/`)
+
+`src/core/` — часть редактора, которая переходит в freeipa-webui без изменений: модель данных и правила (коллекции, помощники DTO, модель таргетинга, модели безопасности и аудита, план зависимостей, layout'ы предпочтений). Оно может импортировать только `@gpui/core/*` и `@gpui/locales/*` и не использует браузерные глобалы; это проверяют ESLint и `tests/unit/core-boundary.test.js`. Код отрисовки (`components/`, `lib/`, `util/element-creator`) импортирует ядро, но не наоборот. `npm run build:esm` собирает редактор как ES-модуль (`dist-esm/gpui.js` и `gpui.css`, не коммитится) для подключения хостом; `freeipa/ipa` и `freeipa/rpc` остаются голыми импортами, которые сопоставляет хост.
 
 ## Стенд (`dev/`)
 

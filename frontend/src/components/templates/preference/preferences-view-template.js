@@ -1,5 +1,5 @@
 import { createElement } from '@gpui/util/element-creator';
-import { clone } from '@gpui/util/editor-dto';
+import { clone } from '@gpui/core/editor-dto';
 import * as editorDialog from '@gpui/components/editor-dialog';
 import { bind } from '@gpui/components/list-navigation';
 import { t } from '@gpui/locales/translations';

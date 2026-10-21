@@ -1,7 +1,7 @@
 import { getLanguage, t } from '@gpui/locales/translations';
-import { collectionElement, buildSecurityModel } from '@gpui/components/templates/security/model';
-import * as securityModel from '@gpui/components/templates/security/model';
-import { families } from '@gpui/components/templates/advanced-audit/model';
+import { collectionElement, buildSecurityModel } from '@gpui/core/security/model';
+import * as securityModel from '@gpui/core/security/model';
+import { families } from '@gpui/core/advanced-audit/model';
 import { scriptEvent, preference } from '@gpui/components/editor-icons';
 
 function text(key, fallback) {

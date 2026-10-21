@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as targeting from '@gpui/util/targeting-tree-draft';
+import * as targeting from '@gpui/core/targeting-tree-draft';
 
-// Unit tests for the targeting tree draft model (util/targeting-tree-draft): a
+// Unit tests for the targeting tree draft model (core/targeting-tree-draft): a
 // local editable copy of a server snapshot that compiles into an ordered batch of
 // insert/remove/move/edit operations.
 // Fixtures: snapshot() builds a minimal server DTO (filters, filter_fields and

@@ -1,9 +1,9 @@
 import { createElement } from '@gpui/util/element-creator';
-import { validatePreferenceField, valuePayload, clone } from '@gpui/util/editor-dto';
-import { create } from '@gpui/util/targeting-tree-draft';
+import { validatePreferenceField, valuePayload, clone } from '@gpui/core/editor-dto';
+import { create } from '@gpui/core/targeting-tree-draft';
 import { neighbor, bind } from '@gpui/components/list-navigation';
 import * as editorIcons from '@gpui/components/editor-icons';
-import { supportedKinds, kindLabel } from '@gpui/components/templates/preference/targeting-presentations';
+import { supportedKinds, kindLabel } from '@gpui/core/targeting/presentations';
 import { initialize, validateFields } from '@gpui/components/templates/preference/targeting-operand-editor';
 import * as operandEditor from '@gpui/components/templates/preference/targeting-operand-editor';
 import { createTargetingTree } from '@gpui/components/templates/preference/targeting-tree';

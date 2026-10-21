@@ -2,7 +2,7 @@ import { createElement } from '@gpui/util/element-creator';
 import * as API from '@gpui/util/API';
 import { t } from '@gpui/locales/translations';
 import { renderError } from '@gpui/components/editor-status';
-import { familyById, state } from '@gpui/components/templates/advanced-audit/model';
+import { familyById, state } from '@gpui/core/advanced-audit/model';
 import { tabs, open } from '@gpui/components/templates/security/dialog';
 import { bind } from '@gpui/components/templates/security/header-actions';
 import { auditIdentity } from '@gpui/components/templates/all-policies/model';
@@ -14,7 +14,7 @@ import {
     systemSettingLabel,
     emptyRequest,
     tr
-} from '@gpui/components/templates/advanced-audit/presentation';
+} from '@gpui/core/advanced-audit/presentation';
 
 async function renderAdvancedAuditTemplate(options) {
     const config = options || {};

@@ -22,6 +22,7 @@ const schemas = catalogRoot ? path.join(catalogRoot, 'docs/schema') : '/usr/shar
 const schema = path.join(schemas, 'sdmx-1.0.xsd');
 
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
+const loadCore = (name, mocks) => loadModule('core/' + name, mocks);
 
 // Every case (including boundary values such as 0 and 99999 and cross-dependent Kerberos ages) must
 // be accepted atomically: if the planner's proposals ever contradict libadmix validation, the UI
@@ -64,9 +65,9 @@ test(
                 { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }
             )
         );
-        const modelTools = await load('security/model.js');
+        const modelTools = await loadCore('security/model.js');
         const model = modelTools.buildSecurityModel(fixture);
-        const planner = await load('security/dependency-plan.js');
+        const planner = await loadCore('security/dependency-plan.js');
         const values = await load('security/value-editor.js', {
             '../../../util/element-creator': { createElement: undefined }
         });

@@ -58,9 +58,9 @@ src/components/<Name>/
   <Name>.stories.js    states + play tests
 ```
 
-TypeScript is optional and incremental: a `.ts` file sits next to the JavaScript ones (the pilot is `src/util/editor-dto.ts`). `tsc -p tsconfig.strict.json`
+TypeScript is optional and incremental: a `.ts` file sits next to the JavaScript ones (the pilot is `src/core/editor-dto.ts`). `tsc -p tsconfig.strict.json`
 (part of `npm run typecheck`) checks the `.ts` files strictly while the JavaScript keeps the lenient `tsconfig.json`; ESLint skips `.ts`. Import it
-without an extension (`@gpui/util/editor-dto`); the test tree turns it into a `.js` AMD module with Vite's `transformWithOxc`.
+without an extension (`@gpui/core/editor-dto`); the test tree turns it into a `.js` AMD module with Vite's `transformWithOxc`.
 
 Source maps: the dev stand and Storybook serve them for scripts (Vite) and for styles (`css.devSourcemap`: the Styles pane shows `File.module.css:line`).
 `npm run watch` makes a development build (`--mode development`) with `app.js.map` and the `data-source` marks; the styles of that build have no map (a Vite limit), so
@@ -102,6 +102,10 @@ Moving shared chrome is risky because many places depend on the same class names
 file patched `chromium.launch` so that every dialog opened by the integration tests was recorded (size and computed style of the window,
 header, title, close button, body, footer and the buttons and fields inside) by structure rather than by class, before and after the
 change; 72 snapshots had to stay identical. The harness is not in the repository.
+
+## Core without the DOM (`src/core/`)
+
+`src/core/` is the part of the editor that moves to freeipa-webui unchanged: the data model and rules (collections, DTO helpers, the targeting model, security and audit models, the dependency plan, the preference layouts). It may import only `@gpui/core/*` and `@gpui/locales/*` and may not use browser globals; ESLint and `tests/unit/core-boundary.test.js` enforce it. Rendering code (`components/`, `lib/`, `util/element-creator`) imports from it, never the other way round. `npm run build:esm` builds the editor as an ES module (`dist-esm/gpui.js` and `gpui.css`, not committed) for the host to import; `freeipa/ipa` and `freeipa/rpc` stay bare imports for the host to map.
 
 ## Dev stand (`dev/`)
 

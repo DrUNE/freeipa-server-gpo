@@ -59,7 +59,7 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 
 | Экран | Из чего | Примечания |
 |---|---|---|
-| Расширенный аудит | `Toolbar`, `DataTable`, `Dialog`, `Field` | пилот этапа 4 миграции; модель в `advanced-audit/model.js` |
+| Расширенный аудит | `Toolbar`, `DataTable`, `Dialog`, `Field` | пилот этапа 4 миграции; модель в `core/advanced-audit/model.js` |
 | Скрипты (событие, выбор файла, форма записи) | `Toolbar`, `DataTable`, `Dialog`, `Field`, `OrderableList` | уже разбит на модули (`script/*`) |
 | Безопасность | `Toolbar`, `DataTable`, `Field`, `CollectionEditor`, `Dialog` | элементы управления в `security/controls.js`, план зависимостей в `security/dependency-plan.js` |
 | Политика ADMX | `Field`, `CollectionEditor`, `EditorStatus` | параметры в `admx/policy-contents.js` |

@@ -2306,7 +2306,7 @@
 		return selectedDisplayName;
 	};
 	//#endregion
-	//#region src/components/templates/security/model.js
+	//#region src/core/security/model.js
 	function identity$1(namespace, id) {
 		return String(namespace || "") + "\0" + String(id || "");
 	}
@@ -2498,7 +2498,7 @@
 		return policyModel.state.elements && policyModel.state.elements[elementId] || { state: "unset" };
 	}
 	//#endregion
-	//#region src/components/templates/advanced-audit/model.js
+	//#region src/core/advanced-audit/model.js
 	var OPTION_LABELS = {
 		crash_on_audit_fail: "Audit: Shut down system immediately if unable to log security audits",
 		full_privilege_auditing: "Audit: Audit the use of Backup and Restore privilege",
@@ -3209,7 +3209,7 @@
 		});
 	}
 	//#endregion
-	//#region src/util/collection-value.ts
+	//#region src/core/collection-value.ts
 	function clone$3(value) {
 		return JSON.parse(JSON.stringify(value));
 	}
@@ -3446,7 +3446,7 @@
 		return state;
 	}
 	//#endregion
-	//#region src/util/editor-dto.ts
+	//#region src/core/editor-dto.ts
 	/** Pure helpers for preserving libadmix discriminated values in browser forms. */
 	function clone$2(value) {
 		if (value === void 0) return void 0;
@@ -8299,7 +8299,7 @@
 		};
 	}
 	//#endregion
-	//#region src/components/templates/preference/layouts/shortcuts.js
+	//#region src/core/preference-layouts/shortcuts.js
 	var shortcuts_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$21,
 		columns: () => columns$17,
@@ -8440,7 +8440,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/folders.js
+	//#region src/core/preference-layouts/folders.js
 	var folders_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$20,
 		columns: () => columns$16,
@@ -8538,7 +8538,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/applications.js
+	//#region src/core/preference-layouts/applications.js
 	var applications_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$19,
 		filters: () => filters$19,
@@ -8557,7 +8557,7 @@
 	];
 	var filters$19 = "general";
 	//#endregion
-	//#region src/components/templates/preference/layouts/control-panel.js
+	//#region src/core/preference-layouts/control-panel.js
 	var control_panel_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$18,
 		filters: () => filters$18,
@@ -8576,7 +8576,7 @@
 	];
 	var filters$18 = "general";
 	//#endregion
-	//#region src/components/templates/preference/layouts/data-sources.js
+	//#region src/core/preference-layouts/data-sources.js
 	var data_sources_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$17,
 		columns: () => columns$15,
@@ -8652,7 +8652,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/devices.js
+	//#region src/core/preference-layouts/devices.js
 	var devices_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$16,
 		columns: () => columns$14,
@@ -8707,7 +8707,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/drives.js
+	//#region src/core/preference-layouts/drives.js
 	var drives_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$15,
 		columns: () => columns$13,
@@ -8766,7 +8766,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/environment-variables.js
+	//#region src/core/preference-layouts/environment-variables.js
 	var environment_variables_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$14,
 		columns: () => columns$12,
@@ -8829,7 +8829,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/files.js
+	//#region src/core/preference-layouts/files.js
 	var files_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$13,
 		columns: () => columns$11,
@@ -8948,7 +8948,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/folder-options.js
+	//#region src/core/preference-layouts/folder-options.js
 	var folder_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$12,
 		filters: () => filters$12,
@@ -8967,7 +8967,7 @@
 	];
 	var filters$12 = "general";
 	//#endregion
-	//#region src/components/templates/preference/layouts/ini-files.js
+	//#region src/core/preference-layouts/ini-files.js
 	var ini_files_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$11,
 		columns: () => columns$10,
@@ -9058,7 +9058,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/internet-settings.js
+	//#region src/core/preference-layouts/internet-settings.js
 	var internet_settings_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$10,
 		filters: () => filters$10,
@@ -9077,7 +9077,7 @@
 	];
 	var filters$10 = "general";
 	//#endregion
-	//#region src/components/templates/preference/layouts/local-users-and-groups.js
+	//#region src/core/preference-layouts/local-users-and-groups.js
 	var local_users_and_groups_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$9,
 		columns: () => columns$9,
@@ -9217,7 +9217,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/network-options.js
+	//#region src/core/preference-layouts/network-options.js
 	var network_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$8,
 		columns: () => columns$8,
@@ -9382,7 +9382,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/network-shares.js
+	//#region src/core/preference-layouts/network-shares.js
 	var network_shares_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$7,
 		columns: () => columns$7,
@@ -9512,7 +9512,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/power-options.js
+	//#region src/core/preference-layouts/power-options.js
 	var power_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$6,
 		columns: () => columns$6,
@@ -9544,7 +9544,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/printers.js
+	//#region src/core/preference-layouts/printers.js
 	var printers_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$5,
 		columns: () => columns$5,
@@ -9603,7 +9603,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/regional-options.js
+	//#region src/core/preference-layouts/regional-options.js
 	var regional_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$4,
 		columns: () => columns$4,
@@ -9651,7 +9651,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/registry.js
+	//#region src/core/preference-layouts/registry.js
 	var registry_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$3,
 		columns: () => columns$3,
@@ -9756,7 +9756,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/scheduled-tasks.js
+	//#region src/core/preference-layouts/scheduled-tasks.js
 	var scheduled_tasks_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$2,
 		columns: () => columns$2,
@@ -9824,7 +9824,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/services.js
+	//#region src/core/preference-layouts/services.js
 	var services_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$1,
 		columns: () => columns$1,
@@ -9893,7 +9893,7 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/start-menu.js
+	//#region src/core/preference-layouts/start-menu.js
 	var start_menu_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic,
 		columns: () => columns,
@@ -9938,8 +9938,8 @@
 		}
 	];
 	//#endregion
-	//#region src/components/templates/preference/layouts/index.js
-	var layouts_exports = /* @__PURE__ */ __exportAll({
+	//#region src/core/preference-layouts/index.js
+	var preference_layouts_exports = /* @__PURE__ */ __exportAll({
 		applications: () => applications_exports,
 		control_panel: () => control_panel_exports,
 		data_sources: () => data_sources_exports,
@@ -9965,7 +9965,7 @@
 	});
 	//#endregion
 	//#region src/components/templates/preference/view/common.js
-	var PREFERENCE_LAYOUTS$2 = layouts_exports;
+	var PREFERENCE_LAYOUTS$2 = preference_layouts_exports;
 	function pt(key) {
 		return t("preferences.editor." + key);
 	}
@@ -10987,7 +10987,7 @@
 		return new Draft(showResult);
 	};
 	//#endregion
-	//#region src/components/templates/preference/targeting-presentations.js
+	//#region src/core/targeting/presentations.js
 	/**
 	* Presentation-only adapters for the 29 native item-level targeting kinds.
 	*
@@ -11819,7 +11819,7 @@
 		};
 	}
 	//#endregion
-	//#region src/components/templates/preference/targeting-operand-model.js
+	//#region src/core/targeting/operand-model.js
 	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
 	var COMMON = [
 		"filter.bool",
@@ -14508,7 +14508,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/field-dependencies.js
-	var PREFERENCE_LAYOUTS$1 = layouts_exports;
+	var PREFERENCE_LAYOUTS$1 = preference_layouts_exports;
 	function dependencyRulesFor(kind) {
 		const layout = PREFERENCE_LAYOUTS$1[kind];
 		return layout && Array.isArray(layout.dependencies) ? layout.dependencies : [];
@@ -14599,7 +14599,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/item-form.js
-	var PREFERENCE_LAYOUTS = layouts_exports;
+	var PREFERENCE_LAYOUTS = preference_layouts_exports;
 	/**
 	* The create/edit/view dialog of one preference item: loads the item, builds the fields, tabs and the targeting
 	* modal, tracks the dirty state. Saving and closing are the page's (`saveForm`, `closeForm`).
@@ -15879,7 +15879,7 @@
 		return container;
 	}
 	//#endregion
-	//#region src/components/templates/security/dependency-plan.js
+	//#region src/core/security/dependency-plan.js
 	var BASE = "urn:altlinux:sdmx:policies:";
 	var AGE_BASED = "overwrite_events_older_than_the_retention_period";
 	var AS_NEEDED = "overwrite_events_as_needed";
@@ -17285,7 +17285,7 @@
 		});
 	}
 	//#endregion
-	//#region src/components/templates/advanced-audit/presentation.js
+	//#region src/core/advanced-audit/presentation.js
 	function tr(key, fallback) {
 		const value = t(key);
 		return value && value !== key ? value : fallback;

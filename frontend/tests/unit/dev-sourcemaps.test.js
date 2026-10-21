@@ -24,7 +24,7 @@ test('the dev server gives scripts (types stripped) and styles source maps', asy
         server: { port: 0, host: '127.0.0.1' }
     });
     try {
-        const script = await server.transformRequest('/@fs' + path.join(root, 'src/util/editor-dto.ts'));
+        const script = await server.transformRequest('/@fs' + path.join(root, 'src/core/editor-dto.ts'));
         assert.ok(script && script.map && script.map.sources.length > 0);
         for (const style of ['src/components/Dialog/Dialog.module.css', 'src/styles/main.css']) {
             const result = await server.transformRequest('/@fs' + path.join(root, style));

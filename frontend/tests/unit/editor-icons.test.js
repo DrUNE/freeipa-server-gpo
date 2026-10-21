@@ -3,15 +3,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test, vi } from 'vitest';
 import * as icons from '@gpui/components/editor-icons';
-import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as presentations from '@gpui/core/targeting/presentations';
 import * as tree from '@gpui/components/tree-view/tree-view-list-data';
 import * as model from '@gpui/components/templates/all-policies/model';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
 vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
 vi.mock('@gpui/util/API', () => ({ getDisplayName: () => 'Example GPO' }));
-vi.mock('@gpui/components/templates/security/model.js', () => ({}));
-vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
+vi.mock('@gpui/core/security/model.js', () => ({}));
+vi.mock('@gpui/core/advanced-audit/model.js', () => ({}));
 
 const styles = path.resolve(import.meta.dirname, '../../src/styles');
 // `url(/img/...)` in the CSS is a file of the public directory (the plugin's img/).

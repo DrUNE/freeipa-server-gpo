@@ -14,7 +14,7 @@
 | Серверные команды | `gpo_*`, `chain_*` (включая `enable`/`disable`, `moveup_gpc`/`movedown_gpc`), `gpmaster_show`/`gpmaster_mod` (`add_chain`, `remove_chain`, `moveup_chain`, `movedown_chain`), 28 команд `gpo_editor_*` (плюс два алиаса совместимости) |
 | Страницы в штатном Web UI | `frontend/public/chain.js` (1194 строки) и `gpo.js` (394), jQuery-фасеты FreeIPA; их действия покрыты юнит-тестами с подменами `freeipa/*` |
 | Редактор GPUI | ES-модули в `frontend/src/` (≈19,9 тыс. строк без локалей, 4 модуля на TypeScript), один UMD/AMD-бандл `frontend/dist/js/app.js`, 22 layout'а preferences, targeting editor (≈3,1 тыс. строк в 6 файлах, drag-and-drop с клавиатурной альтернативой), EN/RU, 408 тестов фронтенда в 49 файлах |
-| Код без DOM | ≈5,3 тыс. строк (≈27%): `util/{editor-dto,collection-value,targeting-tree-draft,API}.ts`, модель и представления операндов таргетинга, модели безопасности, аудита и «всех политик», план зависимостей, layout'ы preferences |
+| Код без DOM | ≈5,3 тыс. строк (≈27%): `core/{editor-dto,collection-value,targeting-tree-draft}.ts` и `util/API.ts`, модель и представления операндов таргетинга (`core/targeting/`), модели безопасности и аудита (`core/security/`, `core/advanced-audit/`), план зависимостей, layout'ы preferences (`core/preference-layouts/`); модель «всех политик» пока лежит в `templates/all-policies/` |
 | Граница с libadmix | Только на сервере. Браузер видит типизированный RPC `gpo_editor_*` и не знает про SYSVOL |
 | RPC-контракт | `tests/contracts/gpo_editor/*.json`: эталонный ответ каждой команды, сверяемый с настоящими командами (pytest), со стендом и с `API.ts` (vitest); из них генерируется `frontend/types/rpc.d.ts` |
 | Точка входа редактора | `init({ containerId, policyName })` возвращает `{ container, cleanup }`; `cleanup()` снимает всё, что редактор поставил вне своего контейнера |
@@ -69,7 +69,7 @@
 
 | # | Где | Этап | Дни |
 |---|---|---|---|
-| 0 | здесь | Вынести код без DOM в `frontend/src/core/` (TypeScript, строгий режим, без импортов из отрисовки); второй выход сборки — ES-модуль с `init` рядом с UMD-бандлом | 4-6 |
+| 0 | здесь | ◐ Вынести код без DOM в `frontend/src/core/` (TypeScript, строгий режим, без импортов из отрисовки); второй выход сборки — ES-модуль с `init` рядом с UMD-бандлом | 4-6 |
 | 1 | webui | RPC-сервисы `rpcGpo.ts`, `rpcChain.ts`, `rpcGpmaster.ts`, `rpcGpoEditor.ts` (типы из `rpc.d.ts`); раздел показывается, только если доступны команды GPO; решение по переводам | 4-5 |
 | 2 | webui | Страницы GPO, Chain, GPMaster: списки, вкладки, добавление/переименование/удаление, две группы цепочки (typeahead), enable/disable, PDC Emulator, `OrderableList` | 15-20 |
 | 3 | webui | Редактор «островом»: компонент `<GpuiEditor policyName />` импортирует ES-модуль, вызывает `init()` в `useEffect` и возвращает `cleanup`; `chain.js` и `gpo.js` там больше не нужны | 3-5 |
@@ -85,6 +85,8 @@
   а истории и интеграционные тесты описывают поведение, которое нужно сохранить; это всё равно самый крупный пункт.
 - Cypress-тесты webui идут против живого FreeIPA, поэтому для тестов нужен стенд с установленным плагином (dev-контейнер этого
   репозитория подходит).
+
+**Статус этапа 0 (выполнен частично).** `frontend/src/core/` есть (33 файла, ≈4,2 тыс. строк): чистые модули перенесены туда, граница проверяется (ESLint `no-restricted-imports` для `.js` и `tests/unit/core-boundary.test.js` для всех файлов: только импорты `@gpui/core` и `@gpui/locales`, никаких браузерных глобалов). `npm run build:esm` собирает редактор как ES-модуль (`dist-esm/gpui.js` и `gpui.css`, не коммитится; `freeipa/ipa` и `freeipa/rpc` остаются голыми импортами, которые сопоставляет хост; `/img/...` в стилях разрешает хост), проверка — `tests/unit/esm-build.test.js`. Не сделано: на TypeScript (строгий режим) только 4 файла из 33, остальные — JavaScript с нестрогой проверкой, поэтому «TypeScript, строгий режим» этапа открыт; `all-policies/model.js` и помощники представления (`preference/view/common.js`) пока вне `core`; `util/API.ts` остаётся в `util/` как транспорт (хост заменит его на `rpcGpoEditor.ts`).
 
 ## 5. Решения
 
