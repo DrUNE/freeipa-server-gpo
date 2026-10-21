@@ -1,4 +1,6 @@
-const basic = [
+import type { LayoutColumn, LayoutDependency, LayoutEntry, LayoutFilters } from '@gpui/core/preference-layouts/types';
+
+const basic: LayoutEntry[] = [
     { field: 'properties.element' },
     { field: 'properties.action' },
     { line: true },
@@ -33,15 +35,15 @@ const basic = [
     { field: 'properties.oldMsChap' },
     { field: 'properties.msChapV2' }
 ];
-const general = [
+const general: LayoutEntry[] = [
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
     { field: 'metadata.removePolicy' },
     { field: 'properties.disabled' },
     { field: 'metadata.desc', textarea: true }
 ];
-const filters = 'general';
-const dependencies = [
+const filters: LayoutFilters = 'general';
+const dependencies: LayoutDependency[] = [
     { field: 'properties.ipAddress', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.useDNS', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.useIPv6', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
@@ -61,7 +63,7 @@ const dependencies = [
     },
     { field: 'properties.msChapV2', enabledWhen: [{ source: 'properties.customSettings', equals: true }] }
 ];
-const columns = [
+const columns: LayoutColumn[] = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' },

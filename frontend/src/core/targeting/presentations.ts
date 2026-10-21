@@ -6,10 +6,26 @@
  * Sources: MS-GPPREF 2.2.1.22 and Appendix A, plus the GPMC targeting help.
  */
 
-function pair(en, ru) {
+type Pair = [string, string];
+interface Option {
+    key: string;
+    label: Pair;
+}
+interface Choice {
+    key: string;
+    label: string;
+}
+interface NumericRange {
+    min: number;
+    max: number;
+    step: number;
+}
+type Table<T> = Record<string, Record<string, T>>;
+
+function pair(en: string, ru: string): Pair {
     return [en, ru];
 }
-const kinds = {
+const kinds: Record<string, Pair> = {
     battery: pair('Battery', 'Наличие батареи'),
     computer: pair('Computer name', 'Имя компьютера'),
     cpu: pair('CPU speed', 'Скорость ЦП'),
@@ -43,7 +59,7 @@ const kinds = {
 
 // Only specific operands belong here. bool/not/hidden are toolbar or
 // preserved metadata, never ordinary inputs in the lower operand pane.
-const fields = {
+const fields: Table<Pair> = {
     battery: {},
     computer: {
         type: pair('Name type', 'Тип имени'),
@@ -195,13 +211,13 @@ const fields = {
     collection: { name: pair('Collection name', 'Имя коллекции') }
 };
 
-function option(key, en, ru) {
+function option(key: string, en: string, ru: string): Option {
     return { key: key, label: pair(en, ru) };
 }
-const any = function () {
+const any = function (): Option {
     return option('NE', 'Any', 'Любой');
 };
-const enumerations = {
+const enumerations: Table<Option[]> = {
     computer: { type: [option('NETBIOS', 'NetBIOS name', 'NetBIOS-имя'), option('DNS', 'DNS name', 'DNS-имя')] },
     date: {
         period: [
@@ -381,7 +397,7 @@ const enumerations = {
     }
 };
 
-const numbers = {
+const numbers: Table<NumericRange> = {
     cpu: { speedMHz: { min: 0, max: 65535, step: 1 } },
     date: {
         day: { min: 1, max: 31, step: 1 },
@@ -391,7 +407,7 @@ const numbers = {
     disk: { freeSpace: { min: 0, max: 255, step: 1 } },
     ram: { totalMB: { min: 0, max: 65535, step: 1 } }
 };
-const notes = {
+const notes: Record<string, Pair> = {
     battery: pair(
         'Matches when the computer is running on battery power.',
         'Условие выполняется, когда компьютер работает от батареи.'
@@ -414,31 +430,31 @@ const notes = {
     )
 };
 
-function languageIndex(language) {
+function languageIndex(language?: string | null): 0 | 1 {
     return /^ru(?:[-_]|$)/i.test(String(language || 'en')) ? 1 : 0;
 }
-function localized(value, language) {
+function localized(value: Pair, language?: string | null): string {
     return value[languageIndex(language)];
 }
-function operand(id) {
+function operand(id?: string | null): string {
     return String(id || '').replace(/^filter\./, '');
 }
-function own(object, key) {
+function own(object: object, key: string): boolean {
     return Object.prototype.hasOwnProperty.call(object, key);
 }
-function lookup(table, kind, id) {
+function lookup<T>(table: Table<T>, kind: string, id?: string | null): T | null {
     return own(table, kind) && own(table[kind], operand(id)) ? table[kind][operand(id)] : null;
 }
 
 const supportedKinds = Object.freeze(Object.keys(kinds));
-const kindLabel = function (kind, fallback, language) {
+const kindLabel = function (kind: string, fallback?: string, language?: string | null): string {
     return own(kinds, kind) ? localized(kinds[kind], language) : fallback || String(kind || '');
 };
-const fieldLabel = function (kind, id, fallback, language) {
+const fieldLabel = function (kind: string, id?: string | null, fallback?: string, language?: string | null): string {
     const label = lookup(fields, kind, id);
     return label ? localized(label, language) : fallback || String(id || '');
 };
-const choices = function (kind, id, language) {
+const choices = function (kind: string, id: string | null | undefined, language?: string | null): Choice[] | null {
     const values = lookup(enumerations, kind, id);
     return values
         ? values.map(function (value) {
@@ -446,11 +462,11 @@ const choices = function (kind, id, language) {
           })
         : null;
 };
-const numeric = function (kind, id) {
+const numeric = function (kind: string, id?: string | null): NumericRange | null {
     const value = lookup(numbers, kind, id);
     return value ? { min: value.min, max: value.max, step: value.step } : null;
 };
-const isTextarea = function (kind, id) {
+const isTextarea = function (kind: string, id?: string | null): boolean {
     const key = operand(id);
     return (
         (kind === 'wmi' && key === 'query') ||
@@ -459,8 +475,9 @@ const isTextarea = function (kind, id) {
         (kind === 'registry' && key === 'valueData')
     );
 };
-const note = function (kind, language) {
+const note = function (kind: string, language?: string | null): string {
     return own(notes, kind) ? localized(notes[kind], language) : '';
 };
 
+export type { Choice, NumericRange };
 export { supportedKinds, kindLabel, fieldLabel, choices, numeric, isTextarea, note };

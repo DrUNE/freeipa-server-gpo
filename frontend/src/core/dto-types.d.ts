@@ -15,6 +15,7 @@ export interface FieldDescriptor {
     editable?: boolean;
     required?: boolean;
     control?: string;
+    hidden?: boolean;
     choices?: { key: string; label: string }[];
 }
 

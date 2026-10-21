@@ -1,4 +1,6 @@
-const basic = [
+import type { LayoutColumn, LayoutDependency, LayoutEntry, LayoutFilters } from '@gpui/core/preference-layouts/types';
+
+const basic: LayoutEntry[] = [
     { field: 'properties.action' },
     { line: true },
     { field: 'properties.hive' },
@@ -13,15 +15,15 @@ const basic = [
     { field: 'properties.defaultValue' },
     { field: 'properties.bitfield' }
 ];
-const general = [
+const general: LayoutEntry[] = [
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
     { field: 'metadata.removePolicy' },
     { field: 'properties.disabled' },
     { field: 'metadata.desc', textarea: true }
 ];
-const filters = 'general';
-const dependencies = [
+const filters: LayoutFilters = 'general';
+const dependencies: LayoutDependency[] = [
     { field: 'properties.name', enabledWhen: [{ source: 'properties.default', notEquals: true }] },
     { field: 'properties.type', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.value', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
@@ -29,7 +31,7 @@ const dependencies = [
     { field: 'properties.defaultValue', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     { field: 'properties.bitfield', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] }
 ];
-const columns = [
+const columns: LayoutColumn[] = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' },

@@ -2306,7 +2306,7 @@
 		return selectedDisplayName;
 	};
 	//#endregion
-	//#region src/core/security/model.js
+	//#region src/core/security/model.ts
 	function identity$1(namespace, id) {
 		return String(namespace || "") + "\0" + String(id || "");
 	}
@@ -2420,7 +2420,7 @@
 		let matched = false, writable = false;
 		function visit(controls, inherited) {
 			(controls || []).forEach(function(control) {
-				const readOnly = inherited || control.read_only;
+				const readOnly = inherited || Boolean(control.read_only);
 				if (control.element_id === id) {
 					matched = true;
 					writable = writable || !readOnly;
@@ -2498,7 +2498,7 @@
 		return policyModel.state.elements && policyModel.state.elements[elementId] || { state: "unset" };
 	}
 	//#endregion
-	//#region src/core/advanced-audit/model.js
+	//#region src/core/advanced-audit/model.ts
 	var OPTION_LABELS = {
 		crash_on_audit_fail: "Audit: Shut down system immediately if unable to log security audits",
 		full_privilege_auditing: "Audit: Audit the use of Backup and Restore privilege",
@@ -2516,7 +2516,8 @@
 		};
 	}
 	function configuredRows$1(response) {
-		return Array.isArray(state(response).rows) ? state(response).rows : [];
+		const rows = state(response).rows;
+		return Array.isArray(rows) ? rows : [];
 	}
 	function normalizedGuid(guid) {
 		return String(guid || "").replace(/^\{|\}$/g, "").toLowerCase();
@@ -8299,7 +8300,7 @@
 		};
 	}
 	//#endregion
-	//#region src/core/preference-layouts/shortcuts.js
+	//#region src/core/preference-layouts/shortcuts.ts
 	var shortcuts_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$21,
 		columns: () => columns$17,
@@ -8440,7 +8441,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/folders.js
+	//#region src/core/preference-layouts/folders.ts
 	var folders_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$20,
 		columns: () => columns$16,
@@ -8538,7 +8539,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/applications.js
+	//#region src/core/preference-layouts/applications.ts
 	var applications_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$19,
 		filters: () => filters$19,
@@ -8557,7 +8558,7 @@
 	];
 	var filters$19 = "general";
 	//#endregion
-	//#region src/core/preference-layouts/control-panel.js
+	//#region src/core/preference-layouts/control-panel.ts
 	var control_panel_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$18,
 		filters: () => filters$18,
@@ -8576,7 +8577,7 @@
 	];
 	var filters$18 = "general";
 	//#endregion
-	//#region src/core/preference-layouts/data-sources.js
+	//#region src/core/preference-layouts/data-sources.ts
 	var data_sources_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$17,
 		columns: () => columns$15,
@@ -8652,7 +8653,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/devices.js
+	//#region src/core/preference-layouts/devices.ts
 	var devices_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$16,
 		columns: () => columns$14,
@@ -8707,7 +8708,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/drives.js
+	//#region src/core/preference-layouts/drives.ts
 	var drives_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$15,
 		columns: () => columns$13,
@@ -8766,7 +8767,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/environment-variables.js
+	//#region src/core/preference-layouts/environment-variables.ts
 	var environment_variables_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$14,
 		columns: () => columns$12,
@@ -8829,7 +8830,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/files.js
+	//#region src/core/preference-layouts/files.ts
 	var files_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$13,
 		columns: () => columns$11,
@@ -8948,7 +8949,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/folder-options.js
+	//#region src/core/preference-layouts/folder-options.ts
 	var folder_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$12,
 		filters: () => filters$12,
@@ -8967,7 +8968,7 @@
 	];
 	var filters$12 = "general";
 	//#endregion
-	//#region src/core/preference-layouts/ini-files.js
+	//#region src/core/preference-layouts/ini-files.ts
 	var ini_files_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$11,
 		columns: () => columns$10,
@@ -9058,7 +9059,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/internet-settings.js
+	//#region src/core/preference-layouts/internet-settings.ts
 	var internet_settings_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$10,
 		filters: () => filters$10,
@@ -9077,7 +9078,7 @@
 	];
 	var filters$10 = "general";
 	//#endregion
-	//#region src/core/preference-layouts/local-users-and-groups.js
+	//#region src/core/preference-layouts/local-users-and-groups.ts
 	var local_users_and_groups_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$9,
 		columns: () => columns$9,
@@ -9217,7 +9218,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/network-options.js
+	//#region src/core/preference-layouts/network-options.ts
 	var network_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$8,
 		columns: () => columns$8,
@@ -9382,7 +9383,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/network-shares.js
+	//#region src/core/preference-layouts/network-shares.ts
 	var network_shares_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$7,
 		columns: () => columns$7,
@@ -9512,7 +9513,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/power-options.js
+	//#region src/core/preference-layouts/power-options.ts
 	var power_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$6,
 		columns: () => columns$6,
@@ -9544,7 +9545,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/printers.js
+	//#region src/core/preference-layouts/printers.ts
 	var printers_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$5,
 		columns: () => columns$5,
@@ -9603,7 +9604,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/regional-options.js
+	//#region src/core/preference-layouts/regional-options.ts
 	var regional_options_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$4,
 		columns: () => columns$4,
@@ -9651,7 +9652,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/registry.js
+	//#region src/core/preference-layouts/registry.ts
 	var registry_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$3,
 		columns: () => columns$3,
@@ -9756,7 +9757,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/scheduled-tasks.js
+	//#region src/core/preference-layouts/scheduled-tasks.ts
 	var scheduled_tasks_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$2,
 		columns: () => columns$2,
@@ -9824,7 +9825,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/services.js
+	//#region src/core/preference-layouts/services.ts
 	var services_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic$1,
 		columns: () => columns$1,
@@ -9893,7 +9894,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/start-menu.js
+	//#region src/core/preference-layouts/start-menu.ts
 	var start_menu_exports = /* @__PURE__ */ __exportAll({
 		basic: () => basic,
 		columns: () => columns,
@@ -9938,7 +9939,7 @@
 		}
 	];
 	//#endregion
-	//#region src/core/preference-layouts/index.js
+	//#region src/core/preference-layouts/index.ts
 	var preference_layouts_exports = /* @__PURE__ */ __exportAll({
 		applications: () => applications_exports,
 		control_panel: () => control_panel_exports,
@@ -10987,14 +10988,7 @@
 		return new Draft(showResult);
 	};
 	//#endregion
-	//#region src/core/targeting/presentations.js
-	/**
-	* Presentation-only adapters for the 29 native item-level targeting kinds.
-	*
-	* Tokens and numeric widths follow the active libadmix/gpreface schemas. They
-	* are not new persistence types: selectors retain each native field envelope.
-	* Sources: MS-GPPREF 2.2.1.22 and Appendix A, plus the GPMC targeting help.
-	*/
+	//#region src/core/targeting/presentations.ts
 	function pair(en, ru) {
 		return [en, ru];
 	}
@@ -11819,7 +11813,7 @@
 		};
 	}
 	//#endregion
-	//#region src/core/targeting/operand-model.js
+	//#region src/core/targeting/operand-model.ts
 	/** RSAT-style operand forms. Common boolean operators belong to the parent toolbar. */
 	var COMMON = [
 		"filter.bool",
@@ -15879,7 +15873,7 @@
 		return container;
 	}
 	//#endregion
-	//#region src/core/security/dependency-plan.js
+	//#region src/core/security/dependency-plan.ts
 	var BASE = "urn:altlinux:sdmx:policies:";
 	var AGE_BASED = "overwrite_events_older_than_the_retention_period";
 	var AS_NEEDED = "overwrite_events_as_needed";
@@ -15963,8 +15957,9 @@
 	function clone(value) {
 		return JSON.parse(JSON.stringify(value));
 	}
-	function sameRanges(actual, expected) {
-		if (!Array.isArray(actual) || actual.length !== expected.length) return false;
+	function sameRanges(actualValue, expected) {
+		if (!Array.isArray(actualValue) || actualValue.length !== expected.length) return false;
+		const actual = actualValue;
 		if (actual.some(function(range) {
 			return !range || typeof range !== "object";
 		})) return false;
@@ -15984,15 +15979,17 @@
 		if (!element || element.id !== "value" || element.value_type !== shape[0] || element.required !== true || !element.initial || element.initial.kind !== shape[0] || !sameRanges(element.ranges, shape[1]) || !Array.isArray(element.options)) return false;
 		if (!sameRanges(element.input_ranges, shape[2])) return false;
 		const initial = element.initial.value;
+		const inputRanges = element.input_ranges;
+		const elementOptions = element.options;
 		if (shape[0] === "integer") {
-			const domain = element.input_ranges.length ? element.input_ranges.map(function(range) {
+			const domain = inputRanges.length ? inputRanges.map(function(range) {
 				return [range.min, range.max];
 			}) : shape[1];
 			return Number.isSafeInteger(initial) && domain.some(function(range) {
 				return initial >= range[0] && initial <= range[1];
-			}) && !element.options.length;
+			}) && !elementOptions.length;
 		}
-		if (shape[0] === "boolean") return typeof initial === "boolean" && !element.options.length;
+		if (shape[0] === "boolean") return typeof initial === "boolean" && !elementOptions.length;
 		const options = element.options;
 		if (!Array.isArray(options) || options.some(function(option) {
 			return !option || typeof option.id !== "string";
@@ -16015,7 +16012,7 @@
 		return policies;
 	}
 	function draftFor(policy) {
-		const defined = policy.state && policy.state.state === "defined";
+		const defined = Boolean(policy.state && policy.state.state === "defined");
 		const current = defined && policy.state.elements || {};
 		const elements = {};
 		(policy.definition.elements || []).forEach(function(element) {
@@ -17285,7 +17282,7 @@
 		});
 	}
 	//#endregion
-	//#region src/core/advanced-audit/presentation.js
+	//#region src/core/advanced-audit/presentation.ts
 	function tr(key, fallback) {
 		const value = t(key);
 		return value && value !== key ? value : fallback;

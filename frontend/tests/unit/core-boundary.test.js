@@ -32,6 +32,14 @@ test('src/core imports only core and locales, and has the code that was moved th
     }
 });
 
+test('src/core is TypeScript only (checked strictly by tsconfig.strict.json)', () => {
+    const scripts = files(core).filter(file => file.endsWith('.js'));
+    assert.deepEqual(
+        scripts.map(file => path.relative(core, file)),
+        []
+    );
+});
+
 test('src/core does not use the DOM or other browser globals', () => {
     const forbidden =
         /\b(document|window|navigator|localStorage|sessionStorage|HTMLElement|Element|Node|Event|CustomEvent)\b\s*[.([]/;

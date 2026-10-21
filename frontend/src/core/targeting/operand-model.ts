@@ -2,10 +2,12 @@
 
 import { equal, validatePreferenceField, valuePayload, clone } from '@gpui/core/editor-dto';
 import * as presentations from '@gpui/core/targeting/presentations';
+import type { FieldDescriptor } from '@gpui/core/dto-types';
+import type { OperandNode, OperandOptions, OperandState, OperandError, DateParts } from '@gpui/core/targeting/types';
 
 // The data side of the operand forms: the field catalogs, value helpers, initial state and validation.
 const COMMON = ['filter.bool', 'filter.not', 'filter.combine', 'filter.negate', 'filter.hidden'];
-const SIMPLE = {
+const SIMPLE: Record<string, string[]> = {
     battery: [],
     computer: ['type', 'name'],
     cpu: ['speedMHz'],
@@ -41,7 +43,7 @@ const SIMPLE = {
     group: ['userContext', 'name', 'sid', 'primaryGroup', 'localGroup'],
     collection: ['name']
 };
-const WORDS = {
+const WORDS: Record<string, Record<string, string>> = {
     en: {
         match: 'Match type',
         file: 'File exists',
@@ -114,36 +116,37 @@ const WORDS = {
     }
 };
 
-function fieldOf(fields, id) {
+function fieldOf(fields: FieldDescriptor[], id: string): FieldDescriptor | undefined {
     return fields.find(function (field) {
         return field.id === id;
     });
 }
-function raw(fields, id) {
+// `any`: the payload type depends on the field and is compared/computed with freely by callers (as valuePayload does).
+function raw(fields: FieldDescriptor[], id: string): any {
     const field = fieldOf(fields, id);
     return field ? valuePayload(field.value) : null;
 }
-function assign(fields, id, value) {
+function assign(fields: FieldDescriptor[], id: string, value: unknown): void {
     const field = fieldOf(fields, id);
     if (!field || field.editable === false) return;
     const envelope = clone(field.value);
     envelope.value = value;
     field.value = envelope;
 }
-function stateOf(node) {
+function stateOf(node: OperandNode): OperandState {
     if (!node._operandState) node._operandState = { original: clone(node.fields || []), dates: {}, values: {} };
     return node._operandState;
 }
-function today() {
+function today(): Date {
     return new Date();
 }
-function weekday(date) {
+function weekday(date: Date): string {
     return ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][date.getDay()];
 }
-function daysInMonth(month, year) {
+function daysInMonth(month: unknown, year: unknown): number {
     return new Date(Number(year), Number(month), 0).getDate();
 }
-function dateParts(fields) {
+function dateParts(fields: FieldDescriptor[]): DateParts {
     return {
         day: raw(fields, 'filter.day'),
         month: raw(fields, 'filter.month'),
@@ -151,11 +154,14 @@ function dateParts(fields) {
         dow: raw(fields, 'filter.dow')
     };
 }
-function isCommon(id) {
+function isCommon(id: string): boolean {
     return COMMON.indexOf(id) !== -1;
 }
-function languageChoices(field, language) {
-    let names;
+function languageChoices(
+    field: FieldDescriptor | null | undefined,
+    language: string
+): { key: string; label: string }[] {
+    let names: Intl.DisplayNames | null;
     try {
         names =
             typeof Intl.DisplayNames === 'function' ? new Intl.DisplayNames([language], { type: 'language' }) : null;
@@ -167,7 +173,7 @@ function languageChoices(field, language) {
             return choice.key !== 'unknown';
         })
         .map(function (choice) {
-            let text;
+            let text: string | null | undefined;
             try {
                 text = names && names.of(choice.key);
             } catch (_) {
@@ -178,13 +184,13 @@ function languageChoices(field, language) {
 }
 
 /** Only new nodes receive defaults. Opening a persisted node never calls this implicitly. */
-function initialize(node, options) {
+function initialize(node: OperandNode, options?: OperandOptions): FieldDescriptor[] {
     const fields = clone(node.fields || []);
     if (node.originalPath) return fields;
     const language = options && options.language === 'ru' ? 'ru' : 'en';
     const scope = (options && options.scope) || 'computer';
     const now = today();
-    function empty(id, value) {
+    function empty(id: string, value: unknown): void {
         const old = raw(fields, id);
         if (old === null || old === undefined || old === '') assign(fields, id, value);
     }
@@ -265,9 +271,9 @@ function initialize(node, options) {
     return fields;
 }
 
-function activeIds(node) {
+function activeIds(node: OperandNode): string[] {
     const fields = node.fields || [];
-    let ids = SIMPLE[node.kind];
+    let ids: string[] | undefined = SIMPLE[node.kind];
     if (node.kind === 'date') {
         const period = raw(fields, 'filter.period');
         ids = ['period'].concat(
@@ -311,7 +317,7 @@ function activeIds(node) {
     });
 }
 
-function ipv4(value) {
+function ipv4(value: unknown): number | null {
     if (!/^(0|[1-9]\d{0,2})(\.(0|[1-9]\d{0,2})){3}$/.test(String(value))) return null;
     const parts = String(value).split('.').map(Number);
     return parts.every(function (part) {
@@ -322,10 +328,10 @@ function ipv4(value) {
           }, 0)
         : null;
 }
-function mac(value) {
+function mac(value: unknown): number | null {
     return /^([a-f\d]{2}:){5}[a-f\d]{2}$/i.test(String(value)) ? parseInt(String(value).replace(/:/g, ''), 16) : null;
 }
-function ipv6(value) {
+function ipv6(value: unknown): number[] | null {
     let text = String(value);
     if (text.indexOf(':') === -1) return null;
     if (text.indexOf('.') !== -1) {
@@ -356,7 +362,7 @@ function ipv6(value) {
         return parseInt(part, 16);
     });
 }
-function version(value) {
+function version(value: unknown): number[] | null {
     if (!/^\d+(\.\d+){0,3}$/.test(String(value))) return null;
     const parts = String(value).split('.').map(Number);
     return parts.every(function (part) {
@@ -365,13 +371,13 @@ function version(value) {
         ? parts.concat([0, 0, 0, 0]).slice(0, 4)
         : null;
 }
-function compare(left, right) {
+function compare(left: number[], right: number[]): number {
     for (let i = 0; i < left.length; i++) {
         if (left[i] !== right[i]) return left[i] - right[i];
     }
     return 0;
 }
-function semanticType(kind, id, useIPv6) {
+function semanticType(kind: string, id: string, useIPv6?: boolean): string | null {
     if (id === 'filter.min' || id === 'filter.max') {
         if (kind === 'ip_range' && useIPv6) return id === 'filter.min' ? 'ipv6' : null;
         if (kind === 'ip_range' || kind === 'terminal') return 'ipv4';
@@ -381,7 +387,7 @@ function semanticType(kind, id, useIPv6) {
     if ((kind === 'msi' && id === 'filter.code') || (kind === 'run_once' && id === 'filter.id')) return 'guid';
     return null;
 }
-function validTime(value) {
+function validTime(value: unknown): boolean {
     const match = /^(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$/.exec(String(value));
     if (!match || Number(match[1]) > 24 || Number(match[2]) > 59 || Number(match[3]) > 59) return false;
     if (Number(match[1]) === 24 && (Number(match[2]) || Number(match[3]) || (match[4] && /[1-9]/.test(match[4]))))
@@ -394,14 +400,14 @@ function validTime(value) {
 }
 
 /** Validate active, deliberately edited operands; tolerate untouched legacy representations. */
-function validateFields(node) {
+function validateFields(node: OperandNode | null | undefined): OperandError[] {
     if (!node || node.available === false) return [];
     const fields = node.fields || [];
     const active = activeIds(node);
     const original = node._operandState && node._operandState.original;
     const fresh = !node.originalPath;
-    const errors = [];
-    function changed(id) {
+    const errors: OperandError[] = [];
+    function changed(id: string): boolean {
         if (fresh) return true;
         const before = original && fieldOf(original, id),
             after = fieldOf(fields, id);
@@ -415,10 +421,10 @@ function validateFields(node) {
         'filter.sid',
         'filter.useIPv6'
     ].some(changed);
-    function check(id) {
+    function check(id: string): boolean {
         return changed(id) || modeChanged;
     }
-    function add(id, code) {
+    function add(id: string, code: string): void {
         if (
             !errors.some(function (error) {
                 return error.fieldId === id;
@@ -455,7 +461,7 @@ function validateFields(node) {
         )
             add(id, 'invalid_value');
     });
-    function pair(parser, code, optional) {
+    function pair(parser: (value: unknown) => number | number[] | null, code: string, optional: boolean): void {
         const min = raw(fields, 'filter.min'),
             max = raw(fields, 'filter.max');
         const parsedMin = min === null || min === '' ? null : parser(min),
@@ -474,7 +480,9 @@ function validateFields(node) {
             (check('filter.min') || check('filter.max')) &&
             parsedMin !== null &&
             parsedMax !== null &&
-            (Array.isArray(parsedMin) ? compare(parsedMin, parsedMax) : parsedMin - parsedMax) > 0
+            // a parser returns either numbers or arrays, so both bounds are of the same kind
+            (Array.isArray(parsedMin) ? compare(parsedMin, parsedMax as number[]) : parsedMin - (parsedMax as number)) >
+                0
         )
             add('filter.max', 'invalid_range');
     }

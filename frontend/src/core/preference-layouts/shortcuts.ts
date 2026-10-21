@@ -1,4 +1,6 @@
-const basic = [
+import type { LayoutColumn, LayoutDependency, LayoutEntry, LayoutFilters } from '@gpui/core/preference-layouts/types';
+
+const basic: LayoutEntry[] = [
     { field: 'properties.action' },
     { line: true },
     { field: 'properties.targetType' },
@@ -14,7 +16,7 @@ const basic = [
     { field: 'properties.shortcutKey' },
     { field: 'properties.run' }
 ];
-const general = [
+const general: LayoutEntry[] = [
     { field: 'properties.comment', textarea: true },
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
@@ -22,8 +24,8 @@ const general = [
     { field: 'properties.disabled' },
     { field: 'metadata.desc', textarea: true }
 ];
-const filters = 'general';
-const dependencies = [
+const filters: LayoutFilters = 'general';
+const dependencies: LayoutDependency[] = [
     { field: 'properties.targetPath', enabledWhen: [{ source: 'properties.action', notEquals: 'delete' }] },
     {
         field: 'properties.arguments',
@@ -64,7 +66,7 @@ const dependencies = [
         ]
     }
 ];
-const columns = [
+const columns: LayoutColumn[] = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' },

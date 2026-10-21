@@ -1,16 +1,17 @@
 import { t } from '@gpui/locales/translations';
+import type { AuditRow, UpdateRequest } from '@gpui/core/advanced-audit/types';
 
 // Labels and summaries of the Advanced Audit rows, and the empty update request.
-function tr(key, fallback) {
+function tr(key: string, fallback: string): string {
     const value = t(key);
     return value && value !== key ? value : fallback;
 }
 
-function configured(row) {
+function configured(row: AuditRow): boolean {
     return row.configured !== false && row.kind !== 'preserved';
 }
 
-function label(row) {
+function label(row: AuditRow): string {
     if (row.kind === 'subcategory') return row.display_name || row.guid;
     if (row.kind === 'option') return row.display_name || row.machine_name || row.option;
     if (row.kind === 'global_sacl')
@@ -20,12 +21,12 @@ function label(row) {
     return tr('security.advancedAudit.preserved', 'Preserved source row');
 }
 
-function summary(row) {
+function summary(row: AuditRow): string {
     if (!configured(row)) return tr('security.notConfigured', 'Not configured');
     if (row.kind === 'subcategory') {
         const setting = row.setting || {};
         if (setting.kind === 'system') return systemSettingLabel(setting.value);
-        const enabled = [];
+        const enabled: string[] = [];
         if (setting.none) enabled.push(tr('security.advancedAudit.none', 'No auditing'));
         if (setting.include_success) enabled.push(tr('security.advancedAudit.includeSuccess', 'Include success'));
         if (setting.exclude_success) enabled.push(tr('security.advancedAudit.excludeSuccess', 'Exclude success'));
@@ -42,18 +43,18 @@ function summary(row) {
     return tr('security.advancedAudit.unknownPreserved', 'Unknown row preserved');
 }
 
-function systemSettingLabel(value) {
-    const labels = {
+function systemSettingLabel(value: unknown): string {
+    const labels: Record<string, string> = {
         unchanged: tr('security.advancedAudit.unchanged', 'Leave unchanged'),
         success: tr('security.advancedAudit.success', 'Success'),
         failure: tr('security.advancedAudit.failure', 'Failure'),
         success_and_failure: tr('security.advancedAudit.successAndFailure', 'Success and failure'),
         none: tr('security.advancedAudit.none', 'No auditing')
     };
-    return labels[value] || String(value || '');
+    return labels[value as string] || String(value || '');
 }
 
-function emptyRequest() {
+function emptyRequest(): UpdateRequest {
     return {
         set_subcategories: [],
         clear_subcategories: [],

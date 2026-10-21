@@ -1,39 +1,51 @@
 import { t } from '@gpui/locales/translations';
+import type {
+    AdvancedAuditResponse,
+    AdvancedAuditState,
+    AuditFamily,
+    AuditRow,
+    GlobalSaclRow,
+    OptionRow,
+    PreservedRow,
+    SubcategoryRow
+} from '@gpui/core/advanced-audit/types';
 
-const OPTION_LABELS = {
+const OPTION_LABELS: Record<string, string> = {
     crash_on_audit_fail: 'Audit: Shut down system immediately if unable to log security audits',
     full_privilege_auditing: 'Audit: Audit the use of Backup and Restore privilege',
     audit_base_objects: 'Audit: Audit the access of global system objects',
     audit_base_directories: 'Audit: Audit the access of global directory service objects'
 };
-function tr(key, fallback) {
+function tr(key: string, fallback: string): string {
     const value = t('security.advancedAudit.' + key);
     return value && value !== 'security.advancedAudit.' + key ? value : fallback;
 }
 
-function state(response) {
+function state(response: AdvancedAuditResponse): AdvancedAuditState {
     return (response && response.advanced_audit) || { rows: [], subcategory_catalog: [] };
 }
 
-function configuredRows(response) {
-    return Array.isArray(state(response).rows) ? state(response).rows : [];
+// The rows are open server JSON; the kind of each row is checked by the callers' filters.
+function configuredRows(response: AdvancedAuditResponse): AuditRow[] {
+    const rows = state(response).rows;
+    return Array.isArray(rows) ? (rows as AuditRow[]) : [];
 }
 
-function normalizedGuid(guid) {
+function normalizedGuid(guid: unknown): string {
     return String(guid || '')
         .replace(/^\{|\}$/g, '')
         .toLowerCase();
 }
 
-function localizedSubcategory(row) {
+function localizedSubcategory(row: SubcategoryRow): SubcategoryRow {
     return Object.assign({}, row, {
         display_name: tr('subcategories.' + normalizedGuid(row.guid), row.display_name || row.guid)
     });
 }
 
-function subcategories(response) {
+function subcategories(response: AdvancedAuditResponse): SubcategoryRow[] {
     const rows = configuredRows(response)
-        .filter(function (row) {
+        .filter(function (row): row is SubcategoryRow {
             return row.kind === 'subcategory';
         })
         .map(localizedSubcategory);
@@ -64,9 +76,9 @@ function subcategories(response) {
     return rows;
 }
 
-function options(response) {
+function options(response: AdvancedAuditResponse): OptionRow[] {
     const rows = configuredRows(response)
-        .filter(function (row) {
+        .filter(function (row): row is OptionRow {
             return row.kind === 'option';
         })
         .map(function (row) {
@@ -96,8 +108,8 @@ function options(response) {
     return rows;
 }
 
-function globalSacls(response) {
-    const rows = configuredRows(response).filter(function (row) {
+function globalSacls(response: AdvancedAuditResponse): GlobalSaclRow[] {
+    const rows = configuredRows(response).filter(function (row): row is GlobalSaclRow {
         return row.kind === 'global_sacl';
     });
     const kinds = new Set(
@@ -119,13 +131,13 @@ function globalSacls(response) {
     return rows;
 }
 
-function preserved(response) {
-    return configuredRows(response).filter(function (row) {
+function preserved(response: AdvancedAuditResponse): PreservedRow[] {
+    return configuredRows(response).filter(function (row): row is PreservedRow {
         return row.kind === 'preserved';
     });
 }
 
-function families(response) {
+function families(response: AdvancedAuditResponse): AuditFamily[] {
     return [
         {
             id: 'system_audit_policies',
@@ -152,7 +164,7 @@ function families(response) {
     });
 }
 
-function navigationNode(response) {
+function navigationNode(response: AdvancedAuditResponse) {
     return {
         title: tr('title', 'Advanced Audit Policy Configuration'),
         type: 'folder',
@@ -176,7 +188,7 @@ function navigationNode(response) {
     };
 }
 
-function familyById(response, id) {
+function familyById(response: AdvancedAuditResponse, id: string): AuditFamily | null {
     return (
         families(response).find(function (family) {
             return family.id === id;

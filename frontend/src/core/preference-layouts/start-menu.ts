@@ -1,4 +1,6 @@
-const basic = [
+import type { LayoutColumn, LayoutEntry, LayoutFilters } from '@gpui/core/preference-layouts/types';
+
+const basic: LayoutEntry[] = [
     { field: 'properties.element' },
     { field: 'properties.action' },
     { line: true },
@@ -9,14 +11,14 @@ const basic = [
     { field: 'properties.pinDefault' },
     { field: 'properties.largeMSC' }
 ];
-const general = [
+const general: LayoutEntry[] = [
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
     { field: 'metadata.removePolicy' },
     { field: 'metadata.desc', textarea: true }
 ];
-const filters = 'general';
-const columns = [
+const filters: LayoutFilters = 'general';
+const columns: LayoutColumn[] = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' }
