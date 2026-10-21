@@ -145,12 +145,21 @@ jQuery FreeIPA, живые дескрипторы фильтров).
 
 Браузер нужно установить один раз: `npx playwright install chromium` (в `frontend/`).
 
+## Визуальные эталоны
+
+`tests/integration/dialogs-visual.browser.test.js` сравнивает снимки формы предпочтения, модалки таргетинга (в том числе поверх формы),
+режима только для чтения и вопроса о сбросе правок с PNG из `tests/integration/__snapshots__/dialogs/`. Это вид диалогов до рефакторинга на
+Dialog и CSS-модули: шаг рефакторинга не должен их менять. Пиксели зависят от шрифтов, поэтому тест выполняется только в контейнере
+(dev-контейнер, CI) и пропускается на обычном хосте (отсюда 22 пропущенных теста там). При падении фактический снимок сохраняется в
+`.test-root/visual-diff/`. После намеренного визуального изменения выполнить в контейнере `UPDATE_SNAPSHOTS=1 npx vitest run --project
+integration tests/integration/dialogs-visual` и просмотреть разницу PNG перед коммитом.
+
 ## CI
 
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 309 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 311 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

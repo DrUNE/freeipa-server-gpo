@@ -28,7 +28,7 @@
 - Исходники редактора: `frontend/src/` (ES-модули, без `require` и CommonJS). Сборка Vite даёт **закоммиченный** бандл `plugin/ui/grouppolicy/js/app.js` и `app.css`; руками их не править, после правок `src/` делать `make ui-build` и коммитить вместе. Причина: RPM собирается без сети и без Node.
 - `plugin/ui/grouppolicy/{chain.js,gpo.js,css/,img/}` лежат вне `frontend/`, форматируются вручную. **Не запускать Prettier на `plugin/`** (`prettier` вызывать только в `frontend/` и только на `src dev scripts tests .storybook`).
 - Тесты: `frontend/tests/{unit,integration,e2e}`, раннер Vitest. Integration работают с `frontend/.test-root` (каждый модуль `src` как отдельный AMD-модуль; строит `scripts/build-test-root.mjs`, CSS-модули через `postcss-modules`). Заменили файл в `src/` — `npm test` пересоберёт дерево сам.
-- Тесты не должны пропускаться в CI (`scripts/assert-no-skips.mjs`). 20 тестов на обычном хосте пропускаются (нужны `libadmix`, SDMX, jQuery FreeIPA): их запускает `make test-ui-ipa` в контейнере.
+- Тесты не должны пропускаться в CI (`scripts/assert-no-skips.mjs`). 22 теста на обычном хосте пропускаются (нужны `libadmix`, SDMX, jQuery FreeIPA, шрифты контейнера для снимков): их запускает `make test-ui-ipa` в контейнере.
 - Корневой `.gitignore` игнорирует `lib/`; для `frontend/src/lib/` сделано исключение. Новые файлы проверять `git status`.
 - Манифест установщика `UI_PLUGIN_FILES` в `ipa_gpo_install/actions.py` перечисляет файлы UI (сейчас `js/app.js`, `js/app.css`, css, img); при добавлении файлов обновлять (тест сверяет).
 

@@ -146,12 +146,21 @@ floor in `vitest.config.mjs` is a ratchet, not a target: raise it when unit cove
 
 Install the browser once: `npx playwright install chromium` (in `frontend/`).
 
+## Visual baselines
+
+`tests/integration/dialogs-visual.browser.test.js` compares screenshots of the preference form, the targeting modal (also nested over the
+form), the readonly mode and the discard question with PNGs in `tests/integration/__snapshots__/dialogs/`. They are the look of the dialogs
+before the Dialog/CSS-modules refactoring: a refactoring step must not change them. Pixels depend on fonts, so the test runs only in a
+container (the dev container, CI) and is skipped on a regular host (hence 22 skipped tests there). A failure saves the actual image to
+`.test-root/visual-diff/`. After an intended visual change, run `UPDATE_SNAPSHOTS=1 npx vitest run --project integration
+tests/integration/dialogs-visual` in the container and review the PNG diff before committing.
+
 ## CI
 
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 309 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 311 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.
