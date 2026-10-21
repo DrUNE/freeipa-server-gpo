@@ -14,6 +14,21 @@ try {
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+
+/*
+ * Keyboard behaviour (focus, selection, deletion, Tab order) of the collection dialog and the targeting editor, in a
+ * real Chromium (Playwright).
+ *
+ * Fixture: a tiny http server serves one page plus the .test-root AMD tree through requirejs and the global CSS. The
+ * page has Before/After buttons around a #host and exposes two mount functions: mountCollection(options) opens the
+ * real collection dialog (list or key/value, optional readonly/values) and mountTargeting(options) renders the real
+ * targeting editor over a fixed filter tree (a collection with three file children plus a root file filter) with a
+ * minimal fake field control and a `formState` object. Nothing talks to a server.
+ *
+ * Helpers: fixture() runs a scenario and requires no page errors; collectionRows/cell/targetRows/selectedTarget are
+ * locator shortcuts built on data-* hooks; focused() tells whether a locator holds document focus.
+ */
+// The page: stylesheets, the mount functions and a fake field control for the targeting editor.
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial;margin:0}.gp__container{height:100vh}#host{width:780px}.gpo-editor-filters{height:450px}</style>
@@ -57,6 +72,7 @@ require(['util/element-creator','components/collection-dialog','components/templ
  window.ready=true;
 });</script></body></html>`;
 
+// Serves the page and .test-root, launches the browser, runs `run(page)` and fails on uncaught page errors.
 async function fixture(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -105,6 +121,8 @@ const focused = locator => locator.evaluate(node => node === document.activeElem
 const selectedTarget = page => page.locator('[data-targeting-id].active');
 
 for (const language of ['en', 'ru']) {
+    // Deleting rows with the keyboard moves focus to the neighbour (next, else previous), then to the table itself when
+    // empty; the table is a single Tab stop (roving tabindex), and Tab from the empty table goes on to the dialog.
     test(
         'Collection deletion retains previous/next/empty focus with a single Tab entry (' + language + ')',
         { skip },
@@ -141,6 +159,9 @@ for (const language of ['en', 'ru']) {
             })
     );
 
+    // Arrow keys walk only the visible tree rows (collapse/expand, Home), Enter moves into the field form (where Delete
+    // must not remove the filter), and Delete on a row removes just it and selects a sibling/parent. The final
+    // operations must contain exactly the three removals, and Tab leaves the tree to the next page control.
     test(
         'Targeting visible traversal, operand activation and sibling/parent deletion stay local (' + language + ')',
         { skip },
@@ -199,6 +220,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// With a search filter active, Delete and Home/End/PageDown must act on the visible (filtered) rows, not on indexes of
+// the full list; the 25 values include three matches, and clearing the filter must show 24 rows (exactly one removed).
 test(
     'Filtered collection deletion follows visible order; keyboard paging and toolbar keys do not mutate',
     { skip },
@@ -226,6 +249,8 @@ test(
         })
 );
 
+// In key/value mode, Delete inside the cell editor is native text editing (no row removed), Tab commits and moves to
+// the next cell, Escape returns focus to the grid, and adding a row clears the selection (so Remove is disabled).
 test('Key–Value cell navigation preserves native editing, Tab commit and append selection reset', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => mountCollection({ kv: true }));
@@ -252,6 +277,8 @@ test('Key–Value cell navigation preserves native editing, Tab commit and appen
     })
 );
 
+// Read-only collection and targeting ignore Delete/F2/Enter but keep navigation; a busy targeting form ignores
+// Delete too. Collapsing a parent whose child is selected must move the selection to that parent.
 test(
     'Readonly and busy nested editors never mutate; collapsed descendant selection recovers to its parent',
     { skip },

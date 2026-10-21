@@ -5,10 +5,22 @@ import * as editorIcons from '@gpui/components/editor-icons';
 import * as enLocale from '@gpui/locales/en';
 import * as ruLocale from '@gpui/locales/ru';
 
+/*
+ * Navigation tree built by components/tree-view/tree-view-list-data.js (buildTreeViewList): the
+ * Computer/User branches, Policies (Windows Settings, Administrative Templates), Preferences
+ * categories, Scripts and Security nodes.
+ *
+ * treeModule() loads the module with mocks: translations (t returns the key, optional
+ * getLanguage), API (display name, children() for ADMX categories, security/audit loaders),
+ * security and audit models, and the real editor-icons. preference() makes a preference
+ * document DTO; childByTitle/scopeByName/policyBranch/windowsSettings/administrativeTemplates
+ * walk the tree by node title and fail with a readable message when a branch is missing.
+ */
 function locale(language) {
     return language === 'ru' ? ruLocale : enLocale;
 }
 
+// Loads the tree module with the dependencies mocked; options override the API, models, and language.
 async function treeModule(options = {}) {
     // vitest rejects reads of exports a mock does not define, so "no getter" is an explicit undefined.
     const translations = options.translations || { t: key => key, getLanguage: undefined };
@@ -22,6 +34,7 @@ async function treeModule(options = {}) {
     });
 }
 
+// Builds a preference document DTO as the server returns it (control_panel is read-only).
 function preference(scope, kind, categoryId, categoryOrder, displayOrder, label) {
     return {
         scope,
@@ -35,6 +48,7 @@ function preference(scope, kind, categoryId, categoryOrder, displayOrder, label)
     };
 }
 
+// Tree-walk helpers: assert that the branch exists so a missing node fails with its name.
 function childByTitle(parent, title) {
     const child = (parent.children || []).find(node => node.title === title);
     assert.ok(child, `Missing navigation branch: ${title}`);
@@ -57,6 +71,7 @@ function administrativeTemplates(scopeRoot) {
     return childByTitle(policyBranch(scopeRoot), 'policies.adminTemplates');
 }
 
+// Scope and category names in the locale files are the source of tree headings; the Preferences Windows Settings name must equal the Policies one.
 test('tree headings keep the requested scope and neutral category names in both languages', async () => {
     for (const [language, expected] of Object.entries({
         en: ['Computer', 'User', 'System Settings', 'Component Settings'],
@@ -76,6 +91,7 @@ test('tree headings keep the requested scope and neutral category names in both 
     }
 });
 
+// Full shape of both scopes: All Policies, Policies (Scripts, Security only for computer), Preferences categories ordered by category_order and kinds by display_order, control panel read-only, unknown categories kept.
 test('Policies and Preferences keep their editors under the correct scope and category', async () => {
     const future = preference('computer', 'future_kind', 'future_category', 15, 1, 'Future');
     future.category_label = 'Future settings';
@@ -150,6 +166,7 @@ test('Policies and Preferences keep their editors under the correct scope and ca
     );
 });
 
+// Documents from an older server without category metadata land in an Other category instead of disappearing.
 test('legacy preference documents without category metadata stay visible', async () => {
     const root = (await treeModule()).buildTreeViewList({
         preference_documents: [{ scope: 'computer', kind: 'files', label: 'Files', editable: true }]
@@ -160,6 +177,7 @@ test('legacy preference documents without category metadata stay visible', async
     assert.equal(category.children[0].preferenceKind, 'files');
 });
 
+// Without preference documents the Preferences branch is omitted, so users do not see an empty editor.
 test('empty unsupported branches are not presented as available editors', async () => {
     const root = (await treeModule()).buildTreeViewList({})[0];
     assert.deepEqual(
@@ -176,6 +194,7 @@ test('empty unsupported branches are not presented as available editors', async 
     );
 });
 
+// ADMX tree is lazy and loaded from API.children(); both documented response shapes (array or {children}) are accepted at either depth, categories sort before policies in a locale-aware way, and policy nodes are hidden from the tree but kept for the list.
 for (const language of ['en', 'ru']) {
     for (const scope of ['computer', 'user']) {
         test(`Administrative Templates retains hidden policies and sorts root and nested lists in ${language} for ${scope}`, async () => {
@@ -251,6 +270,7 @@ for (const language of ['en', 'ru']) {
     }
 }
 
+// Nodes without a label use their id as title, and a translations mock without getLanguage must not break sorting.
 test('Administrative Templates falls back to IDs and supports translation mocks without a language getter', async () => {
     const tree = await treeModule({
         api: {
@@ -273,6 +293,7 @@ test('Administrative Templates falls back to IDs and supports translation mocks 
     assert.ok(nodes.filter(node => node.type === 'file').every(node => node.showInTree === false));
 });
 
+// ADMX sorting and visibility rules must not leak into Preferences, Scripts or Security: those keep their own ordering and stay visible; Security keeps node identity.
 test('Administrative Templates ordering and visibility do not change Preferences, Scripts, or Security navigation rules', async () => {
     const securityPolicy = { title: 'Scalar policy', type: 'file', template: 'security', showInTree: false };
     const collection = { title: 'Alpha collection', type: 'file', template: 'security', securityCollection: 'entries' };

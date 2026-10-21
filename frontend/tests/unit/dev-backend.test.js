@@ -2,17 +2,25 @@ import assert from 'node:assert/strict';
 import { beforeEach, test } from 'vitest';
 import * as backend from '../../dev/backend.mjs';
 
+/*
+ * Covers the scenario switch of the dev stand mock server (dev/backend.mjs), which also feeds Storybook.
+ * The backend is used in-process: `call` builds a JSON-RPC request and runs it through backend.dispatch with an
+ * optional scenario; the state is reset before each test so the tests do not leak mutations into one another.
+ */
 beforeEach(() => backend.reset());
 
+// Default params open the "Dev GPO" computer policy; tests pass their own params when the method needs a category.
 const call = (method, params, scenario) =>
     backend.dispatch({ method, params: params || [['Dev GPO', 'computer'], {}], id: 1 }, scenario);
 
+// Baseline: without a scenario the mock serves non-empty fixture data, so the other scenarios have something to differ from.
 test('the normal scenario answers from the fixtures', () => {
     const reply = call('gpo_editor_open', [['Dev GPO'], {}]);
     assert.equal(reply.error, null);
     assert.ok(reply.result.result.preference_documents.length > 0);
 });
 
+// The stories rely on `error` to show the unavailable-server state for any command, not only for the ones the mock implements.
 test('the error scenario fails every editor call, known or not, as an unavailable server', () => {
     for (const method of [
         'gpo_editor_open',
@@ -27,6 +35,7 @@ test('the error scenario fails every editor call, known or not, as an unavailabl
     }
 });
 
+// `empty` must only blank the lists (items, documents, script assets); the surrounding answer stays valid for the UI.
 test('the empty scenario empties the lists and leaves the rest of the answer', () => {
     const normal = call('gpo_editor_preference_items', [['Dev GPO', 'computer', 'files'], {}]);
     assert.ok(normal.result.result.items.length > 0);
@@ -40,12 +49,14 @@ test('the empty scenario empties the lists and leaves the rest of the answer', (
     assert.deepEqual(files.result.result.scripts.assets, []);
 });
 
+// Guards against the empty scenario emptying the shared fixture in place, which would break every later `normal` call.
 test('the scenario never changes the fixtures themselves', () => {
     call('gpo_editor_preference_items', [['Dev GPO', 'computer', 'files'], {}], 'empty');
     const again = call('gpo_editor_preference_items', [['Dev GPO', 'computer', 'files'], {}]);
     assert.ok(again.result.result.items.length > 0);
 });
 
+// The Scenario toolbar switch and the stand read this list; a renamed or dropped scenario must be a conscious change.
 test('the scenario list names what the stand offers', () => {
     assert.deepEqual(backend.SCENARIOS, ['normal', 'error', 'slow', 'empty']);
 });

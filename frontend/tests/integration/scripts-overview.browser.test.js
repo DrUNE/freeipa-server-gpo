@@ -5,6 +5,16 @@ import path from 'node:path';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Browser check of the Scripts template (startup/shutdown/logon/logoff overview).
+ *
+ * Fixture: inline HTML page loading the real header and script-template modules
+ * from .test-root through RequireJS, while `util/API` is replaced by a fake with
+ * in-memory `views` (per scope/event: entries and SYSVOL assets with references).
+ * Every API call is logged into window.calls; mutating fakes (add/upload/delete)
+ * update the in-memory view so the UI refreshes like with a real server.
+ * window.render(scope) re-creates the view, window.setLanguage switches locale.
+ */
 let chromium;
 let requireJs;
 try {
@@ -94,6 +104,10 @@ require(['components/templates/script-template','components/header/header','loca
  });
 </script></body></html>`;
 
+// One long end-to-end walk: event table, event dialog layout and "add from SYSVOL" picker, discard
+// confirmation when leaving with unsaved order change (no 'order' RPC must be sent), file explorer
+// (download with revision, upload without creating an entry, multi-delete), per-scope lists, empty
+// folder layout and Russian locale. Protects that file management is scoped to the selected event folder.
 test(
     'Scripts overview opens event details and manages files in the selected SYSVOL folder',
     {
@@ -144,6 +158,7 @@ test(
             assert.deepEqual(await rows.allTextContents(), ['Startup scripts10', 'Shutdown scripts10']);
             assert.equal(await page.getByRole('button', { name: 'Open scripts folder…' }).isVisible(), true);
 
+            // Diagnostic only: on failure report element geometry to explain why the double click did not land.
             await rows
                 .filter({ hasText: 'Shutdown scripts' })
                 .dblclick({ timeout: 5000 })

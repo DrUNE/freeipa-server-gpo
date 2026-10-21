@@ -3,6 +3,16 @@ import { afterEach, beforeEach, test, vi } from 'vitest';
 import { t } from '@gpui/locales/translations';
 import { createRpcDouble, loadPlugin } from './helpers/load-plugin.js';
 
+/*
+ * Unit tests for the Policy chain page plugin (chain.js): action/formatter/entity registration,
+ * menu wiring, enable/disable/move actions and the status formatter.
+ *
+ * The plugin is loaded by loadPlugin() with doubles for the FreeIPA AMD modules (ipa, phases,
+ * reg, menu) and an RPC double that records executed commands in rpc.executed; tests fire the
+ * recorded on_success/on_error callbacks by hand. facet() is a minimal facet stub exposing the
+ * selected rows and a refresh spy. window.location is stubbed per test where the chain name is
+ * taken from the page address.
+ */
 let rpc;
 let chain;
 let ipa;
@@ -21,8 +31,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+// // Minimal facet: returns fixed selected values and counts refresh() calls.
 const facet = selected => ({ get_selected_values: () => selected, refresh: vi.fn() });
 
+// // Registration contract with the FreeIPA UI: the plugin hooks the right phases (menu at priority 20) and registers every action it relies on.
 test('the page registers its actions, formatter and entity in the registration phase and its menu in the profile phase', () => {
     assert.deepEqual(
         phases.on.mock.calls.map(call => [call[0], call[2]]),
@@ -40,6 +52,7 @@ test('the page registers its actions, formatter and entity in the registration p
     assert.equal(reg.entity.register.mock.calls[0][0].type, 'chain');
 });
 
+// // The Group Policy menu is attached only when the parent Policy menu exists, so a missing parent cannot throw or leave an orphan entry.
 test('the menu entry is added only under an existing Policy menu', () => {
     menu.query.mockReturnValue([]);
     chain.add_menu_items();
@@ -57,6 +70,7 @@ for (const [name, method, selectMessage, done, failed] of [
     ['enable_action', 'enable', 'chain.selectOneChainEnable', 'chain.enabledSuccessfully', 'chain.enableFailed'],
     ['disable_action', 'disable', 'chain.selectOneChainDisable', 'chain.disabledSuccessfully', 'chain.disableFailed']
 ]) {
+    //     // Guards against acting on an ambiguous selection: nothing is sent and an error is shown.
     test(`${name} needs exactly one selected chain`, () => {
         const action = chain[name]();
         action.execute_action(facet([]));
@@ -68,6 +82,7 @@ for (const [name, method, selectMessage, done, failed] of [
         ]);
     });
 
+    //     // One RPC per action, a refresh and notification on success, an error message and no refresh on failure.
     test(`${name} sends one ${method} command and reports the result`, () => {
         const action = chain[name]();
         const target = facet(['web']);
@@ -97,6 +112,7 @@ for (const [name, option, done] of [
     ['move_up_action', 'moveup_chain', 'chain.movedUpSuccessfully'],
     ['move_down_action', 'movedown_chain', 'chain.movedDownSuccessfully']
 ]) {
+    //     // Moving a chain goes through the gpmaster object (not the chain entity) with the chain name in the move option.
     test(`${name} sends the move of the selected chain through the master object`, () => {
         const action = chain[name]();
         const target = facet(['web']);
@@ -115,6 +131,7 @@ for (const [name, option, done, notFound] of [
     ['move_gpc_up_action', 'moveup_gpc', 'chain.gpcMovedUp', 'chain.unableToDetermineChainUp'],
     ['move_gpc_down_action', 'movedown_gpc', 'chain.gpcMovedDown', 'chain.unableToDetermineChainDown']
 ]) {
+    //     // Moving a policy inside a chain: the chain name is not in the facet, so it is parsed from the location hash.
     test(`${name} takes the chain from the page address`, () => {
         vi.stubGlobal('window', { location: { hash: '#/e/chain/gpo/web' } });
         chain[name]().execute_action(facet(['policy-1']));
@@ -127,6 +144,7 @@ for (const [name, option, done, notFound] of [
         assert.deepEqual(ipa.notify_success.mock.calls[0], [t(done).replace('%s', 'policy-1')]);
     });
 
+    //     // When the hash holds no chain, sending the command would target a wrong object: abort with an error instead.
     test(`${name} refuses to act when the page address names no chain`, () => {
         vi.stubGlobal('window', { location: { hash: '#/e/gpo/search' } });
         chain[name]().execute_action(facet(['policy-1']));
@@ -135,6 +153,7 @@ for (const [name, option, done, notFound] of [
     });
 }
 
+// // The formatter accepts the shapes the server may return and shows Unknown for anything it cannot interpret.
 test('the status formatter maps booleans, flag strings and lists to the localized status', () => {
     const { format } = chain.boolean_status_formatter();
     assert.equal(format(true), t('chain.statusActive'));

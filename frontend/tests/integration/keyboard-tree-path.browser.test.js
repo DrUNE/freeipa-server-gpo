@@ -15,6 +15,19 @@ try {
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const root = path.resolve(import.meta.dirname, '../../.test-root');
+/*
+ * Keyboard behaviour of the ADMX catalog list, the tree view and the category path (breadcrumb), plus modal Tab
+ * ownership of the policy dialog, in a real Chromium (Playwright).
+ *
+ * Fixture: the page HTML (real app pieces over a fake util/API with ADMX categories and policies such as "Zulu root
+ * policy" and "Mixed category", requests logged in window.requests) is not defined here but cut out of
+ * admx-navigation.browser.test.js and evaluated with node:vm, so both files share one fixture and this one does not
+ * register that file's tests. Its helpers selectAdmin(), category(), roots and state are used from page.evaluate.
+ *
+ * Helpers: fixture() serves the page and .test-root, runs a scenario, then requires no page errors and no 'update'
+ * request; catalog/currentRow/currentTree are locators of the list, its active row and the tree's single Tab stop;
+ * focused() tells whether a locator holds document focus.
+ */
 // Reuse the actual-app mock fixture without registering its historical tests.
 const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
 const start = source.indexOf('const html = `');
@@ -22,6 +35,7 @@ const end = source.indexOf('\nconst browserOptions', start);
 assert.ok(start >= 0 && end > start);
 const html = vm.runInNewContext(source.slice(start, end) + '\nhtml;');
 
+// Serves the shared page and .test-root, runs `run(page)`, then fails on page errors or a write ('update') request.
 async function fixture(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -69,6 +83,9 @@ const currentRow = page => catalog(page).locator('.workspace-list-item.active');
 const currentTree = page => page.locator('.tree-view .tree-item[tabindex="0"]');
 const focused = locator => locator.evaluate(node => node === document.activeElement);
 
+// A single click only selects a catalog row; Space does nothing; Enter or double click opens the policy dialog (one
+// show request each). The dialog traps Tab/Shift+Tab, allows text selection only in fields and the explanation, does
+// not react to F6 by re-rendering, and its own path is the page path, not a second one inside the dialog.
 for (const language of ['en', 'ru']) {
     test('Catalog mouse/keyboard activation, copy rules and modal Tab ownership in ' + language, { skip }, async () =>
         fixture(async page => {
@@ -130,6 +147,9 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// Left/Right only expand, collapse and step through the tree without re-rendering the catalog (renderRequestId stays),
+// and the page is a chain of single Tab stops: tree, path, filter, list. F6 swaps between tree and list panes.
+// The outer .modal-gpui shell is added because the real app lives inside the FreeIPA dialog.
 test('Tree keys preserve expansion rules and Tab/F6 use single pane entries', { skip }, async () =>
     fixture(async page => {
         // The real app is inside the outer FreeIPA dialog, unlike the bare fixture.
@@ -183,6 +203,8 @@ test('Tree keys preserve expansion rules and Tab/F6 use single pane entries', { 
     })
 );
 
+// Collapsing an ancestor of the selected node must move only the visible tab stop to the ancestor: the selection,
+// the catalog render and the keyboard focus must stay as they were.
 test('Collapsing an ancestor moves the tree Tab stop without changing its selected descendant', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(async () => {
@@ -207,6 +229,8 @@ test('Collapsing an ancestor moves the tree Tab stop without changing its select
     })
 );
 
+// A breadcrumb click with a dirty policy draft must wait in pendingNavigation (draft intact) until discard is chosen;
+// the path is a horizontal roving-tabindex group (Home/End/Arrow keys, one Tab stop).
 test('GPO breadcrumb uses the existing draft guard and horizontal roving navigation', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => selectAdmin('computer'));

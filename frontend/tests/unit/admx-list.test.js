@@ -6,6 +6,15 @@ import * as ru from '@gpui/locales/ru';
 import * as translations from '@gpui/locales/translations';
 import * as status from '@gpui/components/EditorStatus/EditorStatus';
 
+/*
+ * Software Install (InstallPackagesList) policy flow in the editor DTO layer: state selection,
+ * validation and update-request building for a text_list parameter, plus key_value collections.
+ * Pure functions from editor-dto; no DOM and no RPC. The locales/EditorStatus modules are used
+ * only to check the localized validation message.
+ *
+ * policy(state, values) builds a server policy DTO (values === null means no stored value);
+ * draft(state, values) builds the matching editor draft.
+ */
 function policy(state, values) {
     return {
         state,
@@ -34,6 +43,7 @@ function draft(state, values) {
     };
 }
 
+// // Round trip of the main flow: enabling sends one entry per package, a replacement omits the unchanged state, disabling sends no parameters.
 test('Software Install enables with separate package entries, replaces entries and can be disabled', () => {
     const initial = policy('not_configured', null);
     assert.equal(dto.canSelectPolicyState(initial, 'enabled'), true);
@@ -59,6 +69,7 @@ test('Software Install enables with separate package entries, replaces entries a
     assert.equal(dto.validatePolicyDraft(configured, draft('disabled', [])), null);
 });
 
+// // An enabled list without real entries (empty or whitespace only) must fail locally with a field error in both languages, not reach the server.
 test('empty enabled list is stopped before RPC with a localized field error', () => {
     const initial = policy('not_configured', null);
     for (const values of [[], ['   ']]) {
@@ -79,6 +90,7 @@ test('empty enabled list is stopped before RPC with a localized field error', ()
     }
 });
 
+// // Inspection-only parameters (read-only capability, unsupported value kind) must not make an unrelated edit (e.g. the comment) fail validation.
 test('read-only and unsupported list inspection does not block an unrelated comment edit', () => {
     const readOnly = policy('enabled', null);
     readOnly.capabilities.edit_parameters = false;
@@ -89,6 +101,7 @@ test('read-only and unsupported list inspection does not block an unrelated comm
     assert.equal(dto.validatePolicyDraft(unsupported, inspected), null);
 });
 
+// // Key/value pairs keep their structure on the wire and the collection constraints (unique keys, case-folded comparison) are enforced.
 test('explicit key-value policy updates retain structured pairs and validate domain constraints', () => {
     const configured = policy('enabled', null);
     configured.parameters[0].collection = {
@@ -110,6 +123,7 @@ test('explicit key-value policy updates retain structured pairs and validate dom
     assert.equal(dto.validatePolicyDraft(configured, edited).message, 'Invalid collection entries');
 });
 
+// // A read-only parameter's default shown in the draft must not be written as a value when the policy is merely enabled.
 test('enabling a policy never materializes an inspected read-only collection default', () => {
     const initial = policy('not_configured', null);
     const parameter = initial.parameters[0];

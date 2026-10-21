@@ -6,6 +6,15 @@ import * as translations from '@gpui/locales/translations';
 import * as model from '@gpui/components/templates/advanced-audit/model';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+/*
+ * Localization of Advanced Audit rows in the security model (templates/advanced-audit/model).
+ * model.familyById() builds UI rows from a backend response; display names must come from the
+ * EN/RU locale tables by GUID or option id, without touching identities, machine metadata or the
+ * backend DTO itself. Helpers: plain() deep-clones through JSON for comparisons, guid(n) makes
+ * the nth audit subcategory GUID (0cce9210...), catalog is a fake backend catalog of 58 entries
+ * with server-side labels. The last test checks locale GUIDs against the native catalog from
+ * admix and is skipped when SDMX is not installed (container-only).
+ */
 const locales = { en: enModule, ru: ruModule };
 const plain = value => JSON.parse(JSON.stringify(value));
 const guid = number => '0cce' + number.toString(16) + '-69ae-11d9-bed3-505054503030';
@@ -14,6 +23,7 @@ const catalog = Array.from({ length: 58 }, (_, index) => ({
     display_name: 'Server label ' + index
 }));
 
+// // Every known subcategory gets an EN/RU label, both when the row is synthesized from the catalog and when it is configured; GUID brace/case variants must not duplicate rows and the DTO stays unmutated.
 test('all 58 audit subcategories have EN/RU labels in unconfigured and configured rows', () => {
     for (const language of ['en', 'ru']) {
         translations.setLanguage(language);
@@ -59,6 +69,7 @@ test('all 58 audit subcategories have EN/RU labels in unconfigured and configure
     }
 });
 
+// // Audit options are localized by option id only; option id, machine_name and enabled flag must pass through unchanged.
 test('all four configured audit options are localized without changing identities or machine metadata', () => {
     const ids = ['crash_on_audit_fail', 'full_privilege_auditing', 'audit_base_objects', 'audit_base_directories'];
     const rows = ids.map(option => ({
@@ -82,6 +93,7 @@ test('all four configured audit options are localized without changing identitie
     assert.deepEqual(response, before);
 });
 
+// // Unknown (vendor) GUIDs and options fall back to the source label rather than a blank or a missing-key string.
 test('unknown audit GUIDs and options retain their source labels', () => {
     translations.setLanguage('ru');
     const response = {
@@ -102,6 +114,7 @@ test('unknown audit GUIDs and options retain their source labels', () => {
     assert.equal(model.familyById(response, 'audit_options').rows[0].display_name, 'Vendor option');
 });
 
+// Drift check: locale GUIDs must match the catalog shipped by the native library (58 entries, EN names equal).
 test(
     'all 58 localized GUIDs match the installed native audit catalog',
     { skip: !fs.existsSync('/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd') },

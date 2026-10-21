@@ -14,7 +14,21 @@ try {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
+/*
+ * Checks that every catalog table (Preferences, Scripts, Security, Advanced Audit, All policies) looks and selects
+ * like the Preferences table, with long English and Russian labels, and that the Scripts dialogs reuse the same table.
+ *
+ * Fixture: a real Chromium (Playwright) opens a page served by a tiny http server. The page loads the
+ * .test-root AMD tree through requirejs, the global main.css/other.css, and defines a fake `util/API` module that
+ * returns fixed catalog data (every label is the long window.longLabel) and records any write call in window.calls.
+ * window.render(kind, language) mounts the template of the given kind into #workspace.
+ *
+ * Helpers: withPage starts the server and browser, runs the scenario, then requires no page errors and no write calls;
+ * metrics reads computed styles of the header, first cell and row of a table; selectedStyle clicks the first row and
+ * returns the look of the active row; capture saves a screenshot when CATALOG_SCREENSHOT_DIR is set (debugging aid).
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
+// The whole page: stylesheets, the fake util/API, the render() entry point and the long localized labels.
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif;color:#363636}.gp__container{height:100vh}#workspace{width:980px;height:600px}</style>
@@ -78,6 +92,7 @@ const browserOptions = {
             : false
 };
 
+// Serves the page and the .test-root files, runs `run(page)` and fails on uncaught page errors or any write attempt.
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -124,6 +139,7 @@ async function withPage(run) {
     }
 }
 
+// Typography, paddings, borders and layout of one table column; compared with deepEqual between tables.
 async function metrics(table, column = 0) {
     return table.evaluate((element, column) => {
         const header = element.querySelectorAll('th')[column];
@@ -157,6 +173,7 @@ async function metrics(table, column = 0) {
     }, column);
 }
 
+// Click the first row and read the highlight of the active row.
 async function selectedStyle(table) {
     await table.locator('tbody tr').first().click();
     await table.locator('tbody tr.active').first().waitFor();
@@ -178,6 +195,8 @@ async function capture(page, name) {
     }
 }
 
+// Preferences is the reference. Scripts, Security, Audit and All policies must keep the same metrics and selection
+// style, truncate long names instead of widening the table, and stay inside the workspace (catalog CSS drift guard).
 for (const language of ['en', 'ru']) {
     test(
         'Catalog tables retain Preferences metrics and selection with long ' + language + ' labels',
@@ -227,6 +246,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// Tables inside the Scripts dialogs (entries, SYSVOL picker, asset explorer) must match the catalog look, keep long
+// names truncated, and the picker must still fill the entry form; dialogs are closed through their own buttons.
 test(
     'Scripts properties, SYSVOL picker and explorer share catalog typography without changing their controls',
     browserOptions,

@@ -15,6 +15,16 @@ const root = path.resolve(import.meta.dirname, '../..');
 const skip =
     !chromium || !createServer ? 'Install playwright and vite (npm install in frontend/) for browser checks.' : false;
 
+/*
+ * Covers the dev stand (`make ui-dev`, dev/ with the mock backend) in a real Chromium.
+ * Fixture: each test starts its own Vite dev server on an ephemeral port with vite.config.mjs, opens /ipa/ui/ in
+ * Playwright and closes both afterwards. File changes are simulated by emitting a `change` event on server.watcher
+ * (nothing on disk is touched). Page requests to /ipa/session/json with gpo_editor_open count editor (re)starts.
+ */
+
+// The stand re-runs init in the same page when a script changes (state of the page survives, shown by __marker),
+// but must ignore stylesheets, which Vite hot-swaps itself; a full reload here would lose the developer's context.
+
 test(
     'a change in src/ restarts the editor in the same page of the dev stand instead of reloading it',
     { skip },
@@ -68,6 +78,8 @@ test(
     }
 );
 
+// With ?scenario=error the mock fails the open call and EditorStatus is shown; every h() node in it must carry
+// data-source="file:line" (the dev-only debugging aid from CLAUDE.md).
 test('in the dev stand elements built with h() name the file and line that created them', { skip }, async () => {
     const server = await createServer({
         root: path.join(root, 'dev'),
@@ -94,6 +106,8 @@ test('in the dev stand elements built with h() name the file and line that creat
     }
 });
 
+// Leak guard: an init script wraps document.add/removeEventListener to count `mousemove` listeners (the splitter's).
+// After a hot restart the count must stay at 1, and cleanup() must bring it to 0.
 test('restarting the editor leaves no listeners of the previous one on the document', { skip }, async () => {
     const server = await createServer({
         root: path.join(root, 'dev'),

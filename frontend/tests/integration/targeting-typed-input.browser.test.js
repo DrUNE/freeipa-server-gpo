@@ -14,6 +14,15 @@ try {
 }
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+/*
+ * Browser (Playwright/Chromium) integration test for the segmented typed inputs
+ * (components/templates/preference/targeting-typed-input: ipv4, mac, version, guid, ipv6)
+ * running as real AMD modules from .test-root. Skipped without playwright/requirejs.
+ * Fixture: node http server serves a small page with Before/After buttons around the control (to
+ * check Tab order) and globals mount(options) to render a control, and snapshot() returning
+ * {value, inputs, changes, active} (current value, cell texts, onChange history, focused cell).
+ * Helpers: cells() are the control's inputs; paste() goes through the real clipboard and Ctrl+V.
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>
 <button id="before">Before</button><main id="content"></main><button id="after">After</button>
@@ -29,6 +38,7 @@ require(['components/templates/preference/targeting-typed-input'], typed => {
  mount({});window.ready=true;
 });</script></body></html>`;
 
+// Starts the static server and a headless browser, runs the scenario and fails on any uncaught page error.
 async function fixture(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -62,11 +72,13 @@ async function fixture(run) {
     }
 }
 
+// (page helpers) cells = control inputs; state = snapshot(); mount() re-renders with options.
 const cells = page => page.locator('#content input');
 const state = page => page.evaluate(() => snapshot());
 async function mount(page, options) {
     await page.evaluate(options => window.mount(options), options);
 }
+// Real clipboard paste into cell `index` (optionally select-all first) so paste handling is tested end to end.
 async function paste(page, value, index = 0, select = false) {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.evaluate(value => navigator.clipboard.writeText(value), value);
@@ -75,6 +87,10 @@ async function paste(page, value, index = 0, select = false) {
     await cells(page).nth(index).press('Control+V');
 }
 
+/*
+ * Rendering an empty or saved value and merely tabbing through must not emit onChange or rewrite the value
+ * (leading zeros, case, abbreviated forms stay as saved); every cell gets a unique id.
+ */
 test(
     'Actual AMD controls preserve absence and saved representations through focus and navigation',
     { skip },
@@ -119,6 +135,10 @@ test(
         })
 );
 
+/*
+ * Typing a dot moves to the next octet, Backspace in an empty octet returns to the previous one, and Tab order is
+ * plain (cell to cell, then out of the control).
+ */
 test('IPv4 supports separator typing, empty Backspace navigation, and ordinary Tab order', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => control.focus());
@@ -143,6 +163,10 @@ test('IPv4 supports separator typing, empty Backspace navigation, and ordinary T
     })
 );
 
+/*
+ * Paste fills all octets; invalid paste (range, extra component, bad character) and invalid typing are rejected as a
+ * whole, leaving the previous value; the input-event path (autofill) is clamped as well.
+ */
 test(
     'IPv4 paste distributes the whole address and rejects invalid characters, ranges, and excess components without truncation',
     { skip },
@@ -178,6 +202,10 @@ test(
         })
 );
 
+/*
+ * Hex-only bytes, hyphen and compact paste, and deliberate canonicalization to colons once the user edits;
+ * invalid paste leaves the value untouched.
+ */
 test(
     'MAC supports six bytes, hex typing, hyphen and compact paste, and intentional colon canonicalization',
     { skip },
@@ -213,6 +241,10 @@ test(
         })
 );
 
+/*
+ * Version components are capped at 65535; abbreviated values such as 1.2 stay as is until edited, and trailing
+ * empty components are trimmed on output.
+ */
 test(
     'Version uses four 16-bit components and preserves abbreviated values until deliberate edits',
     { skip },
@@ -242,6 +274,10 @@ test(
         })
 );
 
+/*
+ * GUID is a single masked field: complete edits become {UPPERCASE} with braces, invalid pastes are rejected,
+ * and a partial value keeps its dashes but no braces until complete.
+ */
 test(
     'GUID masks a full input and canonicalizes complete intentional edits to uppercase with braces',
     { skip },
@@ -275,6 +311,10 @@ test(
         })
 );
 
+/*
+ * IPv6 text is kept exactly as typed or pasted (no compression or case change); illegal characters
+ * are rejected while partial colon forms are allowed mid-edit.
+ */
 test('IPv6 accepts full addresses and partial colon forms without normalizing their text', { skip }, async () =>
     fixture(async page => {
         const saved = '2001:0DB8:0000:0000:0000:0000:0000:0001';
@@ -301,6 +341,10 @@ test('IPv6 accepts full addresses and partial colon forms without normalizing th
     })
 );
 
+/*
+ * Deleting across braces and dashes removes hex digits and reflows the mask, with the caret moved sensibly
+ * instead of getting stuck on a separator.
+ */
 test(
     'GUID Backspace and Delete remove hex digits across braces and separators without trapping the caret',
     { skip },
@@ -343,6 +387,10 @@ test(
         })
 );
 
+/*
+ * Legacy values that do not fit the mask are shown whole in a plain fallback field and left unchanged
+ * until the user replaces them; after that the normal masked editing applies.
+ */
 test(
     'Malformed saved values remain fully visible and unchanged in fallback fields until corrected',
     { skip },
@@ -380,6 +428,7 @@ test(
         })
 );
 
+// Disabled controls ignore even synthetic input/paste events, emit no change and stay out of the Tab order.
 test('Disabled controls cannot emit edits, including synthetic input and paste events', { skip }, async () =>
     fixture(async page => {
         for (const [type, value] of [
@@ -411,6 +460,10 @@ test('Disabled controls cannot emit edits, including synthetic input and paste e
     })
 );
 
+/*
+ * Accessibility: the group and each cell have localized names (en/ru), and visual separators are hidden from
+ * assistive technology.
+ */
 test('Groups and every component have accessible English and Russian names', { skip }, async () =>
     fixture(async page => {
         await mount(page, { type: 'ipv4', label: 'Minimum address', language: 'en' });

@@ -6,6 +6,21 @@ import { test } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Browser (Playwright/Chromium) integration test of the Targeting editor dialog opened from the
+ * Preferences form (preferences-view-template and the targeting tree/operand editors) using the real AMD
+ * modules from .test-root and the real CSS. Skipped when playwright/requirejs are missing.
+ * Fixture: a node http server serves the inline page plus .test-root. The page replaces util/API with a
+ * fake (window.source is the server answer; preferenceShow returns a clone of it, preferenceCreate/Update
+ * only record the request in window.writes, so tests assert the exact publication batch and that nothing
+ * is written before the parent Save). render(options) rebuilds the Files preference table from
+ * detail(options): a default tree of two collections, a file match, an unsupported (opaque) VendorMatcher
+ * and a root file match; options: empty, large (30 files), readonly, negatedRoot, filterKinds, language, scope.
+ * window.dragEvents logs drag events; fixture() appends them and the dialog tree to the failure message.
+ * Helpers: parentForm/targeting/rows/pathInput/labels/levels are locators and readers over the two stacked
+ * dialogs; openParent/openTargeting/addFile open the dialogs and add a File match; drag() uses real
+ * HTML5 drag and drop on a row handle with before/inside/after drop position.
+ */
 let chromium;
 let requireJs;
 try {
@@ -18,6 +33,7 @@ try {
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+// Inline page: the fake util/API, the Add/Edit/Remove toolbar and render(); see the header.
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif;color:#363636;margin:0}.gp__container{height:100vh;min-width:0}#header{padding:12px}#workspace{height:calc(100vh - 50px)}</style>
@@ -78,6 +94,10 @@ require(['util/element-creator','components/templates/preference/preferences-vie
 });
 </script></body></html>`;
 
+/*
+ * Starts the static server and browser, runs the scenario, and on failure appends page errors, recent drag
+ * events and the dialog tree text to the message; any uncaught page error fails an otherwise green test.
+ */
 async function fixture(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -144,6 +164,10 @@ async function fixture(run) {
     }
 }
 
+/*
+ * Locators/readers: the active Preferences form and the Targeting dialog above it, tree rows, the file path
+ * operand, row labels (combine/NOT prefix plus kind), aria-levels and the count of recorded writes.
+ */
 const parentForm = page => page.locator('.gpo-editor-preference-form.active');
 const targeting = page => page.locator('.targetting__modal.active');
 const rows = page => targeting(page).locator('[data-targeting-id]');
@@ -151,11 +175,13 @@ const pathInput = page => targeting(page).locator('[data-field-id="filter.path"]
 const labels = page => rows(page).locator('.gpo-editor-filter-label > span:first-child').allTextContents();
 const levels = page => rows(page).evaluateAll(nodes => nodes.map(node => Number(node.getAttribute('aria-level'))));
 const writeCount = page => page.evaluate(() => writes.length);
+// Opens the preference form: Create when `creating`, otherwise double-click on the first table row.
 async function openParent(page, creating = false) {
     if (creating) await page.locator('.preferences__btn-create').click();
     else await page.locator('.gpo-editor-preferences__table tbody tr').first().dblclick();
     await parentForm(page).waitFor();
 }
+// Opens the Targeting dialog from the General tab and parks the mouse on the footer so hover state does not interfere.
 async function openTargeting(page) {
     const form = parentForm(page);
     await form.locator('.preference__tab-button[data-tab="tab-general"]').click();
@@ -163,11 +189,13 @@ async function openTargeting(page) {
     await targeting(page).waitFor();
     await targeting(page).locator('[data-dialog-part="footer"] > button').last().hover();
 }
+// Adds a File match via the Create Item menu, optionally filling its required path.
 async function addFile(page, value) {
     await targeting(page).locator('.gpo-editor-filter-add').click();
     await targeting(page).getByRole('menuitem', { name: 'File match', exact: true }).click();
     if (value !== undefined) await pathInput(page).fill(value);
 }
+// Drags row `sourceIndex` by its handle onto `targetIndex` at the top, middle (inside) or bottom edge.
 async function drag(page, sourceIndex, targetIndex, position = 'inside') {
     const target = rows(page).nth(targetIndex);
     const bounds = await target.boundingBox();
@@ -182,6 +210,11 @@ async function drag(page, sourceIndex, targetIndex, position = 'inside') {
         });
 }
 
+/*
+ * Everything stays in a local draft: nested adds, the required-field check blocking OK (with focus moved to the
+ * field), removal of an invalid temporary node and re-opening all happen with zero writes; the single parent Save
+ * sends one ordered insert batch with final values.
+ */
 test('Targeting supports repeated nested adds, validation and removal before one parent Save', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => render({ empty: true }));
@@ -252,6 +285,11 @@ test('Targeting supports repeated nested adds, validation and removal before one
     })
 );
 
+/*
+ * Only the handle is draggable; drag moves whole collections and opaque filters, a drop into the node's own
+ * descendants is rejected with a message, and keyboard Ctrl+Arrow moves work. A pure move publishes only
+ * `move` operations: opaque data is never re-inserted or re-serialized.
+ */
 test(
     'Handle-only D&D moves collections and opaque filters, rejects cycles and supports keyboard movement',
     { skip },
@@ -348,6 +386,10 @@ test(
         })
 );
 
+/*
+ * Dialog contract: focus is trapped, Cancel/Escape discard edits made inside the dialog, OK keeps them in the
+ * parent draft (unsaved flag set) and the later Save sends just the one accepted edit.
+ */
 test(
     'Targeting Cancel discards only modal edits while accepted targeting remains local until parent Save',
     { skip },
@@ -404,6 +446,10 @@ test(
         })
 );
 
+/*
+ * Regression: dragging a row other than the selected one must not copy the selected row's fields into it;
+ * the result is a pure move with no edit.
+ */
 test('Dragging an unselected condition does not copy the selected condition fields into it', { skip }, async () =>
     fixture(async page => {
         await openParent(page);
@@ -422,6 +468,11 @@ test('Dragging an unselected condition does not copy the selected condition fiel
     })
 );
 
+/*
+ * The first sibling at any depth has no AND/OR prefix and its combine select is disabled, yet its imported
+ * operator (and preserved envelope data) is not rewritten and NOT stays editable; checked in en and ru, and no
+ * write is issued when nothing effectively changed.
+ */
 test(
     'First siblings hide combine prefixes at every depth without rewriting imported operators or locking NOT',
     { skip },
@@ -515,6 +566,10 @@ test(
         })
 );
 
+/*
+ * Moving rows by keyboard hands the first-sibling role over: the new first row loses its prefix, the old one
+ * regains its stored operator; only the explicit NOT edit is published next to the moves.
+ */
 test(
     'Root and nested reorder transfer the first-sibling role while only explicit NOT edits are published',
     { skip },
@@ -601,6 +656,10 @@ test(
         })
 );
 
+/*
+ * Row prefix and detail text are driven by the edited filter.bool/not/path values (no stale NOT after unchecking);
+ * Cancel restores the original, and OK plus Save publishes one edit with exactly those three fields.
+ */
 test(
     'Native filter.bool, filter.not and filter.path drive row logic and operand summaries without stale NOT',
     { skip },
@@ -648,6 +707,10 @@ test(
         })
 );
 
+/*
+ * Combine/NOT/hidden live only in the toolbar, not in the operand form; menu entries have decorative icons,
+ * Remove is icon-only, and indenting then outdenting by keyboard is reversible so no no-op write is sent.
+ */
 test(
     'Operators are toolbar-only, creation entries have icons, Remove is icon-only and keyboard nesting is reversible',
     { skip },
@@ -696,6 +759,10 @@ test(
         })
 );
 
+/*
+ * Regression: operator edits made before moving a node and operand edits made afterwards must be combined
+ * into the final edit, not overwritten by an older snapshot of the fields.
+ */
 test(
     'Toolbar operators survive movement and later operand capture without restoring an old snapshot',
     { skip },
@@ -731,6 +798,11 @@ test(
         })
 );
 
+/*
+ * Layout at a wide-short and a narrow viewport (en and ru): dialog is labelled and fits the viewport, the tree
+ * scrolls while toolbar, fields and footer stay visible, toolbar buttons are localized; in read-only mode all
+ * toolbar buttons are disabled, fields are disabled, nothing is draggable and nothing is written.
+ */
 test(
     'Targeting uses bounded stacked panes, visible Preferences footer and EN/RU controls, including read-only',
     { skip },
@@ -843,6 +915,10 @@ test(
         })
 );
 
+/*
+ * For a not-yet-created preference the targeting draft is kept locally and sent inside the single Create
+ * request (no identity, inserts with indexes 0 and 1).
+ */
 test('New Preference targeting is drafted locally and is sent with one Create request', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => render({ empty: true }));
@@ -868,6 +944,11 @@ test('New Preference targeting is drafted locally and is sent with one Create re
     })
 );
 
+/*
+ * Layout: a kind with no operands (Battery) shrinks the fields pane and gives the space to the tree, a long form
+ * is capped and scrolls; the toolbar controls are 28px high and centered, and the delete/handle icons are centered
+ * in their boxes at several viewport sizes.
+ */
 test(
     'Short operand forms return unused space to the tree and toolbar/drag icons share centered metrics',
     { skip },
@@ -987,6 +1068,12 @@ test(
         })
 );
 
+/*
+ * End-to-end with real descriptors from the installed admix binding (optional; skipped through context.skip when
+ * unavailable): fill Computer, Date (annual leap day via calendar), Language, Terminal and IPv6 through the real
+ * controls, check that invalid input blocks OK, then feed exactly the browser-produced insert operations to the native API
+ * in a temporary workspace and verify the stored XML attributes and GPT.INI version.
+ */
 test(
     'Real native Date/Computer/Language/Terminal/IPv6 descriptors work through Preferences controls and one parent publication',
     { skip },

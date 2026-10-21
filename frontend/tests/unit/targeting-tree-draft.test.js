@@ -2,6 +2,18 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as targeting from '@gpui/util/targeting-tree-draft';
 
+// Unit tests for the targeting tree draft model (util/targeting-tree-draft): a
+// local editable copy of a server snapshot that compiles into an ordered batch of
+// insert/remove/move/edit operations.
+// Fixtures: snapshot() builds a minimal server DTO (filters, filter_fields and
+// three filter kinds) from a nested {kind,value,children} description;
+// condition()/collection() build that description; named() finds a node by label;
+// update() sets the single text operand; shape() reads the model back into the same
+// description form.
+// apply() is an independent simulator of the operation contract: it replays
+// operations on a plain tree, checks that every path addresses the evolving tree
+// and that no intermediate state exceeds the native collection depth (64), so tests
+// can assert apply(original, ops) equals the model's final shape.
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -72,6 +84,9 @@ function shape(model) {
     return plain(visit(model.roots));
 }
 
+// Caller-supplied validateNode must run before compilation: a rejection yields no
+// operations, and structural errors (duplicate descriptors) still surface even
+// when the custom validator passes.
 test('specialized validation precedes compilation and cannot discard valid conditional operations or structural errors', () => {
     const model = targeting.create(snapshot());
     const node = model.add('required', null, 0);
@@ -133,6 +148,8 @@ function apply(roots, operations) {
     return roots;
 }
 
+// Nesting comes from filter paths, not DTO order; ids are unique and stable, the
+// model deep-copies the snapshot, and an unchanged tree compiles to nothing.
 test('snapshot paths build a nested tree with stable identities and no publication operation', () => {
     const original = [collection('A', [condition('B'), collection('C', [condition('D')])]), condition('E')];
     const data = snapshot(original);
@@ -154,6 +171,8 @@ test('snapshot paths build a nested tree with stable identities and no publicati
     assert.equal(named(model, 'A').fields[0].value.value, 'A');
 });
 
+// New nested nodes must be inserted parents-first with their final values and
+// indexes in one ordered batch, even when a node is moved after being added.
 test('multiple new nodes and arbitrarily nested collections are inserted using final values in one ordered batch', () => {
     const model = targeting.create(snapshot());
     const a = model.add('collection', null);
@@ -179,6 +198,8 @@ test('multiple new nodes and arbitrarily nested collections are inserted using f
     assert.deepEqual(apply([], operations), shape(model));
 });
 
+// Add-then-delete leaves no trace: no operations, no validation of the abandoned
+// draft, and its id is never reused.
 test('new nodes added and later deleted compile to no-op without validating abandoned drafts', () => {
     const model = targeting.create(snapshot([condition('existing')]));
     const discarded = model.add('required', null);
@@ -189,6 +210,8 @@ test('new nodes added and later deleted compile to no-op without validating aban
     assert.notEqual(next.id, discardedId, 'identities cannot be reused during a draft');
 });
 
+// A moved node keeps its identity and original path; only a single edit at the final
+// path is emitted (no re-insert) after removal and reparenting shift indexes.
 test('moves are lossless, retain identity and edit only final paths after insertion/removal/reparenting', () => {
     const original = [condition('remove'), collection('A', [condition('B')]), collection('C')];
     const model = targeting.create(snapshot(original));
@@ -219,6 +242,8 @@ test('moves are lossless, retain identity and edit only final paths after insert
     assert.deepEqual(apply(original, operations), shape(model));
 });
 
+// Move destinations are resolved against the pre-move tree (native semantics) even
+// when removing an earlier sibling shifts the path.
 test('destination collection path addresses the pre-move tree even when removal shifts that path', () => {
     const original = [condition('A'), collection('B', [condition('C')]), condition('D')];
     const model = targeting.create(snapshot(original));
@@ -232,6 +257,8 @@ test('destination collection path addresses the pre-move tree even when removal 
     assert.deepEqual(aMove.collection_path, [0]);
 });
 
+// Move index is post-removal; invalid moves (into itself/descendant, missing ids,
+// fractional or out-of-range index, no-op position) return false and leave the tree untouched.
 test('sibling destination indexes are after removal and rejected moves change nothing', () => {
     const model = targeting.create(
         snapshot([collection('A', [collection('B', [condition('C')])]), condition('D'), condition('E')])
@@ -255,6 +282,8 @@ test('sibling destination indexes are after removal and rejected moves change no
     assert.deepEqual(plain(model.roots.map(node => node.label)), ['A', 'E', 'D']);
 });
 
+// Inverting a parent/child pair by moving the child out first must not look like a
+// cycle to the reconciler.
 test('collections may be moved out and then inverted without a simulated cycle', () => {
     const original = [collection('A', [collection('B', [condition('C')])])];
     const model = targeting.create(snapshot(original));
@@ -265,6 +294,8 @@ test('collections may be moved out and then inverted without a simulated cycle',
     assert.deepEqual(apply(original, plain(model.compile()).operations), shape(model));
 });
 
+// Deleting a collection must not take down descendants that were moved elsewhere: the
+// move has to be ordered before the remove.
 test('a removed ancestor does not destroy surviving descendants moved elsewhere', () => {
     const original = [collection('discard', [collection('survivor', [condition('child')])]), collection('destination')];
     const model = targeting.create(snapshot(original));
@@ -276,6 +307,8 @@ test('a removed ancestor does not destroy surviving descendants moved elsewhere'
     assert.deepEqual(apply(original, operations), shape(model));
 });
 
+// Replacing a node's kind creates a new node (new id) and drops its old children, but
+// children already moved out survive and are not re-created.
 test('replace produces a new node, drops former children and does not recreate already moved survivors', () => {
     const original = [collection('A', [condition('B'), condition('discard')]), collection('C')];
     const model = targeting.create(snapshot(original));
@@ -293,6 +326,8 @@ test('replace produces a new node, drops former children and does not recreate a
     assert.deepEqual(apply(original, operations), shape(model));
 });
 
+// Filters the editor cannot represent (vendor kinds) are read-only but still movable;
+// they are moved as-is, never re-inserted or re-serialized, so unknown data survives.
 test('opaque filters remain read-only and are moved without insertion or field serialization', () => {
     const original = [condition('vendor', [condition('vendor child', [], null)], null), collection('A')];
     const model = targeting.create(snapshot(original));
@@ -322,6 +357,8 @@ test('opaque filters remain read-only and are moved without insertion or field s
     );
 });
 
+// Dialogs edit a clone: edits are isolated until accepted, yet the clone still
+// compiles all changes accepted earlier in the parent draft.
 test('modal clone is isolated but compiles all previously accepted parent draft changes', () => {
     const parent = targeting.create(snapshot([condition('original')]));
     const first = parent.clone();
@@ -341,6 +378,8 @@ test('modal clone is isolated but compiles all previously accepted parent draft 
     assert.deepEqual(plain(acceptedAgain.compile()), plain(first.compile()));
 });
 
+// Validation errors carry stable node and field ids so the UI can mark the exact
+// row before the dialog is accepted.
 test('required fields and duplicate descriptors report stable row and field IDs before accepting', () => {
     const model = targeting.create(snapshot());
     const required = model.add('required', null);
@@ -360,6 +399,8 @@ test('required fields and duplicate descriptors report stable row and field IDs 
     ]);
 });
 
+// updateFields ignores read-only and unknown fields and keeps descriptors intact,
+// so an edit cannot rewrite what the server marked immutable.
 test('field edits retain descriptors, ignore read-only fields and use final validation types', () => {
     const data = snapshot([condition('A')]);
     data.filter_fields[0].fields.push(field('immutable', { id: 'readonly', editable: false }));
@@ -385,6 +426,8 @@ test('field edits retain descriptors, ignore read-only fields and use final vali
     ]);
 });
 
+// Regression: reordering moves could transiently build a tree deeper than the native
+// 64-level limit; departing subtrees must be extracted first.
 test('compiled trees never briefly exceed native depth when moved children have final parents elsewhere', () => {
     const bottom = collection('departing');
     let tall = bottom;
@@ -414,6 +457,8 @@ test('compiled trees never briefly exceed native depth when moved children have 
     );
 });
 
+// Local limits mirror the native model: valid parent kinds and positions, at most 64
+// nested collections, while a leaf under 64 collections is still legal.
 test('local add/move enforce supported parents, positions and maximum native tree depth', () => {
     const model = targeting.create(snapshot());
     assert.equal(model.add('missing', null), null);
@@ -433,6 +478,8 @@ test('local add/move enforce supported parents, positions and maximum native tre
     assert.deepEqual(plain(model.compile()).errors, []);
 });
 
+// A server tree already at the maximum leaf depth (65 path entries) must not trigger
+// a false depth error.
 test('existing leaf paths beneath64 collections remain valid without a false depth error', () => {
     let root = condition('leaf');
     for (let index = 0; index < 64; index++) root = collection('level ' + index, [root]);
@@ -441,12 +488,16 @@ test('existing leaf paths beneath64 collections remain valid without a false dep
     assert.deepEqual(plain(model.compile()), { operations: [], errors: [] });
 });
 
+// A snapshot whose paths do not form a tree must fail loudly rather than be
+// reconstructed into a different tree.
 test('malformed server paths cannot silently be reconstructed into a different targeting tree', () => {
     const malformed = snapshot([condition('A')]);
     malformed.filters[0].path = [1];
     assert.throws(() => targeting.create(malformed), /Invalid targeting filter snapshot/);
 });
 
+// Accepts the legacy map form of filter_fields and per-kind default overrides
+// (new_filter_fields); returned operations are copies, not live draft state.
 test('field inventory compatibility and new-kind default overrides retain structured typed values', () => {
     const data = snapshot([condition('A')]);
     data.filter_fields = { '[0]': [field('from legacy map')] };
@@ -460,6 +511,8 @@ test('field inventory compatibility and new-kind default overrides retain struct
     assert.equal(node.fields[0].value.value, 'from explicit default');
 });
 
+// Property-style check: 100 seeded pseudo-random sessions of add/remove/move/edit/replace
+// must compile without errors, compile idempotently, and replay to the final tree.
 test('mixed draft sessions reconcile deterministically across repeated add/edit/remove/replace/reparent actions', () => {
     for (let seed = 1; seed <= 100; seed++) {
         let state = seed;

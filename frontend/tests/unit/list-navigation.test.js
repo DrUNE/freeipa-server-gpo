@@ -2,6 +2,18 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as navigation from '@gpui/components/list-navigation';
 
+/*
+ * Keyboard navigation for selectable lists (components/list-navigation): neighbor() picks the row
+ * to select after a deletion; bind() adds roving tabindex, arrow/Home/End/Page keys, Enter/F2/
+ * Delete actions and aria-selected sync to a container.
+ *
+ * No DOM: fixture() builds hand-made container and row objects (attributes, focus, scroll, a
+ * focusin/keydown listener registry) and records callback calls in `actions`. Options: rerender
+ * replaces row objects on every select, readonly/busy block mutations, multiple fakes a
+ * multiselection. key() dispatches a keydown on the selected row; focus(i) dispatches focusin.
+ */
+
+// Deleting the current row moves selection to the previous visible survivor, else the next one; no survivors gives null.
 test('Deletion neighbors prefer a previous visible survivor, then the following survivor', () => {
     assert.equal(navigation.neighbor(['a', 'b', 'c'], ['b'], ['a', 'c']), 'a');
     assert.equal(navigation.neighbor(['a', 'b', 'c'], ['a'], ['b', 'c']), 'b');
@@ -11,6 +23,7 @@ test('Deletion neighbors prefer a previous visible survivor, then the following 
     assert.equal(navigation.neighbor(['a'], ['missing'], ['a']), null);
 });
 
+// For multi-row deletion the anchor is the first removed position and removed or filtered-out rows are never returned.
 test('Bulk neighbors use the first removed position and skip removed or filtered rows', () => {
     assert.equal(navigation.neighbor(['a', 'b', 'c', 'd', 'e'], ['d', 'c'], ['a', 'b', 'e']), 'b');
     assert.equal(navigation.neighbor(['a', 'b', 'c', 'd', 'e'], ['a', 'c'], ['b', 'd', 'e']), 'b');
@@ -18,6 +31,7 @@ test('Bulk neighbors use the first removed position and skip removed or filtered
     assert.equal(navigation.neighbor([], [], []), null);
 });
 
+// Builds the fake list and binds navigation to it; see the file header for the options.
 function fixture(options = {}) {
     const listeners = new Map();
     const document = { activeElement: null, defaultView: {} };
@@ -111,6 +125,7 @@ function fixture(options = {}) {
     };
 }
 
+// Roving tabindex: the list is one Tab stop without selecting anything on its own, and keys move both focus and selection.
 test('One row is tabbable without auto-selecting; focus and keyboard movement synchronize selection', () => {
     const list = fixture();
     assert.deepEqual(
@@ -138,6 +153,7 @@ test('One row is tabbable without auto-selecting; focus and keyboard movement sy
     assert.equal(list.selected().scrolled, true);
 });
 
+// Space must not open the editor, so selection and editing stay separate; Tab is left to the browser (not prevented).
 test('Enter/F2 edit, Space only selects and Delete delegates the existing delete action', () => {
     const list = fixture();
     list.key(' ');
@@ -148,6 +164,7 @@ test('Enter/F2 edit, Space only selects and Delete delegates the existing delete
     assert.equal(list.key('Tab').prevented, undefined);
 });
 
+// Keys typed in inner controls, with modifiers, or during busy/readonly state must be ignored, otherwise lists would hijack text input and mutate locked data.
 test('Typing controls, toolbar buttons, modified keys, busy and readonly mutations are excluded', () => {
     const list = fixture();
     for (const key of ['Delete', 'Enter', 'ArrowDown']) {
@@ -170,6 +187,7 @@ test('Typing controls, toolbar buttons, modified keys, busy and readonly mutatio
     assert.equal(list.selected().id, 'b');
 });
 
+// After a re-render the selected row object is replaced; focus must follow the new element, an empty list falls back to the container, and cleanup() detaches the listeners.
 test('Focus resolves replacement rows, empty lists and cleanup without leaking listeners', () => {
     const list = fixture({ rerender: true });
     list.binding.focusSelected();
@@ -186,6 +204,7 @@ test('Focus resolves replacement rows, empty lists and cleanup without leaking l
     assert.equal(list.actions.filter(action => action.startsWith('activate')).length, 0);
 });
 
+// An external isSelected() drives aria-selected for several rows, while only the primary row keeps tabindex 0.
 test('Multiselection aria flags survive while the primary row remains the single Tab stop', () => {
     const list = fixture({ multiple: true });
     list.binding.sync();

@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
 
+/*
+ * Covers how util/API.js sends Security and Advanced Audit updates and surfaces their errors.
+ * util/API.js is loaded through loadModule with a fake FreeIPA `rpc` whose command() records every spec and answers
+ * editor_open with an empty result, and fails everything else through spec.on_error as the real server would.
+ */
+
+// Loads API.js against the given fake rpc; the Russian navigator/language is only there to satisfy the module.
 async function loadApi(rpc) {
     return loadModule(
         'util/API.js',
@@ -14,6 +21,8 @@ async function loadApi(rpc) {
     );
 }
 
+// The request must reach the server with arrays intact (not coerced to objects), must not be retried by FreeIPA, and
+// a validation error must come back as an Error with category/field so the editor can render it.
 test('Security RPC preserves arrays and exposes structured FreeIPA validation errors', async () => {
     const specs = [];
     const response = {
@@ -56,6 +65,8 @@ test('Security RPC preserves arrays and exposes structured FreeIPA validation er
     assert.equal(Array.isArray(specs[1].options.request.policies), true);
 });
 
+// Same contract for Advanced Audit, when FreeIPA gives no response body: retry stays off so the editor status shows
+// the error instead of the generic FreeIPA retry dialog.
 test('Advanced Audit RPC uses editor error rendering instead of FreeIPA retry dialog', async () => {
     const specs = [];
     const api = await loadApi({

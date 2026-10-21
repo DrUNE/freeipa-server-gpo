@@ -8,6 +8,20 @@ function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
 
+/*
+ * Contract test between the targeting editor and the real installed admix native
+ * binding (Python `_native`). It is optional: when the binding is not importable
+ * the whole file is skipped via `skip` (the dev container has it).
+ * Fixture: a Python script run through spawnSync (JSON in on stdin, JSON out)
+ * builds a throw-away GPO in a TemporaryDirectory with an IniFiles item that
+ * already has two filters (a broken imported Language and a seconds-precision Time),
+ * then either dumps the native filter inventory ("inventory") or inserts the given
+ * cases as draft filters, commits and re-reads them ("roundtrip").
+ * Helpers: native() runs one request; currentInventory()/currentRoundtrip() cache the
+ * subprocess results across tests; representatives holds a valid value set per kind;
+ * edits()/scenario() turn it into native field edits; initializedNode() applies the
+ * renderer defaults (operand-editor initialize) to a real native descriptor.
+ */
 const probe = spawnSync(process.env.PYTHON || 'python3', ['-c', 'from admix import _native; print(_native.__file__)'], {
     encoding: 'utf8'
 });
@@ -89,6 +103,7 @@ with tempfile.TemporaryDirectory(prefix="gpo-targeting-native-") as temporary:
     print(json.dumps(result, ensure_ascii=False))
 `;
 
+// Runs the Python script once per request and fails with its stderr on a non-zero exit.
 function native(request) {
     if (probe.error || probe.status !== 0)
         assert.fail('Installed native probe failed: ' + (probe.error || probe.stderr));
@@ -102,12 +117,17 @@ function native(request) {
     assert.equal(execution.status, 0, execution.stderr || execution.stdout);
     return JSON.parse(execution.stdout);
 }
+// Memoized native inventory: one subprocess for all tests that only read descriptors.
 let inventory;
 function currentInventory() {
     if (!inventory) inventory = native({ action: 'inventory' });
     return inventory;
 }
 
+/*
+ * One valid, non-default value set per filter kind; keys are operand ids without the
+ * `filter.` prefix. Merged over the native defaults by edits().
+ */
 const representatives = {
     battery: {},
     computer: { type: 'NETBIOS', name: 'CLIENT' },
@@ -203,6 +223,7 @@ const representatives = {
     },
     collection: { name: 'Example collection' }
 };
+// Builds the native field list for a kind: native defaults with representative/override values applied by id.
 function edits(kind, overrides = {}) {
     const values = { ...representatives[kind], ...overrides };
     const fields = currentInventory().fields[kind];
@@ -219,6 +240,10 @@ function edits(kind, overrides = {}) {
 function scenario(name, kind, overrides = {}) {
     return { name, kind, fields: edits(kind, overrides) };
 }
+/*
+ * Builds a node from the real native descriptors and runs the renderer's initialize(),
+ * filling only operands that are really required so the renderer defaults stay under test.
+ */
 function initializedNode(kind, language = 'en') {
     const source = { kind, available: true, originalPath: null, fields: plain(currentInventory().fields[kind]) };
     const fields = operandEditor.initialize(source, { language, scope: 'computer' });
@@ -238,6 +263,10 @@ function initializedNode(kind, language = 'en') {
     return { ...source, fields };
 }
 
+/*
+ * Presentation registry and native inventory must agree: same kinds, every operand
+ * labelled in en/ru, enum operands use text envelopes, language choices come from native.
+ */
 test(
     'the optional native check is installed and returns matching descriptors for every presentation kind',
     { skip },
@@ -277,6 +306,11 @@ test(
     }
 );
 
+/*
+ * Memoized roundtrip: builds all cases (representative, renderer-initialized, every
+ * enum choice, every native language key, date/time/IPv6 edge cases) plus invalid ones
+ * and sends them to native in a single subprocess.
+ */
 let roundtrip;
 function currentRoundtrip() {
     if (roundtrip) return roundtrip;
@@ -357,6 +391,10 @@ function currentRoundtrip() {
     return roundtrip;
 }
 
+/*
+ * Everything the UI can produce must survive insert, commit and reload with the original
+ * typed envelopes; the draft is published exactly once (GPT.INI version bumped once).
+ */
 test(
     'all 29 kinds and every advertised presentation/native-language enum roundtrip with original typed envelopes',
     { skip },
@@ -376,6 +414,10 @@ test(
     }
 );
 
+/*
+ * Pins the XML encoding: unused Date attributes are omitted, and Time keeps seconds and
+ * timezone; overnight ranges are accepted.
+ */
 test('Date recurrence omissions and Time seconds/timezones retain the intended XML encoding', { skip }, () => {
     const { cases, result } = currentRoundtrip();
     function attributes(name) {
@@ -395,6 +437,10 @@ test('Date recurrence omissions and Time seconds/timezones retain the intended X
     assert.equal(attributes('base/time').end, '01:15:00', 'overnight ranges remain valid');
 });
 
+/*
+ * Existing data that the UI cannot express (unknown language, second-level time) must
+ * not be normalized by merely round-tripping the draft.
+ */
 test(
     'broken imported Language and original second-level Time data are not normalized during draft roundtrip',
     { skip },
@@ -412,6 +458,10 @@ test(
     }
 );
 
+/*
+ * ip_range IPv6 values are stored verbatim (address plus prefix in max); plain IPv4
+ * omits the optional useIPv6 attribute and explicit false writes 0.
+ */
 test(
     'IPv6 targeting keeps its address/prefix semantics and legacy IPv4 omits the new optional attribute',
     { skip },
@@ -434,6 +484,10 @@ test(
     }
 );
 
+/*
+ * The native layer is the source of truth for validation: invalid tokens and ranges
+ * are rejected and each rejection leaves the draft unchanged (checked in the script).
+ */
 test(
     'the installed native rejects unsupported tokens and numeric/range/time violations without altering the draft',
     { skip },
@@ -447,6 +501,10 @@ test(
     }
 );
 
+/*
+ * Renderer defaults and representative values pass the front-end validator for every
+ * real descriptor without mutating the source; language defaults follow UI language and run_once gets a GUID.
+ */
 test(
     'renderer defaults and representative active operands validate for all 29 real native descriptors',
     { skip },
@@ -484,6 +542,10 @@ test(
     }
 );
 
+/*
+ * initialize()/validateFields() must leave existing nodes with legacy locale or
+ * second-level time untouched (no eager defaults, no normalization).
+ */
 test(
     'renderer preserves broken existing locale and seconds/timezones without eager initialization or validation normalization',
     { skip },

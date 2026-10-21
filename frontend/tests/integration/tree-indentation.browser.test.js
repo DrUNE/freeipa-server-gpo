@@ -9,8 +9,16 @@ try {
     /* Browser dependencies are optional in unit-only environments. */
 }
 
+/*
+ * Browser check of the tree indentation CSS (src/styles/main.css + other.css).
+ * Fixture: a hand-written static <ul> tree injected with page.setContent and styled by the
+ * real stylesheets via addStyleTag; no server, no RequireJS, no JS from src/. Only the
+ * bounding-box x of each icon is measured.
+ */
 const cssRoot = path.resolve(import.meta.dirname, '../../src/styles');
 
+// Folders have an extra switcher span that leaves have not; the icons must still line up
+// (folder and file siblings share x, each depth shifts by exactly 22px), otherwise the tree looks ragged.
 test(
     'folder and leaf icons keep the same indentation at each tree depth',
     {

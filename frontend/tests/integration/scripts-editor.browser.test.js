@@ -5,6 +5,18 @@ import path from 'node:path';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Browser check of the single-event Scripts page (renderScriptsTemplate with
+ * {scope, event}).
+ *
+ * Fixture: inline page with the real header/script-template loaded from
+ * .test-root via RequireJS and a fake `util/API` over in-memory window.views
+ * (per scope/event: classic and PowerShell entries plus SYSVOL assets with
+ * references). Each mutating fake goes through change(), which logs the call in
+ * window.calls, rejects once when window.failNext is set (validation error), and
+ * otherwise mutates the view and returns the refreshed state. window.render(scope,
+ * event) re-creates the page.
+ */
 let chromium;
 let requireJs;
 try {
@@ -93,6 +105,9 @@ require(['components/templates/script-template','components/header/header','loca
 });
 </script></body></html>`;
 
+// One long scenario over every operation: each entry change (reorder, order, add, edit, remove) and asset change
+// (upload, replace with confirmation, download by revision, delete) is sent immediately and scoped to the event;
+// failed Apply keeps the draft; non-editable lists show diagnostics and disable Add.
 test(
     'Scripts event page publishes each operation and manages only its scoped SYSVOL files',
     {

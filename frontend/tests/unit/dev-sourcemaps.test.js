@@ -8,6 +8,14 @@ import { test } from 'vitest';
 const root = path.resolve(import.meta.dirname, '../..');
 const configFile = path.join(root, 'vite.config.mjs');
 
+/*
+ * Covers the source map setup from vite.config.mjs. No fixture files: the first test starts a real Vite dev server on
+ * an ephemeral port and asks it to transform source files; the second one runs real builds (development and
+ * production mode) into temporary directories that are removed afterwards.
+ */
+
+// The dev stand and Storybook need maps for scripts (including TypeScript with types stripped) and for CSS,
+// otherwise DevTools cannot point at File.module.css:line.
 test('the dev server gives scripts (types stripped) and styles source maps', async () => {
     const server = await createServer({
         root: path.join(root, 'dev'),
@@ -27,6 +35,7 @@ test('the dev server gives scripts (types stripped) and styles source maps', asy
     }
 });
 
+// Builds the plugin bundle in the given mode into a temp dir and returns the script, the styles and the .map files found.
 async function bundle(mode) {
     const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gpui-sourcemaps-'));
     try {
@@ -39,6 +48,8 @@ async function bundle(mode) {
     }
 }
 
+// The committed frontend/dist is a production build: it must carry no maps and no dev-only marks (data-source,
+// caller lookup), while `npm run watch` builds keep them. build:check would also reject stray .map files.
 test('the development build has a script source map and the data-source marks; the committed (production) build has neither', async () => {
     const development = await bundle('development');
     assert.deepEqual(development.maps, ['app.js.map']);
