@@ -2,6 +2,12 @@ import { ElementCreator } from '@gpui/util/element-creator';
 import { createBreadcrumb } from '@gpui/components/Breadcrumb/Breadcrumb';
 import { t } from '@gpui/locales/translations';
 
+/*
+ * The path to the open node above the workspace. `render(segments, onNavigate)` is an adapter over `Breadcrumb`
+ * (components/Breadcrumb) that returns an ElementCreator for the older callers; `attachFilter(header, view)` moves the
+ * policy filter field of the open template into that header (`.gpo-category-path__filter`).
+ */
+
 function render(segments, onNavigate) {
     return ElementCreator.wrap(createBreadcrumb({ label: t('navigation.path'), segments, onNavigate }));
 }
