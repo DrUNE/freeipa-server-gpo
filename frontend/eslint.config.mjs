@@ -32,7 +32,7 @@ export default [
     },
     {
         // Storybook's preview runs in the browser.
-        files: ['.storybook/preview.js'],
+        files: ['.storybook/preview.js', '.storybook/screen.js', '.storybook/shims/*.js'],
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } }
     },
     {

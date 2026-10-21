@@ -15,7 +15,10 @@ const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 test(
     'dependency proposals are accepted as one atomic libadmix update',
     {
-        skip: !fs.existsSync(schema) || !fs.existsSync(path.join(definitions, 'account-password.sdmx'))
+        skip: !fs.existsSync(schema) || !fs.existsSync(path.join(definitions, 'account-password.sdmx')),
+        // It starts the real libadmix in Python (1 s alone); next to the browser projects of a full run that is not
+        // enough for the default 5 s.
+        timeout: 30000
     },
     async () => {
         const pythonSetup = [

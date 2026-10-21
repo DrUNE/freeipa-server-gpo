@@ -82,7 +82,10 @@ async function renderAdvancedAuditTemplate(options) {
                 config.hideHeading
                     ? null
                     : createElement('h2', {
-                          text: config.categoryPath || (family && family.label) || '',
+                          text:
+                              config.categoryPath ||
+                              (family && family.label) ||
+                              tr('security.advancedAudit.title', 'Advanced Audit Policy Configuration'),
                           attrs: { 'data-category-path': '' }
                       }),
                 search

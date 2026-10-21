@@ -1,6 +1,10 @@
-import { createElement } from '@gpui/util/element-creator';
+import { createElement, ElementCreator } from '@gpui/util/element-creator';
+import { createDataTable, rowId, setSelectedRows, tableRows } from '@gpui/components/DataTable/DataTable';
+import { createToolbar, setToolbarItem } from '@gpui/components/Toolbar/Toolbar';
 import { scriptFile } from '@gpui/components/editor-icons';
-import { st, button, nameCell } from '@gpui/components/templates/script/helpers';
+import { st, nameContent } from '@gpui/components/templates/script/helpers';
+
+const wrap = ElementCreator.wrap;
 
 /**
  * The script entries table of the event page with its toolbar (add, edit, remove, move).
@@ -21,125 +25,101 @@ function createEntriesPanel({
     function renderEntries() {
         const rows = entries();
         const editable = Boolean(groupView().editable) && !state.busy;
-        const table = createElement('table', {
-            className: ['preference__table', 'gpo-catalog-table'],
-            children: [
-                createElement('thead', {
-                    children: [
-                        createElement('tr', {
-                            children: [
-                                createElement('th', { text: st('columnName') }),
-                                createElement('th', { text: st('columnArguments') })
-                            ]
-                        })
-                    ]
-                }),
-                createElement('tbody', {
-                    children: rows.length
-                        ? rows.map(function (entry) {
-                              const row = createElement('tr', {
-                                  className: entry.identity === state.selectedEntry[state.group] ? 'active' : null,
-                                  attrs: { tabindex: '-1', 'data-script-entry': entry.identity },
-                                  children: [
-                                      nameCell(entry.command_line, scriptFile(state.group)),
-                                      createElement('td', { text: entry.parameters })
-                                  ]
-                              });
-                              function select() {
-                                  state.selectedEntry[state.group] = entry.identity;
-                                  Array.prototype.forEach.call(
-                                      table.getElement().querySelectorAll('tbody tr'),
-                                      function (candidate) {
-                                          candidate.classList.toggle('active', candidate === row.getElement());
-                                      }
-                                  );
-                                  syncButtons();
-                                  setHeaderState();
-                                  if (navigations.entries) navigations.entries.sync();
-                              }
-                              row.getElement().__select = select;
-                              row.on('click', function () {
-                                  select();
-                                  navigations.entries.focusSelected();
-                              });
-                              row.on('dblclick', function () {
-                                  if (!state.busy && !state.form && !state.picker && !state.confirmation) {
-                                      select();
-                                      openForm('edit');
-                                  }
-                              });
-                              return row;
-                          })
-                        : [
-                              createElement('tr', {
-                                  className: 'gpo-editor-scripts__empty-row',
-                                  children: [
-                                      createElement('td', {
-                                          attrs: { colspan: '2' },
-                                          text: st('emptyEntries')
-                                      })
-                                  ]
-                              })
-                          ]
-                })
-            ]
+        function selectEntry(id) {
+            state.selectedEntry[state.group] = id;
+            setSelectedRows(tableElement, [id]);
+            syncButtons();
+            setHeaderState();
+            if (navigations.entries) navigations.entries.sync();
+        }
+        const tableElement = createDataTable({
+            label: st(state.group),
+            columns: [
+                { id: 'name', label: st('columnName') },
+                { id: 'arguments', label: st('columnArguments') }
+            ],
+            emptyText: st('emptyEntries'),
+            className: 'preference__table gpo-catalog-table',
+            emptyClassName: 'gpo-editor-scripts__empty-row',
+            rows: rows.map(function (entry) {
+                return {
+                    id: entry.identity,
+                    attrs: { 'data-script-entry': entry.identity },
+                    cells: [nameContent(entry.command_line, scriptFile(state.group)), entry.parameters],
+                    selected: entry.identity === state.selectedEntry[state.group],
+                    onClick: function () {
+                        selectEntry(entry.identity);
+                        navigations.entries.focusSelected();
+                    },
+                    onDoubleClick: function () {
+                        if (!state.busy && !state.form && !state.picker && !state.confirmation) {
+                            selectEntry(entry.identity);
+                            openForm('edit');
+                        }
+                    }
+                };
+            })
         });
-        const controls = {
-            add: button(
-                st('add'),
-                function () {
-                    openForm('add');
-                },
-                !editable
-            ),
-            edit: button(
-                st('edit'),
-                function () {
-                    openForm('edit');
-                },
-                true
-            ),
-            remove: button(st('remove'), removeEntry, true),
-            up: button(
-                st('up'),
-                function () {
-                    moveEntry(-1);
-                },
-                true
-            ),
-            down: button(
-                st('down'),
-                function () {
-                    moveEntry(1);
-                },
-                true
-            )
+        tableRows(tableElement).forEach(function (/** @type {any} */ row) {
+            row.__select = function () {
+                selectEntry(rowId(row));
+            };
+        });
+        const table = wrap(tableElement);
+        const move = function (delta) {
+            return function () {
+                moveEntry(delta);
+            };
         };
+        const toolbar = createToolbar({
+            label: st(state.group),
+            className: 'gpo-editor-scripts__toolbar',
+            items: [
+                { id: 'up', label: st('up'), onClick: move(-1), disabled: true },
+                { id: 'down', label: st('down'), onClick: move(1), disabled: true }
+            ].concat(
+                config.mode === 'event'
+                    ? [
+                          {
+                              id: 'add',
+                              label: st('add'),
+                              onClick: function () {
+                                  openForm('add');
+                              },
+                              disabled: !editable
+                          },
+                          {
+                              id: 'edit',
+                              label: st('edit'),
+                              onClick: function () {
+                                  openForm('edit');
+                              },
+                              disabled: true
+                          },
+                          { id: 'remove', label: st('remove'), onClick: removeEntry, disabled: true }
+                      ]
+                    : []
+            )
+        });
         function syncButtons() {
             const index = rows.findIndex(function (entry) {
                 return entry.identity === state.selectedEntry[state.group];
             });
             const selected = editable && index >= 0;
-            const up = editable && index >= 1;
-            const down = editable && index >= 0 && index < rows.length - 1;
-            [controls.edit, controls.remove].forEach(function (control) {
-                control.getElement().disabled = !selected;
-                control.getElement().classList.toggle('active', selected);
-            });
-            controls.up.getElement().disabled = !up;
-            controls.down.getElement().disabled = !down;
-            controls.up.getElement().classList.toggle('active', up);
-            controls.down.getElement().classList.toggle('active', down);
+            setToolbarItem(toolbar, 'edit', { disabled: !selected });
+            setToolbarItem(toolbar, 'remove', { disabled: !selected });
+            setToolbarItem(toolbar, 'up', { disabled: !(editable && index >= 1) });
+            setToolbarItem(toolbar, 'down', { disabled: !(editable && index >= 0 && index < rows.length - 1) });
         }
         syncButtons();
         bindTable(table, 'entries', {
             rows: function () {
-                return Array.from(table.getElement().querySelectorAll('[data-script-entry]'));
+                return tableRows(tableElement);
             },
             selected: function () {
                 return (
-                    Array.from(table.getElement().querySelectorAll('[data-script-entry]')).find(function (row) {
-                        return row.getAttribute('data-script-entry') === state.selectedEntry[state.group];
+                    tableRows(tableElement).find(function (row) {
+                        return rowId(row) === state.selectedEntry[state.group];
                     }) || null
                 );
             },
@@ -159,19 +139,7 @@ function createEntriesPanel({
         });
         return createElement('section', {
             className: 'gpo-editor-scripts__entries',
-            children: [
-                createElement('div', {
-                    className: 'gpo-editor-scripts__list',
-                    children: [table]
-                }),
-                createElement('div', {
-                    className: 'gpo-editor-scripts__toolbar',
-                    children:
-                        config.mode === 'event'
-                            ? [controls.up, controls.down, controls.add, controls.edit, controls.remove]
-                            : [controls.up, controls.down]
-                })
-            ]
+            children: [createElement('div', { className: 'gpo-editor-scripts__list', children: [table] }), toolbar]
         });
     }
 

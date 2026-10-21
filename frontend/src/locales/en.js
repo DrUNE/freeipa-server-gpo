@@ -427,6 +427,7 @@ const preferences = {
         applyOnce: 'Apply only once',
         itemSelection: 'Item selection',
         filtersHeading: 'Item-level targeting',
+        tabsLabel: 'Sections',
         tabBasic: 'Basic settings',
         tabGeneral: 'General',
         targettingButton: 'Targeting',
@@ -529,7 +530,8 @@ const preferences = {
 };
 const treeView = {
     loadingPolicies: 'Loading policies...',
-    unableToLoadPolicies: 'Unable to load policies.'
+    unableToLoadPolicies: 'Unable to load policies.',
+    unableToLoadSection: 'Unable to load the section.'
 };
 const header = {
     create: 'Create',
@@ -585,6 +587,7 @@ const systemSettings = {
     download: 'Download',
     deleteFile: 'Delete file',
     applyOrder: 'Apply order',
+    executionOrder: 'Execution order',
     orderUnspecified: 'Not configured',
     orderClassicFirst: 'Scripts first',
     orderPowershellFirst: 'PowerShell first',

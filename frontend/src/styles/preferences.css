@@ -67,6 +67,8 @@
   height: 26px;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button {
+  /* A tab is a <button> (keyboard, ARIA) but keeps the box model of the <div> it was. */
+  box-sizing: content-box;
   appearance: none;
   border: 0;
   padding: 0;
@@ -80,7 +82,7 @@
   justify-content: center;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button.active {
-  color: var(--gpui-accent);
+  color: var(--gpui-accent-text);
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button:not(.active) {
   background-color: var(--gpui-surface);

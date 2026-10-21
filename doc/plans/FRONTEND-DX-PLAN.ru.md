@@ -18,7 +18,7 @@
 | CI и сборка RPM | `python-backend.yml` и `.spec` запускают только pytest и покрытие Python. `make test-ui` нигде не вызывается. |
 | Dev-стенд | `tools/ui-dev`: mock-бэкенд и `requirejs` без сборки, обновление по F5. Не покрывает `chain.js`/`gpo.js` (зависят от `freeipa/*`). |
 | Размеры | Крупные файлы: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. Остальной код разбит удовлетворительно. |
-| RPC-контракт | `util/API.js` (408 строки) и `editor-dto.js` вручную согласованы с `gpo.py`; схемы нет. |
+| RPC-контракт | `util/API.js` (437 строки) и `editor-dto.js` вручную согласованы с `gpo.py`; схемы нет. |
 
 Ограничение развёртывания: RPM собирается в hasher без сети, в итоге нужны статические файлы в `/usr/share/ipa/ui/js/plugins/chain`.
 
@@ -91,7 +91,7 @@
 **Четвёртая часть (выполнена).** Код уровня модуля вынесен без общего контекста: `preference/targeting-operand-model.js` (каталоги полей и проверки; `targeting-operand-editor.js` 740 строк), `admx/policy-contents.js` (`admx-template.js` 368), `security/policy-draft.js` (`security-template.js` 619). В `preference/targeting-editor.js` изменяемое состояние — один объект `ui`, а дерево условий вынесено в `preference/targeting-tree.js` (редактор 674 строки). `script/event-editor.js` сократился до 660 строк (`script/order-panel.js`, `script/asset-actions.js`).
 **Пятая часть (выполнена).** `security-template.js` 399 строк (элементы управления вынесены в `security/controls.js`), `advanced-audit-template.js` 547 (`advanced-audit/presentation.js`), `script/event-editor.js` 536 (`script/event-loader.js`). TypeScript теперь покрывает `util/{editor-dto,collection-value,targeting-tree-draft,API}.ts`; `EditorError` стал классом, а черновик — классом с типизированными узлами, операциями и ошибками.
 **Сознательно не разбиты:** `targeting-editor.js` (674) и `render` в `targeting-operand-editor.js` (740): их функции вызывают друг друга по кругу (`select` ↔ `renderFields` ↔ `capture` ↔ `renderTree`), поэтому разрез требует обёрток с поздним связыванием на каждый перекрёстный вызов и теста на каждый шов ради выигрыша в несколько десятков строк. `chain.js` (1194) — вручную написанный AMD поверх фреймворка FreeIPA.
-**Осталось:** сами крупные функции — `renderPreferencesTemplate` (1364 строки, 74 общие переменные; `openForm` 435 строк, `renderTable` 120), `renderScriptEventEditor` (1566 строк, 58 переменных, состояние в основном в одном объекте `state`; `renderAssets` 267, `openForm` 231, `renderEntries` 156, `openPicker` 155, `renderBody` 105) и `renderScriptsTemplate` (408). Их разбиение требует общего контекста (`ctx`) и отдельных модулей по областям (таблица, форма, панель, дискард-диалог), то есть уже рефакторинг, а не перенос.
+**Осталось:** сами крупные функции — `renderPreferencesTemplate` (1364 строки, 74 общие переменные; `openForm` 435 строк, `renderTable` 120), `renderScriptEventEditor` (1566 строк, 58 переменных, состояние в основном в одном объекте `state`; `renderAssets` 267, `openForm` 231, `renderEntries` 156, `openPicker` 155, `renderBody` 105) и `renderScriptsTemplate` (437). Их разбиение требует общего контекста (`ctx`) и отдельных модулей по областям (таблица, форма, панель, дискард-диалог), то есть уже рефакторинг, а не перенос.
 
 - Разделить крупнейшие файлы по образцу `security/` (model + dialog + view): `preferences-view-template.js`, `script-template.js`, `chain.js`. Критерий: файл > 600 строк требует обоснования. Каждый шаг сопровождается существующими тестами.
 - **После разбиения крупных файлов:** оценить JSX без React (фабрика `h()` из `src/lib/dom.js` через `esbuild.jsxFactory` или `jsxImportSource`, типы `JSX.IntrinsicElements`/`JSX.Element = HTMLElement`). Выигрыш ожидается в разметочных файлах (диалоги, формы, таблицы), где вложенные `createElement({ attrs, children })` скрывают структуру DOM; в логике и моделях он мал. Начать с пилота на одном компоненте (`EditorStatus` или `Dialog`): настроить рантайм и типы, научить `scripts/read-amd.mjs` и `build-test-root.mjs` прогонять файлы через `esbuild.transform`, добавить JSX-парсер в ESLint. Продолжать, только если diff компонента стал заметно короче и понятнее; массовую автоконвертацию не делать, переводить по мере правок. Реактивности JSX не даёт: обновления остаются императивными (см. `createStore` ниже).
@@ -131,7 +131,7 @@
 
 - **Сборка в RPM.** Нет сети в hasher → коммитим результат и проверяем актуальность в CI (этап 4).
 - **Расхождение собранного и исходного кода** в ревью → `git diff --exit-code` после сборки.
-- **Регрессии при разделении файлов** → снимки и существующие 408 тестов до начала рефакторинга.
+- **Регрессии при разделении файлов** → снимки и существующие 437 тестов до начала рефакторинга.
 - **Форматирование засоряет историю** → отдельный коммит + `.git-blame-ignore-revs`.
 - **Совместимость с FreeIPA UI:** `chain.js`/`gpo.js` зависят от версии `freeipa/*`; шимы стенда нужно сверять с настоящими модулями (live-тест меню уже есть).
 
@@ -162,7 +162,7 @@
 4. Где хранить и как обновлять образ (реестр Forgejo; триггер пересборки при изменении `package-lock.json`, `Containerfile` или версии `admix` в spec).
 5. Вариант полностью автономный: образ, собранный из `.devcontainer/Containerfile` без части FreeIPA, плюс `chromium` и браузер Playwright; сверить, что он воспроизводит результат dev-контейнера (309 тестов, нет пропусков).
 
-**Критерий готовности:** задача `frontend` проходит в runner'е без доступа в интернет (проверка: запуск с отключённой сетью), `assert-no-skips.mjs` зелёный (408 тестов, ноль пропусков), время задачи не больше текущего.
+**Критерий готовности:** задача `frontend` проходит в runner'е без доступа в интернет (проверка: запуск с отключённой сетью), `assert-no-skips.mjs` зелёный (437 тестов, ноль пропусков), время задачи не больше текущего.
 
 ## 5. Связь с миграцией в freeipa-webui
 

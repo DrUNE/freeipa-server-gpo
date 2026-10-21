@@ -428,6 +428,7 @@ const preferences = {
         applyOnce: 'Применить только один раз',
         itemSelection: 'Выбор элементов',
         filtersHeading: 'Выбор элементов',
+        tabsLabel: 'Разделы',
         tabBasic: 'Основные настройки',
         tabGeneral: 'Общие',
         targettingButton: 'Нацеливание',
@@ -531,7 +532,8 @@ const preferences = {
 };
 const treeView = {
     loadingPolicies: 'Loading policies...',
-    unableToLoadPolicies: 'Не удалось загрузить политики.'
+    unableToLoadPolicies: 'Не удалось загрузить политики.',
+    unableToLoadSection: 'Не удалось загрузить раздел'
 };
 const header = {
     create: 'Создать',
@@ -587,6 +589,7 @@ const systemSettings = {
     download: 'Скачать',
     deleteFile: 'Удалить файл',
     applyOrder: 'Применить порядок',
+    executionOrder: 'Порядок выполнения',
     orderUnspecified: 'Не настроено',
     orderClassicFirst: 'Сначала сценарии',
     orderPowershellFirst: 'Сначала PowerShell',

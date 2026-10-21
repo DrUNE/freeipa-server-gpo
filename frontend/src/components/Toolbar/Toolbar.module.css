@@ -1,0 +1,19 @@
+/*
+ * A row of action buttons. Only the layout is here: where the toolbar sits and how wide its buttons are is the business of the
+ * screen that uses it (it passes `className`). The buttons keep the editor's `.button` marker, whose look is grey until `.active`.
+ */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.item:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.item:focus-visible {
+    outline: 2px solid var(--gpui-focus);
+    outline-offset: 2px;
+}

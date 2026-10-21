@@ -7,3 +7,9 @@ declare module '*.module.css' {
 
 // Global stylesheets (`import '@gpui/styles/main.css'`) have no exports; Vite puts them into js/app.css.
 declare module '*.css';
+
+// `import css from './x.css?raw'`: the text of a stylesheet (Storybook shows the design tokens from it).
+declare module '*.css?raw' {
+    const text: string;
+    export default text;
+}

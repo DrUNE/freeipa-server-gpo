@@ -1,4 +1,4 @@
-@charset "UTF-8";._status_duf15_1 {
+@charset "UTF-8";._status_1fqo6_1 {
     margin: 10px 20px;
     padding: 10px 12px;
     border: 1px solid #c7c7c7;
@@ -6,31 +6,56 @@
     background: #f7f7f7;
 }
 
-._error_duf15_9 {
+._error_1fqo6_9 {
     border-color: var(--gpui-danger);
     color: var(--gpui-danger-text);
     background: var(--gpui-danger-bg);
 }
 
-._pending_duf15_15,
-._unsupported_duf15_16 {
+._pending_1fqo6_15,
+._unsupported_1fqo6_16 {
     color: #664d03;
     background: #fff8df;
     border-color: #e0b400;
 }
 
-._actions_duf15_22 {
+._actions_1fqo6_22 {
     display: flex;
     gap: 8px;
     margin-top: 8px;
 }
 
 /*
+ * An action of a notice: always enabled, so unlike the editor's `.button` it is not grey. The selector is as long as it is
+ * because `.gp__container .button` (main.css, which comes after the modules) would win at equal specificity; the element name adds the missing weight.
+ */
+.gp__container button._action_1fqo6_22,
+._action_1fqo6_22 {
+    padding: 2px 10px;
+    border: 1px solid currentcolor;
+    border-radius: var(--gpui-radius);
+    color: var(--gpui-text);
+    background: var(--gpui-white);
+    cursor: pointer;
+}
+
+.gp__container button._action_1fqo6_22:hover,
+._action_1fqo6_22:hover {
+    color: var(--gpui-accent);
+}
+
+.gp__container button._action_1fqo6_22:focus-visible,
+._action_1fqo6_22:focus-visible {
+    outline: 2px solid var(--gpui-accent);
+    outline-offset: 2px;
+}
+
+/*
  * The editor container makes everything unselectable; diagnostics stay copyable.
  * `gp__container` is the editor's global root class (css/main.css).
  */
-.gp__container :is(._message_duf15_32, ._field_duf15_32, ._diagnostics_duf15_32),
-.gp__container :is(._message_duf15_32, ._field_duf15_32, ._diagnostics_duf15_32) * {
+.gp__container :is(._message_1fqo6_57, ._field_1fqo6_57, ._diagnostics_1fqo6_57),
+.gp__container :is(._message_1fqo6_57, ._field_1fqo6_57, ._diagnostics_1fqo6_57) * {
     user-select: text;
     -webkit-user-select: text;
 }
@@ -186,6 +211,25 @@
     outline: 2px solid var(--gpui-accent);
     outline-offset: 2px;
 }
+/*
+ * A row of action buttons. Only the layout is here: where the toolbar sits and how wide its buttons are is the business of the
+ * screen that uses it (it passes `className`). The buttons keep the editor's `.button` marker, whose look is grey until `.active`.
+ */
+._toolbar_1svso_5 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+._item_1svso_11:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+._item_1svso_11:focus-visible {
+    outline: 2px solid var(--gpui-focus);
+    outline-offset: 2px;
+}
 
 /*
  * Design tokens of the editor: the values that main.css, other.css and the components' CSS Modules share.
@@ -193,11 +237,14 @@
  */
 :root {
   --gpui-text: #363636;
-  --gpui-muted: #8b8d8f;
+  /* Text on white or on --gpui-surface at 4.5:1 or better (the former #8b8d8f was 3.3:1). */
+  --gpui-muted: #6a6e73;
   --gpui-white: #fff;
   --gpui-surface: #f5f5f5;
   --gpui-border: #d1d1d1;
   --gpui-accent: #297fb0;
+  /* The accent as the color of text (selected and focused rows): 5.4:1 on --gpui-surface, where --gpui-accent is 4.0:1. */
+  --gpui-accent-text: #1f6a99;
   --gpui-focus: #0088ce;
   --gpui-danger: #c9190b;
   --gpui-danger-text: #8c2b2b;
@@ -485,7 +532,7 @@
   flex: 0 0 auto;
   padding: 12px 20px;
   margin: 0;
-  color: #777;
+  color: var(--gpui-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 20px;
@@ -809,7 +856,7 @@
     transition: color 0.3s ease-in-out;
   }
   .gp__container .button.active:hover {
-    color: var(--gpui-accent);
+    color: var(--gpui-accent-text);
   }
 }
 .gp__preference {
@@ -968,6 +1015,8 @@
   height: 26px;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button {
+  /* A tab is a <button> (keyboard, ARIA) but keeps the box model of the <div> it was. */
+  box-sizing: content-box;
   appearance: none;
   border: 0;
   padding: 0;
@@ -981,7 +1030,7 @@
   justify-content: center;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button.active {
-  color: var(--gpui-accent);
+  color: var(--gpui-accent-text);
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button:not(.active) {
   background-color: var(--gpui-surface);
@@ -1199,7 +1248,7 @@
 }
 .gpo-editor-control--disabled,
 .gpo-editor-field--readonly {
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-boolean {
   display: inline-flex;
@@ -1240,7 +1289,7 @@
 .gpo-editor-empty {
   padding: 24px;
   text-align: center;
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-fields {
   display: grid;
@@ -1405,7 +1454,7 @@
 
 .gpo-editor-filters__toolbar--disabled {
   background: var(--gpui-surface);
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-filters__toolbar--disabled button,
 .gpo-editor-filters__toolbar--disabled select,
@@ -2229,7 +2278,7 @@
 .gp__container :is(.gpo-catalog-table, .gpo-collection-table):focus-within tbody tr.active,
 .gp__container .gp__list-children__list:focus-within .workspace-list-item.active,
 .gp__container .gpo-editor-filters__tree:focus-within .gpo-editor-filter-node.active {
-  color: var(--gpui-accent);
+  color: var(--gpui-accent-text);
   box-shadow: inset 3px 0 var(--gpui-accent);
 }
 .gp__container :is(.workspace-list-item, .gpo-editor-filter-node):focus-visible,

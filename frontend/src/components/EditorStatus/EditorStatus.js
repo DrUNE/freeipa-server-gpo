@@ -46,7 +46,12 @@ export function messageForError(error) {
 }
 
 function createAction(label, onClick) {
-    const button = h('button', { class: 'button', type: 'button', 'data-editor-status-action': true }, label);
+    // `button` is the editor's global marker; its look (grey, until `active`) is that of a disabled control, so the action sets its own.
+    const button = h(
+        'button',
+        { class: cx('button', styles.action), type: 'button', 'data-editor-status-action': true },
+        label
+    );
     button.addEventListener('click', onClick);
     return button;
 }

@@ -131,6 +131,7 @@ function createItemForm({
                 nameInput = createElement('input', {
                     attrs: {
                         type: 'text',
+                        'aria-label': pt('rename'),
                         value: originalName,
                         required: 'required',
                         disabled: readonly ? 'disabled' : null

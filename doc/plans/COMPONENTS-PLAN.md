@@ -37,14 +37,14 @@ In the order of use: the first ones appear in the most screens and give the most
 
 | # | Component | Taken from | PatternFly / webui counterpart | Days |
 |---|---|---|---|---|
-| 1 | `Toolbar` (buttons with an active state, separators, overflow) | `header/header.js`, the toolbars of scripts, targeting, preferences, security | `Toolbar` | 1-2 |
-| 2 | `DataTable` (columns, single and multiple selection, roving focus from `list-navigation.js`, empty and loading states) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, the catalog tables | `Table`, webui `TableLayout` | 3-4 |
-| 3 | `Field` + `FieldControl` by kind (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, read-only, error, hint) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
-| 4 | `Tabs` | `preference/view/field-tabs.js` | `Tabs`, webui `TabLayout` | 1 |
-| 5 | `TreeView` (expand, select, keyboard, lazy children) | `tree-view/*` | `TreeView` | 2-3 |
-| 6 | `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0.5 |
-| 7 | `CollectionEditor` (list and key/value list, inline editing, validation per row) | `collection-dialog.js`, `collection-control.js`; logic in `util/collection-value.ts` | a table with inline editing | 2-3 |
-| 8 | `ConfirmationDialog` on `Dialog` and `h()` | `confirmation-dialog.js` | webui `ConfirmationModal.tsx` | 0.5 |
+| 1 | ✅ `Toolbar` (buttons with an active state, separators, overflow) | `header/header.js`, the toolbars of scripts, targeting, preferences, security | `Toolbar` | 1-2 |
+| 2 | ✅ `DataTable` (columns, single and multiple selection, roving focus from `list-navigation.js`, empty and loading states) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, the catalog tables | `Table`, webui `TableLayout` | 3-4 |
+| 3 | ✅ `Field` + `FieldControl` by kind (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, read-only, error, hint) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
+| 4 | ✅ `Tabs` | `preference/view/field-tabs.js` | `Tabs`, webui `TabLayout` | 1 |
+| 5 | ✅ `TreeView` (expand, select, keyboard, lazy children) | `tree-view/*` | `TreeView` | 2-3 |
+| 6 | ✅ `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0.5 |
+| 7 | ◐ `CollectionEditor` (list and key/value list, inline editing, validation per row) | `components/CollectionEditor/` (`collection-dialog.js` is an adapter), `collection-control.js`; logic in `util/collection-value.ts` | a table with inline editing | 2-3 |
+| 8 | ✅ `ConfirmationDialog` on `Dialog` and `h()` | `confirmation-dialog.js` | webui `ConfirmationModal.tsx` | 0.5 |
 | 9 | `OrderableList` (up/down buttons, drag-and-drop with a keyboard alternative) | the order of scripts; later targeting and, in webui, chains | none in webui | 2 |
 
 **Total: 15-20 days**, one component at a time, each with its stories, the existing tests and the screenshots. `ElementCreator`
@@ -99,15 +99,31 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 
 | Step | What | Days |
 |---|---|---|
-| 1 | Storybook infrastructure: the fake RPC from the reference answers, the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
-| 2 | Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
-| 3 | Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
-| 4 | Components 3-8 with stories | 9-12 |
-| 5 | Screen stories for Security, ADMX, the preference form, the tree | 3-4 |
+| 1 | ✅ Storybook infrastructure: the fake RPC (the mock server of the stand, whose answers are checked against the reference answers), the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
+| 2 | ✅ Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
+| 3 | ✅ Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
+| 4 | Components 3-8 with stories (done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`, `TreeView`) | 9-12 |
+| 5 | ✅ Screen stories for Security, ADMX, the preference form, the catalog | 3-4 |
 | 6 | Component 9 (`OrderableList`) when the targeting or the webui chains need it | 2 |
 | | **Total** | **22-29** |
 
 Steps 1-3 can go in parallel with migration stage 0 (`frontend/src/core/`).
+
+**Step 1 is done.** `.storybook/shims/rpc.js` calls `dev/backend.mjs` in the page (so stories and the stand share the fixtures and the
+scenarios); `Foundations/Tokens` and `Infrastructure/Fake RPC` (`src/util/API.stories.js`) are the examples; `@storybook/addon-a11y`
+runs in every story test with `a11y.test: 'error'`. Its first run found a real defect: the action buttons of `EditorStatus`
+(Refresh, Reconcile) were rendered in the editor's disabled grey (contrast 1.4:1) because the global `.button` is grey until it
+is `.active`; they now have their own look.
+
+**Step 2 is done for the scripts screen.** `Toolbar` (a `role="group"` of buttons; `setToolbarItem` keeps `disabled` and the global `.active` look together) and `DataTable` (markup, selection marks, empty row; `setSelectedRows`; keyboard movement stays in `list-navigation.js`) are used by `script/entries-panel.js` and `script/assets-panel.js`; their tables and toolbars keep the legacy classes for the look (`preference__table gpo-catalog-table`, `gpo-editor-scripts__toolbar`), so the geometry tests did not change. Still on the old code: the preference items table, the catalog tables, the toolbars of security, audit and targeting. The accessibility checks of the new stories found two more contrast defects, fixed in the tokens: `--gpui-muted` was 3.3:1 (now `#6a6e73`, 4.7:1 and better) and the accent as a text color was 4.0-4.4:1 (new `--gpui-accent-text`, used for selected and hovered controls).
+
+**Step 3 is done.** `Screens/Advanced Audit` (rows and filtering, slow, server error, nothing to list) and `Screens/Scripts` (the overview of a scope, the event page with its selection rules, the empty and the slow event page) render the real templates on the fake server through `.storybook/screen.js` (`mountScreen`: opens the policy, shows the loading state, shows the error the editor would show). The `empty` scenario of the mock server now also empties the Advanced Audit rows and the script entries. The accessibility checks of the screens found three more defects, fixed: an empty `<h2>` heading on the audit screen (it now falls back to the localized title), the execution-order select of the scripts page without an accessible name (new label `executionOrder`, EN/RU), and the active tab at 4.4:1 (uses `--gpui-accent-text`).
+
+**Step 4 is partly done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`, `TreeView`.** `Field` (`createField`, layouts `checkbox|text|select|plain|mockup`) owns the label bound with `for`, the hint, the error (`[data-field-part="error"]`) and `aria-describedby`; `field-control.js` builds on it. `Tabs` (`createTabs`) renders real `button`s with `aria-controls`, panels and keyboard movement; `field-tabs.js` uses it. Stories: `Primitives/Field`, `Primitives/Tabs`. The accessibility checks found the last `#777` text colors (now `--gpui-muted`) and an unnamed tab list (new label `tabsLabel`). `Breadcrumb` (`createBreadcrumb`) and `ConfirmationDialog` (`open`, on `h()`) keep their old modules (`category-path.js`, `confirmation-dialog.js`) as adapters; the unit test of the confirmation dialog, which needed a fake DOM, became three stories (cancel, Escape and Tab, structured content). `TreeView` (`components/TreeView/`, the old `tree-view-list.js` is an adapter) is stateless-testable with a small tree state in the stories; its accessibility checks found real ARIA defects (list items without `role="none"`, a load-error group without `role="group"`), fixed, and a hard-coded Russian message moved to the locales. `CollectionEditor` has its specification as stories (`Primitives/CollectionEditor`: summary, adding a row, the empty list with the minimum, a duplicate key, discarding changes, read-only); the accessibility check found a table header without text (the reorder column), fixed. The former `collection-dialog.js` (about 670 lines, one closure) has been taken apart under these stories into the `components/CollectionEditor/` modules: `context.js` (shared state), `view.js` (markup on `h()`), `validation.js`, `cells.js` (in-cell editing), `reorder.js` (drag-and-drop and Ctrl+Arrow), `table.js` (rows), `toolbar.js`, `keyboard.js` and `CollectionEditor.js` (dialog assembly); each is under 150 lines, and `collection-dialog.js` stays an adapter exporting `open`. The modules do not import each other: their functions attach to the shared context.
+
+**Step 5 is done.** `Screens/Security`, `Screens/ADMX Policy` (11 stories) and `Screens/Preferences` (8 stories, the list, the form, read-only, validation) follow the pattern of step 3. Accessibility checks found three more defects, fixed: a `label` with `aria-label` on a boolean ADMX parameter, an unnamed comment field of the page layout, and an unnamed name field of the preference form. The `empty` scenario now also empties the security catalog.
+
+**Known defect, not fixed (catalog).** `Screens/Catalog` (`folder-template.stories.js`) turns off the axe rule `aria-allowed-attr` for itself: a catalog row is `role="button"` with `aria-selected` (set by `list-navigation.js`), which ARIA does not allow. The right form is a `listbox` of `option`s; I tried it, and it broke 15 integration tests that find the rows as buttons (about 35 locators), so it is a separate step.
 
 ## 7. What not to do
 

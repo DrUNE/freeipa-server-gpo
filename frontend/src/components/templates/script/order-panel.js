@@ -9,6 +9,7 @@ import { st, button } from '@gpui/components/templates/script/helpers';
 function createOrderPanel({ mutate, scope, state }) {
     function renderOrder() {
         const select = createElement('select', {
+            attrs: { 'aria-label': st('executionOrder') },
             children: [
                 createElement('option', { attrs: { value: 'unspecified' }, text: st('orderUnspecified') }),
                 createElement('option', { attrs: { value: 'classic_first' }, text: st('orderClassicFirst') }),

@@ -288,6 +288,9 @@ test(
             assert.equal(await rows.count(), 3);
             assert.equal(await page.evaluate(() => calls.length), 1);
             await page.evaluate(() => render('preferences', 'en', false));
+            await page.evaluate(
+                () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+            );
             await rows.nth(1).focus();
             await page.keyboard.press('Delete');
             await selectedAndFocused(rows, '["files","two"]', 'data-preference-identity');

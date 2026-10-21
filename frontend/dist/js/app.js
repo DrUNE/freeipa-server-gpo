@@ -723,6 +723,7 @@
 			applyOnce: "Apply only once",
 			itemSelection: "Item selection",
 			filtersHeading: "Item-level targeting",
+			tabsLabel: "Sections",
 			tabBasic: "Basic settings",
 			tabGeneral: "General",
 			targettingButton: "Targeting",
@@ -824,7 +825,8 @@
 	};
 	var treeView$1 = {
 		loadingPolicies: "Loading policies...",
-		unableToLoadPolicies: "Unable to load policies."
+		unableToLoadPolicies: "Unable to load policies.",
+		unableToLoadSection: "Unable to load the section."
 	};
 	var header$2 = {
 		create: "Create",
@@ -880,6 +882,7 @@
 		download: "Download",
 		deleteFile: "Delete file",
 		applyOrder: "Apply order",
+		executionOrder: "Execution order",
 		orderUnspecified: "Not configured",
 		orderClassicFirst: "Scripts first",
 		orderPowershellFirst: "PowerShell first",
@@ -1371,6 +1374,7 @@
 			applyOnce: "Применить только один раз",
 			itemSelection: "Выбор элементов",
 			filtersHeading: "Выбор элементов",
+			tabsLabel: "Разделы",
 			tabBasic: "Основные настройки",
 			tabGeneral: "Общие",
 			targettingButton: "Нацеливание",
@@ -1472,7 +1476,8 @@
 	};
 	var treeView = {
 		loadingPolicies: "Loading policies...",
-		unableToLoadPolicies: "Не удалось загрузить политики."
+		unableToLoadPolicies: "Не удалось загрузить политики.",
+		unableToLoadSection: "Не удалось загрузить раздел"
 	};
 	var header$1 = {
 		create: "Создать",
@@ -1528,6 +1533,7 @@
 		download: "Скачать",
 		deleteFile: "Удалить файл",
 		applyOrder: "Применить порядок",
+		executionOrder: "Порядок выполнения",
 		orderUnspecified: "Не настроено",
 		orderClassicFirst: "Сначала сценарии",
 		orderPowershellFirst: "Сначала PowerShell",
@@ -1664,7 +1670,34 @@
 		return element;
 	}
 	//#endregion
-	//#region src/components/tree-view/tree-view-list.js
+	//#region src/lib/dom.js
+	/**
+	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
+	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
+	* @template {keyof HTMLElementTagNameMap} K
+	* @param {K} tag
+	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
+	* @param {...Child} children
+	* @returns {HTMLElementTagNameMap[K]}
+	*/
+	function h(tag, attrs = {}, ...children) {
+		const element = document.createElement(tag);
+		for (const [name, value] of Object.entries(attrs)) {
+			if (value === false || value === null || value === void 0) continue;
+			element.setAttribute(name, value === true ? "" : value);
+		}
+		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
+		return element;
+	}
+	/**
+	* Joins class names, skipping falsy values.
+	* @param {...(string | false | null | undefined)} names
+	*/
+	function cx(...names) {
+		return names.filter(Boolean).join(" ");
+	}
+	//#endregion
+	//#region src/components/TreeView/TreeView.js
 	var expansionRuns = /* @__PURE__ */ new WeakMap();
 	var selectionScrollRuns = /* @__PURE__ */ new WeakMap();
 	function scrollTreeItemIntoView(element) {
@@ -1840,25 +1873,23 @@
 		(items || []).forEach(function(item) {
 			if (item.showInTree === false && treeViewState) treeViewState.registerTreeNode(item, { parentItem: parentItem || null });
 		});
-		return createElement("ul", {
-			className: "tree-view__list",
-			attrs: {
-				role: parentItem ? "group" : "tree",
-				"aria-label": parentItem ? null : t("navigation.tree"),
-				title: parentItem ? null : t("navigation.keyboardHelp")
-			},
-			children: (items || []).filter(function(item) {
-				return item.showInTree !== false;
-			}).map(function(item) {
-				return renderTreeItem(item, treeViewState, parentItem || null);
-			})
-		});
+		return h("ul", {
+			class: "tree-view__list",
+			role: parentItem ? "group" : "tree",
+			"aria-label": parentItem ? null : t("navigation.tree"),
+			title: parentItem ? null : t("navigation.keyboardHelp")
+		}, ...(items || []).filter(function(item) {
+			return item.showInTree !== false;
+		}).map(function(item) {
+			return renderTreeItem(item, treeViewState, parentItem || null);
+		}));
 	}
 	function renderLoadError() {
-		return createElement("li", {
-			className: ["view", "tree-view__lazy-error"],
-			text: "Не удалось загрузить раздел"
-		});
+		return h("li", {
+			class: "view tree-view__lazy-error",
+			role: "treeitem",
+			"aria-disabled": "true"
+		}, t("treeView.unableToLoadSection"));
 	}
 	function ensureLazyChildren(item, listItem, treeViewState) {
 		if (!item || !item.lazy || item.loaded) return Promise.resolve(item && item.children || []);
@@ -1872,17 +1903,17 @@
 			syncSwitcher(listItem.querySelector(":scope > .tree-item > .icon-switcher"), item);
 			const oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(renderTreeList(item.children, treeViewState, item).getElement());
+			listItem.appendChild(renderTreeList(item.children, treeViewState, item));
 			setFolderOpenedState(listItem, item, item.opened);
 			return item.children;
 		}).catch(function(error) {
 			console.error("[tree-view] Failed to load children.", error);
 			const oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(createElement("ul", {
-				className: "tree-view__list",
-				children: [renderLoadError()]
-			}).getElement());
+			listItem.appendChild(h("ul", {
+				class: "tree-view__list",
+				role: "group"
+			}, renderLoadError()));
 			setFolderOpenedState(listItem, item, item.opened);
 			throw error;
 		}).finally(function() {
@@ -1893,39 +1924,25 @@
 	}
 	function renderTreeItem(item, treeViewState, parentItem) {
 		const isFolder = item.type === "folder";
-		const classes = ["view", isFolder ? "folder" : "file"];
-		if (isFolder) classes.push(item.opened ? "opened" : "closed");
-		const treeItem = createElement("span", {
-			className: "tree-item",
-			attrs: {
-				role: "treeitem",
-				tabindex: parentItem ? "-1" : "0",
-				"aria-selected": "false",
-				"aria-label": item.title,
-				"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
-			},
-			children: [
-				isFolder ? createElement("span", {
-					className: ["icon-switcher", hasVisibleChildren(item) ? null : "icon-switcher--empty"],
-					attrs: { role: "button" }
-				}) : null,
-				isFolder ? createElement("span", {
-					className: "tree-view__status-spinner",
-					attrs: { "aria-hidden": "true" }
-				}) : null,
-				item.icon ? createElement("span", { className: ["icon", item.icon] }) : null,
-				createElement("span", {
-					className: "tree-item__title",
-					text: item.title
-				})
-			]
-		});
-		const listItem = createElement("li", {
-			className: classes,
-			children: [treeItem]
-		});
-		const listElement = listItem.getElement();
-		const switcher = isFolder ? treeItem.getElement().querySelector(".icon-switcher") : null;
+		const treeItem = h("span", {
+			class: "tree-item",
+			role: "treeitem",
+			tabindex: parentItem ? "-1" : "0",
+			"aria-selected": "false",
+			"aria-label": item.title,
+			"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
+		}, isFolder && h("span", {
+			class: cx("icon-switcher", !hasVisibleChildren(item) && "icon-switcher--empty"),
+			role: "button"
+		}), isFolder && h("span", {
+			class: "tree-view__status-spinner",
+			"aria-hidden": "true"
+		}), item.icon && h("span", { class: cx("icon", item.icon) }), h("span", { class: "tree-item__title" }, item.title));
+		const listElement = h("li", {
+			class: cx("view", isFolder ? "folder" : "file", isFolder && (item.opened ? "opened" : "closed")),
+			role: "none"
+		}, treeItem);
+		const switcher = isFolder ? treeItem.querySelector(".icon-switcher") : null;
 		syncSwitcher(switcher, item);
 		function toggleExpansion() {
 			if (!hasVisibleChildren(item)) return;
@@ -1950,14 +1967,14 @@
 				if (treeViewState.selectedItem && treeViewState.selectedItem.item === target) element.focus({ preventScroll: true });
 			});
 		}
-		treeItem.getElement()._gpoTreeItem = item;
-		treeItem.on("keydown", function(event) {
+		/** @type {any} */ treeItem._gpoTreeItem = item;
+		treeItem.addEventListener("keydown", function(event) {
 			if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
 			if (event.target.closest("button, input, textarea, select, a, [contenteditable]")) return;
-			const root = treeItem.getElement().closest("[role=\"tree\"]");
+			const root = treeItem.closest("[role=\"tree\"]");
 			if (!root) return;
 			const rows = visibleRows(root);
-			const index = rows.indexOf(treeItem.getElement());
+			const index = rows.indexOf(treeItem);
 			let next = null;
 			if (event.key === "ArrowUp") next = rows[Math.max(0, index - 1)];
 			else if (event.key === "ArrowDown") next = rows[Math.min(rows.length - 1, index + 1)];
@@ -1973,8 +1990,8 @@
 				else next = listElement.parentElement && listElement.parentElement.closest("li.view") && listElement.parentElement.closest("li.view").querySelector(":scope > .tree-item");
 			} else if (event.key === "Enter") {
 				if (treeViewState && treeViewState.selectedItem && treeViewState.selectedItem.item === item && isFolder) toggleExpansion();
-				else next = treeItem.getElement();
-			} else if (event.key === " " || event.key === "Spacebar") next = treeItem.getElement();
+				else next = treeItem;
+			} else if (event.key === " " || event.key === "Spacebar") next = treeItem;
 			else return;
 			event.preventDefault();
 			event.stopPropagation();
@@ -1987,15 +2004,15 @@
 			toggleExpansion();
 		});
 		if (treeViewState) treeViewState.registerTreeNode(item, {
-			treeItemElement: treeItem.getElement(),
+			treeItemElement: treeItem,
 			listItemElement: listElement,
 			parentItem: parentItem || null
 		});
 		if (isFolder && !item.lazy && hasVisibleChildren(item)) {
-			listItem.append(renderTreeList(item.children, treeViewState, item));
+			listElement.append(renderTreeList(item.children, treeViewState, item));
 			setFolderOpenedState(listElement, item, item.opened);
 		}
-		treeItem.on("click", function(event) {
+		treeItem.addEventListener("click", function(event) {
 			event.stopPropagation();
 			const clicked = event.currentTarget;
 			if (isFolder && event.target instanceof Element && event.target.closest(".icon-switcher")) {
@@ -2016,15 +2033,20 @@
 				openPath: true
 			});
 		});
-		return listItem;
+		return listElement;
 	}
-	function renderTreeViewList(data, workspace, treeViewState) {
+	function renderTreeViewList$1(data, workspace, treeViewState) {
 		const treeData = Array.isArray(data) ? data : [];
 		if (workspace && treeViewState) {
 			treeViewState.setWorkspace(workspace);
 			treeViewState.setTreeData(treeData);
 		}
 		return renderTreeList(treeData, treeViewState, null);
+	}
+	//#endregion
+	//#region src/components/tree-view/tree-view-list.js
+	function renderTreeViewList(data, workspace, treeViewState) {
+		return ElementCreator.wrap(renderTreeViewList$1(data, workspace, treeViewState));
 	}
 	//#endregion
 	//#region src/util/API.ts
@@ -3074,66 +3096,72 @@
 		};
 	}
 	//#endregion
-	//#region src/components/category-path.js
-	function render$4(segments, onNavigate) {
-		const parts = (segments || []).filter(function(segment) {
-			return segment && segment.title;
-		});
-		const list = createElement("ol", { className: "gpo-category-path__list" });
+	//#region src/components/Breadcrumb/Breadcrumb.js
+	/**
+	* @param {{ label: string, segments: Array<{ title?: string, item?: unknown } | null | undefined>, onNavigate?: (item: any) => void }} options
+	* @returns {HTMLElement}
+	*/
+	function createBreadcrumb({ label, segments, onNavigate }) {
+		const parts = (segments || []).filter((segment) => segment && segment.title);
+		const list = h("ol", { class: "gpo-category-path__list" });
 		let focused = Math.max(0, parts.length - 1);
-		function syncFocus() {
-			const buttons = list.getElement().querySelectorAll("button");
-			Array.from(buttons).forEach(function(button, index) {
+		function render() {
+			Array.from(list.querySelectorAll("button")).forEach((button, index) => {
 				button.tabIndex = index === focused ? 0 : -1;
 			});
 		}
-		parts.forEach(function(segment, index) {
-			const last = index === parts.length - 1;
-			const label = createElement(segment.item && onNavigate ? "button" : "span", {
-				className: "gpo-category-path__segment",
-				attrs: {
-					type: segment.item && onNavigate ? "button" : null,
-					title: segment.title,
-					"aria-current": last ? "page" : null
-				},
-				text: segment.title
-			});
-			if (segment.item && onNavigate) {
-				label.on("click", function() {
-					onNavigate(segment.item);
-				});
-				label.on("focus", function() {
+		parts.forEach((segment, index) => {
+			const navigable = Boolean(segment.item && onNavigate);
+			const text = h(navigable ? "button" : "span", {
+				class: "gpo-category-path__segment",
+				type: navigable ? "button" : null,
+				title: segment.title,
+				"aria-current": index === parts.length - 1 ? "page" : null
+			}, segment.title);
+			if (navigable) {
+				text.addEventListener("click", () => onNavigate?.(segment.item));
+				text.addEventListener("focus", () => {
 					focused = index;
-					syncFocus();
+					render();
 				});
 			}
-			list.append(createElement("li", { children: [index ? createElement("span", {
-				className: "gpo-category-path__separator",
-				attrs: { "aria-hidden": "true" },
-				text: " / "
-			}) : null, label] }));
+			list.append(h("li", {}, index ? h("span", {
+				class: "gpo-category-path__separator",
+				"aria-hidden": "true"
+			}, " / ") : null, text));
 		});
-		list.on("keydown", function(event) {
+		list.addEventListener("keydown", (event) => {
 			if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-			const buttons = Array.from(list.getElement().querySelectorAll("button"));
+			const buttons = Array.from(list.querySelectorAll("button"));
 			const index = buttons.indexOf(event.target);
 			if (index < 0) return;
-			const next = event.key === "ArrowLeft" ? index - 1 : event.key === "ArrowRight" ? index + 1 : event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : null;
-			if (next === null) return;
+			const next = {
+				ArrowLeft: index - 1,
+				ArrowRight: index + 1,
+				Home: 0,
+				End: buttons.length - 1
+			}[event.key];
+			if (next === void 0) return;
 			event.preventDefault();
 			focused = Math.max(0, Math.min(buttons.length - 1, next));
-			syncFocus();
+			render();
 			buttons[focused].focus({ preventScroll: true });
 		});
-		syncFocus();
-		return createElement("nav", {
-			className: "gpo-category-path",
-			attrs: {
-				"data-category-path": "",
-				"aria-label": t("navigation.path")
-			},
-			children: [list]
-		});
+		render();
+		return h("nav", {
+			class: "gpo-category-path",
+			"data-category-path": "",
+			"aria-label": label
+		}, list);
+	}
+	//#endregion
+	//#region src/components/category-path.js
+	function render$4(segments, onNavigate) {
+		return ElementCreator.wrap(createBreadcrumb({
+			label: t("navigation.path"),
+			segments,
+			onNavigate
+		}));
 	}
 	function attachFilter(header, view) {
 		if (!header || !view) return;
@@ -3741,42 +3769,16 @@
 	function errorCategory(error) {
 		return String(error && (error.category || error.code) || "operational").toLowerCase();
 	}
-	//#endregion
-	//#region src/lib/dom.js
-	/**
-	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
-	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
-	* @template {keyof HTMLElementTagNameMap} K
-	* @param {K} tag
-	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
-	* @param {...Child} children
-	* @returns {HTMLElementTagNameMap[K]}
-	*/
-	function h(tag, attrs = {}, ...children) {
-		const element = document.createElement(tag);
-		for (const [name, value] of Object.entries(attrs)) {
-			if (value === false || value === null || value === void 0) continue;
-			element.setAttribute(name, value === true ? "" : value);
-		}
-		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
-		return element;
-	}
-	/**
-	* Joins class names, skipping falsy values.
-	* @param {...(string | false | null | undefined)} names
-	*/
-	function cx(...names) {
-		return names.filter(Boolean).join(" ");
-	}
 	var EditorStatus_module_default = {
-		status: "_status_duf15_1",
-		error: "_error_duf15_9",
-		pending: "_pending_duf15_15",
-		unsupported: "_unsupported_duf15_16",
-		actions: "_actions_duf15_22",
-		message: "_message_duf15_32",
-		field: "_field_duf15_32",
-		diagnostics: "_diagnostics_duf15_32"
+		status: "_status_1fqo6_1",
+		error: "_error_1fqo6_9",
+		pending: "_pending_1fqo6_15",
+		unsupported: "_unsupported_1fqo6_16",
+		actions: "_actions_1fqo6_22",
+		action: "_action_1fqo6_22",
+		message: "_message_1fqo6_57",
+		field: "_field_1fqo6_57",
+		diagnostics: "_diagnostics_1fqo6_57"
 	};
 	//#endregion
 	//#region src/components/EditorStatus/EditorStatus.js
@@ -3805,7 +3807,7 @@
 	}
 	function createAction(label, onClick) {
 		const button = h("button", {
-			class: "button",
+			class: cx("button", EditorStatus_module_default.action),
 			type: "button",
 			"data-editor-status-action": true
 		}, label);
@@ -3855,78 +3857,63 @@
 	}
 	//#endregion
 	//#region src/components/editor-status.js
-	function wrap$3(element) {
+	function wrap$6(element) {
 		return element && ElementCreator.wrap(element);
 	}
 	function renderError(error, options) {
-		return wrap$3(createErrorStatus(error, options));
+		return wrap$6(createErrorStatus(error, options));
 	}
 	function renderPending(pending, onReconcile) {
-		return wrap$3(createPendingStatus(pending, onReconcile));
+		return wrap$6(createPendingStatus(pending, onReconcile));
 	}
 	function renderDiagnostics(diagnostics) {
-		return wrap$3(createDiagnostics(diagnostics));
+		return wrap$6(createDiagnostics(diagnostics));
 	}
 	function renderUnsupported(message) {
-		return wrap$3(createUnsupportedStatus(message));
+		return wrap$6(createUnsupportedStatus(message));
 	}
 	//#endregion
-	//#region src/components/confirmation-dialog.js
-	var nextId = 0;
+	//#region src/components/ConfirmationDialog/ConfirmationDialog.js
+	var nextId$1 = 0;
+	/**
+	* @param {{ getElement?: () => HTMLElement, appendChild?: Function } | HTMLElement} host
+	* @param {{ title?: string, message?: string, content?: any, confirmLabel?: string, cancelLabel?: string,
+	*   onConfirm?: () => void, onCancel?: () => void }} [options]
+	*/
 	function open$3(host, options) {
 		const config = options || {};
-		const container = host && host.getElement ? host.getElement() : host;
+		const container = host && "getElement" in host && host.getElement ? host.getElement() : host;
 		if (!container || typeof container.appendChild !== "function") throw new TypeError("A confirmation dialog host is required.");
 		const previous = document.activeElement;
-		const id = "gpo-confirmation-" + ++nextId;
+		const id = "gpo-confirmation-" + ++nextId$1;
 		let closed = false;
-		const no = createElement("button", {
-			className: ["btn", "btn-no"],
-			attrs: { type: "button" },
-			text: config.cancelLabel || t("policyChangedModal.no")
-		});
-		const yes = createElement("button", {
-			className: ["btn", "btn-yes"],
-			attrs: { type: "button" },
-			text: config.confirmLabel || t("policyChangedModal.yes")
-		});
-		const content = createElement("div", {
+		const no = h("button", {
+			class: "btn btn-no",
+			type: "button"
+		}, config.cancelLabel || t("policyChangedModal.no"));
+		const yes = h("button", {
+			class: "btn btn-yes",
+			type: "button"
+		}, config.confirmLabel || t("policyChangedModal.yes"));
+		const content = h("div", {
 			id: id + "-message",
-			className: "policy-changed__modal-content",
-			text: config.message || ""
-		});
-		if (config.content) content.getElement().appendChild(config.content.getElement ? config.content.getElement() : config.content);
-		const modal = createElement("div", {
-			className: ["policy-changed__modal", "policy-changed__modal--discard"],
-			attrs: {
-				role: "alertdialog",
-				"aria-modal": "true",
-				"aria-labelledby": id + "-title",
-				"aria-describedby": id + "-message"
-			},
-			children: [createElement("div", {
-				className: "policy-changed__modal-wrapper",
-				children: [
-					createElement("div", {
-						className: "policy-changed__modal-header",
-						children: [createElement("div", {
-							id: id + "-title",
-							className: "title",
-							text: config.title || t("confirmModal.title")
-						})]
-					}),
-					content,
-					createElement("div", {
-						className: "policy-changed__modal-footer",
-						children: [no, yes]
-					})
-				]
-			})]
-		});
+			class: "policy-changed__modal-content"
+		}, config.message || "");
+		if (config.content) content.appendChild(config.content.getElement ? config.content.getElement() : config.content);
+		const modal = h("div", {
+			class: cx("policy-changed__modal", "policy-changed__modal--discard"),
+			role: "alertdialog",
+			"aria-modal": "true",
+			"aria-labelledby": id + "-title",
+			"aria-describedby": id + "-message"
+		}, h("div", { class: "policy-changed__modal-wrapper" }, h("div", { class: "policy-changed__modal-header" }, h("div", {
+			id: id + "-title",
+			class: "title"
+		}, config.title || t("confirmModal.title"))), content, h("div", { class: "policy-changed__modal-footer" }, no, yes)));
 		function close() {
 			if (closed) return;
 			closed = true;
-			modal.getElement().remove();
+			modal.remove();
 			if (previous && previous.isConnected && previous.focus) previous.focus();
 		}
 		function choose(confirmed) {
@@ -3935,34 +3922,30 @@
 			const callback = confirmed ? config.onConfirm : config.onCancel;
 			if (typeof callback === "function") callback();
 		}
-		no.on("click", function() {
-			choose(false);
-		});
-		yes.on("click", function() {
-			choose(true);
-		});
-		modal.on("keydown", function(event) {
+		no.addEventListener("click", () => choose(false));
+		yes.addEventListener("click", () => choose(true));
+		modal.addEventListener("keydown", (event) => {
 			if (event.key === "Escape") {
 				event.preventDefault();
 				event.stopPropagation();
 				choose(false);
 			} else if (event.key === "Tab") {
-				if (event.shiftKey && document.activeElement === no.getElement()) {
+				if (event.shiftKey && document.activeElement === no) {
 					event.preventDefault();
-					yes.getElement().focus();
-				} else if (!event.shiftKey && document.activeElement === yes.getElement()) {
+					yes.focus();
+				} else if (!event.shiftKey && document.activeElement === yes) {
 					event.preventDefault();
-					no.getElement().focus();
+					no.focus();
 				}
 			}
 		});
-		container.appendChild(modal.getElement());
-		modal.getElement().offsetHeight;
-		modal.getElement().classList.add("active");
-		no.getElement().focus();
+		container.appendChild(modal);
+		modal.offsetHeight;
+		modal.classList.add("active");
+		no.focus();
 		return {
 			close,
-			root: modal.getElement()
+			root: modal
 		};
 	}
 	var Dialog_module_default = {
@@ -4075,7 +4058,7 @@
 		open: () => open$2,
 		trapTab: () => trapTab
 	});
-	var sequence$4 = 0;
+	var sequence$5 = 0;
 	function trapTab(event, modal) {
 		if (event.key !== "Tab" || event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== modal) return;
 		const focusable = Array.from(modal.querySelectorAll("button, input, select, textarea, summary, a[href], [contenteditable=\"true\"], [tabindex]")).filter(function(element) {
@@ -4101,7 +4084,7 @@
 	}
 	function open$2(host, options) {
 		const previous = document.activeElement;
-		const titleId = "editor-dialog-" + ++sequence$4;
+		const titleId = "editor-dialog-" + ++sequence$5;
 		let busy = false;
 		let closed = false;
 		let applyDisabled = Boolean(options.applyDisabled);
@@ -4224,6 +4207,524 @@
 				applyDisabled = Boolean(disabled);
 				apply.getElement().disabled = busy || applyDisabled;
 			}
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/context.js
+	var sequence$4 = 0;
+	/**
+	* Shared state of one open editor. The behaviour modules (`view`, `validation`, `cells`, `reorder`, `table`,
+	* `toolbar`, `keyboard`) read it and attach their functions to it, so none of them imports another one.
+	* @param {{ parameter: any, value: any, readOnly?: boolean }} options
+	*/
+	function createContext(options) {
+		const state = session(options.parameter, options.value);
+		const fields = state.mode === "key_value" ? ["key", "value"] : ["value"];
+		return {
+			options,
+			state,
+			readOnly: Boolean(options.readOnly),
+			fields,
+			rules: constraints(options.parameter, options.value),
+			prefix: "collection-" + ++sequence$4,
+			activeCell: {
+				id: state.rows[0] && state.rows[0].id,
+				field: fields[0]
+			},
+			editing: null,
+			drag: null,
+			scrollFrame: null,
+			dialog: void 0,
+			els: {}
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/translate.js
+	/**
+	* Text from the `collections.*` locale group; `{name}` placeholders are replaced from `values`.
+	* @param {string} key
+	* @param {Record<string, string | number>} [values]
+	*/
+	function tr$6(key, values) {
+		let text = t("collections." + key);
+		Object.keys(values || {}).forEach(function(name) {
+			text = text.replace("{" + name + "}", String(values[name]));
+		});
+		return text;
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/view.js
+	/**
+	* Static markup of the editor: toolbar, validation line, table skeleton, counters. Public hooks:
+	* `[data-collection-add]`, `[data-collection-remove]`, `[data-collection-mode]`, `[data-collection-row]`,
+	* `[data-collection-field]`, `[data-collection-input]`.
+	* @param {any} ctx
+	*/
+	function buildView(ctx) {
+		const { options, state, readOnly, prefix } = ctx;
+		const keyValue = state.mode === "key_value";
+		const add = h("button", {
+			class: "button",
+			type: "button",
+			"data-collection-add": true
+		}, tr$6("add"));
+		const remove = h("button", {
+			class: "button",
+			type: "button",
+			"data-collection-remove": true
+		}, tr$6("remove"));
+		const search = h("input", {
+			type: "search",
+			placeholder: tr$6("search"),
+			"aria-label": tr$6("search")
+		});
+		[add, remove].forEach(function(button) {
+			button.addEventListener("mousedown", function(event) {
+				if (event.button === 0) event.preventDefault();
+			});
+		});
+		const toolbar = h("div", { class: "gpo-collection-editor__toolbar" }, !readOnly && add, !readOnly && remove, search);
+		const errors = h("div", {
+			class: "gpo-collection-editor__validation",
+			role: "alert"
+		});
+		const count = h("div", { class: "gpo-collection-editor__count" });
+		const live = h("div", {
+			class: "gpo-collection-editor__live",
+			role: "status",
+			"aria-live": "polite",
+			"aria-atomic": "true"
+		});
+		const body = h("tbody");
+		const table = h("table", {
+			class: "preference__table gpo-collection-table",
+			"aria-label": options.parameter.label || options.parameter.id,
+			tabindex: "0",
+			"data-collection-mode": state.mode
+		}, h("colgroup", {}, !readOnly && h("col", { class: "gpo-collection-table__handle-column" }), h("col", { class: keyValue ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }), h("col")), h("thead", {}, h("tr", {}, !readOnly && h("th", { scope: "col" }, h("span", { class: "gpo-editor-visually-hidden" }, tr$6("reorder"))), h("th", { scope: "col" }, keyValue ? tr$6("key") : tr$6("index")), h("th", { scope: "col" }, tr$6("value")))), body);
+		const scroll = h("div", { class: "gpo-collection-editor__table-scroll" }, table);
+		const content = h("div", { class: "gpo-collection-editor" }, toolbar, errors, scroll, count, live, h("span", {
+			id: prefix + "-reorder-help",
+			class: "gpo-collection-editor__live"
+		}, tr$6("reorderHelp")));
+		Object.assign(ctx.els, {
+			add,
+			remove,
+			search,
+			errors,
+			count,
+			live,
+			body,
+			table,
+			scroll,
+			content
+		});
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/validation.js
+	/**
+	* Validation line, per-cell errors, counters and the pending (not yet committed) cell edit.
+	* Attaches `pending`, `busy`, `announce`, `updateValidation` to the context.
+	* @param {any} ctx
+	*/
+	function installValidation(ctx) {
+		const { state, readOnly, prefix, els } = ctx;
+		ctx.pending = function() {
+			const editing = ctx.editing;
+			return editing ? {
+				id: editing.id,
+				field: editing.field,
+				value: editing.input.value
+			} : null;
+		};
+		ctx.busy = function() {
+			const dialog = ctx.dialog;
+			return Boolean(dialog && (dialog.isBusy() || dialog.root.getElement().inert));
+		};
+		ctx.announce = function(text) {
+			els.live.textContent = text;
+		};
+		ctx.updateValidation = function() {
+			const problems = readOnly ? [] : state.errors(ctx.pending());
+			els.errors.textContent = problems.filter(function(problem) {
+				return !problem.id;
+			}).map(function(problem) {
+				return tr$6("errors." + problem.code);
+			}).join(" ");
+			Array.from(els.body.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
+				const id = cell.parentElement.getAttribute("data-collection-row");
+				const field = cell.getAttribute("data-collection-field");
+				const problem = problems.find(function(error) {
+					return error.id === id && error.field === field;
+				});
+				const prior = cell.querySelector(".gpo-collection-cell__error");
+				if (prior) prior.remove();
+				cell.classList.toggle("gpo-collection-cell--invalid", Boolean(problem));
+				const input = cell.querySelector("[data-collection-input]");
+				if (problem) {
+					const errorId = prefix + "-" + id + "-" + field + "-error";
+					cell.appendChild(h("span", {
+						id: errorId,
+						class: "gpo-collection-cell__error"
+					}, tr$6("errors." + problem.code)));
+					if (input) {
+						input.setAttribute("aria-invalid", "true");
+						input.setAttribute("aria-describedby", errorId);
+					}
+				} else if (input) {
+					input.removeAttribute("aria-invalid");
+					input.removeAttribute("aria-describedby");
+				}
+			});
+			const size = state.read(ctx.pending()).value.length;
+			els.count.textContent = els.search.value ? tr$6("shownCount", {
+				shown: state.visible(els.search.value).length,
+				total: state.rows.length
+			}) : tr$6(state.mode === "key_value" ? "pairsCount" : "itemsCount", { count: size });
+			if (ctx.dialog) ctx.dialog.setApplyDisabled(problems.length !== 0);
+			return problems;
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/cells.js
+	/**
+	* Cell selection, focus and in-place editing. Attaches `cellFor`, `updateSelection`, `showCell`, `finishEdit`,
+	* `focusCell`, `editCell`, `selectCell` to the context.
+	* @param {any} ctx
+	*/
+	function installCells(ctx) {
+		const { state, readOnly, fields, rules, els } = ctx;
+		ctx.cellFor = function(id, field) {
+			return els.body.querySelector("[data-collection-row=\"" + id + "\"] [data-collection-field=\"" + field + "\"]");
+		};
+		ctx.updateSelection = function() {
+			const activeCell = ctx.activeCell;
+			Array.from(els.body.querySelectorAll("[data-collection-row]")).forEach(function(row) {
+				const id = row.getAttribute("data-collection-row");
+				row.classList.toggle("active", state.selectedId === id);
+				row.setAttribute("aria-selected", String(state.selectedId === id));
+				const handle = row.querySelector(".gpo-collection-table__handle");
+				if (handle) handle.tabIndex = -1;
+				/** @type {HTMLElement[]} */ Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
+					cell.tabIndex = id === activeCell.id && cell.getAttribute("data-collection-field") === activeCell.field ? 0 : -1;
+				});
+			});
+			els.table.tabIndex = els.body.querySelector("[data-collection-row]") ? -1 : 0;
+			els.remove.disabled = readOnly || ctx.busy() || !state.selectedId;
+		};
+		ctx.showCell = function(cell, row, field) {
+			cell.classList.remove("gpo-collection-cell--editing");
+			cell.replaceChildren(h("span", { class: "gpo-collection-cell__text" }, row[field] || "\xA0"));
+		};
+		ctx.finishEdit = function(commit) {
+			if (!ctx.editing) return;
+			const current = ctx.editing;
+			ctx.editing = null;
+			if (commit) state.edit(current.id, current.field, current.input.value);
+			const row = state.find(current.id);
+			if (row) ctx.showCell(current.cell, row, current.field);
+			ctx.updateValidation();
+		};
+		ctx.focusCell = function(id, field) {
+			ctx.activeCell = {
+				id,
+				field
+			};
+			ctx.updateSelection();
+			const cell = ctx.cellFor(id, field);
+			if (cell) {
+				cell.focus({ preventScroll: true });
+				cell.scrollIntoView({
+					block: "nearest",
+					inline: "nearest"
+				});
+			}
+		};
+		ctx.selectCell = function(id, field) {
+			if (ctx.busy()) return;
+			ctx.finishEdit(true);
+			state.select(id);
+			ctx.focusCell(id, field);
+		};
+		ctx.editCell = function(id, field) {
+			if (readOnly || ctx.drag || ctx.busy()) return;
+			ctx.finishEdit(true);
+			const cell = ctx.cellFor(id, field);
+			const row = state.find(id);
+			if (!cell || !row) return;
+			ctx.activeCell = {
+				id,
+				field
+			};
+			ctx.updateSelection();
+			const singleLine = field === "key" || state.mode === "list" && rules.unique_keys;
+			const attrs = {
+				spellcheck: "false",
+				"aria-label": tr$6("cellLabel", {
+					column: tr$6(field),
+					index: state.rows.indexOf(row)
+				}),
+				"data-collection-input": field
+			};
+			/** @type {HTMLInputElement} */
+			const input = singleLine ? h("input", {
+				type: "text",
+				...attrs
+			}) : h("textarea", {
+				rows: "1",
+				...attrs
+			});
+			input.value = row[field];
+			cell.replaceChildren(input);
+			cell.classList.add("gpo-collection-cell--editing");
+			ctx.editing = {
+				id,
+				field,
+				input,
+				cell
+			};
+			input.addEventListener("click", function(event) {
+				event.stopPropagation();
+			});
+			input.addEventListener("dblclick", function(event) {
+				event.stopPropagation();
+			});
+			function resizeEditor() {
+				if (singleLine) return;
+				input.style.height = "auto";
+				input.style.height = Math.min(128, Math.max(28, input.scrollHeight)) + "px";
+			}
+			input.addEventListener("input", function() {
+				resizeEditor();
+				ctx.updateValidation();
+			});
+			input.addEventListener("blur", function() {
+				if (ctx.editing && ctx.editing.input === input) ctx.finishEdit(true);
+			});
+			input.addEventListener("keydown", function(event) {
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					ctx.finishEdit(false);
+					ctx.focusCell(id, field);
+				} else if (event.key === "Enter" && !event.shiftKey) {
+					event.preventDefault();
+					event.stopPropagation();
+					ctx.finishEdit(true);
+					ctx.focusCell(id, field);
+				} else if (event.key === "Tab") {
+					const visible = state.visible(els.search.value);
+					const position = visible.findIndex(function(item) {
+						return item.id === id;
+					}) * fields.length + fields.indexOf(field) + (event.shiftKey ? -1 : 1);
+					ctx.finishEdit(true);
+					event.preventDefault();
+					event.stopPropagation();
+					if (position >= 0 && position < visible.length * fields.length) ctx.editCell(visible[Math.floor(position / fields.length)].id, fields[position % fields.length]);
+					else (event.shiftKey ? !els.search.hidden ? els.search : els.add : ctx.dialog.root.getElement().querySelector(".btn-cancel")).focus();
+				}
+			});
+			input.focus();
+			input.setSelectionRange(0, input.value.length);
+			resizeEditor();
+			cell.scrollIntoView({
+				block: "nearest",
+				inline: "nearest"
+			});
+			ctx.updateValidation();
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/reorder.js
+	var DRAG_CLASSES = [
+		"gpo-collection-row--dragging",
+		"gpo-collection-row--before",
+		"gpo-collection-row--after"
+	];
+	/**
+	* Reordering: drag-and-drop of rows by their handle (with auto-scroll) and Ctrl+Arrow moves.
+	* Attaches `clearDrag`, `focusHandle`, `moveByKeyboard` and `startDrag` to the context.
+	* @param {any} ctx
+	*/
+	function installReorder(ctx) {
+		const { state, els } = ctx;
+		function indexOf(id) {
+			return state.rows.findIndex(function(row) {
+				return row.id === id;
+			});
+		}
+		ctx.clearDrag = function() {
+			if (ctx.scrollFrame !== null) {
+				cancelAnimationFrame(ctx.scrollFrame);
+				ctx.scrollFrame = null;
+			}
+			ctx.drag = null;
+			Array.from(els.body.querySelectorAll("tr")).forEach(function(row) {
+				row.classList.remove(...DRAG_CLASSES);
+			});
+		};
+		ctx.focusHandle = function(id) {
+			ctx.activeCell.id = id;
+			ctx.updateSelection();
+			const row = els.body.querySelector("[data-collection-row=\"" + id + "\"]");
+			if (row && row.querySelector(".gpo-collection-table__handle")) ctx.focusCell(id, ctx.activeCell.field);
+		};
+		function autoScroll() {
+			if (!ctx.drag) {
+				ctx.scrollFrame = null;
+				return;
+			}
+			const rect = els.scroll.getBoundingClientRect();
+			if (ctx.drag.y >= rect.top && ctx.drag.y <= rect.bottom) {
+				if (ctx.drag.y < rect.top + 28) els.scroll.scrollTop -= 8;
+				else if (ctx.drag.y > rect.bottom - 28) els.scroll.scrollTop += 8;
+			}
+			ctx.scrollFrame = requestAnimationFrame(autoScroll);
+		}
+		/** Starts dragging `row` (a state row) whose `<tr>` is `record`. */
+		ctx.startDrag = function(event, row, record) {
+			if (els.search.value) {
+				event.preventDefault();
+				return;
+			}
+			ctx.finishEdit(true);
+			state.select(row.id);
+			ctx.activeCell.id = row.id;
+			ctx.updateSelection();
+			ctx.drag = {
+				id: row.id,
+				targetId: row.id,
+				after: false,
+				y: event.clientY
+			};
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text/plain", row.id);
+			record.classList.add("gpo-collection-row--dragging");
+			ctx.scrollFrame = requestAnimationFrame(autoScroll);
+		};
+		/** Ctrl+Arrow on a row handle. */
+		ctx.moveByKeyboard = function(event, row) {
+			if (!ctx.busy() && !els.search.value && event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+				event.preventDefault();
+				event.stopPropagation();
+				ctx.finishEdit(true);
+				state.move(row.id, state.rows.indexOf(row) + (event.key === "ArrowUp" ? -1 : 1));
+				ctx.render();
+				ctx.focusHandle(row.id);
+				ctx.announce(tr$6("moved", { index: state.rows.indexOf(row) }));
+			}
+		};
+		els.scroll.addEventListener("dragover", function(event) {
+			if (!ctx.drag) return;
+			event.preventDefault();
+			event.dataTransfer.dropEffect = "move";
+			ctx.drag.y = event.clientY;
+			let target = event.target.closest("[data-collection-row]");
+			Array.from(els.body.querySelectorAll("tr")).forEach(function(row) {
+				row.classList.remove("gpo-collection-row--before", "gpo-collection-row--after");
+			});
+			if (!target) target = els.body.lastElementChild;
+			if (!target || !target.hasAttribute("data-collection-row")) return;
+			ctx.drag.targetId = target.getAttribute("data-collection-row");
+			const rect = target.getBoundingClientRect();
+			ctx.drag.after = event.clientY > rect.top + rect.height / 2;
+			if (ctx.drag.targetId !== ctx.drag.id) target.classList.add(ctx.drag.after ? "gpo-collection-row--after" : "gpo-collection-row--before");
+		});
+		els.scroll.addEventListener("drop", function(event) {
+			const drag = ctx.drag;
+			if (!drag) return;
+			event.preventDefault();
+			event.stopPropagation();
+			const from = indexOf(drag.id);
+			let to = indexOf(drag.targetId) + (drag.after ? 1 : 0);
+			if (from < to) to -= 1;
+			const id = drag.id;
+			state.move(id, to);
+			ctx.clearDrag();
+			ctx.render();
+			ctx.focusHandle(id);
+			ctx.announce(tr$6("moved", { index: indexOf(id) }));
+		});
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/table.js
+	/**
+	* Renders the visible rows into the table body. Attaches `render` to the context.
+	* Public hooks: `[data-collection-row]`, `[data-collection-field]`.
+	* @param {any} ctx
+	*/
+	function installTable(ctx) {
+		const { state, readOnly, fields, prefix, els } = ctx;
+		function createHandle(row, record) {
+			const searching = Boolean(els.search.value);
+			const handle = h("button", {
+				class: "gpo-collection-table__handle",
+				type: "button",
+				draggable: searching ? "false" : "true",
+				"aria-label": tr$6("reorderRow", { index: state.rows.indexOf(row) }),
+				"aria-describedby": prefix + "-reorder-help",
+				tabindex: "-1",
+				title: tr$6(searching ? "clearSearchToReorder" : "reorderHelp")
+			}, "⋮");
+			handle.disabled = searching;
+			handle.addEventListener("click", function() {
+				ctx.finishEdit(true);
+				state.select(row.id);
+				ctx.activeCell.id = row.id;
+				ctx.updateSelection();
+			});
+			handle.addEventListener("dragstart", function(event) {
+				ctx.startDrag(event, row, record);
+			});
+			handle.addEventListener("dragend", ctx.clearDrag);
+			handle.addEventListener("keydown", function(event) {
+				ctx.moveByKeyboard(event, row);
+			});
+			return handle;
+		}
+		function createCell(row, field) {
+			const cell = h("td", {
+				class: cx("gpo-collection-cell", "field__element"),
+				"data-collection-field": field,
+				tabindex: "-1"
+			});
+			ctx.showCell(cell, row, field);
+			cell.addEventListener("click", function() {
+				ctx.selectCell(row.id, field);
+			});
+			cell.addEventListener("dblclick", function(event) {
+				event.preventDefault();
+				ctx.editCell(row.id, field);
+			});
+			return cell;
+		}
+		function createRecord(row) {
+			const index = state.rows.indexOf(row);
+			const record = h("tr", { "data-collection-row": row.id });
+			if (!readOnly) record.append(h("td", { class: "gpo-collection-table__handle-cell" }, createHandle(row, record)));
+			if (state.mode === "list") record.append(h("td", { class: "gpo-collection-table__index" }, String(index)));
+			fields.forEach(function(field) {
+				record.append(createCell(row, field));
+			});
+			record.addEventListener("click", function(event) {
+				if (!event.target.closest("[data-collection-field], button, input, textarea")) ctx.selectCell(row.id, fields[0]);
+			});
+			return record;
+		}
+		ctx.render = function() {
+			ctx.finishEdit(true);
+			els.body.replaceChildren();
+			const visible = state.visible(els.search.value);
+			if (!visible.some(function(row) {
+				return row.id === ctx.activeCell.id;
+			})) ctx.activeCell.id = visible[0] && visible[0].id;
+			els.search.hidden = state.rows.length < 20 && !els.search.value;
+			if (!visible.length) els.body.append(h("tr", { class: "gpo-collection-table__empty" }, h("td", { colspan: String(readOnly ? 2 : 3) }, tr$6(state.rows.length ? "noMatches" : "empty"))));
+			visible.forEach(function(row) {
+				els.body.append(createRecord(row));
+			});
+			ctx.updateSelection();
+			ctx.updateValidation();
 		};
 	}
 	//#endregion
@@ -4396,539 +4897,129 @@
 		};
 	}
 	//#endregion
-	//#region src/components/collection-dialog.js
-	var sequence$2 = 0;
-	function tr$6(key, values) {
-		let text = t("collections." + key);
-		Object.keys(values || {}).forEach(function(name) {
-			text = text.replace("{" + name + "}", values[name]);
-		});
-		return text;
-	}
-	function open$1(host, options) {
-		const state = session(options.parameter, options.value);
-		const readOnly = Boolean(options.readOnly);
-		const fields = state.mode === "key_value" ? ["key", "value"] : ["value"];
-		const rules = constraints(options.parameter, options.value);
-		const prefix = "collection-" + ++sequence$2;
-		let activeCell = {
-			id: state.rows[0] && state.rows[0].id,
-			field: fields[0]
-		};
-		let editing = null;
-		let drag = null;
-		let scrollFrame = null;
-		let dialog;
-		const add = createElement("button", {
-			className: "button",
-			attrs: {
-				type: "button",
-				"data-collection-add": ""
-			},
-			text: tr$6("add")
-		});
-		const remove = createElement("button", {
-			className: "button",
-			attrs: {
-				type: "button",
-				"data-collection-remove": ""
-			},
-			text: tr$6("remove")
-		});
-		const search = createElement("input", { attrs: {
-			type: "search",
-			placeholder: tr$6("search"),
-			"aria-label": tr$6("search")
-		} });
-		const toolbar = createElement("div", {
-			className: "gpo-collection-editor__toolbar",
-			children: [
-				readOnly ? null : add,
-				readOnly ? null : remove,
-				search
-			]
-		});
-		const errors = createElement("div", {
-			className: "gpo-collection-editor__validation",
-			attrs: { role: "alert" }
-		});
-		const count = createElement("div", { className: "gpo-collection-editor__count" });
-		const live = createElement("div", {
-			className: "gpo-collection-editor__live",
-			attrs: {
-				role: "status",
-				"aria-live": "polite",
-				"aria-atomic": "true"
-			}
-		});
-		const body = createElement("tbody");
-		const table = createElement("table", {
-			className: ["preference__table", "gpo-collection-table"],
-			attrs: {
-				"aria-label": options.parameter.label || options.parameter.id,
-				tabindex: "0",
-				"data-collection-mode": state.mode
-			},
-			children: [
-				createElement("colgroup", { children: [
-					readOnly ? null : createElement("col", { className: "gpo-collection-table__handle-column" }),
-					createElement("col", { className: state.mode === "key_value" ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }),
-					createElement("col")
-				] }),
-				createElement("thead", { children: [createElement("tr", { children: [
-					readOnly ? null : createElement("th", { attrs: {
-						scope: "col",
-						"aria-label": tr$6("reorder")
-					} }),
-					createElement("th", {
-						attrs: { scope: "col" },
-						text: state.mode === "key_value" ? tr$6("key") : tr$6("index")
-					}),
-					createElement("th", {
-						attrs: { scope: "col" },
-						text: tr$6("value")
-					})
-				] })] }),
-				body
-			]
-		});
-		const scroll = createElement("div", {
-			className: "gpo-collection-editor__table-scroll",
-			children: [table]
-		});
-		const content = createElement("div", {
-			className: "gpo-collection-editor",
-			children: [
-				toolbar,
-				errors,
-				scroll,
-				count,
-				live
-			]
-		});
-		[add, remove].forEach(function(button) {
-			button.on("mousedown", function(event) {
-				if (event.button === 0) event.preventDefault();
-			});
-		});
-		function pending() {
-			return editing ? {
-				id: editing.id,
-				field: editing.field,
-				value: editing.input.value
-			} : null;
-		}
-		function busy() {
-			return Boolean(dialog && (dialog.isBusy() || dialog.root.getElement().inert));
-		}
-		function cellFor(id, field) {
-			return body.getElement().querySelector("[data-collection-row=\"" + id + "\"] [data-collection-field=\"" + field + "\"]");
-		}
-		function announce(text) {
-			live.getElement().textContent = text;
-		}
-		function updateSelection() {
-			Array.from(body.getElement().querySelectorAll("[data-collection-row]")).forEach(function(row) {
-				const id = row.getAttribute("data-collection-row");
-				row.classList.toggle("active", state.selectedId === id);
-				row.setAttribute("aria-selected", String(state.selectedId === id));
-				const handle = row.querySelector(".gpo-collection-table__handle");
-				if (handle) handle.tabIndex = -1;
-				/** @type {HTMLElement[]} */ Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
-					cell.tabIndex = id === activeCell.id && cell.getAttribute("data-collection-field") === activeCell.field ? 0 : -1;
-				});
-			});
-			table.getElement().tabIndex = body.getElement().querySelector("[data-collection-row]") ? -1 : 0;
-			remove.getElement().disabled = readOnly || busy() || !state.selectedId;
-		}
-		function updateValidation() {
-			const problems = readOnly ? [] : state.errors(pending());
-			errors.getElement().textContent = problems.filter(function(problem) {
-				return !problem.id;
-			}).map(function(problem) {
-				return tr$6("errors." + problem.code);
-			}).join(" ");
-			Array.from(body.getElement().querySelectorAll("[data-collection-field]")).forEach(function(cell) {
-				const id = cell.parentElement.getAttribute("data-collection-row");
-				const field = cell.getAttribute("data-collection-field");
-				const problem = problems.find(function(error) {
-					return error.id === id && error.field === field;
-				});
-				const prior = cell.querySelector(".gpo-collection-cell__error");
-				if (prior) prior.remove();
-				cell.classList.toggle("gpo-collection-cell--invalid", Boolean(problem));
-				const input = cell.querySelector("[data-collection-input]");
-				if (problem) {
-					const errorId = prefix + "-" + id + "-" + field + "-error";
-					cell.appendChild(createElement("span", {
-						id: errorId,
-						className: "gpo-collection-cell__error",
-						text: tr$6("errors." + problem.code)
-					}).getElement());
-					if (input) {
-						input.setAttribute("aria-invalid", "true");
-						input.setAttribute("aria-describedby", errorId);
-					}
-				} else if (input) {
-					input.removeAttribute("aria-invalid");
-					input.removeAttribute("aria-describedby");
-				}
-			});
-			const size = state.read(pending()).value.length;
-			count.getElement().textContent = search.getElement().value ? tr$6("shownCount", {
-				shown: state.visible(search.getElement().value).length,
-				total: state.rows.length
-			}) : tr$6(state.mode === "key_value" ? "pairsCount" : "itemsCount", { count: size });
-			if (dialog) dialog.setApplyDisabled(problems.length !== 0);
-			return problems;
-		}
-		function showCell(cell, row, field) {
-			cell.classList.remove("gpo-collection-cell--editing");
-			cell.replaceChildren(createElement("span", {
-				className: "gpo-collection-cell__text",
-				text: row[field] || "\xA0"
-			}).getElement());
-		}
-		function finishEdit(commit) {
-			if (!editing) return;
-			const current = editing;
-			editing = null;
-			if (commit) state.edit(current.id, current.field, current.input.value);
-			const row = state.find(current.id);
-			if (row) showCell(current.cell, row, current.field);
-			updateValidation();
-		}
-		function focusCell(id, field) {
-			activeCell = {
-				id,
-				field
-			};
-			updateSelection();
-			const cell = cellFor(id, field);
-			if (cell) {
-				cell.focus({ preventScroll: true });
-				cell.scrollIntoView({
-					block: "nearest",
-					inline: "nearest"
-				});
-			}
-		}
-		function editCell(id, field) {
-			if (readOnly || drag || busy()) return;
-			finishEdit(true);
-			const cell = cellFor(id, field);
-			const row = state.find(id);
-			if (!cell || !row) return;
-			activeCell = {
-				id,
-				field
-			};
-			updateSelection();
-			const singleLine = field === "key" || state.mode === "list" && rules.unique_keys;
-			const input = createElement(singleLine ? "input" : "textarea", { attrs: {
-				type: singleLine ? "text" : null,
-				rows: singleLine ? null : "1",
-				spellcheck: "false",
-				"aria-label": tr$6("cellLabel", {
-					column: tr$6(field),
-					index: state.rows.indexOf(row)
-				}),
-				"data-collection-input": field
-			} }).getElement();
-			input.value = row[field];
-			cell.replaceChildren(input);
-			cell.classList.add("gpo-collection-cell--editing");
-			editing = {
-				id,
-				field,
-				input,
-				cell
-			};
-			input.addEventListener("click", function(event) {
-				event.stopPropagation();
-			});
-			input.addEventListener("dblclick", function(event) {
-				event.stopPropagation();
-			});
-			function resizeEditor() {
-				if (singleLine) return;
-				input.style.height = "auto";
-				input.style.height = Math.min(128, Math.max(28, input.scrollHeight)) + "px";
-			}
-			input.addEventListener("input", function() {
-				resizeEditor();
-				updateValidation();
-			});
-			input.addEventListener("blur", function() {
-				if (editing && editing.input === input) finishEdit(true);
-			});
-			input.addEventListener("keydown", function(event) {
-				if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					finishEdit(false);
-					focusCell(id, field);
-				} else if (event.key === "Enter" && !event.shiftKey) {
-					event.preventDefault();
-					event.stopPropagation();
-					finishEdit(true);
-					focusCell(id, field);
-				} else if (event.key === "Tab") {
-					const visible = state.visible(search.getElement().value);
-					const position = visible.findIndex(function(item) {
-						return item.id === id;
-					}) * fields.length + fields.indexOf(field) + (event.shiftKey ? -1 : 1);
-					finishEdit(true);
-					if (position >= 0 && position < visible.length * fields.length) {
-						event.preventDefault();
-						event.stopPropagation();
-						editCell(visible[Math.floor(position / fields.length)].id, fields[position % fields.length]);
-					} else {
-						event.preventDefault();
-						event.stopPropagation();
-						(event.shiftKey ? !search.getElement().hidden ? search.getElement() : add.getElement() : dialog.root.getElement().querySelector(".btn-cancel")).focus();
-					}
-				}
-			});
-			input.focus();
-			input.setSelectionRange(0, input.value.length);
-			resizeEditor();
-			cell.scrollIntoView({
-				block: "nearest",
-				inline: "nearest"
-			});
-			updateValidation();
-		}
-		function selectCell(id, field) {
-			if (busy()) return;
-			finishEdit(true);
-			state.select(id);
-			focusCell(id, field);
-		}
-		function clearDrag() {
-			if (scrollFrame !== null) {
-				cancelAnimationFrame(scrollFrame);
-				scrollFrame = null;
-			}
-			drag = null;
-			Array.from(body.getElement().querySelectorAll("tr")).forEach(function(row) {
-				row.classList.remove("gpo-collection-row--dragging", "gpo-collection-row--before", "gpo-collection-row--after");
-			});
-		}
-		function focusHandle(id) {
-			activeCell.id = id;
-			updateSelection();
-			const row = body.getElement().querySelector("[data-collection-row=\"" + id + "\"]");
-			if (row && row.querySelector(".gpo-collection-table__handle")) focusCell(id, activeCell.field);
-		}
-		function autoScroll() {
-			if (!drag) {
-				scrollFrame = null;
-				return;
-			}
-			const rect = scroll.getElement().getBoundingClientRect();
-			if (drag.y >= rect.top && drag.y <= rect.bottom) {
-				if (drag.y < rect.top + 28) scroll.getElement().scrollTop -= 8;
-				else if (drag.y > rect.bottom - 28) scroll.getElement().scrollTop += 8;
-			}
-			scrollFrame = requestAnimationFrame(autoScroll);
-		}
-		function render() {
-			finishEdit(true);
-			body.getElement().replaceChildren();
-			const visible = state.visible(search.getElement().value);
-			if (!visible.some(function(row) {
-				return row.id === activeCell.id;
-			})) activeCell.id = visible[0] && visible[0].id;
-			search.getElement().hidden = state.rows.length < 20 && !search.getElement().value;
-			if (!visible.length) body.append(createElement("tr", {
-				className: "gpo-collection-table__empty",
-				children: [createElement("td", {
-					attrs: { colspan: readOnly ? 2 : 3 },
-					text: tr$6(state.rows.length ? "noMatches" : "empty")
-				})]
-			}));
-			visible.forEach(function(row) {
-				const index = state.rows.indexOf(row);
-				const record = createElement("tr", { attrs: { "data-collection-row": row.id } });
-				if (!readOnly) {
-					const handle = createElement("button", {
-						className: "gpo-collection-table__handle",
-						attrs: {
-							type: "button",
-							draggable: search.getElement().value ? "false" : "true",
-							"aria-label": tr$6("reorderRow", { index }),
-							"aria-describedby": prefix + "-reorder-help",
-							tabindex: "-1",
-							title: tr$6(search.getElement().value ? "clearSearchToReorder" : "reorderHelp")
-						},
-						text: "⋮"
-					});
-					handle.getElement().disabled = Boolean(search.getElement().value);
-					handle.on("click", function() {
-						finishEdit(true);
-						state.select(row.id);
-						activeCell.id = row.id;
-						updateSelection();
-					});
-					handle.on("dragstart", function(event) {
-						if (search.getElement().value) {
-							event.preventDefault();
-							return;
-						}
-						finishEdit(true);
-						state.select(row.id);
-						activeCell.id = row.id;
-						updateSelection();
-						drag = {
-							id: row.id,
-							targetId: row.id,
-							after: false,
-							y: event.clientY
-						};
-						event.dataTransfer.effectAllowed = "move";
-						event.dataTransfer.setData("text/plain", row.id);
-						record.getElement().classList.add("gpo-collection-row--dragging");
-						scrollFrame = requestAnimationFrame(autoScroll);
-					});
-					handle.on("dragend", clearDrag);
-					handle.on("keydown", function(event) {
-						if (!busy() && !search.getElement().value && event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-							event.preventDefault();
-							event.stopPropagation();
-							finishEdit(true);
-							state.move(row.id, state.rows.indexOf(row) + (event.key === "ArrowUp" ? -1 : 1));
-							render();
-							focusHandle(row.id);
-							announce(tr$6("moved", { index: state.rows.indexOf(row) }));
-						}
-					});
-					record.append(createElement("td", {
-						className: "gpo-collection-table__handle-cell",
-						children: [handle]
-					}));
-				}
-				if (state.mode === "list") record.append(createElement("td", {
-					className: "gpo-collection-table__index",
-					text: index
-				}));
-				fields.forEach(function(field) {
-					const cell = createElement("td", {
-						className: ["gpo-collection-cell", "field__element"],
-						attrs: {
-							"data-collection-field": field,
-							tabindex: "-1"
-						}
-					});
-					showCell(cell.getElement(), row, field);
-					cell.on("click", function() {
-						selectCell(row.id, field);
-					});
-					cell.on("dblclick", function(event) {
-						event.preventDefault();
-						editCell(row.id, field);
-					});
-					record.append(cell);
-				});
-				record.on("click", function(event) {
-					if (!event.target.closest("[data-collection-field], button, input, textarea")) selectCell(row.id, fields[0]);
-				});
-				body.append(record);
-			});
-			updateSelection();
-			updateValidation();
-		}
-		add.on("click", function() {
-			if (readOnly || busy()) return;
-			finishEdit(true);
-			search.getElement().value = "";
+	//#region src/components/CollectionEditor/toolbar.js
+	/**
+	* Toolbar actions: add, remove the selected row, search. Attaches `removeSelected` to the context.
+	* @param {any} ctx
+	*/
+	function installToolbar(ctx) {
+		const { state, readOnly, fields, els } = ctx;
+		els.add.addEventListener("click", function() {
+			if (readOnly || ctx.busy()) return;
+			ctx.finishEdit(true);
+			els.search.value = "";
 			const id = state.add();
-			activeCell = {
+			ctx.activeCell = {
 				id,
 				field: fields[0]
 			};
-			render();
-			editCell(id, fields[0]);
-			announce(tr$6("added"));
+			ctx.render();
+			ctx.editCell(id, fields[0]);
+			ctx.announce(tr$6("added"));
 		});
-		function removeSelected() {
-			if (readOnly || busy() || !state.selectedId) return;
-			finishEdit(true);
-			const before = Array.from(body.getElement().querySelectorAll("[data-collection-row]")).map(function(row) {
+		ctx.removeSelected = function() {
+			if (readOnly || ctx.busy() || !state.selectedId) return;
+			ctx.finishEdit(true);
+			const before = Array.from(els.body.querySelectorAll("[data-collection-row]")).map(function(row) {
 				return row.getAttribute("data-collection-row");
 			});
 			const removedId = state.selectedId;
 			if (!state.removeSelected()) return;
-			const after = state.visible(search.getElement().value).map(function(row) {
+			const after = state.visible(els.search.value).map(function(row) {
 				return row.id;
 			});
 			const nextId = neighbor(before, [removedId], after);
 			state.select(nextId);
-			activeCell.id = nextId;
-			render();
-			if (nextId) focusCell(nextId, activeCell.field);
-			else table.getElement().focus({ preventScroll: true });
-			announce(tr$6("removed"));
-		}
-		remove.on("click", removeSelected);
-		search.on("input", function() {
-			finishEdit(true);
+			ctx.activeCell.id = nextId;
+			ctx.render();
+			if (nextId) ctx.focusCell(nextId, ctx.activeCell.field);
+			else els.table.focus({ preventScroll: true });
+			ctx.announce(tr$6("removed"));
+		};
+		els.remove.addEventListener("click", ctx.removeSelected);
+		els.search.addEventListener("input", function() {
+			ctx.finishEdit(true);
 			state.select(null);
-			render();
+			ctx.render();
 		});
-		table.on("focusin", function(event) {
-			if (busy() || event.target.closest("input,select,textarea,button,a,[contenteditable]:not([contenteditable=\"false\"])")) return;
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/keyboard.js
+	/**
+	* Keyboard navigation of the table (arrows, Home/End, PageUp/PageDown, Space, Enter/F2, Delete, Ctrl+Arrow,
+	* Escape during a drag) and focus tracking.
+	* @param {any} ctx
+	*/
+	function installKeyboard(ctx) {
+		const { state, readOnly, els } = ctx;
+		function rowIndex(id) {
+			return state.rows.findIndex(function(row) {
+				return row.id === id;
+			});
+		}
+		els.table.addEventListener("focusin", function(event) {
+			if (ctx.busy() || event.target.closest("input,select,textarea,button,a,[contenteditable]:not([contenteditable=\"false\"])")) return;
 			const cell = event.target.closest("[data-collection-field]");
 			if (!cell) return;
-			activeCell = {
+			ctx.activeCell = {
 				id: cell.parentElement.getAttribute("data-collection-row"),
 				field: cell.getAttribute("data-collection-field")
 			};
-			state.select(activeCell.id);
-			updateSelection();
+			state.select(ctx.activeCell.id);
+			ctx.updateSelection();
 		});
-		content.on("keydown", function(event) {
-			if (event.defaultPrevented || busy() || !table.getElement().contains(event.target) || event.target.closest("input,select,textarea,button,a,summary,[contenteditable]:not([contenteditable=\"false\"])")) return;
-			if (drag && event.key === "Escape") {
+		function moveActiveRow(event) {
+			event.preventDefault();
+			event.stopPropagation();
+			ctx.finishEdit(true);
+			state.select(ctx.activeCell.id);
+			state.move(ctx.activeCell.id, rowIndex(ctx.activeCell.id) + (event.key === "ArrowUp" ? -1 : 1));
+			ctx.render();
+			ctx.focusCell(ctx.activeCell.id, ctx.activeCell.field);
+			ctx.announce(tr$6("moved", { index: rowIndex(ctx.activeCell.id) }));
+		}
+		function moveActiveCell(event, visible, index) {
+			event.preventDefault();
+			const row = els.body.querySelector("[data-collection-row=\"" + ctx.activeCell.id + "\"]");
+			const pageSize = Math.max(1, Math.floor(els.scroll.clientHeight / Math.max(1, row.getBoundingClientRect().height)) - 1);
+			let position = index;
+			if (event.key === "Home") position = 0;
+			else if (event.key === "End") position = visible.length - 1;
+			else position += (event.key === "ArrowUp" || event.key === "PageUp" ? -1 : 1) * (event.key === "PageUp" || event.key === "PageDown" ? pageSize : 1);
+			const next = visible[Math.max(0, Math.min(visible.length - 1, position))];
+			ctx.selectCell(next.id, ctx.activeCell.field);
+		}
+		els.content.addEventListener("keydown", function(event) {
+			if (event.defaultPrevented || ctx.busy() || !els.table.contains(event.target) || event.target.closest("input,select,textarea,button,a,summary,[contenteditable]:not([contenteditable=\"false\"])")) return;
+			if (ctx.drag && event.key === "Escape") {
 				event.preventDefault();
 				event.stopPropagation();
-				clearDrag();
+				ctx.clearDrag();
 				return;
 			}
-			if (event.ctrlKey && !event.altKey && !event.metaKey && !readOnly && !search.getElement().value && (event.key === "ArrowUp" || event.key === "ArrowDown") && activeCell.id) {
-				event.preventDefault();
-				event.stopPropagation();
-				finishEdit(true);
-				state.select(activeCell.id);
-				state.move(activeCell.id, state.rows.findIndex(function(row) {
-					return row.id === activeCell.id;
-				}) + (event.key === "ArrowUp" ? -1 : 1));
-				render();
-				focusCell(activeCell.id, activeCell.field);
-				announce(tr$6("moved", { index: state.rows.findIndex(function(row) {
-					return row.id === activeCell.id;
-				}) }));
+			if (event.ctrlKey && !event.altKey && !event.metaKey && !readOnly && !els.search.value && (event.key === "ArrowUp" || event.key === "ArrowDown") && ctx.activeCell.id) {
+				moveActiveRow(event);
 				return;
 			}
 			if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
 			if (event.key === "Delete" && !readOnly) {
 				event.preventDefault();
-				removeSelected();
+				ctx.removeSelected();
 				return;
 			}
-			if ((event.key === "Enter" || event.key === "F2") && activeCell.id && !readOnly && !event.target.matches("button")) {
+			if ((event.key === "Enter" || event.key === "F2") && ctx.activeCell.id && !readOnly && !event.target.matches("button")) {
 				event.preventDefault();
-				editCell(activeCell.id, activeCell.field);
+				ctx.editCell(ctx.activeCell.id, ctx.activeCell.field);
 				return;
 			}
-			const visible = state.visible(search.getElement().value);
+			const visible = state.visible(els.search.value);
 			const index = visible.findIndex(function(row) {
-				return row.id === activeCell.id;
+				return row.id === ctx.activeCell.id;
 			});
 			if (index < 0) return;
 			if (event.key === " " || event.key === "Spacebar") {
 				event.preventDefault();
-				selectCell(activeCell.id, activeCell.field);
+				ctx.selectCell(ctx.activeCell.id, ctx.activeCell.field);
 			} else if ([
 				"ArrowUp",
 				"ArrowDown",
@@ -4936,96 +5027,74 @@
 				"End",
 				"PageUp",
 				"PageDown"
-			].indexOf(event.key) !== -1) {
+			].indexOf(event.key) !== -1) moveActiveCell(event, visible, index);
+			else if (state.mode === "key_value" && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
 				event.preventDefault();
-				let position = index;
-				const row = body.getElement().querySelector("[data-collection-row=\"" + activeCell.id + "\"]");
-				const pageSize = Math.max(1, Math.floor(scroll.getElement().clientHeight / Math.max(1, row.getBoundingClientRect().height)) - 1);
-				if (event.key === "Home") position = 0;
-				else if (event.key === "End") position = visible.length - 1;
-				else position += (event.key === "ArrowUp" || event.key === "PageUp" ? -1 : 1) * (event.key === "PageUp" || event.key === "PageDown" ? pageSize : 1);
-				const next = visible[Math.max(0, Math.min(visible.length - 1, position))];
-				selectCell(next.id, activeCell.field);
-			} else if (state.mode === "key_value" && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-				event.preventDefault();
-				selectCell(activeCell.id, event.key === "ArrowLeft" ? "key" : "value");
+				ctx.selectCell(ctx.activeCell.id, event.key === "ArrowLeft" ? "key" : "value");
 			}
 		});
-		scroll.on("dragover", function(event) {
-			if (!drag) return;
-			event.preventDefault();
-			event.dataTransfer.dropEffect = "move";
-			drag.y = event.clientY;
-			let target = event.target.closest("[data-collection-row]");
-			Array.from(body.getElement().querySelectorAll("tr")).forEach(function(row) {
-				row.classList.remove("gpo-collection-row--before", "gpo-collection-row--after");
-			});
-			if (!target) target = body.getElement().lastElementChild;
-			if (!target || !target.hasAttribute("data-collection-row")) return;
-			drag.targetId = target.getAttribute("data-collection-row");
-			const rect = target.getBoundingClientRect();
-			drag.after = event.clientY > rect.top + rect.height / 2;
-			if (drag.targetId !== drag.id) target.classList.add(drag.after ? "gpo-collection-row--after" : "gpo-collection-row--before");
-		});
-		scroll.on("drop", function(event) {
-			if (!drag) return;
-			event.preventDefault();
-			event.stopPropagation();
-			const from = state.rows.findIndex(function(row) {
-				return row.id === drag.id;
-			});
-			let to = state.rows.findIndex(function(row) {
-				return row.id === drag.targetId;
-			}) + (drag.after ? 1 : 0);
-			if (from < to) to -= 1;
-			const id = drag.id;
-			state.move(id, to);
-			clearDrag();
-			render();
-			focusHandle(id);
-			announce(tr$6("moved", { index: state.rows.findIndex(function(row) {
-				return row.id === id;
-			}) }));
-		});
-		content.append(createElement("span", {
-			id: prefix + "-reorder-help",
-			className: "gpo-collection-editor__live",
-			text: tr$6("reorderHelp")
-		}));
-		render();
-		dialog = open$2(host, {
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/CollectionEditor.js
+	/**
+	* Modal editor of a list or key/value collection parameter. Assembles the focused modules around one shared context
+	* (state in `context.js`, markup in `view.js`, behaviour in the `install*` modules) and opens it in an editor dialog.
+	* Public hooks: `.gpo-collection-dialog`, `[data-collection-add]`, `[data-collection-remove]`, `[data-collection-row]`,
+	* `[data-collection-field]`, `[data-collection-input]`, `[data-collection-mode]`.
+	* @param {HTMLElement} host
+	* @param {{ parameter: any, value: any, readOnly?: boolean, onAccept: (value: any) => void, onClose?: () => void }} options
+	*/
+	function openCollectionEditor(host, options) {
+		const ctx = createContext(options);
+		const { state, readOnly, els } = ctx;
+		buildView(ctx);
+		installValidation(ctx);
+		installCells(ctx);
+		installReorder(ctx);
+		installTable(ctx);
+		installToolbar(ctx);
+		installKeyboard(ctx);
+		ctx.render();
+		const dialog = open$2(host, {
 			title: options.parameter.label || options.parameter.id,
 			className: ["gpo-collection-dialog"],
 			width: "640px",
 			fill: true,
-			content,
+			content: els.content,
 			readOnly,
 			cancelLabel: tr$6(readOnly ? "close" : "cancel"),
 			isDirty: function() {
-				return !readOnly && state.isDirty(pending());
+				return !readOnly && state.isDirty(ctx.pending());
 			},
 			onApply: function() {
-				finishEdit(true);
-				const problems = updateValidation();
+				ctx.finishEdit(true);
+				const problems = ctx.updateValidation();
 				if (problems.length) {
-					if (problems[0].id) focusCell(problems[0].id, problems[0].field);
-					else add.getElement().focus();
+					if (problems[0].id) ctx.focusCell(problems[0].id, problems[0].field);
+					else els.add.focus();
 					return false;
 				}
 				options.onAccept(state.read());
 				return true;
 			},
 			onClose: function() {
-				clearDrag();
-				editing = null;
+				ctx.clearDrag();
+				ctx.editing = null;
 				if (options.onClose) options.onClose();
 			}
 		});
-		updateValidation();
+		ctx.dialog = dialog;
+		ctx.updateValidation();
 		dialog.isDirty = function() {
-			return !readOnly && state.isDirty(pending());
+			return !readOnly && state.isDirty(ctx.pending());
 		};
 		return dialog;
+	}
+	//#endregion
+	//#region src/components/collection-dialog.js
+	/** Adapter kept for `collection-control.js` and the AMD test tree; the editor lives in `CollectionEditor/`. */
+	function open$1(host, options) {
+		return openCollectionEditor(host, options);
 	}
 	//#endregion
 	//#region src/components/collection-control.js
@@ -5111,13 +5180,13 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/dialog.js
-	var sequence$1 = 0;
+	var sequence$2 = 0;
 	function tr$4(key, fallback) {
 		const value = t("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function tabs(settings, explanation) {
-		const id = "security-tabs-" + ++sequence$1;
+		const id = "security-tabs-" + ++sequence$2;
 		const panels = [settings, explanation];
 		const buttons = [];
 		function select(index, focus) {
@@ -5243,10 +5312,7 @@
 			inputElement.checked = Boolean(inputValue(renderedValue));
 			input = createElement("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement("label", { attrs: {
-					for: checkboxId,
-					"aria-label": parameter.label || parameter.id
-				} })]
+				children: [checkbox, createElement("label", { attrs: { for: checkboxId } })]
 			});
 		} else if (parameter.kind === "enum") {
 			input = createElement("select", {
@@ -5372,6 +5438,7 @@
 		const comment = createElement("textarea", {
 			attrs: {
 				name: "comment",
+				"aria-label": handlers.modalLayout ? null : t("common.comment"),
 				disabled: capabilities.edit_comments && !unknown ? null : "disabled"
 			},
 			text: policy.comment ? policy.comment.text : ""
@@ -6007,14 +6074,18 @@
 			logoff: "logoffScript"
 		}[event]);
 	}
-	function nameCell(label, icon) {
-		return createElement("td", { children: [createElement("span", {
+	/** The icon and the name in a table cell (the content of a `td`). */
+	function nameContent(label, icon) {
+		return createElement("span", {
 			className: "gpo-catalog-name",
 			children: [createElement("span", {
 				className: ["icon", icon],
 				attrs: { "aria-hidden": "true" }
 			}), createElement("span", { text: label })]
-		})] });
+		}).getElement();
+	}
+	function nameCell(label, icon) {
+		return createElement("td", { children: [nameContent(label, icon)] });
 	}
 	function assetIcon(name) {
 		return scriptFile(/\.ps(?:1|m1|d1)$/i.test(name) ? "powershell" : "classic");
@@ -6076,7 +6147,142 @@
 		return "scripts-" + headerOwners++;
 	}
 	//#endregion
+	//#region src/components/DataTable/DataTable.js
+	/**
+	* @typedef {{ id: string, label: string }} Column
+	* @typedef {{
+	*   id: string,
+	*   cells: (Node | string | null)[],
+	*   selected?: boolean,
+	*   attrs?: Record<string, string>,
+	*   onClick?: (event: MouseEvent) => void,
+	*   onDoubleClick?: (event: MouseEvent) => void
+	* }} Row
+	*/
+	/**
+	* @param {{
+	*   label: string,
+	*   columns: Column[],
+	*   rows: Row[],
+	*   emptyText: string,
+	*   multiple?: boolean,
+	*   className?: string,
+	*   emptyClassName?: string
+	* }} options
+	* @returns {HTMLTableElement}
+	*/
+	function createDataTable({ label, columns, rows, emptyText, multiple = false, className, emptyClassName }) {
+		const head = h("tr", {}, ...columns.map((column) => h("th", { scope: "col" }, column.label)));
+		const body = h("tbody", {}, ...rows.length ? rows.map((row) => createRow(row)) : [createEmptyRow(columns.length, emptyText, emptyClassName)]);
+		return h("table", {
+			class: className,
+			"aria-label": label,
+			"data-table-multiple": multiple ? true : null,
+			"data-table": true
+		}, h("thead", {}, head), body);
+	}
+	/** @param {Row} row */
+	function createRow({ id, cells, selected = false, attrs = {}, onClick, onDoubleClick }) {
+		const tr = h("tr", {
+			...attrs,
+			class: cx(selected && "active"),
+			tabindex: "-1",
+			"aria-selected": String(selected),
+			"data-table-row": true,
+			"data-row-id": id
+		}, ...cells.map((cell) => h("td", {}, cell)));
+		if (onClick) tr.addEventListener("click", onClick);
+		if (onDoubleClick) tr.addEventListener("dblclick", onDoubleClick);
+		return tr;
+	}
+	function createEmptyRow(span, text, className) {
+		return h("tr", {
+			class: className,
+			"data-table-empty": true
+		}, h("td", { colspan: String(span) }, text));
+	}
+	/** The body rows (not the empty-state row). @param {HTMLElement} table @returns {HTMLTableRowElement[]} */
+	function tableRows(table) {
+		return Array.from(table.querySelectorAll("tbody tr[data-table-row]"));
+	}
+	/** The id of a row. @param {Element} row */
+	function rowId(row) {
+		return row.getAttribute("data-row-id");
+	}
+	/**
+	* Marks exactly the given rows as selected.
+	* @param {HTMLElement} table
+	* @param {Iterable<string>} ids
+	*/
+	function setSelectedRows(table, ids) {
+		const selected = new Set(ids);
+		for (const row of tableRows(table)) {
+			const on = selected.has(rowId(row));
+			row.classList.toggle("active", on);
+			row.setAttribute("aria-selected", String(on));
+		}
+	}
+	var Toolbar_module_default = {
+		toolbar: "_toolbar_1svso_5",
+		item: "_item_1svso_11"
+	};
+	//#endregion
+	//#region src/components/Toolbar/Toolbar.js
+	/**
+	* @typedef {{ id: string, label: string, onClick: (event: MouseEvent) => void, disabled?: boolean, title?: string, className?: string }} ToolbarItem
+	*/
+	/**
+	* @param {{ label: string, items: ToolbarItem[], className?: string }} options
+	* @returns {HTMLElement}
+	*/
+	function createToolbar({ label, items, className }) {
+		return h("div", {
+			class: cx(Toolbar_module_default.toolbar, className),
+			role: "group",
+			"aria-label": label,
+			"data-toolbar": true
+		}, ...items.map(createItem));
+	}
+	/** @param {ToolbarItem} item */
+	function createItem({ id, label, onClick, disabled = false, title, className }) {
+		const button = h("button", {
+			class: cx("button", Toolbar_module_default.item, className),
+			type: "button",
+			"data-toolbar-item": id,
+			title
+		}, label);
+		button.addEventListener("click", onClick);
+		applyState(button, { disabled });
+		return button;
+	}
+	/** @param {HTMLButtonElement} button @param {{ disabled?: boolean, title?: string }} state */
+	function applyState(button, { disabled, title }) {
+		if (disabled !== void 0) {
+			button.disabled = disabled;
+			button.classList.toggle("active", !disabled);
+		}
+		if (title !== void 0) {
+			if (title) button.title = title;
+			else button.removeAttribute("title");
+		}
+	}
+	/** The button of an item, or `null`. @param {HTMLElement} toolbar @param {string} id */
+	function toolbarItem(toolbar, id) {
+		return toolbar.querySelector(`[data-toolbar-item="${id}"]`);
+	}
+	/**
+	* Enables or disables an item (and sets its tooltip). An unknown id is ignored: a screen may show fewer items than it updates.
+	* @param {HTMLElement} toolbar
+	* @param {string} id
+	* @param {{ disabled?: boolean, title?: string }} state
+	*/
+	function setToolbarItem(toolbar, id, state) {
+		const button = toolbarItem(toolbar, id);
+		if (button) applyState(button, state);
+	}
+	//#endregion
 	//#region src/components/templates/script/assets-panel.js
+	var wrap$5 = ElementCreator.wrap;
 	/**
 	* The files table of the event page with its toolbar (upload, replace, download, delete).
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6086,155 +6292,208 @@
 			const all = assets();
 			const mayChange = !state.busy && Boolean(groupView().editable);
 			const explorer = config.mode === "assets";
-			const rows = all.map(function(asset) {
-				const checkbox = explorer ? createElement("input", { attrs: {
-					type: "checkbox",
-					tabindex: "-1",
-					"aria-label": st("selectFile") + ": " + asset.name
-				} }) : null;
-				if (checkbox) checkbox.getElement().checked = state.selectedAssets.has(asset.name);
-				const row = createElement("tr", {
-					className: explorer ? state.selectedAssets.has(asset.name) ? "active" : null : asset.name === state.selectedAsset ? "active" : null,
-					attrs: {
-						tabindex: "-1",
-						"data-script-asset": asset.name
+			/** The checkbox of an explorer row; it follows the selection like the row does. */
+			const checkboxes = /* @__PURE__ */ new Map();
+			/** What a row does when it is chosen: by a click, a key or its checkbox. */
+			const selectors = /* @__PURE__ */ new Map();
+			function applySelection() {
+				if (explorer) {
+					setSelectedRows(tableElement, state.selectedAssets);
+					tableRows(tableElement).forEach(function(row) {
+						checkboxes.get(rowId(row)).checked = state.selectedAssets.has(rowId(row));
+					});
+				} else setSelectedRows(tableElement, [state.selectedAsset]);
+			}
+			function selectAsset(asset, selected, exclusive, range) {
+				if (explorer) {
+					if (range && state.assetFocus) {
+						const from = all.findIndex(function(entry) {
+							return entry.name === state.assetFocus;
+						});
+						const to = all.indexOf(asset);
+						if (exclusive) state.selectedAssets.clear();
+						all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function(entry) {
+							state.selectedAssets.add(entry.name);
+						});
+					} else if (exclusive) state.selectedAssets.clear();
+					if (selected) state.selectedAssets.add(asset.name);
+					else state.selectedAssets.delete(asset.name);
+					state.selectedAsset = state.selectedAssets.size === 1 ? Array.from(state.selectedAssets)[0] : null;
+				} else state.selectedAsset = asset.name;
+				applySelection();
+				state.assetFocus = asset.name;
+				syncButtons();
+				if (navigations.assets) navigations.assets.sync();
+			}
+			const tableElement = createDataTable({
+				label: st("managedFiles"),
+				multiple: explorer,
+				columns: (explorer ? [{
+					id: "select",
+					label: ""
+				}] : []).concat([
+					{
+						id: "name",
+						label: st("columnName")
 					},
-					children: [
-						checkbox ? createElement("td", { children: [checkbox] }) : null,
-						nameCell(asset.name, assetIcon(asset.name)),
-						createElement("td", { text: String(asset.byte_size) + " " + st("bytes") }),
-						createElement("td", { text: String((asset.references || []).length) })
-					]
-				});
-				function select(selected, exclusive, range) {
-					if (explorer) {
-						if (range && state.assetFocus) {
-							const from = all.findIndex(function(entry) {
-								return entry.name === state.assetFocus;
-							});
-							const to = all.indexOf(asset);
-							if (exclusive) state.selectedAssets.clear();
-							all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function(entry) {
-								state.selectedAssets.add(entry.name);
-							});
-						} else if (exclusive) state.selectedAssets.clear();
-						if (selected) state.selectedAssets.add(asset.name);
-						else state.selectedAssets.delete(asset.name);
-						state.selectedAsset = state.selectedAssets.size === 1 ? Array.from(state.selectedAssets)[0] : null;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("[data-script-asset]"), function(candidate) {
-							const active = state.selectedAssets.has(candidate.getAttribute("data-script-asset"));
-							candidate.classList.toggle("active", active);
-							candidate.setAttribute("aria-selected", active ? "true" : "false");
-							candidate.querySelector("input[type=checkbox]").checked = active;
-						});
-					} else {
-						state.selectedAsset = asset.name;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
-							candidate.classList.toggle("active", candidate === row.getElement());
-						});
+					{
+						id: "size",
+						label: st("columnSize")
+					},
+					{
+						id: "references",
+						label: st(explorer ? "usedBy" : "columnReferences")
 					}
-					state.assetFocus = asset.name;
-					syncButtons();
-					if (navigations.assets) navigations.assets.sync();
-				}
-				row.getElement().__select = function(event) {
-					select(true, !event || !event.ctrlKey, Boolean(event && event.shiftKey));
+				]),
+				emptyText: st("emptyAssets"),
+				className: "preference__table gpo-catalog-table",
+				emptyClassName: "gpo-editor-scripts__empty-row",
+				rows: all.map(function(asset) {
+					let checkbox = null;
+					if (explorer) {
+						checkbox = createElement("input", { attrs: {
+							type: "checkbox",
+							tabindex: "-1",
+							"aria-label": st("selectFile") + ": " + asset.name
+						} });
+						checkbox.getElement().checked = state.selectedAssets.has(asset.name);
+						checkbox.on("click", function(event) {
+							event.stopPropagation();
+						});
+						checkbox.on("change", function() {
+							selectAsset(asset, checkbox.getElement().checked);
+						});
+						checkboxes.set(asset.name, checkbox.getElement());
+					}
+					selectors.set(asset.name, function(event) {
+						selectAsset(asset, true, !event || !event.ctrlKey, Boolean(event && event.shiftKey));
+					});
+					return {
+						id: asset.name,
+						attrs: { "data-script-asset": asset.name },
+						cells: [
+							checkbox ? checkbox.getElement() : null,
+							nameContent(asset.name, assetIcon(asset.name)),
+							String(asset.byte_size) + " " + st("bytes"),
+							String((asset.references || []).length)
+						].filter(function(cell, index) {
+							return explorer || index > 0;
+						}),
+						selected: explorer ? state.selectedAssets.has(asset.name) : asset.name === state.selectedAsset,
+						onClick: function(event) {
+							selectAsset(asset, explorer && !event.shiftKey ? !state.selectedAssets.has(asset.name) : true, false, event.shiftKey);
+							navigations.assets.sync();
+							/** @type {HTMLElement} */ event.currentTarget.focus();
+						},
+						onDoubleClick: function(event) {
+							if (event.target.closest("input, select, textarea, button, a, summary, [contenteditable]")) return;
+							if (state.busy || state.form || state.picker || state.confirmation) return;
+							selectAsset(asset, true, true);
+							if (explorer) downloadAsset();
+							else openForm("select");
+						}
+					};
+				})
+			});
+			tableRows(tableElement).forEach(function(row) {
+				row.__select = selectors.get(rowId(row));
+			});
+			const table = wrap$5(tableElement);
+			const open = function(name) {
+				return function() {
+					if (name === "upload") uploadInput.getElement().click();
+					else if (name === "select") openForm("select");
+					else if (name === "replace") replaceInput.getElement().click();
+					else if (name === "download") downloadAsset();
+					else if (name === "delete") deleteAsset();
+					else loadEvent();
 				};
-				row.on("click", function(event) {
-					select(explorer && !event.shiftKey ? !state.selectedAssets.has(asset.name) : true, false, event.shiftKey);
-					navigations.assets.sync();
-					row.getElement().focus();
-				});
-				row.on("dblclick", function(event) {
-					if (event.target.closest("input, select, textarea, button, a, summary, [contenteditable]")) return;
-					if (state.busy || state.form || state.picker || state.confirmation) return;
-					select(true, true);
-					if (explorer) downloadAsset();
-					else openForm("select");
-				});
-				if (checkbox) checkbox.on("click", function(event) {
-					event.stopPropagation();
-				});
-				if (checkbox) checkbox.on("change", function() {
-					select(checkbox.getElement().checked);
-				});
-				return row;
-			});
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: [
-					explorer ? createElement("th", { text: "" }) : null,
-					createElement("th", { text: st("columnName") }),
-					createElement("th", { text: st("columnSize") }),
-					createElement("th", { text: st(explorer ? "usedBy" : "columnReferences") })
-				] })] }), createElement("tbody", { children: rows.length ? rows : [createElement("tr", {
-					className: "gpo-editor-scripts__empty-row",
-					children: [createElement("td", {
-						attrs: { colspan: explorer ? "4" : "3" },
-						text: st("emptyAssets")
-					})]
-				})] })]
-			});
-			const controls = {
-				upload: button(st("upload"), function() {
-					uploadInput.getElement().click();
-				}, !mayChange),
-				select: button(st("addSelectedScript"), function() {
-					openForm("select");
-				}, true),
-				replace: button(st("replaceFile"), function() {
-					replaceInput.getElement().click();
-				}, true),
-				download: button(st("download"), function() {
-					downloadAsset();
-				}, true),
-				delete: button(st("deleteFile"), deleteAsset, true),
-				refresh: button(st("refresh"), function() {
-					loadEvent();
-				}, state.busy)
 			};
+			const items = {
+				upload: {
+					id: "upload",
+					label: st("upload"),
+					onClick: open("upload"),
+					disabled: !mayChange
+				},
+				select: {
+					id: "select",
+					label: st("addSelectedScript"),
+					onClick: open("select"),
+					disabled: true
+				},
+				replace: {
+					id: "replace",
+					label: st("replaceFile"),
+					onClick: open("replace"),
+					disabled: true
+				},
+				download: {
+					id: "download",
+					label: st("download"),
+					onClick: open("download"),
+					disabled: true
+				},
+				delete: {
+					id: "delete",
+					label: st("deleteFile"),
+					onClick: open("delete"),
+					disabled: true
+				},
+				refresh: {
+					id: "refresh",
+					label: st("refresh"),
+					onClick: open("refresh"),
+					disabled: state.busy
+				}
+			};
+			const toolbar = createToolbar({
+				label: st("managedFiles"),
+				className: "gpo-editor-scripts__toolbar",
+				items: explorer ? all.length ? [
+					items.upload,
+					items.replace,
+					items.download,
+					items.delete,
+					items.refresh
+				] : [items.upload] : [
+					items.upload,
+					items.select,
+					items.replace,
+					items.download,
+					items.delete
+				]
+			});
 			function syncButtons() {
 				const asset = selectedAsset();
 				const selected = explorer ? all.filter(function(item) {
 					return state.selectedAssets.has(item.name);
 				}) : asset ? [asset] : [];
-				const enabled = [
-					mayChange,
-					mayChange && Boolean(asset),
-					mayChange && Boolean(asset),
-					!state.busy && Boolean(asset),
-					mayChange && selected.length > 0 && selected.every(function(item) {
-						return !(item.references && item.references.length);
-					})
-				];
-				[
-					controls.upload,
-					controls.select,
-					controls.replace,
-					controls.download,
-					controls.delete
-				].forEach(function(control, index) {
-					control.getElement().disabled = !enabled[index];
-					control.getElement().classList.toggle("active", enabled[index]);
-				});
-				controls.delete.getElement().title = selected.some(function(item) {
+				const referenced = selected.some(function(item) {
 					return item.references && item.references.length;
-				}) ? st("fileInUse") : "";
-				controls.refresh.getElement().disabled = state.busy;
-				controls.refresh.getElement().classList.toggle("active", !state.busy);
+				});
+				setToolbarItem(toolbar, "upload", { disabled: !mayChange });
+				setToolbarItem(toolbar, "select", { disabled: !(mayChange && Boolean(asset)) });
+				setToolbarItem(toolbar, "replace", { disabled: !(mayChange && Boolean(asset)) });
+				setToolbarItem(toolbar, "download", { disabled: !(!state.busy && Boolean(asset)) });
+				setToolbarItem(toolbar, "delete", {
+					disabled: !(mayChange && selected.length > 0 && !referenced),
+					title: referenced ? st("fileInUse") : ""
+				});
+				setToolbarItem(toolbar, "refresh", { disabled: state.busy });
 			}
 			syncButtons();
 			bindTable(table, "assets", {
 				rows: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
+					return tableRows(tableElement);
 				},
 				selected: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]")).find(function(row) {
-						return row.getAttribute("data-script-asset") === (state.assetFocus || state.selectedAsset);
+					return tableRows(tableElement).find(function(row) {
+						return rowId(row) === (state.assetFocus || state.selectedAsset);
 					}) || null;
 				},
 				isSelected: explorer ? function(row) {
-					return state.selectedAssets.has(row.getAttribute("data-script-asset"));
+					return state.selectedAssets.has(rowId(row));
 				} : void 0,
 				select: function(row, event) {
 					row.__select(event);
@@ -6259,22 +6518,6 @@
 					});
 				}
 			});
-			const toolbar = createElement("div", {
-				className: "gpo-editor-scripts__toolbar",
-				children: explorer ? all.length ? [
-					controls.upload,
-					controls.replace,
-					controls.download,
-					controls.delete,
-					controls.refresh
-				] : [controls.upload] : [
-					controls.upload,
-					controls.select,
-					controls.replace,
-					controls.download,
-					controls.delete
-				]
-			});
 			const list = createElement("div", {
 				className: "gpo-editor-scripts__list",
 				children: [table]
@@ -6296,6 +6539,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/entries-panel.js
+	var wrap$4 = ElementCreator.wrap;
 	/**
 	* The script entries table of the event page with its toolbar (add, edit, remove, move).
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6304,85 +6548,111 @@
 		function renderEntries() {
 			const rows = entries();
 			const editable = Boolean(groupView().editable) && !state.busy;
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: st("columnName") }), createElement("th", { text: st("columnArguments") })] })] }), createElement("tbody", { children: rows.length ? rows.map(function(entry) {
-					const row = createElement("tr", {
-						className: entry.identity === state.selectedEntry[state.group] ? "active" : null,
-						attrs: {
-							tabindex: "-1",
-							"data-script-entry": entry.identity
+			function selectEntry(id) {
+				state.selectedEntry[state.group] = id;
+				setSelectedRows(tableElement, [id]);
+				syncButtons();
+				setHeaderState();
+				if (navigations.entries) navigations.entries.sync();
+			}
+			const tableElement = createDataTable({
+				label: st(state.group),
+				columns: [{
+					id: "name",
+					label: st("columnName")
+				}, {
+					id: "arguments",
+					label: st("columnArguments")
+				}],
+				emptyText: st("emptyEntries"),
+				className: "preference__table gpo-catalog-table",
+				emptyClassName: "gpo-editor-scripts__empty-row",
+				rows: rows.map(function(entry) {
+					return {
+						id: entry.identity,
+						attrs: { "data-script-entry": entry.identity },
+						cells: [nameContent(entry.command_line, scriptFile(state.group)), entry.parameters],
+						selected: entry.identity === state.selectedEntry[state.group],
+						onClick: function() {
+							selectEntry(entry.identity);
+							navigations.entries.focusSelected();
 						},
-						children: [nameCell(entry.command_line, scriptFile(state.group)), createElement("td", { text: entry.parameters })]
-					});
-					function select() {
-						state.selectedEntry[state.group] = entry.identity;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
-							candidate.classList.toggle("active", candidate === row.getElement());
-						});
-						syncButtons();
-						setHeaderState();
-						if (navigations.entries) navigations.entries.sync();
-					}
-					row.getElement().__select = select;
-					row.on("click", function() {
-						select();
-						navigations.entries.focusSelected();
-					});
-					row.on("dblclick", function() {
-						if (!state.busy && !state.form && !state.picker && !state.confirmation) {
-							select();
-							openForm("edit");
+						onDoubleClick: function() {
+							if (!state.busy && !state.form && !state.picker && !state.confirmation) {
+								selectEntry(entry.identity);
+								openForm("edit");
+							}
 						}
-					});
-					return row;
-				}) : [createElement("tr", {
-					className: "gpo-editor-scripts__empty-row",
-					children: [createElement("td", {
-						attrs: { colspan: "2" },
-						text: st("emptyEntries")
-					})]
-				})] })]
+					};
+				})
 			});
-			const controls = {
-				add: button(st("add"), function() {
-					openForm("add");
-				}, !editable),
-				edit: button(st("edit"), function() {
-					openForm("edit");
-				}, true),
-				remove: button(st("remove"), removeEntry, true),
-				up: button(st("up"), function() {
-					moveEntry(-1);
-				}, true),
-				down: button(st("down"), function() {
-					moveEntry(1);
-				}, true)
+			tableRows(tableElement).forEach(function(row) {
+				row.__select = function() {
+					selectEntry(rowId(row));
+				};
+			});
+			const table = wrap$4(tableElement);
+			const move = function(delta) {
+				return function() {
+					moveEntry(delta);
+				};
 			};
+			const toolbar = createToolbar({
+				label: st(state.group),
+				className: "gpo-editor-scripts__toolbar",
+				items: [{
+					id: "up",
+					label: st("up"),
+					onClick: move(-1),
+					disabled: true
+				}, {
+					id: "down",
+					label: st("down"),
+					onClick: move(1),
+					disabled: true
+				}].concat(config.mode === "event" ? [
+					{
+						id: "add",
+						label: st("add"),
+						onClick: function() {
+							openForm("add");
+						},
+						disabled: !editable
+					},
+					{
+						id: "edit",
+						label: st("edit"),
+						onClick: function() {
+							openForm("edit");
+						},
+						disabled: true
+					},
+					{
+						id: "remove",
+						label: st("remove"),
+						onClick: removeEntry,
+						disabled: true
+					}
+				] : [])
+			});
 			function syncButtons() {
 				const index = rows.findIndex(function(entry) {
 					return entry.identity === state.selectedEntry[state.group];
 				});
 				const selected = editable && index >= 0;
-				const up = editable && index >= 1;
-				const down = editable && index >= 0 && index < rows.length - 1;
-				[controls.edit, controls.remove].forEach(function(control) {
-					control.getElement().disabled = !selected;
-					control.getElement().classList.toggle("active", selected);
-				});
-				controls.up.getElement().disabled = !up;
-				controls.down.getElement().disabled = !down;
-				controls.up.getElement().classList.toggle("active", up);
-				controls.down.getElement().classList.toggle("active", down);
+				setToolbarItem(toolbar, "edit", { disabled: !selected });
+				setToolbarItem(toolbar, "remove", { disabled: !selected });
+				setToolbarItem(toolbar, "up", { disabled: !(editable && index >= 1) });
+				setToolbarItem(toolbar, "down", { disabled: !(editable && index >= 0 && index < rows.length - 1) });
 			}
 			syncButtons();
 			bindTable(table, "entries", {
 				rows: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-entry]"));
+					return tableRows(tableElement);
 				},
 				selected: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-entry]")).find(function(row) {
-						return row.getAttribute("data-script-entry") === state.selectedEntry[state.group];
+					return tableRows(tableElement).find(function(row) {
+						return rowId(row) === state.selectedEntry[state.group];
 					}) || null;
 				},
 				select: function(row) {
@@ -6404,23 +6674,14 @@
 				children: [createElement("div", {
 					className: "gpo-editor-scripts__list",
 					children: [table]
-				}), createElement("div", {
-					className: "gpo-editor-scripts__toolbar",
-					children: config.mode === "event" ? [
-						controls.up,
-						controls.down,
-						controls.add,
-						controls.edit,
-						controls.remove
-					] : [controls.up, controls.down]
-				})]
+				}), toolbar]
 			});
 		}
 		return renderEntries;
 	}
 	//#endregion
 	//#region src/components/templates/script/picker.js
-	var wrap$2 = ElementCreator.wrap;
+	var wrap$3 = ElementCreator.wrap;
 	/**
 	* The SYSVOL file picker of the script form: a dialog over the form that lists the event's files.
 	* @param {{ state: any, assets: () => any[], current: () => boolean, rootElement: HTMLElement, setHeaderState: () => void }} context
@@ -6495,9 +6756,9 @@
 				className: "gpo-editor-empty",
 				text: st("emptyAssets")
 			});
-			const cancelButton = wrap$2(createButton("cancel", t("header.cancel")));
+			const cancelButton = wrap$3(createButton("cancel", t("header.cancel")));
 			cancelButton.on("click", closePicker);
-			const closeButton = wrap$2(createCloseButton(st("close")));
+			const closeButton = wrap$3(createCloseButton(st("close")));
 			closeButton.on("click", closePicker);
 			const shell = createDialogShell({
 				titleId: "gpo-editor-scripts-picker-title",
@@ -6508,7 +6769,7 @@
 				className: "gpo-editor-scripts__picker",
 				hostClassName: "gpo-editor-scripts__picker-overlay"
 			});
-			const picker = wrap$2(shell.dialog);
+			const picker = wrap$3(shell.dialog);
 			shell.dialog.setAttribute("aria-label", st("browseFiles"));
 			shell.host.addEventListener("click", function(event) {
 				if (event.target === shell.host) closePicker();
@@ -6555,7 +6816,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/entry-form.js
-	var wrap$1 = ElementCreator.wrap;
+	var wrap$2 = ElementCreator.wrap;
 	/**
 	* The add/edit dialog of one script entry.
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6633,7 +6894,7 @@
 			sourceSelect.on("change", syncSource);
 			commandInput.on("input", markDirty);
 			parametersInput.on("input", markDirty);
-			const formBody = wrap$1(createBody(null));
+			const formBody = wrap$2(createBody(null));
 			(modern ? [
 				assetRow,
 				field(st("argumentsLabel"), parametersInput),
@@ -6647,13 +6908,13 @@
 			]).forEach(function(child) {
 				formBody.append(child);
 			});
-			const formCancel = wrap$1(createButton("cancel", t("header.cancel")));
+			const formCancel = wrap$2(createButton("cancel", t("header.cancel")));
 			formCancel.on("click", requestCloseForm);
-			const formApply = wrap$1(createButton("apply", t("header.apply")));
+			const formApply = wrap$2(createButton("apply", t("header.apply")));
 			formApply.on("click", function() {
 				submit();
 			});
-			const formClose = wrap$1(createCloseButton(st("close")));
+			const formClose = wrap$2(createCloseButton(st("close")));
 			formClose.on("click", requestCloseForm);
 			const shell = createDialogShell({
 				titleId: "gpo-editor-scripts-form-title",
@@ -6663,7 +6924,7 @@
 				buttons: [formCancel.getElement(), formApply.getElement()],
 				className: "gpo-editor-scripts__form"
 			});
-			const form = wrap$1(shell.dialog);
+			const form = wrap$2(shell.dialog);
 			shell.host.addEventListener("click", function(event) {
 				if (event.target === shell.host) requestCloseForm();
 			});
@@ -6751,20 +7012,23 @@
 	*/
 	function createOrderPanel({ mutate, scope, state }) {
 		function renderOrder() {
-			const select = createElement("select", { children: [
-				createElement("option", {
-					attrs: { value: "unspecified" },
-					text: st("orderUnspecified")
-				}),
-				createElement("option", {
-					attrs: { value: "classic_first" },
-					text: st("orderClassicFirst")
-				}),
-				createElement("option", {
-					attrs: { value: "powershell_first" },
-					text: st("orderPowershellFirst")
-				})
-			] });
+			const select = createElement("select", {
+				attrs: { "aria-label": st("executionOrder") },
+				children: [
+					createElement("option", {
+						attrs: { value: "unspecified" },
+						text: st("orderUnspecified")
+					}),
+					createElement("option", {
+						attrs: { value: "classic_first" },
+						text: st("orderClassicFirst")
+					}),
+					createElement("option", {
+						attrs: { value: "powershell_first" },
+						text: st("orderPowershellFirst")
+					})
+				]
+			});
 			select.getElement().value = state.orderDraft || state.view.execution_order || "unspecified";
 			const canApply = !state.busy && Boolean(state.view.powershell.editable) && state.orderDraft !== state.view.execution_order;
 			const apply = button(st("applyOrder"), function() {
@@ -7542,7 +7806,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script-template.js
-	var wrap = ElementCreator.wrap;
+	var wrap$1 = ElementCreator.wrap;
 	function renderScriptsTemplate(options) {
 		const config = options || {};
 		if (config.item && config.item.event) return renderScriptEventEditor(config);
@@ -7771,11 +8035,11 @@
 			const title = mode === "assets" ? st("folderForEvent").replace("{event}", eventLabel(event)) : eventLabel(event);
 			const detailBody = createBody(null);
 			detailBody.append(host.getElement());
-			const closeAction = wrap(createButton("cancel", st("closeDialog")));
+			const closeAction = wrap$1(createButton("cancel", st("closeDialog")));
 			closeAction.on("click", function() {
 				closeModal();
 			});
-			const closeX = wrap(createCloseButton(st("close")));
+			const closeX = wrap$1(createCloseButton(st("close")));
 			closeX.on("click", function() {
 				closeModal();
 			});
@@ -7788,7 +8052,7 @@
 				width: mode === "assets" ? "min(620px, calc(100vw - 32px))" : "min(600px, calc(100vw - 32px))",
 				className: mode === "assets" ? "gpo-editor-scripts__explorer" : "gpo-editor-scripts__event-dialog"
 			});
-			const dialog = wrap(shell.dialog);
+			const dialog = wrap$1(shell.dialog);
 			shell.host.addEventListener("click", function(clickEvent) {
 				if (clickEvent.target === shell.host) closeModal();
 			});
@@ -13649,6 +13913,107 @@
 		};
 	}
 	//#endregion
+	//#region src/components/Field/Field.js
+	/** @typedef {'checkbox' | 'text' | 'select' | 'plain' | 'mockup' | 'mockup-checkbox'} FieldLayout */
+	var sequence$1 = 0;
+	var nextId = () => "gpui-field-" + ++sequence$1;
+	/**
+	* @param {{
+	*   id: string,
+	*   label: string,
+	*   control: HTMLElement,
+	*   focusTarget?: HTMLElement,
+	*   layout: FieldLayout,
+	*   required?: boolean,
+	*   readonly?: boolean,
+	*   readonlyText?: string,
+	*   rootClass?: string[],
+	*   labelClass?: string,
+	*   labelId?: string
+	* }} options
+	*   `control` is what is placed in the field (an input, or a wrapper that holds one); `focusTarget` is the element the
+	*   label points at, when that is not `control` itself (a checkbox inside its wrapper).
+	* @returns {{ element: HTMLElement, errorElement: HTMLElement }}
+	*/
+	function createField({ id, label, control, focusTarget, layout, required, readonly, readonlyText, rootClass, labelClass }) {
+		const target = focusTarget || control;
+		if (!target.id) target.id = nextId();
+		const errorId = target.id + "-error";
+		const hintId = target.id + "-hint";
+		const error = h("span", {
+			class: "gpo-editor-field__error",
+			id: errorId,
+			"data-field-part": "error"
+		});
+		const hint = readonly && readonlyText ? h("span", {
+			class: "gpo-editor-field__hint",
+			id: hintId,
+			"data-field-part": "hint"
+		}, readonlyText) : null;
+		target.setAttribute("aria-describedby", cx(hint && hintId, errorId));
+		const caption = [h("span", {}, label), required ? h("span", { class: "gpo-editor-field__required" }, "*") : null];
+		const labelElement = (layout === "checkbox" || layout === "mockup-checkbox") && layout === "mockup-checkbox" ? null : h("label", {
+			class: cx(layout === "mockup" ? null : "gpo-editor-field__label", labelClass),
+			for: target.id,
+			"data-field-part": "label"
+		}, ...caption);
+		const classes = cx(layout !== "mockup" && layout !== "mockup-checkbox" && "gpo-editor-field", layout === "checkbox" && "field field__checkbox", layout === "text" && "field field__input", layout === "select" && "field", layout === "mockup" && "field field__input", layout === "mockup-checkbox" && "field field__checkbox", ...rootClass || []);
+		/** @type {(Node | null)[]} */
+		let children;
+		if (layout === "checkbox") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control),
+			hint,
+			error
+		];
+		else if (layout === "text") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control, error),
+			hint
+		];
+		else if (layout === "select") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control),
+			hint,
+			error
+		];
+		else if (layout === "mockup") children = [wrap("field__label", labelElement), wrap("field__element", control, error)];
+		else if (layout === "mockup-checkbox") children = [h("label", {
+			for: target.id,
+			"data-field-part": "label"
+		}, control, h("span", { class: "field__label-checkbox" }, label)), error];
+		else children = [
+			labelElement,
+			control,
+			hint,
+			error
+		];
+		return {
+			element: h("div", {
+				class: classes,
+				"data-field-id": id,
+				"data-field-readonly": readonly ? true : null
+			}, ...children),
+			errorElement: error
+		};
+	}
+	/** @param {string} className @param {...(Node | null)} children */
+	function wrap(className, ...children) {
+		return h("div", { class: className }, ...children);
+	}
+	/**
+	* Shows or clears the error of a field. The message is the text of the error element; `aria-invalid` on the control is the
+	* business of the control's owner (`setError` of the field control), since only it knows the control.
+	* @param {HTMLElement} field
+	* @param {string} [message]
+	*/
+	function setFieldError(field, message) {
+		const error = field.querySelector("[data-field-part=\"error\"]");
+		if (error) error.textContent = message || "";
+		if (message) field.setAttribute("data-field-invalid", "");
+		else field.removeAttribute("data-field-invalid");
+	}
+	//#endregion
 	//#region src/components/templates/preference/view/field-control.js
 	function hiddenFieldControl(field) {
 		return {
@@ -13691,10 +14056,7 @@
 			inputElement = checkbox.getElement();
 			return createElement("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement("label", { attrs: {
-					for: controlId,
-					"aria-label": field.label || field.id
-				} })]
+				children: [checkbox, createElement("label", { attrs: { for: controlId } })]
 			});
 		}
 		if (controlKind.indexOf("generated_") === 0) input = createElement("div", {
@@ -13764,7 +14126,6 @@
 			value: value.value === null || value.value === void 0 ? "" : value.value
 		} });
 		if (!inputElement) inputElement = input.getElement();
-		const errorElement = createElement("span", { className: "gpo-editor-field__error" });
 		let dynamicDisabled = false;
 		function applyBaselineToInput() {
 			if (checkboxValueKind === "optional_boolean_u8") inputElement.checked = value.value === 1;
@@ -13780,7 +14141,6 @@
 			controlKind,
 			input,
 			inputElement,
-			errorElement,
 			checkboxControlId,
 			read: function() {
 				if (disabled || dynamicDisabled || controlKind.indexOf("generated_") === 0) return clone$2(value);
@@ -13800,7 +14160,6 @@
 					if (message) inputElement.setAttribute("aria-invalid", "true");
 					else inputElement.removeAttribute("aria-invalid");
 				}
-				errorElement.setText(message || "");
 			},
 			setDynamicDisabled: function(nextDisabled) {
 				if (controlKind.indexOf("generated_") === 0) return false;
@@ -13816,122 +14175,13 @@
 			}
 		};
 	}
-	function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-		const opts = options || {};
-		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
-		const wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
-		const wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-		const builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === "INPUT";
-		const builderInputType = builderIsInput ? String(builder.inputElement.getAttribute("type") || "").toLowerCase() : "";
-		const wrapText = builderIsInput && (builderInputType === "number" || Boolean(opts.wrapText) && builderInputType === "text");
-		let element;
-		if (wrapCheckbox) element = createElement("div", {
-			className: [
-				"field",
-				"field__checkbox",
-				"gpo-editor-field",
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("label", {
-						className: "gpo-editor-field__label",
-						attrs: { for: builder.checkboxControlId },
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			]
-		});
-		else if (wrapText) element = createElement("div", {
-			className: [
-				"field",
-				"field__input",
-				"gpo-editor-field",
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("span", {
-						className: "gpo-editor-field__label",
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input, builder.errorElement]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null
-			]
-		});
-		else element = createElement("div", {
-			className: [
-				"gpo-editor-field",
-				wrapSelect ? "field" : null,
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: wrapSelect ? [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("span", {
-						className: "gpo-editor-field__label",
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			] : [
-				createElement("span", {
-					className: "gpo-editor-field__label",
-					children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-						className: "gpo-editor-field__required",
-						text: "*"
-					}) : null]
-				}),
-				builder.input,
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			]
-		});
+	/** What `fieldControl` and `mockupFieldControl` share: the error of the field and the dynamic read-only state. */
+	function fieldHandle(field, builder, fieldElement, readonlyClass) {
 		let lastError = "";
 		function applyError(message) {
 			lastError = message || "";
-			element.getElement().classList.toggle("gpo-editor-field--error", Boolean(message));
+			fieldElement.classList.toggle("gpo-editor-field--error", Boolean(message));
+			setFieldError(fieldElement, message);
 			builder.setInputError(message);
 		}
 		if (!builder.disabled) builder.inputElement.addEventListener("input", function() {
@@ -13940,86 +14190,62 @@
 		return {
 			id: field.id,
 			field,
-			element,
+			element: ElementCreator.wrap(fieldElement),
 			read: builder.read,
 			setError: applyError,
 			setDynamicDisabled: function(nextDisabled) {
 				if (!builder.setDynamicDisabled(nextDisabled)) return false;
-				element.getElement().classList.toggle("gpo-editor-field--readonly", Boolean(nextDisabled));
-				if (nextDisabled) {
-					lastError = "";
-					element.getElement().classList.remove("gpo-editor-field--error");
-					builder.setInputError("");
-				}
+				fieldElement.classList.toggle(readonlyClass, Boolean(nextDisabled));
+				if (nextDisabled) applyError("");
 				return true;
 			},
 			focus: builder.focus
 		};
 	}
+	function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
+		const opts = options || {};
+		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
+		const isInput = builder.checkboxControlId === null && builder.inputElement.tagName === "INPUT";
+		const inputType = isInput ? String(builder.inputElement.getAttribute("type") || "").toLowerCase() : "";
+		/** @type {import('@gpui/components/Field/Field').FieldLayout} */
+		let layout = "plain";
+		if (opts.wrapCheckbox && builder.checkboxControlId !== null) layout = "checkbox";
+		else if (isInput && (inputType === "number" || opts.wrapText && inputType === "text")) layout = "text";
+		else if (opts.wrapSelect && valueKindIsSelect(builder)) layout = "select";
+		const { element } = createField({
+			id: field.id,
+			label: field.label || field.id,
+			required: Boolean(field.required),
+			readonly: builder.disabled,
+			readonlyText: pt("readonly"),
+			layout,
+			control: builder.input.getElement(),
+			focusTarget: builder.inputElement,
+			rootClass: builder.disabled ? ["gpo-editor-field--readonly"] : []
+		});
+		return fieldHandle(field, builder, element, "gpo-editor-field--readonly");
+	}
 	function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
 		const opts = options || {};
 		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
 		const checkboxLike = builder.value.kind === "boolean" || builder.value.kind === "optional_boolean" || builder.controlKind === "optional_boolean_u8";
-		let element;
-		if (checkboxLike) element = createElement("div", {
-			className: [
-				"field",
-				"field__checkbox",
-				builder.disabled ? "field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [createElement("label", { children: [builder.input, createElement("span", {
-				className: "field__label-checkbox",
-				text: field.label || field.id
-			})] }), builder.errorElement]
-		});
-		else {
-			const fieldClasses = ["field", "field__input"];
-			if (opts.textarea) fieldClasses.push("field__description", "h-auto");
-			else if (builder.controlKind === "directory_path" || builder.controlKind === "file_path") fieldClasses.push("field__input--path");
-			else if (valueKindIsSelect(builder)) fieldClasses.push("select");
-			element = createElement("div", {
-				className: fieldClasses,
-				attrs: { "data-field-id": field.id },
-				children: [createElement("div", {
-					className: "field__label",
-					children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-						className: "gpo-editor-field__required",
-						text: "*"
-					}) : null]
-				}), createElement("div", {
-					className: "field__element",
-					children: [builder.input, builder.errorElement]
-				})]
-			});
+		const rootClass = [];
+		if (checkboxLike && builder.disabled) rootClass.push("field--readonly");
+		if (!checkboxLike) {
+			if (opts.textarea) rootClass.push("field__description", "h-auto");
+			else if (builder.controlKind === "directory_path" || builder.controlKind === "file_path") rootClass.push("field__input--path");
+			else if (valueKindIsSelect(builder)) rootClass.push("select");
 		}
-		let lastError = "";
-		function applyError(message) {
-			lastError = message || "";
-			element.getElement().classList.toggle("gpo-editor-field--error", Boolean(message));
-			builder.setInputError(message);
-		}
-		if (!builder.disabled) builder.inputElement.addEventListener("input", function() {
-			if (lastError) applyError("");
-		});
-		return {
+		const { element } = createField({
 			id: field.id,
-			field,
-			element,
-			read: builder.read,
-			setError: applyError,
-			setDynamicDisabled: function(nextDisabled) {
-				if (!builder.setDynamicDisabled(nextDisabled)) return false;
-				element.getElement().classList.toggle("field--readonly", Boolean(nextDisabled));
-				if (nextDisabled) {
-					lastError = "";
-					element.getElement().classList.remove("gpo-editor-field--error");
-					builder.setInputError("");
-				}
-				return true;
-			},
-			focus: builder.focus
-		};
+			label: field.label || field.id,
+			required: Boolean(field.required),
+			layout: checkboxLike ? "mockup-checkbox" : "mockup",
+			control: builder.input.getElement(),
+			focusTarget: builder.inputElement,
+			rootClass
+		});
+		return fieldHandle(field, builder, element, "field--readonly");
 	}
 	function valueKindIsSelect(builder) {
 		return builder.value.kind === "action" || builder.value.kind === "filter_combine" || builder.controlKind === "choice";
@@ -14027,6 +14253,88 @@
 	var nextFieldControlId = 1;
 	function nextControlId() {
 		return "gpo-preference-field-" + nextFieldControlId++;
+	}
+	//#endregion
+	//#region src/components/Tabs/Tabs.js
+	/**
+	* @typedef {{ id: string, label: string, content?: Node | null, hidden?: boolean }} TabSpec
+	*   `content` may be added later through `panel(id)`; a `hidden` tab has its panel but no button (nothing to show in it)
+	* @typedef {{ element: HTMLElement, activate: (id: string) => void, active: () => string, panel: (id: string) => HTMLElement }} Tabs
+	*/
+	/**
+	* @param {{ label: string, tabs: TabSpec[], active?: string, className?: string, onChange?: (id: string) => void }} options
+	*   `label` names the tab list for a screen reader.
+	* @returns {Tabs}
+	*/
+	function createTabs({ label, tabs, active, className, onChange }) {
+		const shown = tabs.filter((tab) => !tab.hidden);
+		let current = shown.some((tab) => tab.id === active) ? active : (shown[0] || tabs[0]).id;
+		const buttons = shown.map((tab) => {
+			const button = h("button", {
+				class: "preference__tab-button",
+				type: "button",
+				role: "tab",
+				"data-tab": tab.id,
+				"aria-controls": tab.id
+			}, tab.label);
+			button.id = tab.id + "-tab";
+			button.addEventListener("click", () => activate(tab.id, false));
+			return button;
+		});
+		const panels = tabs.map((tab) => {
+			const panel = h("div", {
+				class: "tab-content",
+				role: "tabpanel",
+				"data-tab-panel": tab.id,
+				"aria-labelledby": tab.id + "-tab"
+			}, tab.content);
+			panel.id = tab.id;
+			return panel;
+		});
+		const list = h("div", {
+			class: "tab-buttons",
+			role: "tablist",
+			"aria-label": label
+		}, ...buttons);
+		list.addEventListener("keydown", (event) => {
+			const index = shown.findIndex((tab) => tab.id === current);
+			const last = shown.length - 1;
+			const target = {
+				ArrowRight: index === last ? 0 : index + 1,
+				ArrowLeft: index === 0 ? last : index - 1,
+				Home: 0,
+				End: last
+			}[event.key];
+			if (target === void 0) return;
+			event.preventDefault();
+			activate(shown[target].id, true);
+		});
+		const element = h("div", {
+			class: cx("preference__modal-tabs", className),
+			"data-tabs": true
+		}, list, ...panels);
+		/** @param {string} id @param {boolean} focus */
+		function activate(id, focus) {
+			if (!tabs.some((tab) => tab.id === id)) return;
+			const changed = id !== current;
+			current = id;
+			buttons.forEach((button, index) => {
+				const on = shown[index].id === id;
+				button.classList.toggle("active", on);
+				button.setAttribute("aria-selected", String(on));
+				button.tabIndex = on ? 0 : -1;
+				if (on && focus) button.focus();
+			});
+			panels.forEach((panel, index) => panel.classList.toggle("active", tabs[index].id === id));
+			if (changed && onChange) onChange(id);
+		}
+		activate(current, false);
+		return {
+			element,
+			activate: (id) => activate(id, false),
+			active: () => current,
+			panel: (id) => panels[tabs.findIndex((tab) => tab.id === id)]
+		};
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/field-tabs.js
@@ -14124,65 +14432,53 @@
 		const basicHasFields = renderable(basicEntries);
 		const generalHasFields = renderable(generalEntries);
 		if (!basicHasFields && !generalHasFields) return null;
-		function buildContent(entries) {
-			const content = createElement("div", { className: "tab-content" });
+		function fillPanel(panel, entries) {
 			entries.forEach(function(entry) {
 				if (entry.line) {
-					content.append(createElement("div", { className: "field__line" }));
+					panel.append(createElement("div", { className: "field__line" }).getElement());
 					return;
 				}
 				if (entry.placeholder) {
-					content.append(buildPlaceholderCheckbox(entry));
+					panel.append(buildPlaceholderCheckbox(entry).getElement());
 					return;
 				}
 				if (!entry.field) return;
 				(opts.controlsById.get(entry.field) || []).forEach(function(control) {
-					if (control.element) content.append(control.element);
+					if (control.element) panel.append(control.element.getElement());
 				});
 			});
-			return content;
 		}
-		const basicContent = buildContent(basicEntries);
-		const generalContent = buildContent(generalEntries);
-		basicContent.getElement().id = "tab-basic";
-		generalContent.getElement().id = "tab-general";
 		const activeTab = basicHasFields ? "tab-basic" : "tab-general";
-		if (activeTab === "tab-basic") basicContent.getElement().classList.add("active");
-		else generalContent.getElement().classList.add("active");
-		const tabs = createElement("div", { className: "preference__modal-tabs" });
-		const buttons = createElement("div", { className: "tab-buttons" });
-		[{
+		const shown = [{
 			id: "tab-basic",
 			enabled: basicHasFields,
-			label: pt("tabBasic")
+			label: pt("tabBasic"),
+			entries: basicEntries
 		}, {
 			id: "tab-general",
 			enabled: generalHasFields,
-			label: pt("tabGeneral")
-		}].forEach(function(spec) {
-			if (!spec.enabled) return;
-			buttons.append(createElement("div", {
-				className: ["preference__tab-button", activeTab === spec.id ? "active" : null],
-				attrs: { "data-tab": spec.id },
-				text: spec.label,
-				events: { click: function() {
-					activateTab(spec.id);
-				} }
-			}));
+			label: pt("tabGeneral"),
+			entries: generalEntries
+		}];
+		const component = createTabs({
+			label: pt("tabsLabel"),
+			active: activeTab,
+			tabs: shown.map(function(spec) {
+				return {
+					id: spec.id,
+					label: spec.label,
+					hidden: !spec.enabled
+				};
+			})
 		});
-		tabs.append(buttons);
-		tabs.append(basicContent);
-		tabs.append(generalContent);
+		shown.forEach(function(spec) {
+			fillPanel(component.panel(spec.id), spec.entries);
+		});
+		const tabs = ElementCreator.wrap(component.element);
+		const basicContent = ElementCreator.wrap(component.panel("tab-basic"));
+		const generalContent = ElementCreator.wrap(component.panel("tab-general"));
 		const filtersTab = opts.layout ? opts.layout.filters === "basic" ? "tab-basic" : opts.layout.filters === "general" ? "tab-general" : null : null;
 		tabs.filtersSlot = filtersTab === "tab-basic" && basicHasFields ? basicContent : filtersTab === "tab-general" && generalHasFields ? generalContent : null;
-		function activateTab(id) {
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".preference__tab-button"), function(button) {
-				button.classList.toggle("active", button.getAttribute("data-tab") === id);
-			});
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".tab-content"), function(content) {
-				content.classList.toggle("active", content.id === id);
-			});
-		}
 		return tabs;
 	}
 	//#endregion
@@ -14362,6 +14658,7 @@
 				if (!creating) {
 					nameInput = createElement("input", { attrs: {
 						type: "text",
+						"aria-label": pt("rename"),
 						value: originalName,
 						required: "required",
 						disabled: readonly ? "disabled" : null
@@ -17063,7 +17360,7 @@
 			const toolbar = createElement("div", {
 				className: "gpo-security-workbench__toolbar",
 				children: [config.hideHeading ? null : createElement("h2", {
-					text: config.categoryPath || family && family.label || "",
+					text: config.categoryPath || family && family.label || tr("security.advancedAudit.title", "Advanced Audit Policy Configuration"),
 					attrs: { "data-category-path": "" }
 				}), search]
 			});

@@ -99,7 +99,7 @@
 
 .gpo-editor-filters__toolbar--disabled {
   background: var(--gpui-surface);
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-filters__toolbar--disabled button,
 .gpo-editor-filters__toolbar--disabled select,

@@ -78,10 +78,7 @@ function createParameterControl(parameter, editable) {
             children: [
                 checkbox,
                 createElement('label', {
-                    attrs: {
-                        for: checkboxId,
-                        'aria-label': parameter.label || parameter.id
-                    }
+                    attrs: { for: checkboxId }
                 })
             ]
         });
@@ -243,6 +240,7 @@ function renderPolicyContents(root, policy, handlers) {
     const comment = createElement('textarea', {
         attrs: {
             name: 'comment',
+            'aria-label': handlers.modalLayout ? null : t('common.comment'),
             disabled: capabilities.edit_comments && !unknown ? null : 'disabled'
         },
         text: policy.comment ? policy.comment.text : ''
