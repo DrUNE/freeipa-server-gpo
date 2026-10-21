@@ -19,6 +19,8 @@ import pytest
 from test_gpo_editor_backend import (
     GPO,
     CommandHarness,
+    PolicyIndexWorkspace,
+    PolicyReadWorkspace,
     PreferenceWorkspace,
     ScriptWorkspace,
     _script_command_environment,
@@ -143,4 +145,87 @@ def test_reconcile_answers_with_the_contract_shape(monkeypatch):
         GPO, "_reconcile_workspace", lambda *args, **kwargs: ({"kind": "clean"}, snapshot())
     )
     result = run(GPO.gpo_editor_reconcile, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def test_children_answers_with_the_contract_shape(monkeypatch):
+    golden = contract("children")
+    workspace = PolicyReadWorkspace()
+    patched_workspace(monkeypatch, workspace)
+    result = run(GPO.gpo_editor_children, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def test_policy_index_answers_with_the_contract_shape(monkeypatch):
+    golden = contract("policy_index")
+    workspace = PolicyIndexWorkspace({
+        ("computer", None): [
+            {"kind": "category", "id": "opaque:category/A", "label": "System"},
+            {"kind": "policy", "id": "opaque:root", "label": "Root"},
+        ],
+        ("computer", "opaque:category/A"): [
+            {"kind": "policy", "id": "opaque:policy/A", "label": "Policy"},
+        ],
+    })
+    patched_workspace(monkeypatch, workspace)
+    result = run(GPO.gpo_editor_policy_index, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def test_policy_show_answers_with_the_contract_shape(monkeypatch):
+    golden = contract("policy_show")
+    workspace = PolicyReadWorkspace()
+    workspace.policy = golden["result"]["policy"]
+    patched_workspace(monkeypatch, workspace)
+    result = run(GPO.gpo_editor_policy_show, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def feed_preference_detail(workspace, answer):
+    """Make the fake workspace report what the reference answer says the binding reports."""
+    workspace.get_new_preference_item_fields = lambda scope, kind: answer["new_item_fields"]
+    kinds = answer["filter_kinds"]
+    workspace.preference_filter_kinds = lambda: [
+        {key: value for key, value in kind.items() if key != "fields"} for kind in kinds
+    ]
+    workspace.get_new_preference_filter_fields = lambda kind: kinds[0]["fields"]
+    workspace.parent_candidates = answer["parent_candidates"]
+    if answer["item"] is not None:
+        workspace.items = [answer["item"]]
+        workspace.get_preference_fields = lambda *args: answer["fields"]
+        workspace.list_preference_filters = lambda *args: answer["filters"]
+        workspace.get_preference_filter_fields = lambda *args: answer["filter_fields"][0]["fields"]
+
+
+def test_preference_show_answers_with_the_contract_shape(monkeypatch):
+    golden = contract("preference_show")
+    workspace = PreferenceWorkspace()
+    feed_preference_detail(workspace, golden["result"])
+    patched_workspace(monkeypatch, workspace)
+    result = run(GPO.gpo_editor_preference_show, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def mutating_workspace(monkeypatch):
+    workspace = PreferenceWorkspace()
+    patched_workspace(monkeypatch, workspace)
+    monkeypatch.setattr(GPO, "_recover_before_mutation", lambda *args: None)
+    monkeypatch.setattr(GPO, "_commit_external_once", lambda *args: {"changed": True})
+    return workspace
+
+
+@pytest.mark.parametrize(
+    ("name", "command"),
+    [
+        ("preference_create", "gpo_editor_preference_create"),
+        ("preference_update", "gpo_editor_preference_update"),
+        ("preference_delete", "gpo_editor_preference_delete"),
+    ],
+)
+def test_preference_writes_answer_with_the_contract_shape(monkeypatch, name, command):
+    golden = contract(name)
+    workspace = mutating_workspace(monkeypatch)
+    if "fields" in golden["result"]:
+        feed_preference_detail(workspace, golden["result"])
+    result = run(getattr(GPO, command), golden, monkeypatch, workspace)
     assert differences(result, golden["result"]) == []

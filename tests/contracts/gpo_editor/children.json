@@ -1,0 +1,42 @@
+{
+  "method": "gpo_editor_children",
+  "args": [
+    "Dev GPO",
+    "computer"
+  ],
+  "options": {
+    "locales": [
+      "en-US"
+    ]
+  },
+  "result": {
+    "gpo": {
+      "displayname": "Test GPO",
+      "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+      "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+        "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+      },
+      "version_number": 0,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [
+      "en-US"
+    ],
+    "diagnostics": [],
+    "pending_publication": null,
+    "children": [
+      {
+        "kind": "policy",
+        "id": "opaque:policy/id",
+        "label": "P"
+      }
+    ]
+  }
+}

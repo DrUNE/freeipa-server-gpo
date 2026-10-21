@@ -54,8 +54,8 @@ Estimates are for one developer, in working days.
 
 - `tsc --noEmit` (`allowJs`, `checkJs`, non-strict) checks all of `src/`; type stubs for `freeipa/*` and open types for the editor's dynamic members live in `frontend/types/`. New files get JSDoc annotations right away.
 - Keep the RPC response types reusable in `freeipa-webui` where possible (`utils/datatypes/globalDataTypes.ts`), see [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md).
-- **Done: the contract with the backend.** `tests/contracts/gpo_editor/*.json` hold a reference answer for `open`, `preference_documents`, `preference_items`, `scripts_show`, `script_files` and `reconcile`. `tests/test_gpo_editor_contract.py` checks that the real commands answer with the same shape (the same keys and JSON types; `null` in the reference means any value); `tests/unit/gpo-editor-contract.test.js` checks the dev stand's mock server and that `util/API.js` hands the answer over intact. The first run found real drift in the mock server: `snapshot` had other keys, `preference_documents` answered under `preference_documents` instead of `documents`, `script_files` with `assets` instead of `scripts`, the script groups lacked `diagnostics` and `upload_limit_bytes`. A rename on either side now fails a test. The write methods are not covered yet.
-- **Remaining:** describe the RPC responses in `types/rpc.d.ts` (`@typedef`), one per `API.js` method; extend the reference answers to the write methods and the remaining read ones (children, policy_index, policy_show, security, advanced audit).
+- **Done: the contract with the backend.** `tests/contracts/gpo_editor/*.json` hold a reference answer for 13 methods: `open`, `reconcile`, `children`, `policy_index`, `policy_show`, `preference_documents`, `preference_items`, `preference_show`, `preference_create`, `preference_update`, `preference_delete`, `scripts_show` and `script_files`. `tests/test_gpo_editor_contract.py` checks that the real commands answer with the same shape (the same keys and JSON types; `null` in the reference means any value); `tests/unit/gpo-editor-contract.test.js` checks the dev stand's mock server and that `util/API.js` hands the answer over intact. The first run found real drift in the mock server: `snapshot` had other keys, `preference_documents` answered under `preference_documents` instead of `documents`, `script_files` with `assets` instead of `scripts`, the script groups lacked `diagnostics` and `upload_limit_bytes`. The second batch found more: the preference create/update answered without the item detail (`fields`, `filters`, `filter_fields`...), delete without `deleted_identity`, the parent candidates lacked `parent_identity`, the policy lacked `representability`. The reference answers carry what the editor reads from the binding (labels, `editable`, `required` of the field descriptors), and the Python tests feed it to the fake workspace, so the envelope must pass it through intact. A rename on either side fails a test. Not covered yet: the policy update, the script writes, security and advanced audit.
+- **Remaining:** describe the RPC responses in `types/rpc.d.ts` (`@typedef`), one per `API.js` method; extend the reference answers to the rest (policy update, script writes, security, advanced audit).
 
 **Done when:** `npm run typecheck` runs in CI (reached); `util/` and `editor-dto.js` have no `any` (remaining).
 
@@ -129,7 +129,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 353 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 367 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -160,7 +160,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (353 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (367 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 

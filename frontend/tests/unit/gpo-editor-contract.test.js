@@ -16,10 +16,24 @@ test('the shape comparison reports missing, extra and mistyped fields (the same 
     assert.deepEqual(differences({ a: 1, b: { c: '' }, d: [], any: null }, reference), []);
 });
 
-test('the contract covers the read methods and the recovery call', () => {
+test('the contract covers the methods listed here', () => {
     assert.deepEqual(
         contracts().map(contract => contract.name),
-        ['open', 'preference_documents', 'preference_items', 'reconcile', 'script_files', 'scripts_show']
+        [
+            'children',
+            'open',
+            'policy_index',
+            'policy_show',
+            'preference_create',
+            'preference_delete',
+            'preference_documents',
+            'preference_items',
+            'preference_show',
+            'preference_update',
+            'reconcile',
+            'script_files',
+            'scripts_show'
+        ]
     );
 });
 
@@ -35,6 +49,14 @@ for (const contract of contracts()) {
 
 // The API function that sends each method, with the arguments after the policy name.
 const CALLS = {
+    children: api => api.children('computer'),
+    policy_index: api => api.policyIndex('computer'),
+    policy_show: api => api.policyShow('computer', 'opaque:policy/id'),
+    preference_show: api => api.preferenceShow('computer', 'files', null),
+    preference_create: api => api.preferenceCreate('computer', 'files', { fields: [] }),
+    preference_update: api =>
+        api.preferenceUpdate('computer', 'files', { identity: ['files', 'opaque-id'], fields: [] }),
+    preference_delete: api => api.preferenceDelete('computer', 'files', ['files', 'opaque-id']),
     open: api => api.open({ refresh: true }),
     preference_documents: api => api.preferenceDocuments(),
     preference_items: api => api.preferenceItems('computer', 'files'),

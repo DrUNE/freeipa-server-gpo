@@ -1,0 +1,129 @@
+{
+  "method": "gpo_editor_preference_update",
+  "args": [
+    "Dev GPO",
+    "computer",
+    "files"
+  ],
+  "options": {
+    "request": {
+      "identity": [
+        "files",
+        "opaque-id"
+      ],
+      "fields": [
+        {
+          "id": "properties.path",
+          "value": {
+            "kind": "optional_text",
+            "value": null
+          }
+        }
+      ]
+    }
+  },
+  "result": {
+    "gpo": {
+      "displayname": "Test GPO",
+      "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+      "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+        "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+      },
+      "version_number": 0,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [
+      "en-US"
+    ],
+    "diagnostics": [],
+    "pending_publication": null,
+    "item": {
+      "identity": [
+        "files",
+        "opaque-id"
+      ],
+      "label": "item",
+      "has_filters": true
+    },
+    "fields": [
+      {
+        "id": "properties.path",
+        "label": "Label",
+        "value": null,
+        "editable": true,
+        "required": false
+      }
+    ],
+    "filters": [
+      {
+        "path": [
+          0
+        ],
+        "kind": "collection",
+        "label": "Collection",
+        "supports_children": true,
+        "child_count": 0
+      }
+    ],
+    "filter_fields": [
+      {
+        "path": [
+          0
+        ],
+        "fields": [
+          {
+            "id": "bool",
+            "label": "Label",
+            "value": null,
+            "editable": true,
+            "required": false
+          }
+        ],
+        "available": true
+      }
+    ],
+    "filter_kinds": [
+      {
+        "kind": "group",
+        "label": "Group",
+        "fields": [
+          {
+            "id": "name",
+            "label": "Label",
+            "value": null,
+            "editable": true,
+            "required": false
+          }
+        ],
+        "supports_children": false
+      }
+    ],
+    "new_item_fields": [
+      {
+        "id": "properties.path",
+        "label": "Label",
+        "value": null,
+        "editable": true,
+        "required": false
+      }
+    ],
+    "parent_candidates": [
+      {
+        "identity": null,
+        "label": "Root",
+        "parent_identity": null,
+        "depth": 0
+      }
+    ],
+    "publication": {
+      "changed": true
+    }
+  }
+}

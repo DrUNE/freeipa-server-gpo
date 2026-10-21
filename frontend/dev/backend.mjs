@@ -366,7 +366,7 @@ function preferenceDetail(kind, identity) {
             { kind: 'collection', label: 'Collection', supports_children: true, fields: commonFilterFields() },
             { kind: 'file', label: 'File match', supports_children: false, fields: fileFilterFields('') }
         ],
-        parent_candidates: [{ identity: null, label: 'Root', depth: 0 }]
+        parent_candidates: [{ identity: null, label: 'Root', parent_identity: null, depth: 0 }]
     };
 }
 
@@ -512,7 +512,12 @@ const methods = {
     },
 
     gpo_editor_policy_show(displayname, scope, policyId) {
-        return Object.assign(gpoEnvelope(displayname), { policy: clone(policyFor(scope, policyId)) });
+        const policy = clone(policyFor(scope, policyId));
+        // Fields of the real answer that the editor does not read but that belong to the contract.
+        policy.representability = policy.representability || { enabled: true };
+        policy.unknown_raw_values = policy.state === 'unknown_raw_values';
+        for (const parameter of policy.parameters || []) parameter.choices = parameter.choices || [];
+        return Object.assign(gpoEnvelope(displayname), { policy });
     },
 
     gpo_editor_policy_update(displayname, scope, policyId, options) {
@@ -562,7 +567,11 @@ const methods = {
         const label = (labelField && labelField.value && labelField.value.value) || 'New ' + kind + ' item';
         const item = { identity: [kind, 'opaque-' + Date.now()], label, has_filters: false };
         items.push(item);
-        return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
+        // Like the real command, answer with the detail of the item that was written.
+        return Object.assign(gpoEnvelope(displayname), preferenceDetail(kind, item.identity), {
+            item: clone(item),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_update(displayname, scope, kind, options) {
@@ -570,7 +579,10 @@ const methods = {
         const items = itemsFor(scope, kind);
         const item =
             items.find(entry => JSON.stringify(entry.identity) === JSON.stringify(request.identity)) || items[0];
-        return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), preferenceDetail(kind, item.identity), {
+            item: clone(item),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_delete(displayname, scope, kind, options) {
@@ -579,7 +591,7 @@ const methods = {
         state.preferenceItems[key] = itemsFor(scope, kind).filter(
             entry => JSON.stringify(entry.identity) !== JSON.stringify(identity)
         );
-        return Object.assign(gpoEnvelope(displayname), { publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), { deleted_identity: identity, publication: { changed: true } });
     },
 
     gpo_editor_scripts_show(displayname, scope, event) {
