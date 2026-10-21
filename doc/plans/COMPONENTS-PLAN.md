@@ -123,7 +123,7 @@ is `.active`; they now have their own look.
 
 **Step 5 is done.** `Screens/Security`, `Screens/ADMX Policy` (11 stories) and `Screens/Preferences` (8 stories, the list, the form, read-only, validation) follow the pattern of step 3. Accessibility checks found three more defects, fixed: a `label` with `aria-label` on a boolean ADMX parameter, an unnamed comment field of the page layout, and an unnamed name field of the preference form. The `empty` scenario now also empties the security catalog.
 
-**Known defect, not fixed (catalog).** `Screens/Catalog` (`folder-template.stories.js`) turns off the axe rule `aria-allowed-attr` for itself: a catalog row is `role="button"` with `aria-selected` (set by `list-navigation.js`), which ARIA does not allow. The right form is a `listbox` of `option`s; I tried it, and it broke 15 integration tests that find the rows as buttons (about 35 locators), so it is a separate step.
+**Catalog roles fixed.** A catalog row used to be `role="button"` with `aria-selected`, which ARIA does not allow (found by the accessibility check of `Screens/Catalog`). The catalog is now a `listbox` of `option`s (`li` is `role="none"`); the integration tests find its rows as options, and the story has no exception for the axe rule any more.
 
 ## 7. What not to do
 

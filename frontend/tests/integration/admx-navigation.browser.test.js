@@ -295,7 +295,7 @@ test(
                     ['empty', 'Empty category', [], true]
                 ]) {
                     assert.equal((await switcher(page, scope, id)).empty, false);
-                    await page.getByRole('button', { name: title, exact: true }).click();
+                    await page.getByRole('option', { name: title, exact: true }).click();
                     await page.waitForFunction(({ scope, id }) => state.selectedItem.item === category(scope, id), {
                         scope,
                         id
@@ -310,7 +310,7 @@ test(
                     );
                     await page.evaluate(scope => selectAdmin(scope), scope);
                 }
-                await page.getByRole('button', { name: 'Retry category', exact: true }).click();
+                await page.getByRole('option', { name: 'Retry category', exact: true }).click();
                 await page.locator('.tree-view__lazy-error').last().waitFor();
                 await page.waitForFunction(scope => {
                     const node = category(scope, 'retry');
@@ -322,12 +322,12 @@ test(
                 assert.equal((await switcher(page, scope, 'retry')).empty, false);
                 assert.equal(await page.evaluate(scope => Boolean(category(scope, 'retry').loaded), scope), false);
                 assert.equal(await page.evaluate(scope => retryAttempts[scope], scope), 1);
-                await page.getByRole('button', { name: 'Retry category', exact: true }).click();
+                await page.getByRole('option', { name: 'Retry category', exact: true }).click();
                 await page.waitForFunction(scope => {
                     const node = category(scope, 'retry');
                     return node.loaded && node.loadingPromise === null && state.selectedItem.item === node;
                 }, scope);
-                await page.getByRole('button', { name: 'Retry policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Retry policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(scope => retryAttempts[scope], scope), 2);
                 assert.equal((await switcher(page, scope, 'retry')).empty, true);
                 assert.equal(
@@ -354,7 +354,7 @@ for (const scope of ['computer', 'user']) {
                 await page.evaluate(scope => selectAdmin(scope), scope);
                 // A different active tree node makes ancestor activation observable.
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
-                await page.getByRole('button', { name: 'Zulu root policy', exact: true }).dblclick();
+                await page.getByRole('option', { name: 'Zulu root policy', exact: true }).dblclick();
                 await expectPolicy(page, scope, 'orphan', 'Zulu root policy', 'Administrative Templates');
                 assert.equal(await page.evaluate(() => state.parentItems.get(state.selectedItem.item).opened), true);
                 await page.locator('.workspace [data-field-id="value"] input').fill('discard this draft');
@@ -376,15 +376,15 @@ for (const scope of ['computer', 'user']) {
                 );
                 assert.equal(await page.evaluate(() => state.parentItems.get(state.selectedItem.item).opened), true);
                 await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
-                await page.getByRole('button', { name: 'Policy-only category', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Policy-only category', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
                 assert.equal(
                     await page.evaluate(() => requests.filter(request => request.method === 'update').length),
                     0
                 );
 
-                await page.getByRole('button', { name: 'Policy-only category', exact: true }).click();
-                const enterPolicy = page.getByRole('button', { name: 'alpha only policy', exact: true });
+                await page.getByRole('option', { name: 'Policy-only category', exact: true }).click();
+                const enterPolicy = page.getByRole('option', { name: 'alpha only policy', exact: true });
                 await enterPolicy.waitFor();
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
                 await enterPolicy.press('Enter');
@@ -395,7 +395,7 @@ for (const scope of ['computer', 'user']) {
                 );
                 await page.getByRole('alertdialog', { name: 'Unsaved policy' }).waitFor();
                 await page.getByRole('button', { name: 'Save changes', exact: true }).click();
-                await page.getByRole('button', { name: 'alpha only policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'alpha only policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
                 const updates = await page.evaluate(() => requests.filter(request => request.method === 'update'));
                 assert.equal(updates.length, 1);
@@ -406,9 +406,9 @@ for (const scope of ['computer', 'user']) {
                 ]);
 
                 await page.evaluate(scope => selectAdmin(scope), scope);
-                await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-                await page.getByRole('button', { name: 'Nested category', exact: true }).press('Enter');
-                const spacePolicy = page.getByRole('button', { name: 'Nested policy', exact: true });
+                await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+                await page.getByRole('option', { name: 'Nested category', exact: true }).press('Enter');
+                const spacePolicy = page.getByRole('option', { name: 'Nested policy', exact: true });
                 await spacePolicy.waitFor();
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
                 await spacePolicy.press('Space');
@@ -421,7 +421,7 @@ for (const scope of ['computer', 'user']) {
                         .querySelector('.tree-item__title')
                         .click()
                 );
-                await page.getByRole('button', { name: 'Nested policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Nested policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.type), 'folder');
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
 
@@ -446,8 +446,8 @@ for (const area of ['Administrative Templates', 'Preferences']) {
             await withPage(async page => {
                 if (area === 'Administrative Templates') {
                     await page.evaluate(() => selectAdmin('computer'));
-                    await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-                    await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+                    await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+                    await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
                     await page.evaluate(() => {
                         window.targetFolder = category('computer', 'mixed');
                         window.otherFolder = templates.computer;
@@ -460,7 +460,7 @@ for (const area of ['Administrative Templates', 'Preferences']) {
                         );
                         await state.navigateToNode(targetFolder, { openPath: true, openCurrentFolder: true });
                     });
-                    await page.getByRole('button', { name: 'Registry preferences', exact: true }).waitFor();
+                    await page.getByRole('option', { name: 'Registry preferences', exact: true }).waitFor();
                 }
                 await page.evaluate(() =>
                     state.treeItemElements.get(targetFolder).setAttribute('data-test-folder', 'target')
@@ -504,8 +504,8 @@ test(
     async () => {
         await withPage(async page => {
             await page.evaluate(() => selectAdmin('computer'));
-            await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-            await page.getByRole('button', { name: 'alpha policy', exact: true }).dblclick();
+            await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+            await page.getByRole('option', { name: 'alpha policy', exact: true }).dblclick();
             await expectPolicy(page, 'computer', 'mixed-a', 'alpha policy', 'Mixed category');
             await page.evaluate(() => {
                 window.targetFolder = category('computer', 'mixed');
@@ -562,7 +562,7 @@ test(
             await title.evaluate(element => element.click());
             await dialog.waitFor();
             await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
-            await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
             await expectFolder(page, true);
         });
     }
@@ -1290,12 +1290,12 @@ test(
             await page.evaluate(() =>
                 state.navigateToNode(category('computer', 'mixed'), { openPath: true, openCurrentFolder: true })
             );
-            await page.getByRole('button', { name: 'Nested category', exact: true }).click();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).click();
             assert.equal(
                 await page.locator('.workspace [data-category-path]').textContent(),
                 'Example GPO / Computer / Policies / Administrative Templates / Mixed category / Nested category'
             );
-            await page.getByRole('button', { name: 'Nested policy', exact: true }).dblclick();
+            await page.getByRole('option', { name: 'Nested policy', exact: true }).dblclick();
             await page.locator('.gp__admx-settings').waitFor();
             assert.equal(
                 await page.locator('.workspace [data-category-path]').textContent(),

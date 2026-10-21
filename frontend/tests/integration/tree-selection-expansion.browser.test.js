@@ -130,7 +130,7 @@ test(
         await withPage(async page => {
             await title(page, 'Target category').click();
             await expectFolder(page, 'target', false, true);
-            await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
             const search = page.locator('.workspace [data-policy-filter]');
             await search.fill('Nested');
             const before = await page.evaluate(() => {
@@ -226,7 +226,7 @@ test(
             await page.evaluate(() =>
                 resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
             );
-            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Lazy child', exact: true }).waitFor();
             await expectFolder(page, 'lazy', false, true);
             assert.equal(await page.evaluate(() => lazyRequests), 1);
         });
@@ -272,7 +272,7 @@ test(
             await page.evaluate(() =>
                 resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
             );
-            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Lazy child', exact: true }).waitFor();
             await expectFolder(page, 'lazy', false, true);
         });
     }

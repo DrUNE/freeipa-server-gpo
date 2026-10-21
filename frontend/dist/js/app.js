@@ -5930,7 +5930,7 @@
 		const row = createElement("span", {
 			className: "workspace-list-item",
 			attrs: typeof onItemClick === "function" ? {
-				role: "button",
+				role: "option",
 				tabindex: "-1"
 			} : {},
 			children: [createElement("span", { className: ["icon", item.icon] }), createElement("span", {
@@ -5952,6 +5952,7 @@
 		}
 		return createElement("li", {
 			className: ["gp__list-children__item", item.type],
+			attrs: { role: "none" },
 			children: [row]
 		});
 	}
@@ -5978,7 +5979,13 @@
 			help,
 			isOpen: isHelpOpen
 		});
-		const list = createElement("ul", { className: "gp__list-children__list" });
+		const list = createElement("ul", {
+			className: "gp__list-children__list",
+			attrs: {
+				role: "listbox",
+				"aria-label": categoryPath || t("policySearch.categoryPlaceholder")
+			}
+		});
 		let rowItems = /* @__PURE__ */ new Map();
 		let navigation = null;
 		function select(item) {

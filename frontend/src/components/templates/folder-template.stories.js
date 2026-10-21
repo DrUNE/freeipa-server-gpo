@@ -24,10 +24,6 @@ function render({ onItemClick, help, categoryPath, hideHeading }) {
 
 export default {
     title: 'Screens/Catalog',
-    // Known defect: a row is `role="button"` with `aria-selected` (set by list-navigation.js), which ARIA does not allow.
-    // The right form is a listbox of options; that changes how ~35 locators of the integration tests find the rows,
-    // so it is a separate step (see COMPONENTS-PLAN). Only this rule is off, for this screen.
-    parameters: { a11y: { config: { rules: [{ id: 'aria-allowed-attr', enabled: false }] } } },
     args: { onItemClick: fn(), categoryPath: 'Computer configuration / Administrative templates' },
     render
 };
@@ -38,6 +34,8 @@ export const List = {
         await expect(canvas.getByRole('heading', { name: /administrative templates/i })).toBeVisible();
         await expect(canvas.getByText('Windows components')).toBeVisible();
         await expect(canvas.getByText('Allow telemetry')).toBeVisible();
+        const list = canvas.getByRole('listbox', { name: /administrative templates/i });
+        await expect(within(list).getAllByRole('option')).toHaveLength(4);
     }
 };
 

@@ -76,7 +76,7 @@ for (const language of ['en', 'ru']) {
                 require('locales/translations').setLanguage(language);
                 await selectAdmin('computer');
             }, language);
-            const row = page.getByRole('button', { name: 'Zulu root policy', exact: true });
+            const row = page.getByRole('option', { name: 'Zulu root policy', exact: true });
             await row.click();
             assert.equal(await page.locator('.gpo-admx-dialog').count(), 0, 'single click only selects');
             assert.equal(await row.getAttribute('aria-selected'), 'true');
@@ -210,7 +210,7 @@ test('Collapsing an ancestor moves the tree Tab stop without changing its select
 test('GPO breadcrumb uses the existing draft guard and horizontal roving navigation', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => selectAdmin('computer'));
-        await page.getByRole('button', { name: 'Zulu root policy', exact: true }).dblclick();
+        await page.getByRole('option', { name: 'Zulu root policy', exact: true }).dblclick();
         const input = page.locator('.gpo-admx-dialog [data-field-id=value] input');
         await input.fill('local draft');
         const path = page.locator('.gpo-category-path');

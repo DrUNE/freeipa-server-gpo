@@ -138,7 +138,7 @@ for (const language of ['en', 'ru']) {
                     page,
                     await page.evaluate(() => require('locales/translations').t('policySearch.categoryPlaceholder'))
                 );
-                await page.getByRole('button', { name: 'Zulu root policy', exact: true }).click();
+                await page.getByRole('option', { name: 'Zulu root policy', exact: true }).click();
                 await page.evaluate(() => {
                     window.originalFilter = document.querySelector('.workspace [data-policy-filter]');
                 });

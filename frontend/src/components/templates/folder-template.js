@@ -8,7 +8,7 @@ function renderChildRow(item, onItemClick, onSelect) {
         attrs:
             typeof onItemClick === 'function'
                 ? {
-                      role: 'button',
+                      role: 'option',
                       tabindex: '-1'
                   }
                 : {},
@@ -36,6 +36,7 @@ function renderChildRow(item, onItemClick, onSelect) {
 
     return createElement('li', {
         className: ['gp__list-children__item', item.type],
+        attrs: { role: 'none' },
         children: [row]
     });
 }
@@ -79,7 +80,10 @@ function renderFolderTemplate({
         isOpen: isHelpOpen
     });
 
-    const list = createElement('ul', { className: 'gp__list-children__list' });
+    const list = createElement('ul', {
+        className: 'gp__list-children__list',
+        attrs: { role: 'listbox', 'aria-label': categoryPath || t('policySearch.categoryPlaceholder') }
+    });
     let rowItems = new Map();
     let navigation = null;
     function select(item) {
