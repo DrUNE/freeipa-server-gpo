@@ -119,7 +119,9 @@ function createItemForm({
                 className: 'gpo-editor-preference-form__validation',
                 attrs: { role: 'alert' }
             });
-            const originalName = response.item && response.item.label !== undefined ? String(response.item.label) : '';
+            // The item of a new-item form is null, so its type in the contract is open.
+            const shownItem = /** @type {{ label?: unknown } | null} */ (response.item);
+            const originalName = shownItem && shownItem.label !== undefined ? String(shownItem.label) : '';
             let nameInput = null;
             let nameField = null;
             let nameError = null;

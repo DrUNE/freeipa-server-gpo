@@ -124,6 +124,7 @@ Layout of `tests/` (everything in `frontend/` is ES modules with `import`; Node'
   `helpers/load-module.js`: `await loadModule('util/API.js', { 'freeipa/rpc': {...} }, { navigator })` loads a new
   instance with those mocks, and by default stubs `freeipa/ipa` and `freeipa/rpc`. Vitest throws when code reads an export a
   mock does not define, so give such exports explicitly (`getLanguage: undefined`).
+  `types/rpc.d.ts` is generated from the same reference answers (`npm run types:rpc`; `rpc-types.test.js` fails when it is stale).
   `helpers/contract.js` reads the reference answers of the server commands from `../tests/contracts/gpo_editor/*.json` (the same files that `tests/test_gpo_editor_contract.py` uses to check the real commands); `gpo-editor-contract.test.js` compares the mock server and `util/API.js` with them.
   `helpers/load-plugin.js` does the same for the hand-written pages `public/chain.js` and `public/gpo.js` (AMD over FreeIPA's `freeipa/*`): `loadPlugin('chain.js', { 'freeipa/rpc': createRpcDouble() })` returns the module's exports and the doubles (`tests/unit/chain-actions.test.js`, `gpo-page.test.js`).
 - `integration/` (`*.browser.test.js`) — real Chromium and DOM, RPC mocked. They run against
@@ -176,7 +177,7 @@ tests/integration/dialogs-visual` in the container and review the PNG diff befor
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 375 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 407 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

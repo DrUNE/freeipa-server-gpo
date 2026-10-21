@@ -172,6 +172,7 @@ function rememberEnvelope(result) {
     return result;
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 function initialize(displayName) {
     selectedDisplayName = displayName ? String(displayName) : null;
     editorOpenResult = null;
@@ -189,6 +190,7 @@ function initialize(displayName) {
     return editorOpenPromise;
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 function open(options) {
     if (!options && editorOpenResult) return Promise.resolve(editorOpenResult);
     if (!options && editorOpenPromise) return editorOpenPromise;
@@ -198,20 +200,24 @@ function open(options) {
     });
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorChildrenResult>} */
 function children(scope, categoryId) {
     const options = {};
     if (categoryId !== null && categoryId !== undefined) options.category_id = categoryId;
     return execute('editor_children', [scope], withLocales(options));
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyIndexResult>} */
 function policyIndex(scope) {
     return execute('editor_policy_index', [scope], withLocales());
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyShowResult>} */
 function policyShow(scope, policyId) {
     return execute('editor_policy_show', [scope, policyId], withLocales());
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyUpdateResult>} */
 function policyUpdate(scope, policyId, request) {
     return execute(
         'editor_policy_update',
@@ -222,113 +228,134 @@ function policyUpdate(scope, policyId, request) {
     ).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceDocumentsResult>} */
 function preferenceDocuments() {
     return execute('editor_preference_documents', [], {});
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceItemsResult>} */
 function preferenceItems(scope, kind) {
     return execute('editor_preference_items', [scope, kind], {});
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceShowResult>} */
 function preferenceShow(scope, kind, identity) {
     return execute('editor_preference_show', [scope, kind], {
         request: { identity: identity === undefined ? null : clone(identity) }
     });
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceCreateResult>} */
 function preferenceCreate(scope, kind, request) {
     return execute('editor_preference_create', [scope, kind], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceUpdateResult>} */
 function preferenceUpdate(scope, kind, request) {
     return execute('editor_preference_update', [scope, kind], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceDeleteResult>} */
 function preferenceDelete(scope, kind, identity) {
     return execute('editor_preference_delete', [scope, kind], {
         request: { identity: clone(identity) }
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptsShowResult>} */
 function scriptsShow(scope, event) {
     return execute('editor_scripts_show', [scope, event], {});
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptFilesResult>} */
 function scriptFiles(scope, event) {
     return execute('editor_script_files', [scope, event], {});
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryAddResult>} */
 function scriptEntryAdd(scope, event, request) {
     return execute('editor_script_entry_add', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryUpdateResult>} */
 function scriptEntryUpdate(scope, event, request) {
     return execute('editor_script_entry_update', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryRemoveResult>} */
 function scriptEntryRemove(scope, event, request) {
     return execute('editor_script_entry_remove', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntriesReorderResult>} */
 function scriptEntriesReorder(scope, event, request) {
     return execute('editor_script_entries_reorder', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptOrderUpdateResult>} */
 function scriptOrderUpdate(scope, event, request) {
     return execute('editor_script_order_update', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetUploadResult>} */
 function scriptAssetUpload(scope, event, request) {
     return execute('editor_script_asset_upload', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptUploadAndAddResult>} */
 function scriptUploadAndAdd(scope, event, request) {
     return execute('editor_script_upload_and_add', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetReplaceResult>} */
 function scriptAssetReplace(scope, event, request) {
     return execute('editor_script_asset_replace', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDeleteResult>} */
 function scriptAssetDelete(scope, event, request) {
     return execute('editor_script_asset_delete', [scope, event], {
         request: clone(request || {})
     }).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDownloadResult>} */
 function scriptAssetDownload(scope, event, request) {
     return execute('editor_script_asset_download', [scope, event], {
         request: clone(request || {})
     });
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorReconcileResult>} */
 function reconcile() {
     return execute('editor_reconcile', [], {}).then(rememberEnvelope);
 }
 
+/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsShowResult>} */
 function securityDefinitionsShow() {
     return execute('editor_security_definitions_show', [], withLocales());
 }
+/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsUpdateResult>} */
 function securityDefinitionsUpdate(request) {
     return execute(
         'editor_security_definitions_update',
@@ -338,9 +365,11 @@ function securityDefinitionsUpdate(request) {
         })
     ).then(rememberEnvelope);
 }
+/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditShowResult>} */
 function advancedAuditShow() {
     return execute('editor_advanced_audit_show', [], {});
 }
+/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditUpdateResult>} */
 function advancedAuditUpdate(request) {
     return execute('editor_advanced_audit_update', [], {
         request: clone(request || {})

@@ -1,0 +1,26 @@
+# Editor settings shared with the formatters: frontend/.prettierrc.json (4 spaces, LF) and ruff/PEP 8 for Python.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[*.{css,svg}]
+indent_size = 2
+
+# Prettier formats the component styles.
+[*.module.css]
+indent_size = 4

@@ -827,7 +827,7 @@ function init(options) {
                 button.disabled = true;
                 API.reconcile()
                     .then(function (result) {
-                        const recovery = result.recovery || result.result || result;
+                        const recovery = result.recovery;
                         if (recovery && recovery.kind === 'conflict') {
                             throw new API.EditorError('Publication reconciliation found a third state.', {
                                 category: 'publication_conflict',

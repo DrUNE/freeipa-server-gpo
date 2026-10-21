@@ -2158,6 +2158,7 @@
 		});
 		return result;
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 	function initialize$1(displayName) {
 		selectedDisplayName = displayName ? String(displayName) : null;
 		editorOpenResult = null;
@@ -2170,6 +2171,7 @@
 		}));
 		return editorOpenPromise;
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 	function open$4(options) {
 		if (!options && editorOpenResult) return Promise.resolve(editorOpenResult);
 		if (!options && editorOpenPromise) return editorOpenPromise;
@@ -2178,77 +2180,101 @@
 			return result;
 		});
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorChildrenResult>} */
 	function children(scope, categoryId) {
 		const options = {};
 		if (categoryId !== null && categoryId !== void 0) options.category_id = categoryId;
 		return execute("editor_children", [scope], withLocales(options));
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyIndexResult>} */
 	function policyIndex(scope) {
 		return execute("editor_policy_index", [scope], withLocales());
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyShowResult>} */
 	function policyShow(scope, policyId) {
 		return execute("editor_policy_show", [scope, policyId], withLocales());
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyUpdateResult>} */
 	function policyUpdate(scope, policyId, request) {
 		return execute("editor_policy_update", [scope, policyId], withLocales({ request: clone$4(request || {}) })).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceItemsResult>} */
 	function preferenceItems(scope, kind) {
 		return execute("editor_preference_items", [scope, kind], {});
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceShowResult>} */
 	function preferenceShow(scope, kind, identity) {
 		return execute("editor_preference_show", [scope, kind], { request: { identity: identity === void 0 ? null : clone$4(identity) } });
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceCreateResult>} */
 	function preferenceCreate(scope, kind, request) {
 		return execute("editor_preference_create", [scope, kind], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceUpdateResult>} */
 	function preferenceUpdate(scope, kind, request) {
 		return execute("editor_preference_update", [scope, kind], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceDeleteResult>} */
 	function preferenceDelete(scope, kind, identity) {
 		return execute("editor_preference_delete", [scope, kind], { request: { identity: clone$4(identity) } }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptsShowResult>} */
 	function scriptsShow(scope, event) {
 		return execute("editor_scripts_show", [scope, event], {});
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryAddResult>} */
 	function scriptEntryAdd(scope, event, request) {
 		return execute("editor_script_entry_add", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryUpdateResult>} */
 	function scriptEntryUpdate(scope, event, request) {
 		return execute("editor_script_entry_update", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryRemoveResult>} */
 	function scriptEntryRemove(scope, event, request) {
 		return execute("editor_script_entry_remove", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntriesReorderResult>} */
 	function scriptEntriesReorder(scope, event, request) {
 		return execute("editor_script_entries_reorder", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptOrderUpdateResult>} */
 	function scriptOrderUpdate(scope, event, request) {
 		return execute("editor_script_order_update", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetUploadResult>} */
 	function scriptAssetUpload(scope, event, request) {
 		return execute("editor_script_asset_upload", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetReplaceResult>} */
 	function scriptAssetReplace(scope, event, request) {
 		return execute("editor_script_asset_replace", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDeleteResult>} */
 	function scriptAssetDelete(scope, event, request) {
 		return execute("editor_script_asset_delete", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDownloadResult>} */
 	function scriptAssetDownload(scope, event, request) {
 		return execute("editor_script_asset_download", [scope, event], { request: clone$4(request || {}) });
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorReconcileResult>} */
 	function reconcile() {
 		return execute("editor_reconcile", [], {}).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsShowResult>} */
 	function securityDefinitionsShow() {
 		return execute("editor_security_definitions_show", [], withLocales());
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsUpdateResult>} */
 	function securityDefinitionsUpdate(request) {
 		return execute("editor_security_definitions_update", [], withLocales({ request: clone$4(request || {}) })).then(rememberEnvelope);
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditShowResult>} */
 	function advancedAuditShow() {
 		return execute("editor_advanced_audit_show", [], {});
 	}
+	/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditUpdateResult>} */
 	function advancedAuditUpdate(request) {
 		return execute("editor_advanced_audit_update", [], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
@@ -14309,7 +14335,8 @@
 					className: "gpo-editor-preference-form__validation",
 					attrs: { role: "alert" }
 				});
-				const originalName = response.item && response.item.label !== void 0 ? String(response.item.label) : "";
+				const shownItem = response.item;
+				const originalName = shownItem && shownItem.label !== void 0 ? String(shownItem.label) : "";
 				let nameInput = null;
 				let nameField = null;
 				let nameError = null;
@@ -18389,7 +18416,7 @@
 				const button = event.currentTarget;
 				button.disabled = true;
 				reconcile().then(function(result) {
-					const recovery = result.recovery || result.result || result;
+					const recovery = result.recovery;
 					if (recovery && recovery.kind === "conflict") throw new EditorError("Publication reconciliation found a third state.", {
 						category: "publication_conflict",
 						conflict: recovery.conflict

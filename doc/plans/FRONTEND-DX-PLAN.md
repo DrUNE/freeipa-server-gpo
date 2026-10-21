@@ -18,7 +18,7 @@
 | CI and RPM build | `python-backend.yml` and the `.spec` run only pytest and Python coverage. `make test-ui` is never called. |
 | Dev stand | `tools/ui-dev`: mock backend and `requirejs` without a build, refresh with F5. It does not cover `chain.js`/`gpo.js` (they depend on `freeipa/*`). |
 | Sizes | Large files: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. The rest of the code is split reasonably well. |
-| RPC contract | `util/API.js` (375 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
+| RPC contract | `util/API.js` (407 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
 
 Deployment constraint: the RPM is built in hasher without a network, and what is needed in the end is static files in `/usr/share/ipa/ui/js/plugins/chain`.
 
@@ -28,12 +28,12 @@ Estimates are for one developer, in working days.
 
 ### Stage 1. Hygiene (1-2 days) — done first
 
-**Status: ✅ done** (two small items remain).
+**Status: ✅ done.**
 
 - A separate `frontend/` project with its own `package.json` and the commands `build`, `lint`, `format`, `typecheck`, `test`, `dev`. The `Makefile` stays a thin wrapper (`make ui-*`, `make test-ui*`).
 - Linter and formatter: **ESLint flat config + Prettier** (the same set as in `freeipa-webui`: `eslint.config.mjs`, `prettier`, `vitest`, `knip`; shared rules make moving code easier). Biome stays as a fallback if speed becomes a problem. The first run was `--fix` only, without manual rewrites; the formatting went in a separate commit, listed in `.git-blame-ignore-revs`.
 - `.vscode/extensions.json` and `settings.json`: the ESLint and Prettier extensions, format-on-save for `.js` in `frontend/` (`prettier.requireConfig`, so files outside `frontend/` are untouched).
-- **Remaining:** `.editorconfig`; removing the duplicate `img/arrow.svg` ↔ `img/svg/arrow.svg` and `close.svg` (check the references in CSS, `tests/test_editor_icon_assets.py` and the installer manifest).
+- `.editorconfig` (4 spaces, LF, UTF-8; 2 spaces in JSON/YAML and the hand-formatted sheets; tabs in the Makefile) and the duplicate `img/arrow.svg` / `img/close.svg` are removed (the same files remain under `img/svg/`; the installer manifest follows).
 
 **Done when:** `npm run lint` is clean on `frontend/` (reached: 0 errors).
 
@@ -50,14 +50,14 @@ Estimates are for one developer, in working days.
 
 ### Stage 3. Types without changing the language (3-5 days)
 
-**Status: ✅ partly done.**
+**Status: ✅ done** (one criterion of "Done when" remains).
 
 - `tsc --noEmit` (`allowJs`, `checkJs`, non-strict) checks all of `src/`; type stubs for `freeipa/*` and open types for the editor's dynamic members live in `frontend/types/`. New files get JSDoc annotations right away.
 - Keep the RPC response types reusable in `freeipa-webui` where possible (`utils/datatypes/globalDataTypes.ts`), see [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md).
-- **Done: the contract with the backend.** `tests/contracts/gpo_editor/*.json` hold a reference answer for 13 methods: `open`, `reconcile`, `children`, `policy_index`, `policy_show`, `preference_documents`, `preference_items`, `preference_show`, `preference_create`, `preference_update`, `preference_delete`, `scripts_show` and `script_files`. `tests/test_gpo_editor_contract.py` checks that the real commands answer with the same shape (the same keys and JSON types; `null` in the reference means any value); `tests/unit/gpo-editor-contract.test.js` checks the dev stand's mock server and that `util/API.js` hands the answer over intact. The first run found real drift in the mock server: `snapshot` had other keys, `preference_documents` answered under `preference_documents` instead of `documents`, `script_files` with `assets` instead of `scripts`, the script groups lacked `diagnostics` and `upload_limit_bytes`. The second batch found more: the preference create/update answered without the item detail (`fields`, `filters`, `filter_fields`...), delete without `deleted_identity`, the parent candidates lacked `parent_identity`, the policy lacked `representability`. The reference answers carry what the editor reads from the binding (labels, `editable`, `required` of the field descriptors), and the Python tests feed it to the fake workspace, so the envelope must pass it through intact. A rename on either side fails a test. Not covered yet: the policy update, the script writes, security and advanced audit.
-- **Remaining:** describe the RPC responses in `types/rpc.d.ts` (`@typedef`), one per `API.js` method; extend the reference answers to the rest (policy update, script writes, security, advanced audit).
+- **Done: the contract with the backend.** `tests/contracts/gpo_editor/*.json` hold a reference answer for every `gpo_editor_*` command (28; the two compatibility aliases `security_show`/`security_update` share the answers of `security_definitions_*`). A Python test fails when a new command has no reference answer. `tests/test_gpo_editor_contract.py` checks that the real commands answer with the same shape (the same keys and JSON types; `null` in the reference means any value); `tests/unit/gpo-editor-contract.test.js` checks the dev stand's mock server and that `util/API.js` hands the answer over intact. The first run found real drift in the mock server: `snapshot` had other keys, `preference_documents` answered under `preference_documents` instead of `documents`, `script_files` with `assets` instead of `scripts`, the script groups lacked `diagnostics` and `upload_limit_bytes`. The second batch found more: the preference create/update answered without the item detail (`fields`, `filters`, `filter_fields`...), delete without `deleted_identity`, the parent candidates lacked `parent_identity`, the policy lacked `representability`. The reference answers carry what the editor reads from the binding (labels, `editable`, `required` of the field descriptors), and the Python tests feed it to the fake workspace, so the envelope must pass it through intact. A rename on either side fails a test. The third batch (policy update, the script writes, security, advanced audit) found the same kind of drift: the security answers lacked `security_service_catalog` and `publication`, the audit update `publication`, the policy update the fields of the policy view.
+- **Done: types of the answers.** `types/rpc.d.ts` is generated from the reference answers (`npm run types:rpc`, `scripts/generate-rpc-types.mjs`; a unit test fails when the file is out of date) and `util/API.js` declares them as the return types of its functions. This already showed two places that relied on fields the server does not send (`result.result` in the reconcile callback) or on an item that is null in the new-item form.
 
-**Done when:** `npm run typecheck` runs in CI (reached); `util/` and `editor-dto.js` have no `any` (remaining).
+**Done when:** `npm run typecheck` runs in CI (reached); `util/` and `editor-dto.js` have no `any` (remaining: `editor-dto.ts` is strict but still has explicit `any` for the open values of the discriminated fields).
 
 ### Stage 4. ESM as the source of truth (4-6 days) — the main gain
 
@@ -129,7 +129,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 375 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 407 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -160,7 +160,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (375 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (407 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 

@@ -20,6 +20,7 @@ from test_gpo_editor_backend import (
     GPO,
     CommandHarness,
     PolicyIndexWorkspace,
+    PolicyWorkspace,
     PolicyReadWorkspace,
     PreferenceWorkspace,
     ScriptWorkspace,
@@ -229,3 +230,105 @@ def test_preference_writes_answer_with_the_contract_shape(monkeypatch, name, com
         feed_preference_detail(workspace, golden["result"])
     result = run(getattr(GPO, command), golden, monkeypatch, workspace)
     assert differences(result, golden["result"]) == []
+
+
+SCRIPT_WRITES = [
+    "script_entry_add",
+    "script_entry_update",
+    "script_entry_remove",
+    "script_entries_reorder",
+    "script_order_update",
+    "script_asset_upload",
+    "script_upload_and_add",
+    "script_asset_replace",
+    "script_asset_delete",
+    "script_asset_download",
+]
+
+
+@pytest.mark.parametrize("name", SCRIPT_WRITES)
+def test_script_writes_answer_with_the_contract_shape(monkeypatch, name):
+    golden = contract(name)
+    workspace = ScriptWorkspace()
+    if name == "script_asset_delete":
+        # Only a file that no entry refers to can be deleted.
+        workspace.assets[0]["references"] = []
+    command, _recovered, _commits = _script_command_environment(monkeypatch, workspace)
+    result = getattr(GPO, golden["method"]).execute(command, *golden["args"], **golden["options"])
+    assert differences(result, golden["result"]) == []
+
+
+class SecurityWorkspace:
+    """What the binding reports for the Security Settings and the Advanced Audit screens."""
+
+    def __init__(self, answer):
+        self.answer = answer
+        self.updates = []
+
+    def pending_external_publication(self):
+        return None
+
+    def diagnostics(self):
+        return []
+
+    def security_definition_catalog(self):
+        return self.answer["security_catalog"]
+
+    def security_definition_snapshot(self):
+        return self.answer["security_snapshot"]
+
+    def update_security_definitions(self, request):
+        self.updates.append(request)
+
+    def get_advanced_audit(self):
+        return self.answer["advanced_audit"]
+
+    def update_advanced_audit(self, request):
+        self.updates.append(request)
+        return self.answer["advanced_audit"]
+
+
+def security_environment(monkeypatch, workspace, locales=None):
+    patched_workspace(monkeypatch, workspace)
+    monkeypatch.setattr(GPO, "_recover_before_mutation", lambda *args: None)
+    monkeypatch.setattr(GPO, "_commit_external_once", lambda *args: {"changed": True})
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "security_definitions_show",
+        "security_definitions_update",
+        "advanced_audit_show",
+        "advanced_audit_update",
+    ],
+)
+def test_security_and_audit_answer_with_the_contract_shape(monkeypatch, name):
+    golden = contract(name)
+    workspace = SecurityWorkspace(golden["result"])
+    security_environment(monkeypatch, workspace)
+    result = run(getattr(GPO, golden["method"]), golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def test_policy_update_answers_with_the_contract_shape(monkeypatch):
+    golden = contract("policy_update")
+    workspace = PolicyWorkspace()
+    workspace.policy = golden["result"]["policy"]
+    workspace.get_policy = lambda scope, policy_id, locales: golden["result"]["policy"]
+    patched_workspace(monkeypatch, workspace)
+    monkeypatch.setattr(GPO, "_recover_before_mutation", lambda *args: None)
+    monkeypatch.setattr(GPO, "_commit_external_once", lambda *args: {"changed": True})
+    result = run(GPO.gpo_editor_policy_update, golden, monkeypatch, workspace)
+    assert differences(result, golden["result"]) == []
+
+
+def test_every_editor_command_has_a_reference_answer():
+    """A new `gpo_editor_*` command must come with a reference answer (the frontend tests need one too)."""
+    commands = {
+        name for name, value in vars(GPO).items()
+        if name.startswith("gpo_editor_") and isinstance(value, type)
+    }
+    compatibility_aliases = {"gpo_editor_security_show", "gpo_editor_security_update"}
+    referenced = {json.loads(path.read_text())["method"] for path in CONTRACTS.glob("*.json")}
+    assert commands - compatibility_aliases == referenced

@@ -1,0 +1,99 @@
+{
+  "method": "gpo_editor_security_definitions_update",
+  "args": [
+    "Dev GPO"
+  ],
+  "options": {
+    "request": {
+      "expected_semantic_revision": "dev-fixture",
+      "policies": [
+        {
+          "namespace": "fixture",
+          "policy_id": "min-password-length",
+          "elements": [
+            {
+              "element_id": "value",
+              "action": "set",
+              "value": {
+                "kind": "integer",
+                "value": 8
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "result": {
+    "gpo": {
+      "displayname": "Dev GPO",
+      "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+      "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+        "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+      },
+      "version_number": 7,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [
+      "ru-RU"
+    ],
+    "diagnostics": [],
+    "pending_publication": null,
+    "security_catalog": {
+      "semantic_revision": "dev-fixture",
+      "categories": [
+        {
+          "namespace": "fixture",
+          "id": "account",
+          "display_name": "Account Policies"
+        }
+      ],
+      "policies": [
+        {
+          "namespace": "fixture",
+          "policy_id": "min-password-length",
+          "display_name": "Minimum password length",
+          "category": [
+            "fixture"
+          ],
+          "elements": [
+            {
+              "id": "value",
+              "value_type": "integer"
+            }
+          ]
+        }
+      ]
+    },
+    "security_snapshot": {
+      "policies": [
+        {
+          "namespace": "fixture",
+          "policy_id": "min-password-length",
+          "state": "defined",
+          "elements": {
+            "value": {
+              "state": "set",
+              "value": {
+                "kind": "integer",
+                "value": 8
+              }
+            }
+          }
+        }
+      ],
+      "diagnostics": []
+    },
+    "security_service_catalog": [],
+    "publication": {
+      "changed": true
+    }
+  }
+}

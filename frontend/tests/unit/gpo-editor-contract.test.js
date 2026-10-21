@@ -16,24 +16,10 @@ test('the shape comparison reports missing, extra and mistyped fields (the same 
     assert.deepEqual(differences({ a: 1, b: { c: '' }, d: [], any: null }, reference), []);
 });
 
-test('the contract covers the methods listed here', () => {
+test('every reference answer has an API call here, and every call a reference answer', () => {
     assert.deepEqual(
         contracts().map(contract => contract.name),
-        [
-            'children',
-            'open',
-            'policy_index',
-            'policy_show',
-            'preference_create',
-            'preference_delete',
-            'preference_documents',
-            'preference_items',
-            'preference_show',
-            'preference_update',
-            'reconcile',
-            'script_files',
-            'scripts_show'
-        ]
+        Object.keys(CALLS).sort()
     );
 });
 
@@ -49,6 +35,21 @@ for (const contract of contracts()) {
 
 // The API function that sends each method, with the arguments after the policy name.
 const CALLS = {
+    script_entry_add: (api, request) => api.scriptEntryAdd('computer', 'startup', request),
+    script_entry_update: (api, request) => api.scriptEntryUpdate('computer', 'startup', request),
+    script_entry_remove: (api, request) => api.scriptEntryRemove('computer', 'startup', request),
+    script_entries_reorder: (api, request) => api.scriptEntriesReorder('computer', 'startup', request),
+    script_order_update: (api, request) => api.scriptOrderUpdate('computer', 'startup', request),
+    script_asset_upload: (api, request) => api.scriptAssetUpload('computer', 'startup', request),
+    script_upload_and_add: (api, request) => api.scriptUploadAndAdd('computer', 'startup', request),
+    script_asset_replace: (api, request) => api.scriptAssetReplace('computer', 'startup', request),
+    script_asset_delete: (api, request) => api.scriptAssetDelete('computer', 'startup', request),
+    script_asset_download: (api, request) => api.scriptAssetDownload('computer', 'startup', request),
+    policy_update: (api, request) => api.policyUpdate('computer', 'alt-install', request),
+    security_definitions_show: api => api.securityDefinitionsShow(),
+    security_definitions_update: (api, request) => api.securityDefinitionsUpdate(request),
+    advanced_audit_show: api => api.advancedAuditShow(),
+    advanced_audit_update: (api, request) => api.advancedAuditUpdate(request),
     children: api => api.children('computer'),
     policy_index: api => api.policyIndex('computer'),
     policy_show: api => api.policyShow('computer', 'opaque:policy/id'),
@@ -85,7 +86,7 @@ for (const contract of contracts()) {
         );
         await api.initialize('Test GPO');
         sent.length = 0;
-        const answer = await CALLS[contract.name](api);
+        const answer = await CALLS[contract.name](api, contract.options.request);
         assert.equal(sent[0].method, contract.method.replace(/^gpo_editor_/, 'editor_'));
         assert.deepEqual(answer, contract.result);
     });

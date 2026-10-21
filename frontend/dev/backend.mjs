@@ -465,6 +465,15 @@ function policyFor(scope, id) {
     return state.policies[key];
 }
 
+/** The policy as the server answers with it, including the fields the editor does not read but the contract has. */
+function publicPolicy(scope, policyId) {
+    const policy = clone(policyFor(scope, policyId));
+    policy.representability = policy.representability || { enabled: true };
+    policy.unknown_raw_values = policy.state === 'unknown_raw_values';
+    for (const parameter of policy.parameters || []) parameter.choices = parameter.choices || [];
+    return policy;
+}
+
 function itemsFor(scope, kind) {
     const key = scope + ':' + kind;
     if (!state.preferenceItems[key]) {
@@ -488,7 +497,9 @@ function scriptsFor(scope, event) {
 function securityResult() {
     return {
         security_catalog: securityCatalog(),
-        security_snapshot: { policies: Object.values(state.securitySnapshots), diagnostics: [] }
+        security_snapshot: { policies: Object.values(state.securitySnapshots), diagnostics: [] },
+        // The target's service inventory is supplied by the operator; the server does not infer it.
+        security_service_catalog: []
     };
 }
 
@@ -512,12 +523,7 @@ const methods = {
     },
 
     gpo_editor_policy_show(displayname, scope, policyId) {
-        const policy = clone(policyFor(scope, policyId));
-        // Fields of the real answer that the editor does not read but that belong to the contract.
-        policy.representability = policy.representability || { enabled: true };
-        policy.unknown_raw_values = policy.state === 'unknown_raw_values';
-        for (const parameter of policy.parameters || []) parameter.choices = parameter.choices || [];
-        return Object.assign(gpoEnvelope(displayname), { policy });
+        return Object.assign(gpoEnvelope(displayname), { policy: publicPolicy(scope, policyId) });
     },
 
     gpo_editor_policy_update(displayname, scope, policyId, options) {
@@ -541,7 +547,10 @@ const methods = {
             policy.comment =
                 request.comment.action === 'clear' ? null : { source: 'embedded', text: request.comment.text || '' };
         }
-        return Object.assign(gpoEnvelope(displayname), { policy: clone(policy), publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), {
+            policy: publicPolicy(scope, policyId),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_documents(displayname) {
@@ -737,7 +746,7 @@ const methods = {
             }
             state.securitySnapshots[update.policy_id] = before;
         }
-        return Object.assign(gpoEnvelope(displayname), securityResult());
+        return Object.assign(gpoEnvelope(displayname), securityResult(), { publication: { changed: true } });
     },
 
     gpo_editor_advanced_audit_show(displayname) {
@@ -756,7 +765,7 @@ const methods = {
     gpo_editor_advanced_audit_update(displayname, options) {
         const request = options.request || options || {};
         if (Array.isArray(request.rows)) state.auditRows = clone(request.rows);
-        return methods.gpo_editor_advanced_audit_show(displayname);
+        return Object.assign(methods.gpo_editor_advanced_audit_show(displayname), { publication: { changed: true } });
     }
 };
 

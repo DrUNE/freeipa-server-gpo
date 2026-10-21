@@ -12,6 +12,7 @@
         "watch": "vite build --watch --mode development --logLevel warn",
         "dev": "vite",
         "lint": "eslint src dev scripts tests .storybook *.mjs",
+        "types:rpc": "node scripts/generate-rpc-types.mjs && prettier --write types/rpc.d.ts",
         "typecheck": "tsc -p . --pretty false && tsc -p tsconfig.strict.json --pretty false",
         "test": "node scripts/build-test-root.mjs && vitest run --project unit --project integration --project stories",
         "test:ipa": "bash scripts/ipa-up.sh && REQUIRE_IPA=1 vitest run --project e2e && bash scripts/ipa-native.sh",
