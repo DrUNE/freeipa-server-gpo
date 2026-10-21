@@ -54,13 +54,15 @@ function devStand() {
     };
 }
 
-export default defineConfig(({ command }) =>
+export default defineConfig(({ command, mode }) =>
     command === 'serve'
         ? {
               root: path.join(root, 'dev'),
               publicDir,
               // src/lib/dom.js marks every created element with data-source="src/File.js:line".
               define: { __GPUI_DEV__: true },
+              // Styles get source maps too (`File.module.css:line` in the Styles pane); scripts are served as written.
+              css: { devSourcemap: true },
               plugins: [devStand()],
               resolve: {
                   alias: {
@@ -78,13 +80,17 @@ export default defineConfig(({ command }) =>
               publicDir,
               // app.css is served from <plugin>/js/ and the images from <plugin>/img/: /img/x in the CSS becomes ../img/x.
               base: './',
-              define: { __GPUI_DEV__: false },
+              // `--mode development` (npm run watch) is the dev build: source maps for scripts and styles and the
+              // data-source marks of h(); the committed build (production) has neither.
+              define: { __GPUI_DEV__: mode === 'development' },
+              css: { devSourcemap: true },
               resolve: { alias: { '@gpui': path.join(root, 'src') } },
               build: {
                   outDir,
                   emptyOutDir: true,
                   assetsDir: '',
                   minify: false,
+                  sourcemap: mode === 'development',
                   reportCompressedSize: false,
                   // All styles (the components' CSS Modules, then src/styles/*.css) are emitted as js/app.css, the
                   // only stylesheet gpo.js loads.

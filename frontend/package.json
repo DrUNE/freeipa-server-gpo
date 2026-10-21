@@ -9,7 +9,7 @@
     "scripts": {
         "build": "vite build --logLevel warn",
         "build:check": "node scripts/check-artifact.mjs",
-        "watch": "vite build --watch --logLevel warn",
+        "watch": "vite build --watch --mode development --logLevel warn",
         "dev": "vite",
         "lint": "eslint src dev scripts tests .storybook *.mjs",
         "typecheck": "tsc -p . --pretty false && tsc -p tsconfig.strict.json --pretty false",
