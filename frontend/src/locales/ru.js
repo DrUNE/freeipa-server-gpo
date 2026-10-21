@@ -428,6 +428,7 @@ const preferences = {
         applyOnce: 'Применить только один раз',
         itemSelection: 'Выбор элементов',
         filtersHeading: 'Выбор элементов',
+        tabsLabel: 'Разделы',
         tabBasic: 'Основные настройки',
         tabGeneral: 'Общие',
         targettingButton: 'Нацеливание',

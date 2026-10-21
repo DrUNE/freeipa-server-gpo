@@ -723,6 +723,7 @@
 			applyOnce: "Apply only once",
 			itemSelection: "Item selection",
 			filtersHeading: "Item-level targeting",
+			tabsLabel: "Sections",
 			tabBasic: "Basic settings",
 			tabGeneral: "General",
 			targettingButton: "Targeting",
@@ -1372,6 +1373,7 @@
 			applyOnce: "Применить только один раз",
 			itemSelection: "Выбор элементов",
 			filtersHeading: "Выбор элементов",
+			tabsLabel: "Разделы",
 			tabBasic: "Основные настройки",
 			tabGeneral: "Общие",
 			targettingButton: "Нацеливание",
@@ -3858,30 +3860,30 @@
 	}
 	//#endregion
 	//#region src/components/editor-status.js
-	function wrap$5(element) {
+	function wrap$6(element) {
 		return element && ElementCreator.wrap(element);
 	}
 	function renderError(error, options) {
-		return wrap$5(createErrorStatus(error, options));
+		return wrap$6(createErrorStatus(error, options));
 	}
 	function renderPending(pending, onReconcile) {
-		return wrap$5(createPendingStatus(pending, onReconcile));
+		return wrap$6(createPendingStatus(pending, onReconcile));
 	}
 	function renderDiagnostics(diagnostics) {
-		return wrap$5(createDiagnostics(diagnostics));
+		return wrap$6(createDiagnostics(diagnostics));
 	}
 	function renderUnsupported(message) {
-		return wrap$5(createUnsupportedStatus(message));
+		return wrap$6(createUnsupportedStatus(message));
 	}
 	//#endregion
 	//#region src/components/confirmation-dialog.js
-	var nextId = 0;
+	var nextId$1 = 0;
 	function open$3(host, options) {
 		const config = options || {};
 		const container = host && host.getElement ? host.getElement() : host;
 		if (!container || typeof container.appendChild !== "function") throw new TypeError("A confirmation dialog host is required.");
 		const previous = document.activeElement;
-		const id = "gpo-confirmation-" + ++nextId;
+		const id = "gpo-confirmation-" + ++nextId$1;
 		let closed = false;
 		const no = createElement("button", {
 			className: ["btn", "btn-no"],
@@ -4078,7 +4080,7 @@
 		open: () => open$2,
 		trapTab: () => trapTab
 	});
-	var sequence$4 = 0;
+	var sequence$5 = 0;
 	function trapTab(event, modal) {
 		if (event.key !== "Tab" || event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== modal) return;
 		const focusable = Array.from(modal.querySelectorAll("button, input, select, textarea, summary, a[href], [contenteditable=\"true\"], [tabindex]")).filter(function(element) {
@@ -4104,7 +4106,7 @@
 	}
 	function open$2(host, options) {
 		const previous = document.activeElement;
-		const titleId = "editor-dialog-" + ++sequence$4;
+		const titleId = "editor-dialog-" + ++sequence$5;
 		let busy = false;
 		let closed = false;
 		let applyDisabled = Boolean(options.applyDisabled);
@@ -4231,7 +4233,7 @@
 	}
 	//#endregion
 	//#region src/components/list-navigation.js
-	var sequence$3 = 0;
+	var sequence$4 = 0;
 	function neighbor(beforeIds, removedIds, afterIds) {
 		const removed = new Set(removedIds || []);
 		const remaining = new Set(afterIds || []);
@@ -4247,7 +4249,7 @@
 		let disposed = false;
 		let observer;
 		let pointerSelecting = false;
-		const owner = String(++sequence$3);
+		const owner = String(++sequence$4);
 		container.setAttribute("data-list-navigation", owner);
 		function rows() {
 			return Array.from(options.rows() || []);
@@ -4400,7 +4402,7 @@
 	}
 	//#endregion
 	//#region src/components/collection-dialog.js
-	var sequence$2 = 0;
+	var sequence$3 = 0;
 	function tr$6(key, values) {
 		let text = t("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
@@ -4413,7 +4415,7 @@
 		const readOnly = Boolean(options.readOnly);
 		const fields = state.mode === "key_value" ? ["key", "value"] : ["value"];
 		const rules = constraints(options.parameter, options.value);
-		const prefix = "collection-" + ++sequence$2;
+		const prefix = "collection-" + ++sequence$3;
 		let activeCell = {
 			id: state.rows[0] && state.rows[0].id,
 			field: fields[0]
@@ -5114,13 +5116,13 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/dialog.js
-	var sequence$1 = 0;
+	var sequence$2 = 0;
 	function tr$4(key, fallback) {
 		const value = t("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function tabs(settings, explanation) {
-		const id = "security-tabs-" + ++sequence$1;
+		const id = "security-tabs-" + ++sequence$2;
 		const panels = [settings, explanation];
 		const buttons = [];
 		function select(index, focus) {
@@ -6218,7 +6220,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/assets-panel.js
-	var wrap$4 = ElementCreator.wrap;
+	var wrap$5 = ElementCreator.wrap;
 	/**
 	* The files table of the event page with its toolbar (upload, replace, download, delete).
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6334,7 +6336,7 @@
 			tableRows(tableElement).forEach(function(row) {
 				row.__select = selectors.get(rowId(row));
 			});
-			const table = wrap$4(tableElement);
+			const table = wrap$5(tableElement);
 			const open = function(name) {
 				return function() {
 					if (name === "upload") uploadInput.getElement().click();
@@ -6475,7 +6477,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/entries-panel.js
-	var wrap$3 = ElementCreator.wrap;
+	var wrap$4 = ElementCreator.wrap;
 	/**
 	* The script entries table of the event page with its toolbar (add, edit, remove, move).
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6527,7 +6529,7 @@
 					selectEntry(rowId(row));
 				};
 			});
-			const table = wrap$3(tableElement);
+			const table = wrap$4(tableElement);
 			const move = function(delta) {
 				return function() {
 					moveEntry(delta);
@@ -6617,7 +6619,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/picker.js
-	var wrap$2 = ElementCreator.wrap;
+	var wrap$3 = ElementCreator.wrap;
 	/**
 	* The SYSVOL file picker of the script form: a dialog over the form that lists the event's files.
 	* @param {{ state: any, assets: () => any[], current: () => boolean, rootElement: HTMLElement, setHeaderState: () => void }} context
@@ -6692,9 +6694,9 @@
 				className: "gpo-editor-empty",
 				text: st("emptyAssets")
 			});
-			const cancelButton = wrap$2(createButton("cancel", t("header.cancel")));
+			const cancelButton = wrap$3(createButton("cancel", t("header.cancel")));
 			cancelButton.on("click", closePicker);
-			const closeButton = wrap$2(createCloseButton(st("close")));
+			const closeButton = wrap$3(createCloseButton(st("close")));
 			closeButton.on("click", closePicker);
 			const shell = createDialogShell({
 				titleId: "gpo-editor-scripts-picker-title",
@@ -6705,7 +6707,7 @@
 				className: "gpo-editor-scripts__picker",
 				hostClassName: "gpo-editor-scripts__picker-overlay"
 			});
-			const picker = wrap$2(shell.dialog);
+			const picker = wrap$3(shell.dialog);
 			shell.dialog.setAttribute("aria-label", st("browseFiles"));
 			shell.host.addEventListener("click", function(event) {
 				if (event.target === shell.host) closePicker();
@@ -6752,7 +6754,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script/entry-form.js
-	var wrap$1 = ElementCreator.wrap;
+	var wrap$2 = ElementCreator.wrap;
 	/**
 	* The add/edit dialog of one script entry.
 	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
@@ -6830,7 +6832,7 @@
 			sourceSelect.on("change", syncSource);
 			commandInput.on("input", markDirty);
 			parametersInput.on("input", markDirty);
-			const formBody = wrap$1(createBody(null));
+			const formBody = wrap$2(createBody(null));
 			(modern ? [
 				assetRow,
 				field(st("argumentsLabel"), parametersInput),
@@ -6844,13 +6846,13 @@
 			]).forEach(function(child) {
 				formBody.append(child);
 			});
-			const formCancel = wrap$1(createButton("cancel", t("header.cancel")));
+			const formCancel = wrap$2(createButton("cancel", t("header.cancel")));
 			formCancel.on("click", requestCloseForm);
-			const formApply = wrap$1(createButton("apply", t("header.apply")));
+			const formApply = wrap$2(createButton("apply", t("header.apply")));
 			formApply.on("click", function() {
 				submit();
 			});
-			const formClose = wrap$1(createCloseButton(st("close")));
+			const formClose = wrap$2(createCloseButton(st("close")));
 			formClose.on("click", requestCloseForm);
 			const shell = createDialogShell({
 				titleId: "gpo-editor-scripts-form-title",
@@ -6860,7 +6862,7 @@
 				buttons: [formCancel.getElement(), formApply.getElement()],
 				className: "gpo-editor-scripts__form"
 			});
-			const form = wrap$1(shell.dialog);
+			const form = wrap$2(shell.dialog);
 			shell.host.addEventListener("click", function(event) {
 				if (event.target === shell.host) requestCloseForm();
 			});
@@ -7742,7 +7744,7 @@
 	}
 	//#endregion
 	//#region src/components/templates/script-template.js
-	var wrap = ElementCreator.wrap;
+	var wrap$1 = ElementCreator.wrap;
 	function renderScriptsTemplate(options) {
 		const config = options || {};
 		if (config.item && config.item.event) return renderScriptEventEditor(config);
@@ -7971,11 +7973,11 @@
 			const title = mode === "assets" ? st("folderForEvent").replace("{event}", eventLabel(event)) : eventLabel(event);
 			const detailBody = createBody(null);
 			detailBody.append(host.getElement());
-			const closeAction = wrap(createButton("cancel", st("closeDialog")));
+			const closeAction = wrap$1(createButton("cancel", st("closeDialog")));
 			closeAction.on("click", function() {
 				closeModal();
 			});
-			const closeX = wrap(createCloseButton(st("close")));
+			const closeX = wrap$1(createCloseButton(st("close")));
 			closeX.on("click", function() {
 				closeModal();
 			});
@@ -7988,7 +7990,7 @@
 				width: mode === "assets" ? "min(620px, calc(100vw - 32px))" : "min(600px, calc(100vw - 32px))",
 				className: mode === "assets" ? "gpo-editor-scripts__explorer" : "gpo-editor-scripts__event-dialog"
 			});
-			const dialog = wrap(shell.dialog);
+			const dialog = wrap$1(shell.dialog);
 			shell.host.addEventListener("click", function(clickEvent) {
 				if (clickEvent.target === shell.host) closeModal();
 			});
@@ -13849,6 +13851,107 @@
 		};
 	}
 	//#endregion
+	//#region src/components/Field/Field.js
+	/** @typedef {'checkbox' | 'text' | 'select' | 'plain' | 'mockup' | 'mockup-checkbox'} FieldLayout */
+	var sequence$1 = 0;
+	var nextId = () => "gpui-field-" + ++sequence$1;
+	/**
+	* @param {{
+	*   id: string,
+	*   label: string,
+	*   control: HTMLElement,
+	*   focusTarget?: HTMLElement,
+	*   layout: FieldLayout,
+	*   required?: boolean,
+	*   readonly?: boolean,
+	*   readonlyText?: string,
+	*   rootClass?: string[],
+	*   labelClass?: string,
+	*   labelId?: string
+	* }} options
+	*   `control` is what is placed in the field (an input, or a wrapper that holds one); `focusTarget` is the element the
+	*   label points at, when that is not `control` itself (a checkbox inside its wrapper).
+	* @returns {{ element: HTMLElement, errorElement: HTMLElement }}
+	*/
+	function createField({ id, label, control, focusTarget, layout, required, readonly, readonlyText, rootClass, labelClass }) {
+		const target = focusTarget || control;
+		if (!target.id) target.id = nextId();
+		const errorId = target.id + "-error";
+		const hintId = target.id + "-hint";
+		const error = h("span", {
+			class: "gpo-editor-field__error",
+			id: errorId,
+			"data-field-part": "error"
+		});
+		const hint = readonly && readonlyText ? h("span", {
+			class: "gpo-editor-field__hint",
+			id: hintId,
+			"data-field-part": "hint"
+		}, readonlyText) : null;
+		target.setAttribute("aria-describedby", cx(hint && hintId, errorId));
+		const caption = [h("span", {}, label), required ? h("span", { class: "gpo-editor-field__required" }, "*") : null];
+		const labelElement = (layout === "checkbox" || layout === "mockup-checkbox") && layout === "mockup-checkbox" ? null : h("label", {
+			class: cx(layout === "mockup" ? null : "gpo-editor-field__label", labelClass),
+			for: target.id,
+			"data-field-part": "label"
+		}, ...caption);
+		const classes = cx(layout !== "mockup" && layout !== "mockup-checkbox" && "gpo-editor-field", layout === "checkbox" && "field field__checkbox", layout === "text" && "field field__input", layout === "select" && "field", layout === "mockup" && "field field__input", layout === "mockup-checkbox" && "field field__checkbox", ...rootClass || []);
+		/** @type {(Node | null)[]} */
+		let children;
+		if (layout === "checkbox") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control),
+			hint,
+			error
+		];
+		else if (layout === "text") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control, error),
+			hint
+		];
+		else if (layout === "select") children = [
+			wrap("field__label", labelElement),
+			wrap("field__element", control),
+			hint,
+			error
+		];
+		else if (layout === "mockup") children = [wrap("field__label", labelElement), wrap("field__element", control, error)];
+		else if (layout === "mockup-checkbox") children = [h("label", {
+			for: target.id,
+			"data-field-part": "label"
+		}, control, h("span", { class: "field__label-checkbox" }, label)), error];
+		else children = [
+			labelElement,
+			control,
+			hint,
+			error
+		];
+		return {
+			element: h("div", {
+				class: classes,
+				"data-field-id": id,
+				"data-field-readonly": readonly ? true : null
+			}, ...children),
+			errorElement: error
+		};
+	}
+	/** @param {string} className @param {...(Node | null)} children */
+	function wrap(className, ...children) {
+		return h("div", { class: className }, ...children);
+	}
+	/**
+	* Shows or clears the error of a field. The message is the text of the error element; `aria-invalid` on the control is the
+	* business of the control's owner (`setError` of the field control), since only it knows the control.
+	* @param {HTMLElement} field
+	* @param {string} [message]
+	*/
+	function setFieldError(field, message) {
+		const error = field.querySelector("[data-field-part=\"error\"]");
+		if (error) error.textContent = message || "";
+		if (message) field.setAttribute("data-field-invalid", "");
+		else field.removeAttribute("data-field-invalid");
+	}
+	//#endregion
 	//#region src/components/templates/preference/view/field-control.js
 	function hiddenFieldControl(field) {
 		return {
@@ -13891,10 +13994,7 @@
 			inputElement = checkbox.getElement();
 			return createElement("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement("label", { attrs: {
-					for: controlId,
-					"aria-label": field.label || field.id
-				} })]
+				children: [checkbox, createElement("label", { attrs: { for: controlId } })]
 			});
 		}
 		if (controlKind.indexOf("generated_") === 0) input = createElement("div", {
@@ -13964,7 +14064,6 @@
 			value: value.value === null || value.value === void 0 ? "" : value.value
 		} });
 		if (!inputElement) inputElement = input.getElement();
-		const errorElement = createElement("span", { className: "gpo-editor-field__error" });
 		let dynamicDisabled = false;
 		function applyBaselineToInput() {
 			if (checkboxValueKind === "optional_boolean_u8") inputElement.checked = value.value === 1;
@@ -13980,7 +14079,6 @@
 			controlKind,
 			input,
 			inputElement,
-			errorElement,
 			checkboxControlId,
 			read: function() {
 				if (disabled || dynamicDisabled || controlKind.indexOf("generated_") === 0) return clone$2(value);
@@ -14000,7 +14098,6 @@
 					if (message) inputElement.setAttribute("aria-invalid", "true");
 					else inputElement.removeAttribute("aria-invalid");
 				}
-				errorElement.setText(message || "");
 			},
 			setDynamicDisabled: function(nextDisabled) {
 				if (controlKind.indexOf("generated_") === 0) return false;
@@ -14016,122 +14113,13 @@
 			}
 		};
 	}
-	function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-		const opts = options || {};
-		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
-		const wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
-		const wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-		const builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === "INPUT";
-		const builderInputType = builderIsInput ? String(builder.inputElement.getAttribute("type") || "").toLowerCase() : "";
-		const wrapText = builderIsInput && (builderInputType === "number" || Boolean(opts.wrapText) && builderInputType === "text");
-		let element;
-		if (wrapCheckbox) element = createElement("div", {
-			className: [
-				"field",
-				"field__checkbox",
-				"gpo-editor-field",
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("label", {
-						className: "gpo-editor-field__label",
-						attrs: { for: builder.checkboxControlId },
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			]
-		});
-		else if (wrapText) element = createElement("div", {
-			className: [
-				"field",
-				"field__input",
-				"gpo-editor-field",
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("span", {
-						className: "gpo-editor-field__label",
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input, builder.errorElement]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null
-			]
-		});
-		else element = createElement("div", {
-			className: [
-				"gpo-editor-field",
-				wrapSelect ? "field" : null,
-				builder.disabled ? "gpo-editor-field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: wrapSelect ? [
-				createElement("div", {
-					className: "field__label",
-					children: [createElement("span", {
-						className: "gpo-editor-field__label",
-						children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-							className: "gpo-editor-field__required",
-							text: "*"
-						}) : null]
-					})]
-				}),
-				createElement("div", {
-					className: "field__element",
-					children: [builder.input]
-				}),
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			] : [
-				createElement("span", {
-					className: "gpo-editor-field__label",
-					children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-						className: "gpo-editor-field__required",
-						text: "*"
-					}) : null]
-				}),
-				builder.input,
-				builder.disabled ? createElement("span", {
-					className: "gpo-editor-field__hint",
-					text: pt("readonly")
-				}) : null,
-				builder.errorElement
-			]
-		});
+	/** What `fieldControl` and `mockupFieldControl` share: the error of the field and the dynamic read-only state. */
+	function fieldHandle(field, builder, fieldElement, readonlyClass) {
 		let lastError = "";
 		function applyError(message) {
 			lastError = message || "";
-			element.getElement().classList.toggle("gpo-editor-field--error", Boolean(message));
+			fieldElement.classList.toggle("gpo-editor-field--error", Boolean(message));
+			setFieldError(fieldElement, message);
 			builder.setInputError(message);
 		}
 		if (!builder.disabled) builder.inputElement.addEventListener("input", function() {
@@ -14140,86 +14128,62 @@
 		return {
 			id: field.id,
 			field,
-			element,
+			element: ElementCreator.wrap(fieldElement),
 			read: builder.read,
 			setError: applyError,
 			setDynamicDisabled: function(nextDisabled) {
 				if (!builder.setDynamicDisabled(nextDisabled)) return false;
-				element.getElement().classList.toggle("gpo-editor-field--readonly", Boolean(nextDisabled));
-				if (nextDisabled) {
-					lastError = "";
-					element.getElement().classList.remove("gpo-editor-field--error");
-					builder.setInputError("");
-				}
+				fieldElement.classList.toggle(readonlyClass, Boolean(nextDisabled));
+				if (nextDisabled) applyError("");
 				return true;
 			},
 			focus: builder.focus
 		};
 	}
+	function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
+		const opts = options || {};
+		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
+		const isInput = builder.checkboxControlId === null && builder.inputElement.tagName === "INPUT";
+		const inputType = isInput ? String(builder.inputElement.getAttribute("type") || "").toLowerCase() : "";
+		/** @type {import('@gpui/components/Field/Field').FieldLayout} */
+		let layout = "plain";
+		if (opts.wrapCheckbox && builder.checkboxControlId !== null) layout = "checkbox";
+		else if (isInput && (inputType === "number" || opts.wrapText && inputType === "text")) layout = "text";
+		else if (opts.wrapSelect && valueKindIsSelect(builder)) layout = "select";
+		const { element } = createField({
+			id: field.id,
+			label: field.label || field.id,
+			required: Boolean(field.required),
+			readonly: builder.disabled,
+			readonlyText: pt("readonly"),
+			layout,
+			control: builder.input.getElement(),
+			focusTarget: builder.inputElement,
+			rootClass: builder.disabled ? ["gpo-editor-field--readonly"] : []
+		});
+		return fieldHandle(field, builder, element, "gpo-editor-field--readonly");
+	}
 	function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
 		const opts = options || {};
 		const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, Boolean(opts.textarea));
 		const checkboxLike = builder.value.kind === "boolean" || builder.value.kind === "optional_boolean" || builder.controlKind === "optional_boolean_u8";
-		let element;
-		if (checkboxLike) element = createElement("div", {
-			className: [
-				"field",
-				"field__checkbox",
-				builder.disabled ? "field--readonly" : null
-			],
-			attrs: { "data-field-id": field.id },
-			children: [createElement("label", { children: [builder.input, createElement("span", {
-				className: "field__label-checkbox",
-				text: field.label || field.id
-			})] }), builder.errorElement]
-		});
-		else {
-			const fieldClasses = ["field", "field__input"];
-			if (opts.textarea) fieldClasses.push("field__description", "h-auto");
-			else if (builder.controlKind === "directory_path" || builder.controlKind === "file_path") fieldClasses.push("field__input--path");
-			else if (valueKindIsSelect(builder)) fieldClasses.push("select");
-			element = createElement("div", {
-				className: fieldClasses,
-				attrs: { "data-field-id": field.id },
-				children: [createElement("div", {
-					className: "field__label",
-					children: [createElement("span", { text: field.label || field.id }), field.required ? createElement("span", {
-						className: "gpo-editor-field__required",
-						text: "*"
-					}) : null]
-				}), createElement("div", {
-					className: "field__element",
-					children: [builder.input, builder.errorElement]
-				})]
-			});
+		const rootClass = [];
+		if (checkboxLike && builder.disabled) rootClass.push("field--readonly");
+		if (!checkboxLike) {
+			if (opts.textarea) rootClass.push("field__description", "h-auto");
+			else if (builder.controlKind === "directory_path" || builder.controlKind === "file_path") rootClass.push("field__input--path");
+			else if (valueKindIsSelect(builder)) rootClass.push("select");
 		}
-		let lastError = "";
-		function applyError(message) {
-			lastError = message || "";
-			element.getElement().classList.toggle("gpo-editor-field--error", Boolean(message));
-			builder.setInputError(message);
-		}
-		if (!builder.disabled) builder.inputElement.addEventListener("input", function() {
-			if (lastError) applyError("");
-		});
-		return {
+		const { element } = createField({
 			id: field.id,
-			field,
-			element,
-			read: builder.read,
-			setError: applyError,
-			setDynamicDisabled: function(nextDisabled) {
-				if (!builder.setDynamicDisabled(nextDisabled)) return false;
-				element.getElement().classList.toggle("field--readonly", Boolean(nextDisabled));
-				if (nextDisabled) {
-					lastError = "";
-					element.getElement().classList.remove("gpo-editor-field--error");
-					builder.setInputError("");
-				}
-				return true;
-			},
-			focus: builder.focus
-		};
+			label: field.label || field.id,
+			required: Boolean(field.required),
+			layout: checkboxLike ? "mockup-checkbox" : "mockup",
+			control: builder.input.getElement(),
+			focusTarget: builder.inputElement,
+			rootClass
+		});
+		return fieldHandle(field, builder, element, "field--readonly");
 	}
 	function valueKindIsSelect(builder) {
 		return builder.value.kind === "action" || builder.value.kind === "filter_combine" || builder.controlKind === "choice";
@@ -14227,6 +14191,88 @@
 	var nextFieldControlId = 1;
 	function nextControlId() {
 		return "gpo-preference-field-" + nextFieldControlId++;
+	}
+	//#endregion
+	//#region src/components/Tabs/Tabs.js
+	/**
+	* @typedef {{ id: string, label: string, content?: Node | null, hidden?: boolean }} TabSpec
+	*   `content` may be added later through `panel(id)`; a `hidden` tab has its panel but no button (nothing to show in it)
+	* @typedef {{ element: HTMLElement, activate: (id: string) => void, active: () => string, panel: (id: string) => HTMLElement }} Tabs
+	*/
+	/**
+	* @param {{ label: string, tabs: TabSpec[], active?: string, className?: string, onChange?: (id: string) => void }} options
+	*   `label` names the tab list for a screen reader.
+	* @returns {Tabs}
+	*/
+	function createTabs({ label, tabs, active, className, onChange }) {
+		const shown = tabs.filter((tab) => !tab.hidden);
+		let current = shown.some((tab) => tab.id === active) ? active : (shown[0] || tabs[0]).id;
+		const buttons = shown.map((tab) => {
+			const button = h("button", {
+				class: "preference__tab-button",
+				type: "button",
+				role: "tab",
+				"data-tab": tab.id,
+				"aria-controls": tab.id
+			}, tab.label);
+			button.id = tab.id + "-tab";
+			button.addEventListener("click", () => activate(tab.id, false));
+			return button;
+		});
+		const panels = tabs.map((tab) => {
+			const panel = h("div", {
+				class: "tab-content",
+				role: "tabpanel",
+				"data-tab-panel": tab.id,
+				"aria-labelledby": tab.id + "-tab"
+			}, tab.content);
+			panel.id = tab.id;
+			return panel;
+		});
+		const list = h("div", {
+			class: "tab-buttons",
+			role: "tablist",
+			"aria-label": label
+		}, ...buttons);
+		list.addEventListener("keydown", (event) => {
+			const index = shown.findIndex((tab) => tab.id === current);
+			const last = shown.length - 1;
+			const target = {
+				ArrowRight: index === last ? 0 : index + 1,
+				ArrowLeft: index === 0 ? last : index - 1,
+				Home: 0,
+				End: last
+			}[event.key];
+			if (target === void 0) return;
+			event.preventDefault();
+			activate(shown[target].id, true);
+		});
+		const element = h("div", {
+			class: cx("preference__modal-tabs", className),
+			"data-tabs": true
+		}, list, ...panels);
+		/** @param {string} id @param {boolean} focus */
+		function activate(id, focus) {
+			if (!tabs.some((tab) => tab.id === id)) return;
+			const changed = id !== current;
+			current = id;
+			buttons.forEach((button, index) => {
+				const on = shown[index].id === id;
+				button.classList.toggle("active", on);
+				button.setAttribute("aria-selected", String(on));
+				button.tabIndex = on ? 0 : -1;
+				if (on && focus) button.focus();
+			});
+			panels.forEach((panel, index) => panel.classList.toggle("active", tabs[index].id === id));
+			if (changed && onChange) onChange(id);
+		}
+		activate(current, false);
+		return {
+			element,
+			activate: (id) => activate(id, false),
+			active: () => current,
+			panel: (id) => panels[tabs.findIndex((tab) => tab.id === id)]
+		};
 	}
 	//#endregion
 	//#region src/components/templates/preference/view/field-tabs.js
@@ -14324,65 +14370,53 @@
 		const basicHasFields = renderable(basicEntries);
 		const generalHasFields = renderable(generalEntries);
 		if (!basicHasFields && !generalHasFields) return null;
-		function buildContent(entries) {
-			const content = createElement("div", { className: "tab-content" });
+		function fillPanel(panel, entries) {
 			entries.forEach(function(entry) {
 				if (entry.line) {
-					content.append(createElement("div", { className: "field__line" }));
+					panel.append(createElement("div", { className: "field__line" }).getElement());
 					return;
 				}
 				if (entry.placeholder) {
-					content.append(buildPlaceholderCheckbox(entry));
+					panel.append(buildPlaceholderCheckbox(entry).getElement());
 					return;
 				}
 				if (!entry.field) return;
 				(opts.controlsById.get(entry.field) || []).forEach(function(control) {
-					if (control.element) content.append(control.element);
+					if (control.element) panel.append(control.element.getElement());
 				});
 			});
-			return content;
 		}
-		const basicContent = buildContent(basicEntries);
-		const generalContent = buildContent(generalEntries);
-		basicContent.getElement().id = "tab-basic";
-		generalContent.getElement().id = "tab-general";
 		const activeTab = basicHasFields ? "tab-basic" : "tab-general";
-		if (activeTab === "tab-basic") basicContent.getElement().classList.add("active");
-		else generalContent.getElement().classList.add("active");
-		const tabs = createElement("div", { className: "preference__modal-tabs" });
-		const buttons = createElement("div", { className: "tab-buttons" });
-		[{
+		const shown = [{
 			id: "tab-basic",
 			enabled: basicHasFields,
-			label: pt("tabBasic")
+			label: pt("tabBasic"),
+			entries: basicEntries
 		}, {
 			id: "tab-general",
 			enabled: generalHasFields,
-			label: pt("tabGeneral")
-		}].forEach(function(spec) {
-			if (!spec.enabled) return;
-			buttons.append(createElement("div", {
-				className: ["preference__tab-button", activeTab === spec.id ? "active" : null],
-				attrs: { "data-tab": spec.id },
-				text: spec.label,
-				events: { click: function() {
-					activateTab(spec.id);
-				} }
-			}));
+			label: pt("tabGeneral"),
+			entries: generalEntries
+		}];
+		const component = createTabs({
+			label: pt("tabsLabel"),
+			active: activeTab,
+			tabs: shown.map(function(spec) {
+				return {
+					id: spec.id,
+					label: spec.label,
+					hidden: !spec.enabled
+				};
+			})
 		});
-		tabs.append(buttons);
-		tabs.append(basicContent);
-		tabs.append(generalContent);
+		shown.forEach(function(spec) {
+			fillPanel(component.panel(spec.id), spec.entries);
+		});
+		const tabs = ElementCreator.wrap(component.element);
+		const basicContent = ElementCreator.wrap(component.panel("tab-basic"));
+		const generalContent = ElementCreator.wrap(component.panel("tab-general"));
 		const filtersTab = opts.layout ? opts.layout.filters === "basic" ? "tab-basic" : opts.layout.filters === "general" ? "tab-general" : null : null;
 		tabs.filtersSlot = filtersTab === "tab-basic" && basicHasFields ? basicContent : filtersTab === "tab-general" && generalHasFields ? generalContent : null;
-		function activateTab(id) {
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".preference__tab-button"), function(button) {
-				button.classList.toggle("active", button.getAttribute("data-tab") === id);
-			});
-			Array.prototype.forEach.call(tabs.getElement().querySelectorAll(".tab-content"), function(content) {
-				content.classList.toggle("active", content.id === id);
-			});
-		}
 		return tabs;
 	}
 	//#endregion

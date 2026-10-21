@@ -1,6 +1,8 @@
 import { preferenceValueFromInput, clone } from '@gpui/util/editor-dto';
 import { createElement } from '@gpui/util/element-creator';
+import { ElementCreator } from '@gpui/util/element-creator';
 import { pt } from '@gpui/components/templates/preference/view/common';
+import { createField, setFieldError } from '@gpui/components/Field/Field';
 
 function hiddenFieldControl(field) {
     return {
@@ -45,9 +47,9 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
             className: 'gpo-editor-boolean',
             children: [
                 checkbox,
-                createElement('label', {
-                    attrs: { for: controlId, 'aria-label': field.label || field.id }
-                })
+                // The drawn box of the checkbox (styles: `.gpo-editor-boolean input + label`). The name of the control is
+                // the label of the field, so this one stays empty and has no name of its own.
+                createElement('label', { attrs: { for: controlId } })
             ]
         });
     }
@@ -123,7 +125,6 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         });
     }
     if (!inputElement) inputElement = input.getElement();
-    const errorElement = createElement('span', { className: 'gpo-editor-field__error' });
     let dynamicDisabled = false;
     function applyBaselineToInput() {
         if (checkboxValueKind === 'optional_boolean_u8') {
@@ -145,7 +146,6 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
         controlKind: controlKind,
         input: input,
         inputElement: inputElement,
-        errorElement: errorElement,
         checkboxControlId: checkboxControlId,
         read: function () {
             if (disabled || dynamicDisabled || controlKind.indexOf('generated_') === 0) return clone(value);
@@ -165,7 +165,6 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
                 if (message) inputElement.setAttribute('aria-invalid', 'true');
                 else inputElement.removeAttribute('aria-invalid');
             }
-            errorElement.setText(message || '');
         },
         setDynamicDisabled: function (nextDisabled) {
             if (controlKind.indexOf('generated_') === 0) return false;
@@ -182,165 +181,13 @@ function buildControlInput(field, forceReadonly, materializeOptionalDefault, tex
     };
 }
 
-function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
-    const opts = options || {};
-    const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
-    const wrapSelect = Boolean(opts.wrapSelect) && valueKindIsSelect(builder);
-    const wrapCheckbox = Boolean(opts.wrapCheckbox) && builder.checkboxControlId !== null;
-    const builderIsInput = builder.checkboxControlId === null && builder.inputElement.tagName === 'INPUT';
-    const builderInputType = builderIsInput
-        ? String(builder.inputElement.getAttribute('type') || '').toLowerCase()
-        : '';
-    const wrapText =
-        builderIsInput && (builderInputType === 'number' || (Boolean(opts.wrapText) && builderInputType === 'text'));
-    let element;
-    if (wrapCheckbox) {
-        element = createElement('div', {
-            className: [
-                'field',
-                'field__checkbox',
-                'gpo-editor-field',
-                builder.disabled ? 'gpo-editor-field--readonly' : null
-            ],
-            attrs: { 'data-field-id': field.id },
-            children: [
-                createElement('div', {
-                    className: 'field__label',
-                    children: [
-                        createElement('label', {
-                            className: 'gpo-editor-field__label',
-                            attrs: { for: builder.checkboxControlId },
-                            children: [
-                                createElement('span', { text: field.label || field.id }),
-                                field.required
-                                    ? createElement('span', {
-                                          className: 'gpo-editor-field__required',
-                                          text: '*'
-                                      })
-                                    : null
-                            ]
-                        })
-                    ]
-                }),
-                createElement('div', {
-                    className: 'field__element',
-                    children: [builder.input]
-                }),
-                builder.disabled
-                    ? createElement('span', {
-                          className: 'gpo-editor-field__hint',
-                          text: pt('readonly')
-                      })
-                    : null,
-                builder.errorElement
-            ]
-        });
-    } else if (wrapText) {
-        element = createElement('div', {
-            className: [
-                'field',
-                'field__input',
-                'gpo-editor-field',
-                builder.disabled ? 'gpo-editor-field--readonly' : null
-            ],
-            attrs: { 'data-field-id': field.id },
-            children: [
-                createElement('div', {
-                    className: 'field__label',
-                    children: [
-                        createElement('span', {
-                            className: 'gpo-editor-field__label',
-                            children: [
-                                createElement('span', { text: field.label || field.id }),
-                                field.required
-                                    ? createElement('span', {
-                                          className: 'gpo-editor-field__required',
-                                          text: '*'
-                                      })
-                                    : null
-                            ]
-                        })
-                    ]
-                }),
-                createElement('div', {
-                    className: 'field__element',
-                    children: [builder.input, builder.errorElement]
-                }),
-                builder.disabled
-                    ? createElement('span', {
-                          className: 'gpo-editor-field__hint',
-                          text: pt('readonly')
-                      })
-                    : null
-            ]
-        });
-    } else {
-        element = createElement('div', {
-            className: [
-                'gpo-editor-field',
-                wrapSelect ? 'field' : null,
-                builder.disabled ? 'gpo-editor-field--readonly' : null
-            ],
-            attrs: { 'data-field-id': field.id },
-            children: wrapSelect
-                ? [
-                      createElement('div', {
-                          className: 'field__label',
-                          children: [
-                              createElement('span', {
-                                  className: 'gpo-editor-field__label',
-                                  children: [
-                                      createElement('span', { text: field.label || field.id }),
-                                      field.required
-                                          ? createElement('span', {
-                                                className: 'gpo-editor-field__required',
-                                                text: '*'
-                                            })
-                                          : null
-                                  ]
-                              })
-                          ]
-                      }),
-                      createElement('div', {
-                          className: 'field__element',
-                          children: [builder.input]
-                      }),
-                      builder.disabled
-                          ? createElement('span', {
-                                className: 'gpo-editor-field__hint',
-                                text: pt('readonly')
-                            })
-                          : null,
-                      builder.errorElement
-                  ]
-                : [
-                      createElement('span', {
-                          className: 'gpo-editor-field__label',
-                          children: [
-                              createElement('span', { text: field.label || field.id }),
-                              field.required
-                                  ? createElement('span', {
-                                        className: 'gpo-editor-field__required',
-                                        text: '*'
-                                    })
-                                  : null
-                          ]
-                      }),
-                      builder.input,
-                      builder.disabled
-                          ? createElement('span', {
-                                className: 'gpo-editor-field__hint',
-                                text: pt('readonly')
-                            })
-                          : null,
-                      builder.errorElement
-                  ]
-        });
-    }
+/** What `fieldControl` and `mockupFieldControl` share: the error of the field and the dynamic read-only state. */
+function fieldHandle(field, builder, fieldElement, readonlyClass) {
     let lastError = '';
     function applyError(message) {
         lastError = message || '';
-        element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
+        fieldElement.classList.toggle('gpo-editor-field--error', Boolean(message));
+        setFieldError(fieldElement, message);
         builder.setInputError(message);
     }
     if (!builder.disabled) {
@@ -351,21 +198,41 @@ function fieldControl(field, forceReadonly, materializeOptionalDefault, options)
     return {
         id: field.id,
         field: field,
-        element: element,
+        element: ElementCreator.wrap(fieldElement),
         read: builder.read,
         setError: applyError,
         setDynamicDisabled: function (nextDisabled) {
             if (!builder.setDynamicDisabled(nextDisabled)) return false;
-            element.getElement().classList.toggle('gpo-editor-field--readonly', Boolean(nextDisabled));
-            if (nextDisabled) {
-                lastError = '';
-                element.getElement().classList.remove('gpo-editor-field--error');
-                builder.setInputError('');
-            }
+            fieldElement.classList.toggle(readonlyClass, Boolean(nextDisabled));
+            if (nextDisabled) applyError('');
             return true;
         },
         focus: builder.focus
     };
+}
+
+function fieldControl(field, forceReadonly, materializeOptionalDefault, options) {
+    const opts = options || {};
+    const builder = buildControlInput(field, forceReadonly, materializeOptionalDefault, false);
+    const isInput = builder.checkboxControlId === null && builder.inputElement.tagName === 'INPUT';
+    const inputType = isInput ? String(builder.inputElement.getAttribute('type') || '').toLowerCase() : '';
+    /** @type {import('@gpui/components/Field/Field').FieldLayout} */
+    let layout = 'plain';
+    if (opts.wrapCheckbox && builder.checkboxControlId !== null) layout = 'checkbox';
+    else if (isInput && (inputType === 'number' || (opts.wrapText && inputType === 'text'))) layout = 'text';
+    else if (opts.wrapSelect && valueKindIsSelect(builder)) layout = 'select';
+    const { element } = createField({
+        id: field.id,
+        label: field.label || field.id,
+        required: Boolean(field.required),
+        readonly: builder.disabled,
+        readonlyText: pt('readonly'),
+        layout: layout,
+        control: builder.input.getElement(),
+        focusTarget: builder.inputElement,
+        rootClass: builder.disabled ? ['gpo-editor-field--readonly'] : []
+    });
+    return fieldHandle(field, builder, element, 'gpo-editor-field--readonly');
 }
 
 function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, options) {
@@ -375,85 +242,26 @@ function mockupFieldControl(field, forceReadonly, materializeOptionalDefault, op
         builder.value.kind === 'boolean' ||
         builder.value.kind === 'optional_boolean' ||
         builder.controlKind === 'optional_boolean_u8';
-    let element;
-    if (checkboxLike) {
-        element = createElement('div', {
-            className: ['field', 'field__checkbox', builder.disabled ? 'field--readonly' : null],
-            attrs: { 'data-field-id': field.id },
-            children: [
-                createElement('label', {
-                    children: [
-                        builder.input,
-                        createElement('span', {
-                            className: 'field__label-checkbox',
-                            text: field.label || field.id
-                        })
-                    ]
-                }),
-                builder.errorElement
-            ]
-        });
-    } else {
-        const fieldClasses = ['field', 'field__input'];
-        if (opts.textarea) {
-            fieldClasses.push('field__description', 'h-auto');
-        } else if (builder.controlKind === 'directory_path' || builder.controlKind === 'file_path') {
-            fieldClasses.push('field__input--path');
-        } else if (valueKindIsSelect(builder)) {
-            fieldClasses.push('select');
-        }
-        element = createElement('div', {
-            className: fieldClasses,
-            attrs: { 'data-field-id': field.id },
-            children: [
-                createElement('div', {
-                    className: 'field__label',
-                    children: [
-                        createElement('span', { text: field.label || field.id }),
-                        field.required
-                            ? createElement('span', {
-                                  className: 'gpo-editor-field__required',
-                                  text: '*'
-                              })
-                            : null
-                    ]
-                }),
-                createElement('div', {
-                    className: 'field__element',
-                    children: [builder.input, builder.errorElement]
-                })
-            ]
-        });
+    const rootClass = [];
+    // Only a read-only check box is marked at once (a text field is greyed by its `:disabled` state); a dynamic
+    // disable marks any of them (see `fieldHandle`).
+    if (checkboxLike && builder.disabled) rootClass.push('field--readonly');
+    if (!checkboxLike) {
+        if (opts.textarea) rootClass.push('field__description', 'h-auto');
+        else if (builder.controlKind === 'directory_path' || builder.controlKind === 'file_path')
+            rootClass.push('field__input--path');
+        else if (valueKindIsSelect(builder)) rootClass.push('select');
     }
-    let lastError = '';
-    function applyError(message) {
-        lastError = message || '';
-        element.getElement().classList.toggle('gpo-editor-field--error', Boolean(message));
-        builder.setInputError(message);
-    }
-    if (!builder.disabled) {
-        builder.inputElement.addEventListener('input', function () {
-            if (lastError) applyError('');
-        });
-    }
-    return {
+    const { element } = createField({
         id: field.id,
-        field: field,
-        element: element,
-        read: builder.read,
-        setError: applyError,
-        setDynamicDisabled: function (nextDisabled) {
-            if (!builder.setDynamicDisabled(nextDisabled)) return false;
-            element.getElement().classList.toggle('field--readonly', Boolean(nextDisabled));
-            if (nextDisabled) {
-                lastError = '';
-                element.getElement().classList.remove('gpo-editor-field--error');
-                builder.setInputError('');
-            }
-            return true;
-        },
-        focus: builder.focus
-    };
+        label: field.label || field.id,
+        required: Boolean(field.required),
+        layout: checkboxLike ? 'mockup-checkbox' : 'mockup',
+        control: builder.input.getElement(),
+        focusTarget: builder.inputElement,
+        rootClass: rootClass
+    });
+    return fieldHandle(field, builder, element, 'field--readonly');
 }
 
 function valueKindIsSelect(builder) {

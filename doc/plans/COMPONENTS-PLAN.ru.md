@@ -39,8 +39,8 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 |---|---|---|---|---|
 | 1 | ✅ `Toolbar` (кнопки с активным состоянием, разделители, переполнение) | `header/header.js`, панели скриптов, таргетинга, предпочтений, безопасности | `Toolbar` | 1-2 |
 | 2 | ✅ `DataTable` (колонки, одиночный и множественный выбор, роуминг-фокус из `list-navigation.js`, пустое состояние и загрузка) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, таблицы каталога | `Table`, `TableLayout` в webui | 3-4 |
-| 3 | `Field` + `FieldControl` по видам (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, только чтение, ошибка, подсказка) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
-| 4 | `Tabs` | `preference/view/field-tabs.js` | `Tabs`, `TabLayout` в webui | 1 |
+| 3 | ✅ `Field` + `FieldControl` по видам (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, только чтение, ошибка, подсказка) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
+| 4 | ✅ `Tabs` | `preference/view/field-tabs.js` | `Tabs`, `TabLayout` в webui | 1 |
 | 5 | `TreeView` (раскрытие, выбор, клавиатура, ленивые дочерние узлы) | `tree-view/*` | `TreeView` | 2-3 |
 | 6 | `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0,5 |
 | 7 | `CollectionEditor` (список и список «ключ/значение», правка в строке, проверка по строкам) | `collection-dialog.js`, `collection-control.js`; логика в `util/collection-value.ts` | таблица с правкой в строке | 2-3 |
@@ -102,7 +102,7 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 | 1 | ✅ Инфраструктура Storybook: поддельный RPC (mock стенда, ответы которого сверены с эталонами), сценарии, `Foundations/Tokens`, аддон доступности | 2-3 |
 | 2 | ✅ Компоненты 1-2 (`Toolbar`, `DataTable`) с историями | 4-6 |
 | 3 | ✅ Истории экранов «Расширенный аудит» и «Скрипты» (следующие пилоты миграции) | 2 |
-| 4 | Компоненты 3-8 с историями | 9-12 |
+| 4 | Компоненты 3-8 с историями (сделаны `Field`, `Tabs`) | 9-12 |
 | 5 | Истории экранов «Безопасность», ADMX, форма предпочтения, дерево | 3-4 |
 | 6 | Компонент 9 (`OrderableList`), когда он понадобится таргетингу или цепочкам в webui | 2 |
 | | **Итого** | **22-29** |
@@ -118,6 +118,8 @@ DOM-элемент, строится через `h()`), `<Name>.module.css`, `<N
 **Шаг 2 выполнен для экрана скриптов.** `Toolbar` (`role="group"` из кнопок; `setToolbarItem` держит вместе `disabled` и глобальный вид `.active`) и `DataTable` (разметка, отметки выбора, пустая строка; `setSelectedRows`; движение с клавиатуры остаётся в `list-navigation.js`) используют `script/entries-panel.js` и `script/assets-panel.js`; их таблицы и панели сохраняют прежние классы для внешнего вида (`preference__table gpo-catalog-table`, `gpo-editor-scripts__toolbar`), поэтому тесты геометрии не менялись. На старом коде остались: таблица элементов предпочтений, таблицы каталогов, панели безопасности, аудита и таргетинга. Проверки доступности новых историй нашли ещё два дефекта контраста, исправлены в токенах: `--gpui-muted` был 3,3:1 (теперь `#6a6e73`, 4,7:1 и выше), а акцент как цвет текста — 4,0-4,4:1 (новый `--gpui-accent-text` для выбранных и наведённых элементов).
 
 **Шаг 3 выполнен.** `Screens/Advanced Audit` (строки и фильтр, медленный ответ, ошибка сервера, пустой список) и `Screens/Scripts` (обзор области, страница события с правилами выбора, пустая и медленная страница события) отрисовывают настоящие шаблоны на поддельном сервере через `.storybook/screen.js` (`mountScreen`: открывает политику, показывает состояние загрузки, показывает ошибку так, как её показал бы редактор). Сценарий `empty` mock-сервера теперь очищает и строки расширенного аудита, и записи скриптов. Проверки доступности экранов нашли ещё три дефекта, исправлены: пустой заголовок `<h2>` на экране аудита (теперь подставляется локализованное название), список порядка выполнения на странице скриптов без доступного имени (новая подпись `executionOrder`, EN/RU) и активная вкладка с контрастом 4,4:1 (теперь `--gpui-accent-text`).
+
+**Шаг 4 выполнен частично: `Field` и `Tabs`.** `Field` (`createField`, layout'ы `checkbox|text|select|plain|mockup`) отвечает за подпись, связанную через `for`, подсказку, ошибку (`[data-field-part="error"]`) и `aria-describedby`; `field-control.js` построен на нём. `Tabs` (`createTabs`) отрисовывает настоящие `button` с `aria-controls`, панели и движение с клавиатуры; его использует `field-tabs.js`. Истории: `Primitives/Field`, `Primitives/Tabs`. Проверки доступности нашли последние цвета текста `#777` (теперь `--gpui-muted`) и список вкладок без имени (новая подпись `tabsLabel`). Осталось: `TreeView`, `Breadcrumb`, `CollectionEditor`, `ConfirmationDialog`.
 
 ## 7. Чего не делать
 

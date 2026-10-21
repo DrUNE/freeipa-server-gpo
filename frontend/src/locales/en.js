@@ -427,6 +427,7 @@ const preferences = {
         applyOnce: 'Apply only once',
         itemSelection: 'Item selection',
         filtersHeading: 'Item-level targeting',
+        tabsLabel: 'Sections',
         tabBasic: 'Basic settings',
         tabGeneral: 'General',
         targettingButton: 'Targeting',

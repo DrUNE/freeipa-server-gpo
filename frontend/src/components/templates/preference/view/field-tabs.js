@@ -1,5 +1,6 @@
 import { clone } from '@gpui/util/editor-dto';
-import { createElement } from '@gpui/util/element-creator';
+import { createElement, ElementCreator } from '@gpui/util/element-creator';
+import { createTabs } from '@gpui/components/Tabs/Tabs';
 import { pt } from '@gpui/components/templates/preference/view/common';
 import {
     nextControlId,
@@ -126,56 +127,42 @@ function buildFieldTabs(fields, options) {
     const generalHasFields = renderable(generalEntries);
     if (!basicHasFields && !generalHasFields) return null;
 
-    function buildContent(entries) {
-        const content = createElement('div', { className: 'tab-content' });
+    function fillPanel(panel, entries) {
         entries.forEach(function (entry) {
             if (entry.line) {
-                content.append(createElement('div', { className: 'field__line' }));
+                panel.append(createElement('div', { className: 'field__line' }).getElement());
                 return;
             }
             if (entry.placeholder) {
-                content.append(buildPlaceholderCheckbox(entry));
+                panel.append(buildPlaceholderCheckbox(entry).getElement());
                 return;
             }
             if (!entry.field) return;
             (opts.controlsById.get(entry.field) || []).forEach(function (control) {
-                if (control.element) content.append(control.element);
+                if (control.element) panel.append(control.element.getElement());
             });
         });
-        return content;
     }
 
-    const basicContent = buildContent(basicEntries);
-    const generalContent = buildContent(generalEntries);
-    basicContent.getElement().id = 'tab-basic';
-    generalContent.getElement().id = 'tab-general';
     const activeTab = basicHasFields ? 'tab-basic' : 'tab-general';
-    if (activeTab === 'tab-basic') basicContent.getElement().classList.add('active');
-    else generalContent.getElement().classList.add('active');
-
-    const tabs = createElement('div', { className: 'preference__modal-tabs' });
-    const buttons = createElement('div', { className: 'tab-buttons' });
-    [
-        { id: 'tab-basic', enabled: basicHasFields, label: pt('tabBasic') },
-        { id: 'tab-general', enabled: generalHasFields, label: pt('tabGeneral') }
-    ].forEach(function (spec) {
-        if (!spec.enabled) return;
-        buttons.append(
-            createElement('div', {
-                className: ['preference__tab-button', activeTab === spec.id ? 'active' : null],
-                attrs: { 'data-tab': spec.id },
-                text: spec.label,
-                events: {
-                    click: function () {
-                        activateTab(spec.id);
-                    }
-                }
-            })
-        );
+    const shown = [
+        { id: 'tab-basic', enabled: basicHasFields, label: pt('tabBasic'), entries: basicEntries },
+        { id: 'tab-general', enabled: generalHasFields, label: pt('tabGeneral'), entries: generalEntries }
+    ];
+    // Both panels exist, the way the form's code finds them by id; only the tabs of non-empty panels get a button.
+    const component = createTabs({
+        label: pt('tabsLabel'),
+        active: activeTab,
+        tabs: shown.map(function (spec) {
+            return { id: spec.id, label: spec.label, hidden: !spec.enabled };
+        })
     });
-    tabs.append(buttons);
-    tabs.append(basicContent);
-    tabs.append(generalContent);
+    shown.forEach(function (spec) {
+        fillPanel(component.panel(spec.id), spec.entries);
+    });
+    const tabs = /** @type {any} */ (ElementCreator.wrap(component.element));
+    const basicContent = ElementCreator.wrap(component.panel('tab-basic'));
+    const generalContent = ElementCreator.wrap(component.panel('tab-general'));
 
     const filtersTab = opts.layout
         ? opts.layout.filters === 'basic'
@@ -190,15 +177,6 @@ function buildFieldTabs(fields, options) {
             : filtersTab === 'tab-general' && generalHasFields
               ? generalContent
               : null;
-
-    function activateTab(id) {
-        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.preference__tab-button'), function (button) {
-            button.classList.toggle('active', button.getAttribute('data-tab') === id);
-        });
-        Array.prototype.forEach.call(tabs.getElement().querySelectorAll('.tab-content'), function (content) {
-            content.classList.toggle('active', content.id === id);
-        });
-    }
 
     return tabs;
 }

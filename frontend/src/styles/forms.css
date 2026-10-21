@@ -15,7 +15,7 @@
 }
 .gpo-editor-control--disabled,
 .gpo-editor-field--readonly {
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-boolean {
   display: inline-flex;
@@ -56,7 +56,7 @@
 .gpo-editor-empty {
   padding: 24px;
   text-align: center;
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-fields {
   display: grid;

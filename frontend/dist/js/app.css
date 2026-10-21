@@ -532,7 +532,7 @@
   flex: 0 0 auto;
   padding: 12px 20px;
   margin: 0;
-  color: #777;
+  color: var(--gpui-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 20px;
@@ -1015,6 +1015,8 @@
   height: 26px;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button {
+  /* A tab is a <button> (keyboard, ARIA) but keeps the box model of the <div> it was. */
+  box-sizing: content-box;
   appearance: none;
   border: 0;
   padding: 0;
@@ -1246,7 +1248,7 @@
 }
 .gpo-editor-control--disabled,
 .gpo-editor-field--readonly {
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-boolean {
   display: inline-flex;
@@ -1287,7 +1289,7 @@
 .gpo-editor-empty {
   padding: 24px;
   text-align: center;
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-fields {
   display: grid;
@@ -1452,7 +1454,7 @@
 
 .gpo-editor-filters__toolbar--disabled {
   background: var(--gpui-surface);
-  color: #777;
+  color: var(--gpui-muted);
 }
 .gpo-editor-filters__toolbar--disabled button,
 .gpo-editor-filters__toolbar--disabled select,
