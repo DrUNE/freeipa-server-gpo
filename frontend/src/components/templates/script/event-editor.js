@@ -5,18 +5,17 @@ import * as editorStatus from '@gpui/components/editor-status';
 import { open } from '@gpui/components/confirmation-dialog';
 import { bind } from '@gpui/components/list-navigation';
 import * as listNavigation from '@gpui/components/list-navigation';
-import { scriptFile } from '@gpui/components/editor-icons';
 import {
     st,
     eventLabel,
     button,
-    nameCell,
-    assetIcon,
     fileBase64,
     saveDownloadedAsset,
     nextHeaderOwner
 } from '@gpui/components/templates/script/helpers';
 
+import { createAssetsPanel } from '@gpui/components/templates/script/assets-panel';
+import { createEntriesPanel } from '@gpui/components/templates/script/entries-panel';
 import { createAssetPicker } from '@gpui/components/templates/script/picker';
 import { createEntryForm } from '@gpui/components/templates/script/entry-form';
 
@@ -49,7 +48,7 @@ function renderScriptEventEditor(options) {
         orderDraft: null,
         saveStatus: null
     };
-    let navigations = {};
+    const navigations = {};
     state.pickerNavigation = null;
     state.assetFocus = null;
     state.removal = null;
@@ -542,429 +541,33 @@ function renderScriptEventEditor(options) {
             }
         }
     }
-    function renderEntries() {
-        const rows = entries();
-        const editable = Boolean(groupView().editable) && !state.busy;
-        const table = createElement('table', {
-            className: ['preference__table', 'gpo-catalog-table'],
-            children: [
-                createElement('thead', {
-                    children: [
-                        createElement('tr', {
-                            children: [
-                                createElement('th', { text: st('columnName') }),
-                                createElement('th', { text: st('columnArguments') })
-                            ]
-                        })
-                    ]
-                }),
-                createElement('tbody', {
-                    children: rows.length
-                        ? rows.map(function (entry) {
-                              const row = createElement('tr', {
-                                  className: entry.identity === state.selectedEntry[state.group] ? 'active' : null,
-                                  attrs: { tabindex: '-1', 'data-script-entry': entry.identity },
-                                  children: [
-                                      nameCell(entry.command_line, scriptFile(state.group)),
-                                      createElement('td', { text: entry.parameters })
-                                  ]
-                              });
-                              function select() {
-                                  state.selectedEntry[state.group] = entry.identity;
-                                  Array.prototype.forEach.call(
-                                      table.getElement().querySelectorAll('tbody tr'),
-                                      function (candidate) {
-                                          candidate.classList.toggle('active', candidate === row.getElement());
-                                      }
-                                  );
-                                  syncButtons();
-                                  setHeaderState();
-                                  if (navigations.entries) navigations.entries.sync();
-                              }
-                              row.getElement().__select = select;
-                              row.on('click', function () {
-                                  select();
-                                  navigations.entries.focusSelected();
-                              });
-                              row.on('dblclick', function () {
-                                  if (!state.busy && !state.form && !state.picker && !state.confirmation) {
-                                      select();
-                                      openForm('edit');
-                                  }
-                              });
-                              return row;
-                          })
-                        : [
-                              createElement('tr', {
-                                  className: 'gpo-editor-scripts__empty-row',
-                                  children: [
-                                      createElement('td', {
-                                          attrs: { colspan: '2' },
-                                          text: st('emptyEntries')
-                                      })
-                                  ]
-                              })
-                          ]
-                })
-            ]
-        });
-        const controls = {
-            add: button(
-                st('add'),
-                function () {
-                    openForm('add');
-                },
-                !editable
-            ),
-            edit: button(
-                st('edit'),
-                function () {
-                    openForm('edit');
-                },
-                true
-            ),
-            remove: button(st('remove'), removeEntry, true),
-            up: button(
-                st('up'),
-                function () {
-                    moveEntry(-1);
-                },
-                true
-            ),
-            down: button(
-                st('down'),
-                function () {
-                    moveEntry(1);
-                },
-                true
-            )
-        };
-        function syncButtons() {
-            const index = rows.findIndex(function (entry) {
-                return entry.identity === state.selectedEntry[state.group];
-            });
-            const selected = editable && index >= 0;
-            const up = editable && index >= 1;
-            const down = editable && index >= 0 && index < rows.length - 1;
-            [controls.edit, controls.remove].forEach(function (control) {
-                control.getElement().disabled = !selected;
-                control.getElement().classList.toggle('active', selected);
-            });
-            controls.up.getElement().disabled = !up;
-            controls.down.getElement().disabled = !down;
-            controls.up.getElement().classList.toggle('active', up);
-            controls.down.getElement().classList.toggle('active', down);
-        }
-        syncButtons();
-        bindTable(table, 'entries', {
-            rows: function () {
-                return Array.from(table.getElement().querySelectorAll('[data-script-entry]'));
-            },
-            selected: function () {
-                return (
-                    Array.from(table.getElement().querySelectorAll('[data-script-entry]')).find(function (row) {
-                        return row.getAttribute('data-script-entry') === state.selectedEntry[state.group];
-                    }) || null
-                );
-            },
-            select: function (row) {
-                row.__select();
-            },
-            activate: function () {
-                openForm('edit');
-            },
-            remove: removeEntry,
-            canActivate: function () {
-                return Boolean(groupView().editable);
-            },
-            canRemove: function () {
-                return Boolean(groupView().editable);
-            }
-        });
-        return createElement('section', {
-            className: 'gpo-editor-scripts__entries',
-            children: [
-                createElement('div', {
-                    className: 'gpo-editor-scripts__list',
-                    children: [table]
-                }),
-                createElement('div', {
-                    className: 'gpo-editor-scripts__toolbar',
-                    children:
-                        config.mode === 'event'
-                            ? [controls.up, controls.down, controls.add, controls.edit, controls.remove]
-                            : [controls.up, controls.down]
-                })
-            ]
-        });
-    }
-    function renderAssets() {
-        const all = assets();
-        const mayChange = !state.busy && Boolean(groupView().editable);
-        const explorer = config.mode === 'assets';
-        const rows = all.map(function (asset) {
-            const checkbox = explorer
-                ? createElement('input', {
-                      attrs: { type: 'checkbox', tabindex: '-1', 'aria-label': st('selectFile') + ': ' + asset.name }
-                  })
-                : null;
-            if (checkbox) checkbox.getElement().checked = state.selectedAssets.has(asset.name);
-            const row = createElement('tr', {
-                className: explorer
-                    ? state.selectedAssets.has(asset.name)
-                        ? 'active'
-                        : null
-                    : asset.name === state.selectedAsset
-                      ? 'active'
-                      : null,
-                attrs: { tabindex: '-1', 'data-script-asset': asset.name },
-                children: [
-                    checkbox ? createElement('td', { children: [checkbox] }) : null,
-                    nameCell(asset.name, assetIcon(asset.name)),
-                    createElement('td', { text: String(asset.byte_size) + ' ' + st('bytes') }),
-                    createElement('td', { text: String((asset.references || []).length) })
-                ]
-            });
-            function select(selected, exclusive, range) {
-                if (explorer) {
-                    if (range && state.assetFocus) {
-                        const from = all.findIndex(function (entry) {
-                            return entry.name === state.assetFocus;
-                        });
-                        const to = all.indexOf(asset);
-                        if (exclusive) state.selectedAssets.clear();
-                        all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function (entry) {
-                            state.selectedAssets.add(entry.name);
-                        });
-                    } else if (exclusive) state.selectedAssets.clear();
-                    if (selected) state.selectedAssets.add(asset.name);
-                    else state.selectedAssets.delete(asset.name);
-                    state.selectedAsset = state.selectedAssets.size === 1 ? Array.from(state.selectedAssets)[0] : null;
-                    Array.prototype.forEach.call(
-                        table.getElement().querySelectorAll('[data-script-asset]'),
-                        function (candidate) {
-                            const active = state.selectedAssets.has(candidate.getAttribute('data-script-asset'));
-                            candidate.classList.toggle('active', active);
-                            candidate.setAttribute('aria-selected', active ? 'true' : 'false');
-                            candidate.querySelector('input[type=checkbox]').checked = active;
-                        }
-                    );
-                } else {
-                    state.selectedAsset = asset.name;
-                    Array.prototype.forEach.call(table.getElement().querySelectorAll('tbody tr'), function (candidate) {
-                        candidate.classList.toggle('active', candidate === row.getElement());
-                    });
-                }
-                state.assetFocus = asset.name;
-                syncButtons();
-                if (navigations.assets) navigations.assets.sync();
-            }
-            row.getElement().__select = function (event) {
-                select(true, !event || !event.ctrlKey, Boolean(event && event.shiftKey));
-            };
-            row.on('click', function (event) {
-                select(
-                    explorer && !event.shiftKey ? !state.selectedAssets.has(asset.name) : true,
-                    false,
-                    event.shiftKey
-                );
-                navigations.assets.sync();
-                row.getElement().focus();
-            });
-            row.on('dblclick', function (event) {
-                if (event.target.closest('input, select, textarea, button, a, summary, [contenteditable]')) return;
-                if (state.busy || state.form || state.picker || state.confirmation) return;
-                select(true, true);
-                if (explorer) void downloadAsset();
-                else openForm('select');
-            });
-            if (checkbox)
-                checkbox.on('click', function (event) {
-                    event.stopPropagation();
-                });
-            if (checkbox)
-                checkbox.on('change', function () {
-                    select(checkbox.getElement().checked);
-                });
-            return row;
-        });
-        const table = createElement('table', {
-            className: ['preference__table', 'gpo-catalog-table'],
-            children: [
-                createElement('thead', {
-                    children: [
-                        createElement('tr', {
-                            children: [
-                                explorer ? createElement('th', { text: '' }) : null,
-                                createElement('th', { text: st('columnName') }),
-                                createElement('th', { text: st('columnSize') }),
-                                createElement('th', { text: st(explorer ? 'usedBy' : 'columnReferences') })
-                            ]
-                        })
-                    ]
-                }),
-                createElement('tbody', {
-                    children: rows.length
-                        ? rows
-                        : [
-                              createElement('tr', {
-                                  className: 'gpo-editor-scripts__empty-row',
-                                  children: [
-                                      createElement('td', {
-                                          attrs: { colspan: explorer ? '4' : '3' },
-                                          text: st('emptyAssets')
-                                      })
-                                  ]
-                              })
-                          ]
-                })
-            ]
-        });
-        const controls = {
-            upload: button(
-                st('upload'),
-                function () {
-                    uploadInput.getElement().click();
-                },
-                !mayChange
-            ),
-            select: button(
-                st('addSelectedScript'),
-                function () {
-                    openForm('select');
-                },
-                true
-            ),
-            replace: button(
-                st('replaceFile'),
-                function () {
-                    replaceInput.getElement().click();
-                },
-                true
-            ),
-            download: button(
-                st('download'),
-                function () {
-                    void downloadAsset();
-                },
-                true
-            ),
-            delete: button(st('deleteFile'), deleteAsset, true),
-            refresh: button(
-                st('refresh'),
-                function () {
-                    void loadEvent();
-                },
-                state.busy
-            )
-        };
-        function syncButtons() {
-            const asset = selectedAsset();
-            const selected = explorer
-                ? all.filter(function (item) {
-                      return state.selectedAssets.has(item.name);
-                  })
-                : asset
-                  ? [asset]
-                  : [];
-            const enabled = [
-                mayChange,
-                mayChange && Boolean(asset),
-                mayChange && Boolean(asset),
-                !state.busy && Boolean(asset),
-                mayChange &&
-                    selected.length > 0 &&
-                    selected.every(function (item) {
-                        return !(item.references && item.references.length);
-                    })
-            ];
-            [controls.upload, controls.select, controls.replace, controls.download, controls.delete].forEach(
-                function (control, index) {
-                    control.getElement().disabled = !enabled[index];
-                    control.getElement().classList.toggle('active', enabled[index]);
-                }
-            );
-            controls.delete.getElement().title = selected.some(function (item) {
-                return item.references && item.references.length;
-            })
-                ? st('fileInUse')
-                : '';
-            controls.refresh.getElement().disabled = state.busy;
-            controls.refresh.getElement().classList.toggle('active', !state.busy);
-        }
-        syncButtons();
-        bindTable(table, 'assets', {
-            rows: function () {
-                return Array.from(table.getElement().querySelectorAll('[data-script-asset]'));
-            },
-            selected: function () {
-                return (
-                    Array.from(table.getElement().querySelectorAll('[data-script-asset]')).find(function (row) {
-                        return row.getAttribute('data-script-asset') === (state.assetFocus || state.selectedAsset);
-                    }) || null
-                );
-            },
-            isSelected: explorer
-                ? function (row) {
-                      return state.selectedAssets.has(row.getAttribute('data-script-asset'));
-                  }
-                : undefined,
-            select: function (row, event) {
-                row.__select(event);
-            },
-            activate: function (row, event) {
-                row.__select();
-                if (!explorer) openForm('select');
-                else if (event && event.key === 'F2') {
-                    if (groupView().editable) replaceInput.getElement().click();
-                } else void downloadAsset();
-            },
-            remove: deleteAsset,
-            canActivate: function () {
-                return explorer || Boolean(groupView().editable);
-            },
-            canRemove: function () {
-                const selected = explorer
-                    ? all.filter(function (asset) {
-                          return state.selectedAssets.has(asset.name);
-                      })
-                    : [selectedAsset()].filter(Boolean);
-                return (
-                    Boolean(groupView().editable) &&
-                    selected.length > 0 &&
-                    selected.every(function (asset) {
-                        return !(asset.references && asset.references.length);
-                    })
-                );
-            }
-        });
-        const toolbar = createElement('div', {
-            className: 'gpo-editor-scripts__toolbar',
-            children: explorer
-                ? all.length
-                    ? [controls.upload, controls.replace, controls.download, controls.delete, controls.refresh]
-                    : [controls.upload]
-                : [controls.upload, controls.select, controls.replace, controls.download, controls.delete]
-        });
-        const list = createElement('div', {
-            className: 'gpo-editor-scripts__list',
-            children: [table]
-        });
-        return createElement('section', {
-            className: 'gpo-editor-scripts__assets',
-            children: [
-                explorer ? null : createElement('h3', { text: st('managedFiles') }),
-                explorer ? toolbar : list,
-                explorer ? list : toolbar,
-                selectedAsset() && selectedAsset().references && selectedAsset().references.length
-                    ? createElement('p', {
-                          className: 'gpo-editor-scripts__hint',
-                          text: st('fileInUse')
-                      })
-                    : null
-            ]
-        });
-    }
+    const renderEntries = createEntriesPanel({
+        bindTable,
+        config,
+        entries,
+        groupView,
+        moveEntry,
+        navigations,
+        openForm,
+        removeEntry,
+        setHeaderState,
+        state
+    });
+    const renderAssets = createAssetsPanel({
+        assets,
+        bindTable,
+        config,
+        deleteAsset,
+        downloadAsset,
+        groupView,
+        loadEvent,
+        navigations,
+        openForm,
+        replaceInput,
+        selectedAsset,
+        state,
+        uploadInput
+    });
     function renderOrder() {
         const select = createElement('select', {
             children: [
@@ -1025,7 +628,9 @@ function renderScriptEventEditor(options) {
         Object.keys(navigations).forEach(function (kind) {
             navigations[kind].cleanup();
         });
-        navigations = {};
+        Object.keys(navigations).forEach(function (key) {
+            delete navigations[key];
+        });
         slot.textContent = '';
         if (state.loading) {
             slot.appendChild(createElement('div', { className: 'gpo-editor-empty', text: st('loading') }).getElement());

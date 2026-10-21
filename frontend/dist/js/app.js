@@ -6069,6 +6069,349 @@
 		return "scripts-" + headerOwners++;
 	}
 	//#endregion
+	//#region src/components/templates/script/assets-panel.js
+	/**
+	* The files table of the event page with its toolbar (upload, replace, download, delete).
+	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
+	*/
+	function createAssetsPanel({ assets, bindTable, config, deleteAsset, downloadAsset, groupView, loadEvent, navigations, openForm, replaceInput, selectedAsset, state, uploadInput }) {
+		function renderAssets() {
+			const all = assets();
+			const mayChange = !state.busy && Boolean(groupView().editable);
+			const explorer = config.mode === "assets";
+			const rows = all.map(function(asset) {
+				const checkbox = explorer ? createElement("input", { attrs: {
+					type: "checkbox",
+					tabindex: "-1",
+					"aria-label": st("selectFile") + ": " + asset.name
+				} }) : null;
+				if (checkbox) checkbox.getElement().checked = state.selectedAssets.has(asset.name);
+				const row = createElement("tr", {
+					className: explorer ? state.selectedAssets.has(asset.name) ? "active" : null : asset.name === state.selectedAsset ? "active" : null,
+					attrs: {
+						tabindex: "-1",
+						"data-script-asset": asset.name
+					},
+					children: [
+						checkbox ? createElement("td", { children: [checkbox] }) : null,
+						nameCell(asset.name, assetIcon(asset.name)),
+						createElement("td", { text: String(asset.byte_size) + " " + st("bytes") }),
+						createElement("td", { text: String((asset.references || []).length) })
+					]
+				});
+				function select(selected, exclusive, range) {
+					if (explorer) {
+						if (range && state.assetFocus) {
+							const from = all.findIndex(function(entry) {
+								return entry.name === state.assetFocus;
+							});
+							const to = all.indexOf(asset);
+							if (exclusive) state.selectedAssets.clear();
+							all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function(entry) {
+								state.selectedAssets.add(entry.name);
+							});
+						} else if (exclusive) state.selectedAssets.clear();
+						if (selected) state.selectedAssets.add(asset.name);
+						else state.selectedAssets.delete(asset.name);
+						state.selectedAsset = state.selectedAssets.size === 1 ? Array.from(state.selectedAssets)[0] : null;
+						Array.prototype.forEach.call(table.getElement().querySelectorAll("[data-script-asset]"), function(candidate) {
+							const active = state.selectedAssets.has(candidate.getAttribute("data-script-asset"));
+							candidate.classList.toggle("active", active);
+							candidate.setAttribute("aria-selected", active ? "true" : "false");
+							candidate.querySelector("input[type=checkbox]").checked = active;
+						});
+					} else {
+						state.selectedAsset = asset.name;
+						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
+							candidate.classList.toggle("active", candidate === row.getElement());
+						});
+					}
+					state.assetFocus = asset.name;
+					syncButtons();
+					if (navigations.assets) navigations.assets.sync();
+				}
+				row.getElement().__select = function(event) {
+					select(true, !event || !event.ctrlKey, Boolean(event && event.shiftKey));
+				};
+				row.on("click", function(event) {
+					select(explorer && !event.shiftKey ? !state.selectedAssets.has(asset.name) : true, false, event.shiftKey);
+					navigations.assets.sync();
+					row.getElement().focus();
+				});
+				row.on("dblclick", function(event) {
+					if (event.target.closest("input, select, textarea, button, a, summary, [contenteditable]")) return;
+					if (state.busy || state.form || state.picker || state.confirmation) return;
+					select(true, true);
+					if (explorer) downloadAsset();
+					else openForm("select");
+				});
+				if (checkbox) checkbox.on("click", function(event) {
+					event.stopPropagation();
+				});
+				if (checkbox) checkbox.on("change", function() {
+					select(checkbox.getElement().checked);
+				});
+				return row;
+			});
+			const table = createElement("table", {
+				className: ["preference__table", "gpo-catalog-table"],
+				children: [createElement("thead", { children: [createElement("tr", { children: [
+					explorer ? createElement("th", { text: "" }) : null,
+					createElement("th", { text: st("columnName") }),
+					createElement("th", { text: st("columnSize") }),
+					createElement("th", { text: st(explorer ? "usedBy" : "columnReferences") })
+				] })] }), createElement("tbody", { children: rows.length ? rows : [createElement("tr", {
+					className: "gpo-editor-scripts__empty-row",
+					children: [createElement("td", {
+						attrs: { colspan: explorer ? "4" : "3" },
+						text: st("emptyAssets")
+					})]
+				})] })]
+			});
+			const controls = {
+				upload: button(st("upload"), function() {
+					uploadInput.getElement().click();
+				}, !mayChange),
+				select: button(st("addSelectedScript"), function() {
+					openForm("select");
+				}, true),
+				replace: button(st("replaceFile"), function() {
+					replaceInput.getElement().click();
+				}, true),
+				download: button(st("download"), function() {
+					downloadAsset();
+				}, true),
+				delete: button(st("deleteFile"), deleteAsset, true),
+				refresh: button(st("refresh"), function() {
+					loadEvent();
+				}, state.busy)
+			};
+			function syncButtons() {
+				const asset = selectedAsset();
+				const selected = explorer ? all.filter(function(item) {
+					return state.selectedAssets.has(item.name);
+				}) : asset ? [asset] : [];
+				const enabled = [
+					mayChange,
+					mayChange && Boolean(asset),
+					mayChange && Boolean(asset),
+					!state.busy && Boolean(asset),
+					mayChange && selected.length > 0 && selected.every(function(item) {
+						return !(item.references && item.references.length);
+					})
+				];
+				[
+					controls.upload,
+					controls.select,
+					controls.replace,
+					controls.download,
+					controls.delete
+				].forEach(function(control, index) {
+					control.getElement().disabled = !enabled[index];
+					control.getElement().classList.toggle("active", enabled[index]);
+				});
+				controls.delete.getElement().title = selected.some(function(item) {
+					return item.references && item.references.length;
+				}) ? st("fileInUse") : "";
+				controls.refresh.getElement().disabled = state.busy;
+				controls.refresh.getElement().classList.toggle("active", !state.busy);
+			}
+			syncButtons();
+			bindTable(table, "assets", {
+				rows: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
+				},
+				selected: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-asset]")).find(function(row) {
+						return row.getAttribute("data-script-asset") === (state.assetFocus || state.selectedAsset);
+					}) || null;
+				},
+				isSelected: explorer ? function(row) {
+					return state.selectedAssets.has(row.getAttribute("data-script-asset"));
+				} : void 0,
+				select: function(row, event) {
+					row.__select(event);
+				},
+				activate: function(row, event) {
+					row.__select();
+					if (!explorer) openForm("select");
+					else if (event && event.key === "F2") {
+						if (groupView().editable) replaceInput.getElement().click();
+					} else downloadAsset();
+				},
+				remove: deleteAsset,
+				canActivate: function() {
+					return explorer || Boolean(groupView().editable);
+				},
+				canRemove: function() {
+					const selected = explorer ? all.filter(function(asset) {
+						return state.selectedAssets.has(asset.name);
+					}) : [selectedAsset()].filter(Boolean);
+					return Boolean(groupView().editable) && selected.length > 0 && selected.every(function(asset) {
+						return !(asset.references && asset.references.length);
+					});
+				}
+			});
+			const toolbar = createElement("div", {
+				className: "gpo-editor-scripts__toolbar",
+				children: explorer ? all.length ? [
+					controls.upload,
+					controls.replace,
+					controls.download,
+					controls.delete,
+					controls.refresh
+				] : [controls.upload] : [
+					controls.upload,
+					controls.select,
+					controls.replace,
+					controls.download,
+					controls.delete
+				]
+			});
+			const list = createElement("div", {
+				className: "gpo-editor-scripts__list",
+				children: [table]
+			});
+			return createElement("section", {
+				className: "gpo-editor-scripts__assets",
+				children: [
+					explorer ? null : createElement("h3", { text: st("managedFiles") }),
+					explorer ? toolbar : list,
+					explorer ? list : toolbar,
+					selectedAsset() && selectedAsset().references && selectedAsset().references.length ? createElement("p", {
+						className: "gpo-editor-scripts__hint",
+						text: st("fileInUse")
+					}) : null
+				]
+			});
+		}
+		return renderAssets;
+	}
+	//#endregion
+	//#region src/components/templates/script/entries-panel.js
+	/**
+	* The script entries table of the event page with its toolbar (add, edit, remove, move).
+	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
+	*/
+	function createEntriesPanel({ bindTable, config, entries, groupView, moveEntry, navigations, openForm, removeEntry, setHeaderState, state }) {
+		function renderEntries() {
+			const rows = entries();
+			const editable = Boolean(groupView().editable) && !state.busy;
+			const table = createElement("table", {
+				className: ["preference__table", "gpo-catalog-table"],
+				children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: st("columnName") }), createElement("th", { text: st("columnArguments") })] })] }), createElement("tbody", { children: rows.length ? rows.map(function(entry) {
+					const row = createElement("tr", {
+						className: entry.identity === state.selectedEntry[state.group] ? "active" : null,
+						attrs: {
+							tabindex: "-1",
+							"data-script-entry": entry.identity
+						},
+						children: [nameCell(entry.command_line, scriptFile(state.group)), createElement("td", { text: entry.parameters })]
+					});
+					function select() {
+						state.selectedEntry[state.group] = entry.identity;
+						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
+							candidate.classList.toggle("active", candidate === row.getElement());
+						});
+						syncButtons();
+						setHeaderState();
+						if (navigations.entries) navigations.entries.sync();
+					}
+					row.getElement().__select = select;
+					row.on("click", function() {
+						select();
+						navigations.entries.focusSelected();
+					});
+					row.on("dblclick", function() {
+						if (!state.busy && !state.form && !state.picker && !state.confirmation) {
+							select();
+							openForm("edit");
+						}
+					});
+					return row;
+				}) : [createElement("tr", {
+					className: "gpo-editor-scripts__empty-row",
+					children: [createElement("td", {
+						attrs: { colspan: "2" },
+						text: st("emptyEntries")
+					})]
+				})] })]
+			});
+			const controls = {
+				add: button(st("add"), function() {
+					openForm("add");
+				}, !editable),
+				edit: button(st("edit"), function() {
+					openForm("edit");
+				}, true),
+				remove: button(st("remove"), removeEntry, true),
+				up: button(st("up"), function() {
+					moveEntry(-1);
+				}, true),
+				down: button(st("down"), function() {
+					moveEntry(1);
+				}, true)
+			};
+			function syncButtons() {
+				const index = rows.findIndex(function(entry) {
+					return entry.identity === state.selectedEntry[state.group];
+				});
+				const selected = editable && index >= 0;
+				const up = editable && index >= 1;
+				const down = editable && index >= 0 && index < rows.length - 1;
+				[controls.edit, controls.remove].forEach(function(control) {
+					control.getElement().disabled = !selected;
+					control.getElement().classList.toggle("active", selected);
+				});
+				controls.up.getElement().disabled = !up;
+				controls.down.getElement().disabled = !down;
+				controls.up.getElement().classList.toggle("active", up);
+				controls.down.getElement().classList.toggle("active", down);
+			}
+			syncButtons();
+			bindTable(table, "entries", {
+				rows: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-entry]"));
+				},
+				selected: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-entry]")).find(function(row) {
+						return row.getAttribute("data-script-entry") === state.selectedEntry[state.group];
+					}) || null;
+				},
+				select: function(row) {
+					row.__select();
+				},
+				activate: function() {
+					openForm("edit");
+				},
+				remove: removeEntry,
+				canActivate: function() {
+					return Boolean(groupView().editable);
+				},
+				canRemove: function() {
+					return Boolean(groupView().editable);
+				}
+			});
+			return createElement("section", {
+				className: "gpo-editor-scripts__entries",
+				children: [createElement("div", {
+					className: "gpo-editor-scripts__list",
+					children: [table]
+				}), createElement("div", {
+					className: "gpo-editor-scripts__toolbar",
+					children: config.mode === "event" ? [
+						controls.up,
+						controls.down,
+						controls.add,
+						controls.edit,
+						controls.remove
+					] : [controls.up, controls.down]
+				})]
+			});
+		}
+		return renderEntries;
+	}
+	//#endregion
 	//#region src/components/templates/script/picker.js
 	var wrap$2 = ElementCreator.wrap;
 	/**
@@ -6428,7 +6771,7 @@
 			orderDraft: null,
 			saveStatus: null
 		};
-		let navigations = {};
+		const navigations = {};
 		state.pickerNavigation = null;
 		state.assetFocus = null;
 		state.removal = null;
@@ -6899,331 +7242,33 @@
 				}
 			}
 		}
-		function renderEntries() {
-			const rows = entries();
-			const editable = Boolean(groupView().editable) && !state.busy;
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: st("columnName") }), createElement("th", { text: st("columnArguments") })] })] }), createElement("tbody", { children: rows.length ? rows.map(function(entry) {
-					const row = createElement("tr", {
-						className: entry.identity === state.selectedEntry[state.group] ? "active" : null,
-						attrs: {
-							tabindex: "-1",
-							"data-script-entry": entry.identity
-						},
-						children: [nameCell(entry.command_line, scriptFile(state.group)), createElement("td", { text: entry.parameters })]
-					});
-					function select() {
-						state.selectedEntry[state.group] = entry.identity;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
-							candidate.classList.toggle("active", candidate === row.getElement());
-						});
-						syncButtons();
-						setHeaderState();
-						if (navigations.entries) navigations.entries.sync();
-					}
-					row.getElement().__select = select;
-					row.on("click", function() {
-						select();
-						navigations.entries.focusSelected();
-					});
-					row.on("dblclick", function() {
-						if (!state.busy && !state.form && !state.picker && !state.confirmation) {
-							select();
-							openForm("edit");
-						}
-					});
-					return row;
-				}) : [createElement("tr", {
-					className: "gpo-editor-scripts__empty-row",
-					children: [createElement("td", {
-						attrs: { colspan: "2" },
-						text: st("emptyEntries")
-					})]
-				})] })]
-			});
-			const controls = {
-				add: button(st("add"), function() {
-					openForm("add");
-				}, !editable),
-				edit: button(st("edit"), function() {
-					openForm("edit");
-				}, true),
-				remove: button(st("remove"), removeEntry, true),
-				up: button(st("up"), function() {
-					moveEntry(-1);
-				}, true),
-				down: button(st("down"), function() {
-					moveEntry(1);
-				}, true)
-			};
-			function syncButtons() {
-				const index = rows.findIndex(function(entry) {
-					return entry.identity === state.selectedEntry[state.group];
-				});
-				const selected = editable && index >= 0;
-				const up = editable && index >= 1;
-				const down = editable && index >= 0 && index < rows.length - 1;
-				[controls.edit, controls.remove].forEach(function(control) {
-					control.getElement().disabled = !selected;
-					control.getElement().classList.toggle("active", selected);
-				});
-				controls.up.getElement().disabled = !up;
-				controls.down.getElement().disabled = !down;
-				controls.up.getElement().classList.toggle("active", up);
-				controls.down.getElement().classList.toggle("active", down);
-			}
-			syncButtons();
-			bindTable(table, "entries", {
-				rows: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-entry]"));
-				},
-				selected: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-entry]")).find(function(row) {
-						return row.getAttribute("data-script-entry") === state.selectedEntry[state.group];
-					}) || null;
-				},
-				select: function(row) {
-					row.__select();
-				},
-				activate: function() {
-					openForm("edit");
-				},
-				remove: removeEntry,
-				canActivate: function() {
-					return Boolean(groupView().editable);
-				},
-				canRemove: function() {
-					return Boolean(groupView().editable);
-				}
-			});
-			return createElement("section", {
-				className: "gpo-editor-scripts__entries",
-				children: [createElement("div", {
-					className: "gpo-editor-scripts__list",
-					children: [table]
-				}), createElement("div", {
-					className: "gpo-editor-scripts__toolbar",
-					children: config.mode === "event" ? [
-						controls.up,
-						controls.down,
-						controls.add,
-						controls.edit,
-						controls.remove
-					] : [controls.up, controls.down]
-				})]
-			});
-		}
-		function renderAssets() {
-			const all = assets();
-			const mayChange = !state.busy && Boolean(groupView().editable);
-			const explorer = config.mode === "assets";
-			const rows = all.map(function(asset) {
-				const checkbox = explorer ? createElement("input", { attrs: {
-					type: "checkbox",
-					tabindex: "-1",
-					"aria-label": st("selectFile") + ": " + asset.name
-				} }) : null;
-				if (checkbox) checkbox.getElement().checked = state.selectedAssets.has(asset.name);
-				const row = createElement("tr", {
-					className: explorer ? state.selectedAssets.has(asset.name) ? "active" : null : asset.name === state.selectedAsset ? "active" : null,
-					attrs: {
-						tabindex: "-1",
-						"data-script-asset": asset.name
-					},
-					children: [
-						checkbox ? createElement("td", { children: [checkbox] }) : null,
-						nameCell(asset.name, assetIcon(asset.name)),
-						createElement("td", { text: String(asset.byte_size) + " " + st("bytes") }),
-						createElement("td", { text: String((asset.references || []).length) })
-					]
-				});
-				function select(selected, exclusive, range) {
-					if (explorer) {
-						if (range && state.assetFocus) {
-							const from = all.findIndex(function(entry) {
-								return entry.name === state.assetFocus;
-							});
-							const to = all.indexOf(asset);
-							if (exclusive) state.selectedAssets.clear();
-							all.slice(Math.min(from, to), Math.max(from, to) + 1).forEach(function(entry) {
-								state.selectedAssets.add(entry.name);
-							});
-						} else if (exclusive) state.selectedAssets.clear();
-						if (selected) state.selectedAssets.add(asset.name);
-						else state.selectedAssets.delete(asset.name);
-						state.selectedAsset = state.selectedAssets.size === 1 ? Array.from(state.selectedAssets)[0] : null;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("[data-script-asset]"), function(candidate) {
-							const active = state.selectedAssets.has(candidate.getAttribute("data-script-asset"));
-							candidate.classList.toggle("active", active);
-							candidate.setAttribute("aria-selected", active ? "true" : "false");
-							candidate.querySelector("input[type=checkbox]").checked = active;
-						});
-					} else {
-						state.selectedAsset = asset.name;
-						Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
-							candidate.classList.toggle("active", candidate === row.getElement());
-						});
-					}
-					state.assetFocus = asset.name;
-					syncButtons();
-					if (navigations.assets) navigations.assets.sync();
-				}
-				row.getElement().__select = function(event) {
-					select(true, !event || !event.ctrlKey, Boolean(event && event.shiftKey));
-				};
-				row.on("click", function(event) {
-					select(explorer && !event.shiftKey ? !state.selectedAssets.has(asset.name) : true, false, event.shiftKey);
-					navigations.assets.sync();
-					row.getElement().focus();
-				});
-				row.on("dblclick", function(event) {
-					if (event.target.closest("input, select, textarea, button, a, summary, [contenteditable]")) return;
-					if (state.busy || state.form || state.picker || state.confirmation) return;
-					select(true, true);
-					if (explorer) downloadAsset();
-					else openForm("select");
-				});
-				if (checkbox) checkbox.on("click", function(event) {
-					event.stopPropagation();
-				});
-				if (checkbox) checkbox.on("change", function() {
-					select(checkbox.getElement().checked);
-				});
-				return row;
-			});
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: [
-					explorer ? createElement("th", { text: "" }) : null,
-					createElement("th", { text: st("columnName") }),
-					createElement("th", { text: st("columnSize") }),
-					createElement("th", { text: st(explorer ? "usedBy" : "columnReferences") })
-				] })] }), createElement("tbody", { children: rows.length ? rows : [createElement("tr", {
-					className: "gpo-editor-scripts__empty-row",
-					children: [createElement("td", {
-						attrs: { colspan: explorer ? "4" : "3" },
-						text: st("emptyAssets")
-					})]
-				})] })]
-			});
-			const controls = {
-				upload: button(st("upload"), function() {
-					uploadInput.getElement().click();
-				}, !mayChange),
-				select: button(st("addSelectedScript"), function() {
-					openForm("select");
-				}, true),
-				replace: button(st("replaceFile"), function() {
-					replaceInput.getElement().click();
-				}, true),
-				download: button(st("download"), function() {
-					downloadAsset();
-				}, true),
-				delete: button(st("deleteFile"), deleteAsset, true),
-				refresh: button(st("refresh"), function() {
-					loadEvent();
-				}, state.busy)
-			};
-			function syncButtons() {
-				const asset = selectedAsset();
-				const selected = explorer ? all.filter(function(item) {
-					return state.selectedAssets.has(item.name);
-				}) : asset ? [asset] : [];
-				const enabled = [
-					mayChange,
-					mayChange && Boolean(asset),
-					mayChange && Boolean(asset),
-					!state.busy && Boolean(asset),
-					mayChange && selected.length > 0 && selected.every(function(item) {
-						return !(item.references && item.references.length);
-					})
-				];
-				[
-					controls.upload,
-					controls.select,
-					controls.replace,
-					controls.download,
-					controls.delete
-				].forEach(function(control, index) {
-					control.getElement().disabled = !enabled[index];
-					control.getElement().classList.toggle("active", enabled[index]);
-				});
-				controls.delete.getElement().title = selected.some(function(item) {
-					return item.references && item.references.length;
-				}) ? st("fileInUse") : "";
-				controls.refresh.getElement().disabled = state.busy;
-				controls.refresh.getElement().classList.toggle("active", !state.busy);
-			}
-			syncButtons();
-			bindTable(table, "assets", {
-				rows: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
-				},
-				selected: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]")).find(function(row) {
-						return row.getAttribute("data-script-asset") === (state.assetFocus || state.selectedAsset);
-					}) || null;
-				},
-				isSelected: explorer ? function(row) {
-					return state.selectedAssets.has(row.getAttribute("data-script-asset"));
-				} : void 0,
-				select: function(row, event) {
-					row.__select(event);
-				},
-				activate: function(row, event) {
-					row.__select();
-					if (!explorer) openForm("select");
-					else if (event && event.key === "F2") {
-						if (groupView().editable) replaceInput.getElement().click();
-					} else downloadAsset();
-				},
-				remove: deleteAsset,
-				canActivate: function() {
-					return explorer || Boolean(groupView().editable);
-				},
-				canRemove: function() {
-					const selected = explorer ? all.filter(function(asset) {
-						return state.selectedAssets.has(asset.name);
-					}) : [selectedAsset()].filter(Boolean);
-					return Boolean(groupView().editable) && selected.length > 0 && selected.every(function(asset) {
-						return !(asset.references && asset.references.length);
-					});
-				}
-			});
-			const toolbar = createElement("div", {
-				className: "gpo-editor-scripts__toolbar",
-				children: explorer ? all.length ? [
-					controls.upload,
-					controls.replace,
-					controls.download,
-					controls.delete,
-					controls.refresh
-				] : [controls.upload] : [
-					controls.upload,
-					controls.select,
-					controls.replace,
-					controls.download,
-					controls.delete
-				]
-			});
-			const list = createElement("div", {
-				className: "gpo-editor-scripts__list",
-				children: [table]
-			});
-			return createElement("section", {
-				className: "gpo-editor-scripts__assets",
-				children: [
-					explorer ? null : createElement("h3", { text: st("managedFiles") }),
-					explorer ? toolbar : list,
-					explorer ? list : toolbar,
-					selectedAsset() && selectedAsset().references && selectedAsset().references.length ? createElement("p", {
-						className: "gpo-editor-scripts__hint",
-						text: st("fileInUse")
-					}) : null
-				]
-			});
-		}
+		const renderEntries = createEntriesPanel({
+			bindTable,
+			config,
+			entries,
+			groupView,
+			moveEntry,
+			navigations,
+			openForm,
+			removeEntry,
+			setHeaderState,
+			state
+		});
+		const renderAssets = createAssetsPanel({
+			assets,
+			bindTable,
+			config,
+			deleteAsset,
+			downloadAsset,
+			groupView,
+			loadEvent,
+			navigations,
+			openForm,
+			replaceInput,
+			selectedAsset,
+			state,
+			uploadInput
+		});
 		function renderOrder() {
 			const select = createElement("select", { children: [
 				createElement("option", {
@@ -7281,7 +7326,9 @@
 			Object.keys(navigations).forEach(function(kind) {
 				navigations[kind].cleanup();
 			});
-			navigations = {};
+			Object.keys(navigations).forEach(function(key) {
+				delete navigations[key];
+			});
 			slot.textContent = "";
 			if (state.loading) {
 				slot.appendChild(createElement("div", {
@@ -7452,12 +7499,12 @@
 		const headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		const admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		const helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		const createButton$2 = headerControls && headerControls.querySelector(".preferences__btn-create");
+		const createButton$1 = headerControls && headerControls.querySelector(".preferences__btn-create");
 		const editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		const deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
 		const headerOwner = nextHeaderOwner();
 		const oldHeader = [
-			createButton$2,
+			createButton$1,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -7475,7 +7522,7 @@
 		if (headerControls) {
 			headerControls.setAttribute("data-script-owner", headerOwner);
 			headerControls.style.display = "flex";
-			if (createButton$2) createButton$2.style.display = "none";
+			if (createButton$1) createButton$1.style.display = "none";
 			if (deleteButton) deleteButton.style.display = "none";
 			if (editButton) {
 				editButton.textContent = st("openEvent");
@@ -7740,7 +7787,7 @@
 				editButton && editButton.removeEventListener("click", onOpenEvent);
 				folderButton.getElement().remove();
 				[
-					createButton$2,
+					createButton$1,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
@@ -9550,6 +9597,647 @@
 		shortcuts: () => shortcuts_exports,
 		start_menu: () => start_menu_exports
 	});
+	//#endregion
+	//#region src/components/templates/preference/view/common.js
+	var PREFERENCE_LAYOUTS$2 = layouts_exports;
+	function pt(key) {
+		return t("preferences.editor." + key);
+	}
+	function validationMessage(code) {
+		if (code === "required") return pt("validationRequired");
+		if (code === "invalid_number") return pt("validationInvalidNumber");
+		if (code === "unsigned_byte_range") return pt("validationUnsignedByteRange");
+		const targetingCodes = {
+			invalid_date: "validationDate",
+			invalid_time: "validationTime",
+			invalid_ip: "validationIp",
+			invalid_ipv6: "validationIpv6",
+			invalid_mac: "validationMac",
+			invalid_version: "validationVersion",
+			invalid_guid: "validationGuid",
+			invalid_range: "validationRange",
+			invalid_value: "validationValue"
+		};
+		if (targetingCodes[code]) return pt(targetingCodes[code]);
+		return pt("validationFixErrors");
+	}
+	function listFrom(result, key) {
+		if (Array.isArray(result)) return result;
+		return result && Array.isArray(result[key]) ? result[key] : [];
+	}
+	function parentCandidateLabel(candidate) {
+		const depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
+		let prefix = "";
+		for (let index = 0; index < depth; index += 1) prefix += "\xA0\xA0";
+		return prefix + String(candidate && candidate.label || "");
+	}
+	function scopeField(field, scope) {
+		const result = clone$2(field);
+		if (!result || result.id !== "metadata.userContext") return result;
+		if (scope === "user") result.label = pt("userContext");
+		else {
+			result.hidden = true;
+			result.editable = false;
+		}
+		return result;
+	}
+	function actionLabel(value) {
+		const key = {
+			create: "actionCreate",
+			replace: "actionReplace",
+			update: "actionUpdate",
+			delete: "actionDelete"
+		}[value];
+		return key ? pt(key) : value === null || value === void 0 ? "" : String(value);
+	}
+	function itemFieldValue(item, fieldId) {
+		if (!item || !fieldId) return "";
+		if (Array.isArray(item.fields)) {
+			for (let index = 0; index < item.fields.length; index++) if (item.fields[index] && item.fields[index].id === fieldId) return valuePayload(item.fields[index].value);
+		}
+		if (item.properties && typeof item.properties === "object") {
+			const key = String(fieldId).indexOf("properties.") === 0 ? String(fieldId).slice(11) : String(fieldId);
+			if (Object.prototype.hasOwnProperty.call(item.properties, key)) {
+				const raw = item.properties[key];
+				if (raw && typeof raw === "object" && "kind" in raw) return valuePayload(raw);
+				return raw === null || raw === void 0 ? "" : String(raw);
+			}
+		}
+		return "";
+	}
+	function tableColumns(kind) {
+		const layout = PREFERENCE_LAYOUTS$2[kind];
+		if (layout && Array.isArray(layout.columns) && layout.columns.length) return layout.columns;
+		return null;
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/items-table.js
+	/**
+	* The items table of the preferences page and everything that feeds it: the list request, the per-item field cache
+	* and the selection (which drives the info panel). The page's mutable state is `view`.
+	* @param {any} context the page's state and operations (see renderPreferencesTemplate)
+	*/
+	function createItemsTable({ config, documentDto, infoPanel, item, itemFieldsCache, openForm, rootElement, setHeaderState, showPageError, view }) {
+		function renderTable() {
+			const tableSlot = rootElement.querySelector(".gpo-editor-preferences__table");
+			if (!tableSlot) return;
+			const heldFocus = tableSlot.contains(document.activeElement);
+			tableSlot.innerHTML = "";
+			if (!view.items.length) {
+				tableSlot.appendChild(createElement("div", {
+					className: "gpo-editor-empty",
+					text: pt("emptyItems")
+				}).getElement());
+				if (view.tableNavigation) {
+					view.tableNavigation.sync();
+					if (heldFocus) view.tableNavigation.focusSelected();
+				}
+				return;
+			}
+			const columns = tableColumns(item.preferenceKind);
+			const useTemplate = Boolean(columns);
+			const headerCells = useTemplate ? columns.map(function(column) {
+				return createElement("th", { text: pt(column.labelKey) });
+			}) : [
+				createElement("th", { text: pt("itemColumn") }),
+				createElement("th", { text: pt("filtersColumn") }),
+				createElement("th", { text: pt("actionsColumn") })
+			];
+			function buildDataCells(preferenceItem, index) {
+				if (!useTemplate) return [createElement("td", { text: preferenceItem.label }), createElement("td", { text: preferenceItem.has_filters ? pt("yes") : pt("no") })];
+				return columns.map(function(column) {
+					let text = "";
+					if (column.source === "name") text = preferenceItem.label;
+					else if (column.source === "order") text = String(index + 1);
+					else if (column.source === "field") {
+						const value = cachedFieldValue(preferenceItem.identity, column.field);
+						text = column.format === "action" ? actionLabel(value) : value === null || value === void 0 ? "" : String(value);
+					}
+					return createElement("td", { text });
+				});
+			}
+			function buildActionsCell(preferenceItem) {
+				return createElement("td", {
+					className: "gpo-editor-preference-table__actions",
+					children: [createElement("button", {
+						className: "button",
+						attrs: {
+							type: "button",
+							disabled: view.opening ? "disabled" : null
+						},
+						text: documentDto.editable ? t("header.edit") : pt("viewTitle"),
+						events: { click: function(event) {
+							event.stopPropagation();
+							selectItem(preferenceItem.identity);
+							openForm(view.selectedIdentity);
+						} }
+					})]
+				});
+			}
+			const bodyRows = view.items.map(function(preferenceItem, index) {
+				const selected = view.selectedIdentity !== null && equal(view.selectedIdentity, preferenceItem.identity);
+				const cells = buildDataCells(preferenceItem, index);
+				if (!useTemplate) cells.push(buildActionsCell(preferenceItem));
+				const row = createElement("tr", {
+					className: selected ? "active" : null,
+					attrs: {
+						tabindex: "-1",
+						"data-preference-identity": cacheKey(preferenceItem.identity),
+						"aria-selected": selected ? "true" : "false"
+					},
+					children: cells,
+					events: {
+						click: function() {
+							selectItem(preferenceItem.identity);
+							if (view.tableNavigation) view.tableNavigation.focusSelected();
+						},
+						dblclick: function() {
+							if (view.modalState || view.opening || view.deleting) return;
+							selectItem(preferenceItem.identity);
+							openForm(view.selectedIdentity);
+						}
+					}
+				});
+				row.getElement().__preferenceIdentity = preferenceItem.identity;
+				return row;
+			});
+			const table = createElement("table", {
+				className: ["preference__table", "gpo-catalog-table"],
+				children: [createElement("thead", { children: [createElement("tr", { children: headerCells })] }), createElement("tbody", { children: bodyRows })]
+			});
+			tableSlot.appendChild(table.getElement());
+			if (view.tableNavigation) {
+				view.tableNavigation.sync();
+				if (heldFocus) view.tableNavigation.focusSelected();
+			}
+		}
+		function selectItem(identity) {
+			view.selectedIdentity = clone$2(identity);
+			Array.prototype.forEach.call(rootElement.querySelectorAll("[data-preference-identity]"), function(row) {
+				const selected = equal(row.__preferenceIdentity, view.selectedIdentity);
+				row.classList.toggle("active", selected);
+				row.setAttribute("aria-selected", selected ? "true" : "false");
+			});
+			if (view.tableNavigation) view.tableNavigation.sync();
+			setHeaderState();
+			infoPanel.request(view.selectedIdentity);
+		}
+		function focusTable() {
+			if (!view.disposed && (typeof config.isCurrent !== "function" || config.isCurrent()) && view.tableNavigation) view.tableNavigation.focusSelected();
+		}
+		function cacheKey(identity) {
+			return JSON.stringify(identity);
+		}
+		function cachedFieldValue(identity, fieldId) {
+			const fields = itemFieldsCache.get(cacheKey(identity));
+			if (!fields) return "";
+			return itemFieldValue({ fields }, fieldId);
+		}
+		function scheduleTableRefresh() {
+			if (view.tableRefreshScheduled) return;
+			view.tableRefreshScheduled = true;
+			const run = function() {
+				view.tableRefreshScheduled = false;
+				if (typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				renderTable();
+			};
+			if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(run);
+			else setTimeout(run, 16);
+		}
+		function ensureItemFields(identity) {
+			const key = cacheKey(identity);
+			if (itemFieldsCache.has(key)) return Promise.resolve(itemFieldsCache.get(key));
+			const startedGeneration = view.fieldsRequestId;
+			return preferenceShow(item.scope, item.preferenceKind, clone$2(identity)).then(function(response) {
+				if (startedGeneration !== view.fieldsRequestId) return null;
+				const fields = clone$2(response.fields || response.new_item_fields || []).map(function(field) {
+					return scopeField(field, item.scope);
+				});
+				itemFieldsCache.set(key, fields);
+				return fields;
+			});
+		}
+		function prefetchTableFields() {
+			const generation = ++view.fieldsRequestId;
+			view.items.forEach(function(preferenceItem) {
+				if (preferenceItem.identity === null || preferenceItem.identity === void 0) return;
+				if (itemFieldsCache.has(cacheKey(preferenceItem.identity))) return;
+				ensureItemFields(preferenceItem.identity).then(function(fields) {
+					if (!fields) return;
+					if (generation !== view.fieldsRequestId) return;
+					if (typeof config.isCurrent === "function" && !config.isCurrent()) return;
+					scheduleTableRefresh();
+				});
+			});
+		}
+		function invalidateCachedFields(identity) {
+			itemFieldsCache.delete(cacheKey(identity));
+			view.fieldsRequestId += 1;
+		}
+		async function loadItems() {
+			const requestId = ++view.itemsRequestId;
+			try {
+				const response = await preferenceItems(item.scope, item.preferenceKind);
+				if (requestId !== view.itemsRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				view.items = listFrom(response, "items");
+				if (view.selectedIdentity !== null && !view.items.some(function(entry) {
+					return equal(entry.identity, view.selectedIdentity);
+				})) view.selectedIdentity = null;
+				const errorSlot = rootElement.querySelector(".gpo-editor-preferences__error");
+				if (errorSlot) errorSlot.innerHTML = "";
+				renderTable();
+				setHeaderState();
+				prefetchTableFields();
+				if (view.selectedIdentity !== null) infoPanel.request(view.selectedIdentity);
+				else infoPanel.reset();
+			} catch (error) {
+				if (requestId !== view.itemsRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				showPageError(error);
+			}
+		}
+		return {
+			renderTable,
+			selectItem,
+			focusTable,
+			cacheKey,
+			cachedFieldValue,
+			scheduleTableRefresh,
+			ensureItemFields,
+			prefetchTableFields,
+			invalidateCachedFields,
+			loadItems
+		};
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/form-lifecycle.js
+	/**
+	* Closing the preference form: the discard question for unsaved changes and the removal of the form's dialogs from
+	* the shared host. `closeForm(force, action)` returns false when the form stays open (busy or waiting for the answer).
+	* @param {any} context the page's state and operations (see renderPreferencesTemplate)
+	*/
+	function createFormLifecycle({ config, rootElement, view, focusTable, setHeaderState }) {
+		function showDiscardModal(action) {
+			if (view.discardModal) return;
+			view.pendingDiscard = { action };
+			if (view.modalState && view.modalState.formElement) {
+				view.modalState.formElement.classList.add("gpo-editor-preference-form--confirming");
+				if (view.modalState.formElement.closest("[data-dialog-host]")) {
+					const targettingModal = view.modalState.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
+					if (targettingModal) targettingModal.classList.add("gpo-editor-preference-form--confirming");
+				}
+			}
+			view.discardModal = open$3(config.modalHost || rootElement, {
+				message: pt(action === "cancel" ? "confirmCancelDiscard" : "confirmCloseDiscard"),
+				onCancel: function() {
+					handleDiscardModalChoice(false);
+				},
+				onConfirm: function() {
+					handleDiscardModalChoice(true);
+				}
+			});
+		}
+		function hideDiscardModal() {
+			if (view.discardModal) {
+				view.discardModal.close();
+				view.discardModal = null;
+			}
+			const confirmingForms = (config.modalHost || rootElement).querySelectorAll(".gpo-editor-preference-form--confirming");
+			Array.prototype.forEach.call(confirmingForms, function(formElement) {
+				formElement.classList.remove("gpo-editor-preference-form--confirming");
+			});
+		}
+		function handleDiscardModalChoice(confirmed) {
+			const pending = view.pendingDiscard;
+			view.pendingDiscard = null;
+			hideDiscardModal();
+			if (!confirmed || !pending) return;
+			closeForm(true, pending.action);
+		}
+		function closeHostModals(host) {
+			host.classList.remove("active");
+			const modals = Array.prototype.slice.call(host.children);
+			modals.forEach(function(element) {
+				Array.prototype.forEach.call(element.querySelectorAll("[data-dialog].active"), function(dialog) {
+					dialog.classList.remove("active");
+				});
+			});
+			setTimeout(function() {
+				modals.forEach(function(element) {
+					if (!element.querySelector("[data-dialog].active") && element.parentNode === host) host.removeChild(element);
+				});
+			}, 500);
+		}
+		function closeForm(force, action) {
+			const state = view.modalState;
+			if (state && (state.saving || state.reconciling) && action !== "saved" && action !== "cleanup") return false;
+			if (!force && state && state.formState.dirty) {
+				if (view.pendingDiscard) return false;
+				showDiscardModal(action);
+				return false;
+			}
+			view.pendingDiscard = null;
+			hideDiscardModal();
+			view.formRequestId += 1;
+			const host = config.modalHost || rootElement.querySelector(".gpo-editor-preferences__modal-host");
+			if (host) closeHostModals(host);
+			view.modalState = null;
+			setHeaderState();
+			if (action !== "cleanup" && action !== "navigation") focusTable();
+			return true;
+		}
+		return { closeForm };
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/form-state.js
+	function formInteractiveElements(state) {
+		const elements = [];
+		const roots = [state.formElement];
+		if (state.formElement.closest("[data-dialog-host]")) {
+			const targettingModal = state.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
+			if (targettingModal) roots.push(targettingModal);
+		}
+		roots.forEach(function(root) {
+			[
+				"input",
+				"select",
+				"textarea",
+				"button"
+			].forEach(function(selector) {
+				Array.prototype.forEach.call(root.querySelectorAll(selector), function(element) {
+					if (elements.indexOf(element) === -1) elements.push(element);
+				});
+			});
+		});
+		return elements;
+	}
+	function isRefreshSafeAction(state, element) {
+		return state.closeButtons.indexOf(element) !== -1 || Boolean(element.hasAttribute && element.hasAttribute("data-editor-status-action"));
+	}
+	function syncFormBusy(state) {
+		if (!state) return;
+		const busy = Boolean(state.saving || state.reconciling);
+		const elements = formInteractiveElements(state);
+		if (busy) elements.forEach(function(element) {
+			if (!state.busyDisabledStates.has(element)) state.busyDisabledStates.set(element, Boolean(element.disabled));
+			element.disabled = true;
+		});
+		else {
+			state.busyDisabledStates.forEach(function(disabled, element) {
+				element.disabled = disabled;
+			});
+			state.busyDisabledStates.clear();
+		}
+		const refreshLocked = Boolean(state.requiresRefresh);
+		state.formState.busy = busy || refreshLocked;
+		state.formElement.classList.toggle("gpo-editor-preference-form--busy", busy);
+		state.formElement.classList.toggle("gpo-editor-preference-form--refresh-required", refreshLocked);
+		if (busy) state.formElement.setAttribute("aria-busy", "true");
+		else state.formElement.removeAttribute("aria-busy");
+		if (!busy && refreshLocked) formInteractiveElements(state).forEach(function(element) {
+			element.disabled = !isRefreshSafeAction(state, element);
+		});
+		(state.closeButtons || []).forEach(function(button) {
+			button.disabled = busy;
+		});
+		if (state.saveButton) state.saveButton.disabled = Boolean(busy || state.requiresRefresh || state.blockedDescriptors);
+	}
+	function setNameError(state, message) {
+		if (!state.nameField || !state.nameError || !state.nameInput) return;
+		state.nameField.classList.toggle("gpo-editor-field--error", Boolean(message));
+		state.nameError.textContent = message || "";
+		if (message) state.nameInput.setAttribute("aria-invalid", "true");
+		else state.nameInput.removeAttribute("aria-invalid");
+	}
+	function clearFormErrors(state) {
+		state.controls.forEach(function(control) {
+			control.setError("");
+		});
+		setNameError(state, "");
+		state.formElement.classList.remove("gpo-editor-preference-form--invalid");
+		state.validationSlot.textContent = "";
+		state.errorSlot.innerHTML = "";
+	}
+	function markServerFieldError(state, error) {
+		if (!error || !error.field) return;
+		const field = String(error.field);
+		const message = error.message || pt("validationFixErrors");
+		if (field === "name" || field.indexOf("name") !== -1) setNameError(state, message);
+		state.controlsById.forEach(function(controls, id) {
+			if (field === id || field.indexOf(id) !== -1) controls.forEach(function(control) {
+				control.setError(message);
+			});
+		});
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/page-actions.js
+	/**
+	* The page's actions that talk to the server and report the outcome: saving the form, deleting the selected item,
+	* the recovery (reconcile) path and the error panels of the page and of the form.
+	* @param {any} context the page's state and operations (see renderPreferencesTemplate)
+	*/
+	function createPageActions({ cacheKey, closeForm, config, deleteButton, documentDto, focusTable, invalidateCachedFields, item, loadItems, ownsHeader, renderTable, rootElement, setHeaderState, view }) {
+		function recoveryConflict(response) {
+			const recovery = response && response.recovery;
+			if (!recovery || recovery.kind !== "conflict") return null;
+			const error = /* @__PURE__ */ new Error("Preference publication reconciliation is still conflicted.");
+			error.category = "publication_conflict";
+			error.details = recovery.conflict || null;
+			return error;
+		}
+		async function reconcilePage(event) {
+			if (event && event.currentTarget) event.currentTarget.disabled = true;
+			try {
+				const conflict = recoveryConflict(await reconcile());
+				if (conflict) throw conflict;
+				await loadItems();
+			} catch (error) {
+				showPageError(error);
+			} finally {
+				if (event && event.currentTarget) event.currentTarget.disabled = false;
+			}
+		}
+		function showPageError(error) {
+			const slot = rootElement.querySelector(".gpo-editor-preferences__error");
+			if (!slot) return;
+			slot.innerHTML = "";
+			slot.appendChild(renderError(error, {
+				onRefresh: loadItems,
+				onReconcile: reconcilePage
+			}).getElement());
+		}
+		function renderFormError(state, error) {
+			if (view.modalState !== state) return;
+			state.errorSlot.innerHTML = "";
+			const category = errorCategory(error).replace(/-/g, "_");
+			const actions = { onReconcile: async function(event) {
+				if (state.reconciling || state.saving) return;
+				const button = event && event.currentTarget;
+				if (button) button.disabled = true;
+				state.reconciling = true;
+				syncFormBusy(state);
+				try {
+					const conflict = recoveryConflict(await reconcile());
+					if (conflict) throw conflict;
+					if (view.modalState === state) {
+						state.requiresRefresh = true;
+						renderReconcileSuccess(state);
+						await loadItems();
+					}
+				} catch (reconcileError) {
+					renderFormError(state, reconcileError);
+				} finally {
+					state.reconciling = false;
+					syncFormBusy(state);
+					if (button && view.modalState === state) button.disabled = false;
+				}
+			} };
+			if (category === "storage_conflict" || category === "publication_conflict" || category === "not_found") actions.onRefresh = function() {
+				if (!window.confirm(pt("confirmRefreshDiscard"))) return;
+				closeForm(true);
+				loadItems();
+			};
+			state.errorSlot.appendChild(renderError(error, actions).getElement());
+			markServerFieldError(state, error);
+			syncFormBusy(state);
+		}
+		function renderReconcileSuccess(state) {
+			if (view.modalState !== state) return;
+			state.errorSlot.innerHTML = "";
+			state.errorSlot.appendChild(createElement("div", {
+				className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--info"],
+				attrs: { role: "status" },
+				children: [createElement("span", { text: pt("reconcileSucceededRefresh") }), createElement("button", {
+					className: "button",
+					attrs: {
+						type: "button",
+						"data-editor-status-action": ""
+					},
+					text: pt("refresh"),
+					events: { click: function() {
+						if (!window.confirm(pt("confirmRefreshDiscard"))) return;
+						closeForm(true, "refresh");
+						loadItems();
+					} }
+				})]
+			}).getElement());
+			syncFormBusy(state);
+		}
+		async function saveForm() {
+			if (!view.modalState || view.modalState.readonly) return true;
+			const state = view.modalState;
+			if (state.saving || state.reconciling || state.requiresRefresh || state.blockedDescriptors) return false;
+			clearFormErrors(state);
+			const draftFields = state.controls.map(function(control) {
+				return {
+					id: control.id,
+					value: control.read()
+				};
+			});
+			const filterResult = state.formState.readFilterResult();
+			const result = buildPreferenceRequest({
+				creating: state.creating,
+				identity: state.identity,
+				descriptors: state.descriptors,
+				fields: draftFields,
+				name: state.nameInput ? state.nameInput.value : null,
+				originalName: state.originalName,
+				parent: state.parentSelect ? preferenceParentIdentity(state.parentCandidates, state.parentSelect.value) : null,
+				filters: filterResult.operations,
+				validationExemptions: state.dependencyDisabledIds || []
+			});
+			const errors = result.errors.concat(filterResult.errors || []);
+			if (errors.length) {
+				state.formElement.classList.add("gpo-editor-preference-form--invalid");
+				state.validationSlot.textContent = pt("validationFixErrors");
+				let firstControl = null;
+				errors.forEach(function(error) {
+					if (error.path) return;
+					if (error.id === "name") {
+						setNameError(state, validationMessage(error.code));
+						if (!firstControl && state.nameInput) firstControl = state.nameInput;
+						return;
+					}
+					(state.controlsById.get(error.id) || []).forEach(function(control) {
+						control.setError(validationMessage(error.code));
+						if (!firstControl) firstControl = control;
+					});
+				});
+				if (firstControl && typeof firstControl.focus === "function") firstControl.focus();
+				return false;
+			}
+			if (!result.request) {
+				closeForm(true, "saved");
+				return true;
+			}
+			state.saving = true;
+			syncFormBusy(state);
+			state.saveButton.textContent = pt("saving");
+			try {
+				const response = state.creating ? await preferenceCreate(item.scope, item.preferenceKind, result.request) : await preferenceUpdate(item.scope, item.preferenceKind, result.request);
+				const conflict = recoveryConflict(response);
+				if (conflict) throw conflict;
+				if (!state.creating) invalidateCachedFields(state.identity);
+				closeForm(true, "saved");
+				await loadItems();
+				if (typeof config.onSaved === "function") config.onSaved(response);
+				return true;
+			} catch (error) {
+				renderFormError(state, error);
+				return false;
+			} finally {
+				state.saving = false;
+				if (view.modalState === state) {
+					state.saveButton.textContent = pt("save");
+					syncFormBusy(state);
+				}
+			}
+		}
+		async function deleteSelected() {
+			if (!documentDto.editable || view.selectedIdentity === null || view.modalState || view.opening || view.deleting || view.disposed) return;
+			if (!window.confirm(pt("confirmDelete"))) return;
+			const identity = clone$2(view.selectedIdentity);
+			const before = view.items.map(function(entry) {
+				return cacheKey(entry.identity);
+			});
+			let removed = false;
+			view.deleting = true;
+			setHeaderState();
+			if (deleteButton) deleteButton.disabled = true;
+			try {
+				const response = await preferenceDelete(item.scope, item.preferenceKind, identity);
+				invalidateCachedFields(identity);
+				await loadItems();
+				if (view.disposed || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				const next = neighbor(before, [cacheKey(identity)], view.items.map(function(entry) {
+					return cacheKey(entry.identity);
+				}));
+				const survivor = view.items.find(function(entry) {
+					return cacheKey(entry.identity) === next;
+				});
+				view.selectedIdentity = survivor ? clone$2(survivor.identity) : null;
+				renderTable();
+				setHeaderState();
+				removed = true;
+				if (typeof config.onSaved === "function") config.onSaved(response);
+			} catch (error) {
+				showPageError(error);
+			} finally {
+				view.deleting = false;
+				setHeaderState();
+				if (deleteButton && ownsHeader()) deleteButton.disabled = false;
+				if (removed && !view.disposed && (typeof config.isCurrent !== "function" || config.isCurrent())) focusTable();
+			}
+		}
+		return {
+			recoveryConflict,
+			reconcilePage,
+			showPageError,
+			renderFormError,
+			renderReconcileSuccess,
+			saveForm,
+			deleteSelected
+		};
+	}
 	function copy(value) {
 		return clone$2(value);
 	}
@@ -12748,160 +13436,6 @@
 		return container;
 	}
 	//#endregion
-	//#region src/components/templates/preference/view/common.js
-	var PREFERENCE_LAYOUTS$2 = layouts_exports;
-	function pt(key) {
-		return t("preferences.editor." + key);
-	}
-	function validationMessage(code) {
-		if (code === "required") return pt("validationRequired");
-		if (code === "invalid_number") return pt("validationInvalidNumber");
-		if (code === "unsigned_byte_range") return pt("validationUnsignedByteRange");
-		const targetingCodes = {
-			invalid_date: "validationDate",
-			invalid_time: "validationTime",
-			invalid_ip: "validationIp",
-			invalid_ipv6: "validationIpv6",
-			invalid_mac: "validationMac",
-			invalid_version: "validationVersion",
-			invalid_guid: "validationGuid",
-			invalid_range: "validationRange",
-			invalid_value: "validationValue"
-		};
-		if (targetingCodes[code]) return pt(targetingCodes[code]);
-		return pt("validationFixErrors");
-	}
-	function listFrom(result, key) {
-		if (Array.isArray(result)) return result;
-		return result && Array.isArray(result[key]) ? result[key] : [];
-	}
-	function parentCandidateLabel(candidate) {
-		const depth = Math.max(0, Math.floor(Number(candidate && candidate.depth) || 0));
-		let prefix = "";
-		for (let index = 0; index < depth; index += 1) prefix += "\xA0\xA0";
-		return prefix + String(candidate && candidate.label || "");
-	}
-	function scopeField(field, scope) {
-		const result = clone$2(field);
-		if (!result || result.id !== "metadata.userContext") return result;
-		if (scope === "user") result.label = pt("userContext");
-		else {
-			result.hidden = true;
-			result.editable = false;
-		}
-		return result;
-	}
-	function actionLabel(value) {
-		const key = {
-			create: "actionCreate",
-			replace: "actionReplace",
-			update: "actionUpdate",
-			delete: "actionDelete"
-		}[value];
-		return key ? pt(key) : value === null || value === void 0 ? "" : String(value);
-	}
-	function itemFieldValue(item, fieldId) {
-		if (!item || !fieldId) return "";
-		if (Array.isArray(item.fields)) {
-			for (let index = 0; index < item.fields.length; index++) if (item.fields[index] && item.fields[index].id === fieldId) return valuePayload(item.fields[index].value);
-		}
-		if (item.properties && typeof item.properties === "object") {
-			const key = String(fieldId).indexOf("properties.") === 0 ? String(fieldId).slice(11) : String(fieldId);
-			if (Object.prototype.hasOwnProperty.call(item.properties, key)) {
-				const raw = item.properties[key];
-				if (raw && typeof raw === "object" && "kind" in raw) return valuePayload(raw);
-				return raw === null || raw === void 0 ? "" : String(raw);
-			}
-		}
-		return "";
-	}
-	function tableColumns(kind) {
-		const layout = PREFERENCE_LAYOUTS$2[kind];
-		if (layout && Array.isArray(layout.columns) && layout.columns.length) return layout.columns;
-		return null;
-	}
-	//#endregion
-	//#region src/components/templates/preference/view/form-state.js
-	function formInteractiveElements(state) {
-		const elements = [];
-		const roots = [state.formElement];
-		if (state.formElement.closest("[data-dialog-host]")) {
-			const targettingModal = state.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
-			if (targettingModal) roots.push(targettingModal);
-		}
-		roots.forEach(function(root) {
-			[
-				"input",
-				"select",
-				"textarea",
-				"button"
-			].forEach(function(selector) {
-				Array.prototype.forEach.call(root.querySelectorAll(selector), function(element) {
-					if (elements.indexOf(element) === -1) elements.push(element);
-				});
-			});
-		});
-		return elements;
-	}
-	function isRefreshSafeAction(state, element) {
-		return state.closeButtons.indexOf(element) !== -1 || Boolean(element.hasAttribute && element.hasAttribute("data-editor-status-action"));
-	}
-	function syncFormBusy(state) {
-		if (!state) return;
-		const busy = Boolean(state.saving || state.reconciling);
-		const elements = formInteractiveElements(state);
-		if (busy) elements.forEach(function(element) {
-			if (!state.busyDisabledStates.has(element)) state.busyDisabledStates.set(element, Boolean(element.disabled));
-			element.disabled = true;
-		});
-		else {
-			state.busyDisabledStates.forEach(function(disabled, element) {
-				element.disabled = disabled;
-			});
-			state.busyDisabledStates.clear();
-		}
-		const refreshLocked = Boolean(state.requiresRefresh);
-		state.formState.busy = busy || refreshLocked;
-		state.formElement.classList.toggle("gpo-editor-preference-form--busy", busy);
-		state.formElement.classList.toggle("gpo-editor-preference-form--refresh-required", refreshLocked);
-		if (busy) state.formElement.setAttribute("aria-busy", "true");
-		else state.formElement.removeAttribute("aria-busy");
-		if (!busy && refreshLocked) formInteractiveElements(state).forEach(function(element) {
-			element.disabled = !isRefreshSafeAction(state, element);
-		});
-		(state.closeButtons || []).forEach(function(button) {
-			button.disabled = busy;
-		});
-		if (state.saveButton) state.saveButton.disabled = Boolean(busy || state.requiresRefresh || state.blockedDescriptors);
-	}
-	function setNameError(state, message) {
-		if (!state.nameField || !state.nameError || !state.nameInput) return;
-		state.nameField.classList.toggle("gpo-editor-field--error", Boolean(message));
-		state.nameError.textContent = message || "";
-		if (message) state.nameInput.setAttribute("aria-invalid", "true");
-		else state.nameInput.removeAttribute("aria-invalid");
-	}
-	function clearFormErrors(state) {
-		state.controls.forEach(function(control) {
-			control.setError("");
-		});
-		setNameError(state, "");
-		state.formElement.classList.remove("gpo-editor-preference-form--invalid");
-		state.validationSlot.textContent = "";
-		state.errorSlot.innerHTML = "";
-	}
-	function markServerFieldError(state, error) {
-		if (!error || !error.field) return;
-		const field = String(error.field);
-		const message = error.message || pt("validationFixErrors");
-		if (field === "name" || field.indexOf("name") !== -1) setNameError(state, message);
-		state.controlsById.forEach(function(controls, id) {
-			if (field === id || field.indexOf(id) !== -1) controls.forEach(function(control) {
-				control.setError(message);
-			});
-		});
-	}
-	//#endregion
 	//#region src/components/templates/preference/view/targeting-modal.js
 	/**
 	* The targeting modal of the preference form: a second dialog over the form (which is dimmed and inert while it
@@ -13616,403 +14150,23 @@
 		};
 	}
 	//#endregion
-	//#region src/components/templates/preference/preferences-view-template.js
-	var nextHeaderOwnerId = 1;
+	//#region src/components/templates/preference/view/item-form.js
 	var PREFERENCE_LAYOUTS = layouts_exports;
-	async function renderPreferencesTemplate(options) {
-		const config = options || {};
-		const item = config.item || {};
-		const documentDto = item.document || {};
-		const root = createElement("div", { className: ["gp__preference", "gpo-editor-preferences"] });
-		const rootElement = root.getElement();
-		const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
-		const headerControls = headerElement ? headerElement.querySelector(".gp__control") : null;
-		const headerActions = headerElement ? headerElement.querySelector(".gp__control-actions") : null;
-		const admxActions = headerElement ? headerElement.querySelector(".gp__control-admx") : null;
-		const helpSeparator = headerElement ? headerElement.querySelector(".gp__control-separator") : null;
-		const createButton$1 = headerControls ? headerControls.querySelector(".preferences__btn-create") : null;
-		const editButton = headerControls ? headerControls.querySelector(".preferences__btn-edit") : null;
-		const deleteButton = headerControls ? headerControls.querySelector(".preferences__btn-delete") : null;
-		const headerOwner = "preferences-" + nextHeaderOwnerId++;
-		let items = [];
-		let selectedIdentity = null;
-		let modalState = null;
-		let opening = false;
-		let pendingDiscard = null;
-		let discardModal = null;
-		const cleanups = [];
-		let formRequestId = 0;
-		let itemsRequestId = 0;
-		let infoRequestId = 0;
-		const itemFieldsCache = /* @__PURE__ */ new Map();
-		let fieldsRequestId = 0;
-		let tableRefreshScheduled = false;
-		let deleting = false;
-		let disposed = false;
-		let tableNavigation;
-		if (headerControls) {
-			headerControls.setAttribute("data-preference-owner", headerOwner);
-			headerControls.style.display = documentDto.editable ? "flex" : "none";
-		}
-		if (headerActions) {
-			headerActions.setAttribute("data-preference-owner", headerOwner);
-			headerActions.style.display = "flex";
-		}
-		if (admxActions) admxActions.style.display = "none";
-		if (helpSeparator) helpSeparator.style.display = "none";
-		function ownsHeader() {
-			return Boolean(headerControls && headerControls.getAttribute("data-preference-owner") === headerOwner);
-		}
-		function setHeaderState() {
-			if (typeof config.onFormStateChange === "function") config.onFormStateChange(Boolean(modalState));
-			if (!ownsHeader()) return;
-			const available = Boolean(documentDto.editable) && !modalState && !opening && !deleting;
-			if (createButton$1) createButton$1.classList.toggle("active", available);
-			if (editButton) editButton.classList.toggle("active", available && selectedIdentity !== null);
-			if (deleteButton) deleteButton.classList.toggle("active", available && selectedIdentity !== null);
-		}
+	/**
+	* The create/edit/view dialog of one preference item: loads the item, builds the fields, tabs and the targeting
+	* modal, tracks the dirty state. Saving and closing are the page's (`saveForm`, `closeForm`).
+	* @param {any} context the page's state and operations (see renderPreferencesTemplate)
+	*/
+	function createItemForm({ closeForm, config, documentDto, infoPanel, item, rootElement, saveForm, setHeaderState, showPageError, view }) {
 		function setOpening(value) {
-			opening = Boolean(value);
-			rootElement.classList.toggle("gpo-editor-preferences--opening", opening);
-			if (opening) rootElement.setAttribute("aria-busy", "true");
+			view.opening = Boolean(value);
+			rootElement.classList.toggle("gpo-editor-preferences--opening", view.opening);
+			if (view.opening) rootElement.setAttribute("aria-busy", "true");
 			else rootElement.removeAttribute("aria-busy");
 			Array.prototype.forEach.call(rootElement.querySelectorAll(".gpo-editor-preference-table__actions button"), function(button) {
-				button.disabled = opening;
+				button.disabled = view.opening;
 			});
 			setHeaderState();
-		}
-		function addListener(target, name, handler) {
-			if (!target) return;
-			target.addEventListener(name, handler);
-			cleanups.push(function() {
-				target.removeEventListener(name, handler);
-			});
-		}
-		function recoveryConflict(response) {
-			const recovery = response && response.recovery;
-			if (!recovery || recovery.kind !== "conflict") return null;
-			const error = /* @__PURE__ */ new Error("Preference publication reconciliation is still conflicted.");
-			error.category = "publication_conflict";
-			error.details = recovery.conflict || null;
-			return error;
-		}
-		async function reconcilePage(event) {
-			if (event && event.currentTarget) event.currentTarget.disabled = true;
-			try {
-				const conflict = recoveryConflict(await reconcile());
-				if (conflict) throw conflict;
-				await loadItems();
-			} catch (error) {
-				showPageError(error);
-			} finally {
-				if (event && event.currentTarget) event.currentTarget.disabled = false;
-			}
-		}
-		function showPageError(error) {
-			const slot = rootElement.querySelector(".gpo-editor-preferences__error");
-			if (!slot) return;
-			slot.innerHTML = "";
-			slot.appendChild(renderError(error, {
-				onRefresh: loadItems,
-				onReconcile: reconcilePage
-			}).getElement());
-		}
-		function renderTable() {
-			const tableSlot = rootElement.querySelector(".gpo-editor-preferences__table");
-			if (!tableSlot) return;
-			const heldFocus = tableSlot.contains(document.activeElement);
-			tableSlot.innerHTML = "";
-			if (!items.length) {
-				tableSlot.appendChild(createElement("div", {
-					className: "gpo-editor-empty",
-					text: pt("emptyItems")
-				}).getElement());
-				if (tableNavigation) {
-					tableNavigation.sync();
-					if (heldFocus) tableNavigation.focusSelected();
-				}
-				return;
-			}
-			const columns = tableColumns(item.preferenceKind);
-			const useTemplate = Boolean(columns);
-			const headerCells = useTemplate ? columns.map(function(column) {
-				return createElement("th", { text: pt(column.labelKey) });
-			}) : [
-				createElement("th", { text: pt("itemColumn") }),
-				createElement("th", { text: pt("filtersColumn") }),
-				createElement("th", { text: pt("actionsColumn") })
-			];
-			function buildDataCells(preferenceItem, index) {
-				if (!useTemplate) return [createElement("td", { text: preferenceItem.label }), createElement("td", { text: preferenceItem.has_filters ? pt("yes") : pt("no") })];
-				return columns.map(function(column) {
-					let text = "";
-					if (column.source === "name") text = preferenceItem.label;
-					else if (column.source === "order") text = String(index + 1);
-					else if (column.source === "field") {
-						const value = cachedFieldValue(preferenceItem.identity, column.field);
-						text = column.format === "action" ? actionLabel(value) : value === null || value === void 0 ? "" : String(value);
-					}
-					return createElement("td", { text });
-				});
-			}
-			function buildActionsCell(preferenceItem) {
-				return createElement("td", {
-					className: "gpo-editor-preference-table__actions",
-					children: [createElement("button", {
-						className: "button",
-						attrs: {
-							type: "button",
-							disabled: opening ? "disabled" : null
-						},
-						text: documentDto.editable ? t("header.edit") : pt("viewTitle"),
-						events: { click: function(event) {
-							event.stopPropagation();
-							selectItem(preferenceItem.identity);
-							openForm(selectedIdentity);
-						} }
-					})]
-				});
-			}
-			const bodyRows = items.map(function(preferenceItem, index) {
-				const selected = selectedIdentity !== null && equal(selectedIdentity, preferenceItem.identity);
-				const cells = buildDataCells(preferenceItem, index);
-				if (!useTemplate) cells.push(buildActionsCell(preferenceItem));
-				const row = createElement("tr", {
-					className: selected ? "active" : null,
-					attrs: {
-						tabindex: "-1",
-						"data-preference-identity": cacheKey(preferenceItem.identity),
-						"aria-selected": selected ? "true" : "false"
-					},
-					children: cells,
-					events: {
-						click: function() {
-							selectItem(preferenceItem.identity);
-							if (tableNavigation) tableNavigation.focusSelected();
-						},
-						dblclick: function() {
-							if (modalState || opening || deleting) return;
-							selectItem(preferenceItem.identity);
-							openForm(selectedIdentity);
-						}
-					}
-				});
-				row.getElement().__preferenceIdentity = preferenceItem.identity;
-				return row;
-			});
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: headerCells })] }), createElement("tbody", { children: bodyRows })]
-			});
-			tableSlot.appendChild(table.getElement());
-			if (tableNavigation) {
-				tableNavigation.sync();
-				if (heldFocus) tableNavigation.focusSelected();
-			}
-		}
-		function selectItem(identity) {
-			selectedIdentity = clone$2(identity);
-			Array.prototype.forEach.call(rootElement.querySelectorAll("[data-preference-identity]"), function(row) {
-				const selected = equal(row.__preferenceIdentity, selectedIdentity);
-				row.classList.toggle("active", selected);
-				row.setAttribute("aria-selected", selected ? "true" : "false");
-			});
-			if (tableNavigation) tableNavigation.sync();
-			setHeaderState();
-			requestInfoPanel(selectedIdentity);
-		}
-		function focusTable() {
-			if (!disposed && (typeof config.isCurrent !== "function" || config.isCurrent()) && tableNavigation) tableNavigation.focusSelected();
-		}
-		function cacheKey(identity) {
-			return JSON.stringify(identity);
-		}
-		function cachedFieldValue(identity, fieldId) {
-			const fields = itemFieldsCache.get(cacheKey(identity));
-			if (!fields) return "";
-			return itemFieldValue({ fields }, fieldId);
-		}
-		function scheduleTableRefresh() {
-			if (tableRefreshScheduled) return;
-			tableRefreshScheduled = true;
-			const run = function() {
-				tableRefreshScheduled = false;
-				if (typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				renderTable();
-			};
-			if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(run);
-			else setTimeout(run, 16);
-		}
-		function ensureItemFields(identity) {
-			const key = cacheKey(identity);
-			if (itemFieldsCache.has(key)) return Promise.resolve(itemFieldsCache.get(key));
-			const startedGeneration = fieldsRequestId;
-			return preferenceShow(item.scope, item.preferenceKind, clone$2(identity)).then(function(response) {
-				if (startedGeneration !== fieldsRequestId) return null;
-				const fields = clone$2(response.fields || response.new_item_fields || []).map(function(field) {
-					return scopeField(field, item.scope);
-				});
-				itemFieldsCache.set(key, fields);
-				return fields;
-			});
-		}
-		function prefetchTableFields() {
-			const generation = ++fieldsRequestId;
-			items.forEach(function(preferenceItem) {
-				if (preferenceItem.identity === null || preferenceItem.identity === void 0) return;
-				if (itemFieldsCache.has(cacheKey(preferenceItem.identity))) return;
-				ensureItemFields(preferenceItem.identity).then(function(fields) {
-					if (!fields) return;
-					if (generation !== fieldsRequestId) return;
-					if (typeof config.isCurrent === "function" && !config.isCurrent()) return;
-					scheduleTableRefresh();
-				});
-			});
-		}
-		function invalidateCachedFields(identity) {
-			itemFieldsCache.delete(cacheKey(identity));
-			fieldsRequestId += 1;
-		}
-		async function loadItems() {
-			const requestId = ++itemsRequestId;
-			try {
-				const response = await preferenceItems(item.scope, item.preferenceKind);
-				if (requestId !== itemsRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				items = listFrom(response, "items");
-				if (selectedIdentity !== null && !items.some(function(entry) {
-					return equal(entry.identity, selectedIdentity);
-				})) selectedIdentity = null;
-				const errorSlot = rootElement.querySelector(".gpo-editor-preferences__error");
-				if (errorSlot) errorSlot.innerHTML = "";
-				renderTable();
-				setHeaderState();
-				prefetchTableFields();
-				if (selectedIdentity !== null) requestInfoPanel(selectedIdentity);
-				else resetInfoPanel();
-			} catch (error) {
-				if (requestId !== itemsRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				showPageError(error);
-			}
-		}
-		function buildInfoPanel() {
-			const info = createElement("div", { className: ["preference__info", config.isHelpOpen ? "is-open" : null] });
-			const settings = createElement("div", { className: "preference__settings" });
-			settings.append(createElement("div", {
-				className: "preference__settings-title",
-				text: pt("settingsTitle")
-			}));
-			settings.append(createElement("div", { className: "preference__settings-data" }));
-			info.append(settings);
-			const description = createElement("div", { className: "preference__description" });
-			description.append(createElement("div", {
-				className: "preference__description-title",
-				text: pt("descriptionTitle")
-			}));
-			description.append(createElement("div", {
-				className: ["preference__description-data", "empty"],
-				text: pt("noDescription")
-			}));
-			info.append(description);
-			return info;
-		}
-		function settingsItems() {
-			return [
-				{
-					id: "metadata.bypassErrors",
-					label: pt("settingBypassErrors")
-				},
-				{
-					id: "metadata.removePolicy",
-					label: pt("settingRemovePolicy")
-				},
-				{
-					id: "properties.disabled",
-					label: pt("settingDisabled")
-				}
-			];
-		}
-		function fieldCheckedState(field) {
-			const v = field && field.value;
-			const raw = v && typeof v === "object" ? v.value : v;
-			if (raw === null || raw === void 0) return null;
-			if (raw === true || raw === 1) return true;
-			if (raw === false || raw === 0) return false;
-			return Boolean(raw);
-		}
-		function fieldText(field) {
-			const v = field && field.value;
-			const raw = v && typeof v === "object" ? v.value : v;
-			if (Array.isArray(raw)) return raw.join("\n");
-			return raw === null || raw === void 0 ? "" : String(raw);
-		}
-		function renderInfoPanel(fields) {
-			const dataSlot = rootElement.querySelector(".preference__settings-data");
-			const descSlot = rootElement.querySelector(".preference__description-data");
-			if (!dataSlot || !descSlot) return;
-			const byId = /* @__PURE__ */ new Map();
-			(Array.isArray(fields) ? fields : []).forEach(function(field) {
-				if (field && field.id !== void 0 && !byId.has(field.id)) byId.set(field.id, field);
-			});
-			dataSlot.innerHTML = "";
-			settingsItems().forEach(function(spec) {
-				const field = byId.get(spec.id);
-				const label = field && field.label || spec.label;
-				const value = fieldCheckedState(field);
-				dataSlot.appendChild(createElement("div", {
-					className: "preference__settings-item",
-					children: [createElement("div", {
-						className: "preference__settings-name",
-						text: label + ":"
-					}), createElement("div", {
-						className: "preference__settings-value",
-						text: value === null ? "" : value ? pt("yes") : pt("no")
-					})]
-				}).getElement());
-			});
-			const descText = fieldText(byId.get("metadata.desc"));
-			descSlot.innerHTML = "";
-			if (descText) {
-				descSlot.classList.remove("empty");
-				descSlot.textContent = descText;
-			} else {
-				descSlot.classList.add("empty");
-				descSlot.textContent = pt("noDescription");
-			}
-		}
-		function resetInfoPanel() {
-			renderInfoPanel([]);
-		}
-		async function requestInfoPanel(identity) {
-			const requestId = ++infoRequestId;
-			try {
-				const fields = await ensureItemFields(identity);
-				if (requestId !== infoRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				if (fields) renderInfoPanel(fields);
-				else resetInfoPanel();
-			} catch (error) {
-				if (requestId !== infoRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				resetInfoPanel();
-			}
-		}
-		function renderShell() {
-			rootElement.innerHTML = "";
-			const dataTable = createElement("div", { className: "preference__data-table" });
-			dataTable.append(createElement("div", {
-				className: "gpo-editor-preferences__header",
-				children: [config.hideHeading ? null : createElement("h2", {
-					text: config.categoryPath || documentDto.label || item.preferenceKind,
-					attrs: { "data-category-path": "" }
-				}), createElement("div", {
-					className: ["gpo-editor-document-state", documentDto.editable ? null : "gpo-editor-document-state--readonly"],
-					text: documentDto.editable ? pt("documentEditable") : pt("documentReadOnly")
-				})]
-			}));
-			dataTable.append(createElement("div", { className: "gpo-editor-preferences__error" }));
-			dataTable.append(createElement("div", { className: "gpo-editor-preferences__table" }));
-			if (!config.modalHost) dataTable.append(createElement("div", { className: "gpo-editor-preferences__modal-host" }));
-			rootElement.appendChild(dataTable.getElement());
-			rootElement.appendChild(buildInfoPanel().getElement());
-			resetInfoPanel();
 		}
 		function buildFilterEditor(showResult, formState, readonly) {
 			return render$1({
@@ -14029,22 +14183,22 @@
 		async function openForm(identity) {
 			const creating = identity === null || identity === void 0;
 			if (creating && !documentDto.editable) return;
-			if (opening) return false;
-			if (modalState && !closeForm(false, "close")) return;
+			if (view.opening) return false;
+			if (view.modalState && !closeForm(false, "close")) return;
 			const host = config.modalHost || rootElement.querySelector(".gpo-editor-preferences__modal-host");
 			if (!host) return;
-			const requestId = ++formRequestId;
+			const requestId = ++view.formRequestId;
 			setOpening(true);
 			try {
 				const response = await preferenceShow(item.scope, item.preferenceKind, identity);
-				if (requestId !== formRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				if (requestId !== view.formRequestId || typeof config.isCurrent === "function" && !config.isCurrent()) return;
 				const readonly = !documentDto.editable;
 				const fields = clone$2(creating ? response.new_item_fields || response.fields || [] : response.fields || []).map(function(field) {
 					return scopeField(field, item.scope);
 				});
 				if (!creating) {
-					infoRequestId += 1;
-					renderInfoPanel(fields);
+					infoPanel.invalidate();
+					infoPanel.render(fields);
 				}
 				const parentCandidates = creating && Array.isArray(response.parent_candidates) ? clone$2(response.parent_candidates) : [];
 				const controls = [];
@@ -14220,7 +14374,7 @@
 				host.appendChild(formShell.host);
 				host.classList.add("active");
 				form.getElement().classList.add("active");
-				modalState = {
+				view.modalState = {
 					creating,
 					readonly,
 					identity: clone$2(identity),
@@ -14245,14 +14399,14 @@
 					requiresRefresh: false,
 					blockedDescriptors: false
 				};
-				if (modalState.nameInput && !readonly) modalState.nameInput.addEventListener("input", function() {
-					if (modalState.nameError.textContent) setNameError(modalState, "");
+				if (view.modalState.nameInput && !readonly) view.modalState.nameInput.addEventListener("input", function() {
+					if (view.modalState.nameError.textContent) setNameError(view.modalState, "");
 				});
 				const duplicates = preferenceFieldIds(fields).duplicates;
 				if (!readonly && duplicates.length) {
-					modalState.blockedDescriptors = true;
-					modalState.formElement.classList.add("gpo-editor-preference-form--invalid");
-					modalState.validationSlot.textContent = pt("validationFixErrors");
+					view.modalState.blockedDescriptors = true;
+					view.modalState.formElement.classList.add("gpo-editor-preference-form--invalid");
+					view.modalState.validationSlot.textContent = pt("validationFixErrors");
 					duplicates.forEach(function(id) {
 						(controlsById.get(id) || []).forEach(function(control) {
 							control.setError(pt("validationFixErrors"));
@@ -14261,253 +14415,279 @@
 				}
 				const dependencyRules = dependencyRulesFor(item.preferenceKind);
 				if (dependencyRules.length && !readonly) {
-					const dependencies = attachFieldDependencies(modalState.formElement, controlsById, dependencyRules);
-					modalState.dependencyDisabledIds = dependencies.disabledIds;
+					const dependencies = attachFieldDependencies(view.modalState.formElement, controlsById, dependencyRules);
+					view.modalState.dependencyDisabledIds = dependencies.disabledIds;
 					dependencies.sync();
 				}
-				syncFormBusy(modalState);
+				syncFormBusy(view.modalState);
 				setHeaderState();
 			} catch (error) {
-				if (requestId === formRequestId) showPageError(error);
+				if (requestId === view.formRequestId) showPageError(error);
 			} finally {
-				if (requestId === formRequestId) setOpening(false);
+				if (requestId === view.formRequestId) setOpening(false);
 			}
 		}
-		function showDiscardModal(action) {
-			if (discardModal) return;
-			pendingDiscard = { action };
-			if (modalState && modalState.formElement) {
-				modalState.formElement.classList.add("gpo-editor-preference-form--confirming");
-				if (modalState.formElement.closest("[data-dialog-host]")) {
-					const targettingModal = modalState.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
-					if (targettingModal) targettingModal.classList.add("gpo-editor-preference-form--confirming");
-				}
-			}
-			discardModal = open$3(config.modalHost || rootElement, {
-				message: pt(action === "cancel" ? "confirmCancelDiscard" : "confirmCloseDiscard"),
-				onCancel: function() {
-					handleDiscardModalChoice(false);
+		return { openForm };
+	}
+	//#endregion
+	//#region src/components/templates/preference/view/info-panel.js
+	/**
+	* The info panel under the preferences table: switches and description of the selected item.
+	* `request(identity)` loads the item's fields and shows them; a newer request or `invalidate()` drops a stale answer.
+	* @param {{ config: any, rootElement: HTMLElement, ensureItemFields: (identity: any) => Promise<any> }} context
+	*/
+	function createInfoPanel({ config, rootElement, ensureItemFields }) {
+		let requestCounter = 0;
+		function buildInfoPanel() {
+			const info = createElement("div", { className: ["preference__info", config.isHelpOpen ? "is-open" : null] });
+			const settings = createElement("div", { className: "preference__settings" });
+			settings.append(createElement("div", {
+				className: "preference__settings-title",
+				text: pt("settingsTitle")
+			}));
+			settings.append(createElement("div", { className: "preference__settings-data" }));
+			info.append(settings);
+			const description = createElement("div", { className: "preference__description" });
+			description.append(createElement("div", {
+				className: "preference__description-title",
+				text: pt("descriptionTitle")
+			}));
+			description.append(createElement("div", {
+				className: ["preference__description-data", "empty"],
+				text: pt("noDescription")
+			}));
+			info.append(description);
+			return info;
+		}
+		function settingsItems() {
+			return [
+				{
+					id: "metadata.bypassErrors",
+					label: pt("settingBypassErrors")
 				},
-				onConfirm: function() {
-					handleDiscardModalChoice(true);
+				{
+					id: "metadata.removePolicy",
+					label: pt("settingRemovePolicy")
+				},
+				{
+					id: "properties.disabled",
+					label: pt("settingDisabled")
 				}
-			});
+			];
 		}
-		function hideDiscardModal() {
-			if (discardModal) {
-				discardModal.close();
-				discardModal = null;
+		function fieldCheckedState(field) {
+			const v = field && field.value;
+			const raw = v && typeof v === "object" ? v.value : v;
+			if (raw === null || raw === void 0) return null;
+			if (raw === true || raw === 1) return true;
+			if (raw === false || raw === 0) return false;
+			return Boolean(raw);
+		}
+		function fieldText(field) {
+			const v = field && field.value;
+			const raw = v && typeof v === "object" ? v.value : v;
+			if (Array.isArray(raw)) return raw.join("\n");
+			return raw === null || raw === void 0 ? "" : String(raw);
+		}
+		function renderInfoPanel(fields) {
+			const dataSlot = rootElement.querySelector(".preference__settings-data");
+			const descSlot = rootElement.querySelector(".preference__description-data");
+			if (!dataSlot || !descSlot) return;
+			const byId = /* @__PURE__ */ new Map();
+			(Array.isArray(fields) ? fields : []).forEach(function(field) {
+				if (field && field.id !== void 0 && !byId.has(field.id)) byId.set(field.id, field);
+			});
+			dataSlot.innerHTML = "";
+			settingsItems().forEach(function(spec) {
+				const field = byId.get(spec.id);
+				const label = field && field.label || spec.label;
+				const value = fieldCheckedState(field);
+				dataSlot.appendChild(createElement("div", {
+					className: "preference__settings-item",
+					children: [createElement("div", {
+						className: "preference__settings-name",
+						text: label + ":"
+					}), createElement("div", {
+						className: "preference__settings-value",
+						text: value === null ? "" : value ? pt("yes") : pt("no")
+					})]
+				}).getElement());
+			});
+			const descText = fieldText(byId.get("metadata.desc"));
+			descSlot.innerHTML = "";
+			if (descText) {
+				descSlot.classList.remove("empty");
+				descSlot.textContent = descText;
+			} else {
+				descSlot.classList.add("empty");
+				descSlot.textContent = pt("noDescription");
 			}
-			const confirmingForms = (config.modalHost || rootElement).querySelectorAll(".gpo-editor-preference-form--confirming");
-			Array.prototype.forEach.call(confirmingForms, function(formElement) {
-				formElement.classList.remove("gpo-editor-preference-form--confirming");
-			});
 		}
-		function handleDiscardModalChoice(confirmed) {
-			const pending = pendingDiscard;
-			pendingDiscard = null;
-			hideDiscardModal();
-			if (!confirmed || !pending) return;
-			closeForm(true, pending.action);
+		function resetInfoPanel() {
+			renderInfoPanel([]);
 		}
-		function closeHostModals(host) {
-			host.classList.remove("active");
-			const modals = Array.prototype.slice.call(host.children);
-			modals.forEach(function(element) {
-				Array.prototype.forEach.call(element.querySelectorAll("[data-dialog].active"), function(dialog) {
-					dialog.classList.remove("active");
-				});
-			});
-			setTimeout(function() {
-				modals.forEach(function(element) {
-					if (!element.querySelector("[data-dialog].active") && element.parentNode === host) host.removeChild(element);
-				});
-			}, 500);
-		}
-		function closeForm(force, action) {
-			const state = modalState;
-			if (state && (state.saving || state.reconciling) && action !== "saved" && action !== "cleanup") return false;
-			if (!force && state && state.formState.dirty) {
-				if (pendingDiscard) return false;
-				showDiscardModal(action);
-				return false;
+		async function requestInfoPanel(identity) {
+			const requestId = ++requestCounter;
+			try {
+				const fields = await ensureItemFields(identity);
+				if (requestId !== requestCounter || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				if (fields) renderInfoPanel(fields);
+				else resetInfoPanel();
+			} catch (error) {
+				if (requestId !== requestCounter || typeof config.isCurrent === "function" && !config.isCurrent()) return;
+				resetInfoPanel();
 			}
-			pendingDiscard = null;
-			hideDiscardModal();
-			formRequestId += 1;
-			const host = config.modalHost || rootElement.querySelector(".gpo-editor-preferences__modal-host");
-			if (host) closeHostModals(host);
-			modalState = null;
-			setHeaderState();
-			if (action !== "cleanup" && action !== "navigation") focusTable();
-			return true;
 		}
-		function renderFormError(state, error) {
-			if (modalState !== state) return;
-			state.errorSlot.innerHTML = "";
-			const category = errorCategory(error).replace(/-/g, "_");
-			const actions = { onReconcile: async function(event) {
-				if (state.reconciling || state.saving) return;
-				const button = event && event.currentTarget;
-				if (button) button.disabled = true;
-				state.reconciling = true;
-				syncFormBusy(state);
-				try {
-					const conflict = recoveryConflict(await reconcile());
-					if (conflict) throw conflict;
-					if (modalState === state) {
-						state.requiresRefresh = true;
-						renderReconcileSuccess(state);
-						await loadItems();
-					}
-				} catch (reconcileError) {
-					renderFormError(state, reconcileError);
-				} finally {
-					state.reconciling = false;
-					syncFormBusy(state);
-					if (button && modalState === state) button.disabled = false;
-				}
-			} };
-			if (category === "storage_conflict" || category === "publication_conflict" || category === "not_found") actions.onRefresh = function() {
-				if (!window.confirm(pt("confirmRefreshDiscard"))) return;
-				closeForm(true);
-				loadItems();
-			};
-			state.errorSlot.appendChild(renderError(error, actions).getElement());
-			markServerFieldError(state, error);
-			syncFormBusy(state);
+		return {
+			build: buildInfoPanel,
+			render: renderInfoPanel,
+			reset: resetInfoPanel,
+			request: requestInfoPanel,
+			invalidate() {
+				requestCounter += 1;
+			}
+		};
+	}
+	//#endregion
+	//#region src/components/templates/preference/preferences-view-template.js
+	var nextHeaderOwnerId = 1;
+	async function renderPreferencesTemplate(options) {
+		const config = options || {};
+		const item = config.item || {};
+		const documentDto = item.document || {};
+		const root = createElement("div", { className: ["gp__preference", "gpo-editor-preferences"] });
+		const rootElement = root.getElement();
+		const headerElement = config.header && config.header.getElement ? config.header.getElement() : null;
+		const headerControls = headerElement ? headerElement.querySelector(".gp__control") : null;
+		const headerActions = headerElement ? headerElement.querySelector(".gp__control-actions") : null;
+		const admxActions = headerElement ? headerElement.querySelector(".gp__control-admx") : null;
+		const helpSeparator = headerElement ? headerElement.querySelector(".gp__control-separator") : null;
+		const createButton = headerControls ? headerControls.querySelector(".preferences__btn-create") : null;
+		const editButton = headerControls ? headerControls.querySelector(".preferences__btn-edit") : null;
+		const deleteButton = headerControls ? headerControls.querySelector(".preferences__btn-delete") : null;
+		const headerOwner = "preferences-" + nextHeaderOwnerId++;
+		const cleanups = [];
+		const itemFieldsCache = /* @__PURE__ */ new Map();
+		if (headerControls) {
+			headerControls.setAttribute("data-preference-owner", headerOwner);
+			headerControls.style.display = documentDto.editable ? "flex" : "none";
 		}
-		function renderReconcileSuccess(state) {
-			if (modalState !== state) return;
-			state.errorSlot.innerHTML = "";
-			state.errorSlot.appendChild(createElement("div", {
-				className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--info"],
-				attrs: { role: "status" },
-				children: [createElement("span", { text: pt("reconcileSucceededRefresh") }), createElement("button", {
-					className: "button",
-					attrs: {
-						type: "button",
-						"data-editor-status-action": ""
-					},
-					text: pt("refresh"),
-					events: { click: function() {
-						if (!window.confirm(pt("confirmRefreshDiscard"))) return;
-						closeForm(true, "refresh");
-						loadItems();
-					} }
+		if (headerActions) {
+			headerActions.setAttribute("data-preference-owner", headerOwner);
+			headerActions.style.display = "flex";
+		}
+		if (admxActions) admxActions.style.display = "none";
+		if (helpSeparator) helpSeparator.style.display = "none";
+		const view = {
+			items: [],
+			selectedIdentity: null,
+			modalState: null,
+			opening: false,
+			pendingDiscard: null,
+			discardModal: null,
+			formRequestId: 0,
+			itemsRequestId: 0,
+			fieldsRequestId: 0,
+			tableRefreshScheduled: false,
+			deleting: false,
+			disposed: false,
+			tableNavigation: void 0
+		};
+		function ownsHeader() {
+			return Boolean(headerControls && headerControls.getAttribute("data-preference-owner") === headerOwner);
+		}
+		function setHeaderState() {
+			if (typeof config.onFormStateChange === "function") config.onFormStateChange(Boolean(view.modalState));
+			if (!ownsHeader()) return;
+			const available = Boolean(documentDto.editable) && !view.modalState && !view.opening && !view.deleting;
+			if (createButton) createButton.classList.toggle("active", available);
+			if (editButton) editButton.classList.toggle("active", available && view.selectedIdentity !== null);
+			if (deleteButton) deleteButton.classList.toggle("active", available && view.selectedIdentity !== null);
+		}
+		function addListener(target, name, handler) {
+			if (!target) return;
+			target.addEventListener(name, handler);
+			cleanups.push(function() {
+				target.removeEventListener(name, handler);
+			});
+		}
+		const infoPanel = createInfoPanel({
+			config,
+			rootElement,
+			ensureItemFields: (identity) => table.ensureItemFields(identity)
+		});
+		const table = createItemsTable({
+			config,
+			documentDto,
+			infoPanel,
+			item,
+			itemFieldsCache,
+			openForm: (identity) => openForm(identity),
+			rootElement,
+			setHeaderState,
+			showPageError: (error) => actions.showPageError(error),
+			view
+		});
+		const { renderTable, selectItem, focusTable, cacheKey, invalidateCachedFields, loadItems } = table;
+		function renderShell() {
+			rootElement.innerHTML = "";
+			const dataTable = createElement("div", { className: "preference__data-table" });
+			dataTable.append(createElement("div", {
+				className: "gpo-editor-preferences__header",
+				children: [config.hideHeading ? null : createElement("h2", {
+					text: config.categoryPath || documentDto.label || item.preferenceKind,
+					attrs: { "data-category-path": "" }
+				}), createElement("div", {
+					className: ["gpo-editor-document-state", documentDto.editable ? null : "gpo-editor-document-state--readonly"],
+					text: documentDto.editable ? pt("documentEditable") : pt("documentReadOnly")
 				})]
-			}).getElement());
-			syncFormBusy(state);
+			}));
+			dataTable.append(createElement("div", { className: "gpo-editor-preferences__error" }));
+			dataTable.append(createElement("div", { className: "gpo-editor-preferences__table" }));
+			if (!config.modalHost) dataTable.append(createElement("div", { className: "gpo-editor-preferences__modal-host" }));
+			rootElement.appendChild(dataTable.getElement());
+			rootElement.appendChild(infoPanel.build().getElement());
+			infoPanel.reset();
 		}
-		async function saveForm() {
-			if (!modalState || modalState.readonly) return true;
-			const state = modalState;
-			if (state.saving || state.reconciling || state.requiresRefresh || state.blockedDescriptors) return false;
-			clearFormErrors(state);
-			const draftFields = state.controls.map(function(control) {
-				return {
-					id: control.id,
-					value: control.read()
-				};
-			});
-			const filterResult = state.formState.readFilterResult();
-			const result = buildPreferenceRequest({
-				creating: state.creating,
-				identity: state.identity,
-				descriptors: state.descriptors,
-				fields: draftFields,
-				name: state.nameInput ? state.nameInput.value : null,
-				originalName: state.originalName,
-				parent: state.parentSelect ? preferenceParentIdentity(state.parentCandidates, state.parentSelect.value) : null,
-				filters: filterResult.operations,
-				validationExemptions: state.dependencyDisabledIds || []
-			});
-			const errors = result.errors.concat(filterResult.errors || []);
-			if (errors.length) {
-				state.formElement.classList.add("gpo-editor-preference-form--invalid");
-				state.validationSlot.textContent = pt("validationFixErrors");
-				let firstControl = null;
-				errors.forEach(function(error) {
-					if (error.path) return;
-					if (error.id === "name") {
-						setNameError(state, validationMessage(error.code));
-						if (!firstControl && state.nameInput) firstControl = state.nameInput;
-						return;
-					}
-					(state.controlsById.get(error.id) || []).forEach(function(control) {
-						control.setError(validationMessage(error.code));
-						if (!firstControl) firstControl = control;
-					});
-				});
-				if (firstControl && typeof firstControl.focus === "function") firstControl.focus();
-				return false;
-			}
-			if (!result.request) {
-				closeForm(true, "saved");
-				return true;
-			}
-			state.saving = true;
-			syncFormBusy(state);
-			state.saveButton.textContent = pt("saving");
-			try {
-				const response = state.creating ? await preferenceCreate(item.scope, item.preferenceKind, result.request) : await preferenceUpdate(item.scope, item.preferenceKind, result.request);
-				const conflict = recoveryConflict(response);
-				if (conflict) throw conflict;
-				if (!state.creating) invalidateCachedFields(state.identity);
-				closeForm(true, "saved");
-				await loadItems();
-				if (typeof config.onSaved === "function") config.onSaved(response);
-				return true;
-			} catch (error) {
-				renderFormError(state, error);
-				return false;
-			} finally {
-				state.saving = false;
-				if (modalState === state) {
-					state.saveButton.textContent = pt("save");
-					syncFormBusy(state);
-				}
-			}
-		}
-		async function deleteSelected() {
-			if (!documentDto.editable || selectedIdentity === null || modalState || opening || deleting || disposed) return;
-			if (!window.confirm(pt("confirmDelete"))) return;
-			const identity = clone$2(selectedIdentity);
-			const before = items.map(function(entry) {
-				return cacheKey(entry.identity);
-			});
-			let removed = false;
-			deleting = true;
-			setHeaderState();
-			if (deleteButton) deleteButton.disabled = true;
-			try {
-				const response = await preferenceDelete(item.scope, item.preferenceKind, identity);
-				invalidateCachedFields(identity);
-				await loadItems();
-				if (disposed || typeof config.isCurrent === "function" && !config.isCurrent()) return;
-				const next = neighbor(before, [cacheKey(identity)], items.map(function(entry) {
-					return cacheKey(entry.identity);
-				}));
-				const survivor = items.find(function(entry) {
-					return cacheKey(entry.identity) === next;
-				});
-				selectedIdentity = survivor ? clone$2(survivor.identity) : null;
-				renderTable();
-				setHeaderState();
-				removed = true;
-				if (typeof config.onSaved === "function") config.onSaved(response);
-			} catch (error) {
-				showPageError(error);
-			} finally {
-				deleting = false;
-				setHeaderState();
-				if (deleteButton && ownsHeader()) deleteButton.disabled = false;
-				if (removed && !disposed && (typeof config.isCurrent !== "function" || config.isCurrent())) focusTable();
-			}
-		}
+		const { closeForm } = createFormLifecycle({
+			config,
+			rootElement,
+			view,
+			focusTable,
+			setHeaderState
+		});
+		const actions = createPageActions({
+			cacheKey,
+			closeForm,
+			config,
+			deleteButton,
+			documentDto,
+			focusTable,
+			invalidateCachedFields,
+			item,
+			loadItems,
+			ownsHeader,
+			renderTable,
+			rootElement,
+			setHeaderState,
+			view
+		});
+		const { showPageError, saveForm, deleteSelected } = actions;
+		const { openForm } = createItemForm({
+			closeForm,
+			config,
+			documentDto,
+			infoPanel,
+			item,
+			rootElement,
+			saveForm,
+			setHeaderState,
+			showPageError,
+			view
+		});
 		renderShell();
 		const tableSlot = rootElement.querySelector(".gpo-editor-preferences__table");
-		tableNavigation = bind$1(tableSlot, {
+		view.tableNavigation = bind$1(tableSlot, {
 			rows: function() {
 				return Array.from(tableSlot.querySelectorAll("[data-preference-identity]"));
 			},
@@ -14527,35 +14707,35 @@
 				return Boolean(documentDto.editable);
 			},
 			busy: function() {
-				return disposed || opening || deleting || Boolean(modalState);
+				return view.disposed || view.opening || view.deleting || Boolean(view.modalState);
 			}
 		});
 		setHeaderState();
-		addListener(createButton$1, "click", function() {
-			if (createButton$1.classList.contains("active")) openForm(null);
+		addListener(createButton, "click", function() {
+			if (createButton.classList.contains("active")) openForm(null);
 		});
 		addListener(editButton, "click", function() {
-			if (editButton.classList.contains("active")) openForm(selectedIdentity);
+			if (editButton.classList.contains("active")) openForm(view.selectedIdentity);
 		});
 		addListener(deleteButton, "click", function() {
 			if (deleteButton.classList.contains("active")) deleteSelected();
 		});
 		await loadItems();
 		root.hasUnsavedChanges = function() {
-			return Boolean(modalState && (modalState.formState.dirty || modalState.saving || modalState.reconciling || modalState.requiresRefresh));
+			return Boolean(view.modalState && (view.modalState.formState.dirty || view.modalState.saving || view.modalState.reconciling || view.modalState.requiresRefresh));
 		};
 		root.applyChanges = saveForm;
 		root.isBusy = function() {
-			return Boolean(modalState && (modalState.saving || modalState.reconciling));
+			return Boolean(view.modalState && (view.modalState.saving || view.modalState.reconciling));
 		};
 		root.cancelChanges = function() {
 			return closeForm(true, "navigation");
 		};
 		root.cleanup = function() {
-			disposed = true;
-			tableNavigation.cleanup();
-			itemsRequestId += 1;
-			formRequestId += 1;
+			view.disposed = true;
+			view.tableNavigation.cleanup();
+			view.itemsRequestId += 1;
+			view.formRequestId += 1;
 			cleanups.splice(0).forEach(function(cleanup) {
 				cleanup();
 			});
@@ -14564,7 +14744,7 @@
 				headerControls.style.display = "none";
 				headerControls.removeAttribute("data-preference-owner");
 				[
-					createButton$1,
+					createButton,
 					editButton,
 					deleteButton
 				].forEach(function(button) {
