@@ -12,18 +12,19 @@ function eventLabel(event) {
     );
 }
 
-function nameCell(label, icon) {
-    return createElement('td', {
+/** The icon and the name in a table cell (the content of a `td`). */
+function nameContent(label, icon) {
+    return createElement('span', {
+        className: 'gpo-catalog-name',
         children: [
-            createElement('span', {
-                className: 'gpo-catalog-name',
-                children: [
-                    createElement('span', { className: ['icon', icon], attrs: { 'aria-hidden': 'true' } }),
-                    createElement('span', { text: label })
-                ]
-            })
+            createElement('span', { className: ['icon', icon], attrs: { 'aria-hidden': 'true' } }),
+            createElement('span', { text: label })
         ]
-    });
+    }).getElement();
+}
+
+function nameCell(label, icon) {
+    return createElement('td', { children: [nameContent(label, icon)] });
 }
 
 function assetIcon(name) {
@@ -91,7 +92,7 @@ function saveDownloadedAsset(asset) {
     }, 0);
 }
 
-export { st, eventLabel, nameCell, assetIcon, button, fileBase64, saveDownloadedAsset };
+export { st, eventLabel, nameContent, nameCell, assetIcon, button, fileBase64, saveDownloadedAsset };
 
 // Header controls are shared between the editors on one page; each takes a fresh owner id.
 let headerOwners = 1;

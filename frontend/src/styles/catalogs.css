@@ -51,7 +51,7 @@
 .gp__container :is(.gpo-catalog-table, .gpo-collection-table):focus-within tbody tr.active,
 .gp__container .gp__list-children__list:focus-within .workspace-list-item.active,
 .gp__container .gpo-editor-filters__tree:focus-within .gpo-editor-filter-node.active {
-  color: var(--gpui-accent);
+  color: var(--gpui-accent-text);
   box-shadow: inset 3px 0 var(--gpui-accent);
 }
 .gp__container :is(.workspace-list-item, .gpo-editor-filter-node):focus-visible,

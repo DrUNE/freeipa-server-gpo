@@ -181,7 +181,7 @@ integration tests/integration/dialogs-visual` и просмотреть разн
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 419 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 428 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

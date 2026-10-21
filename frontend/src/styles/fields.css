@@ -237,7 +237,7 @@
     transition: color 0.3s ease-in-out;
   }
   .gp__container .button.active:hover {
-    color: var(--gpui-accent);
+    color: var(--gpui-accent-text);
   }
 }
 .gp__preference {

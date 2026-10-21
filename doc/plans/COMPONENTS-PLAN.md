@@ -37,8 +37,8 @@ In the order of use: the first ones appear in the most screens and give the most
 
 | # | Component | Taken from | PatternFly / webui counterpart | Days |
 |---|---|---|---|---|
-| 1 | `Toolbar` (buttons with an active state, separators, overflow) | `header/header.js`, the toolbars of scripts, targeting, preferences, security | `Toolbar` | 1-2 |
-| 2 | `DataTable` (columns, single and multiple selection, roving focus from `list-navigation.js`, empty and loading states) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, the catalog tables | `Table`, webui `TableLayout` | 3-4 |
+| 1 | ✅ `Toolbar` (buttons with an active state, separators, overflow) | `header/header.js`, the toolbars of scripts, targeting, preferences, security | `Toolbar` | 1-2 |
+| 2 | ✅ `DataTable` (columns, single and multiple selection, roving focus from `list-navigation.js`, empty and loading states) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, the catalog tables | `Table`, webui `TableLayout` | 3-4 |
 | 3 | `Field` + `FieldControl` by kind (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, read-only, error, hint) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
 | 4 | `Tabs` | `preference/view/field-tabs.js` | `Tabs`, webui `TabLayout` | 1 |
 | 5 | `TreeView` (expand, select, keyboard, lazy children) | `tree-view/*` | `TreeView` | 2-3 |
@@ -100,7 +100,7 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 | Step | What | Days |
 |---|---|---|
 | 1 | ✅ Storybook infrastructure: the fake RPC (the mock server of the stand, whose answers are checked against the reference answers), the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
-| 2 | Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
+| 2 | ✅ Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
 | 3 | Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
 | 4 | Components 3-8 with stories | 9-12 |
 | 5 | Screen stories for Security, ADMX, the preference form, the tree | 3-4 |
@@ -114,6 +114,8 @@ scenarios); `Foundations/Tokens` and `Infrastructure/Fake RPC` (`src/util/API.st
 runs in every story test with `a11y.test: 'error'`. Its first run found a real defect: the action buttons of `EditorStatus`
 (Refresh, Reconcile) were rendered in the editor's disabled grey (contrast 1.4:1) because the global `.button` is grey until it
 is `.active`; they now have their own look.
+
+**Step 2 is done for the scripts screen.** `Toolbar` (a `role="group"` of buttons; `setToolbarItem` keeps `disabled` and the global `.active` look together) and `DataTable` (markup, selection marks, empty row; `setSelectedRows`; keyboard movement stays in `list-navigation.js`) are used by `script/entries-panel.js` and `script/assets-panel.js`; their tables and toolbars keep the legacy classes for the look (`preference__table gpo-catalog-table`, `gpo-editor-scripts__toolbar`), so the geometry tests did not change. Still on the old code: the preference items table, the catalog tables, the toolbars of security, audit and targeting. The accessibility checks of the new stories found two more contrast defects, fixed in the tokens: `--gpui-muted` was 3.3:1 (now `#6a6e73`, 4.7:1 and better) and the accent as a text color was 4.0-4.4:1 (new `--gpui-accent-text`, used for selected and hovered controls).
 
 ## 7. What not to do
 
