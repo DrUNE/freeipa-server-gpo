@@ -667,33 +667,7 @@
 .gp__preference .preference__table tr.active {
   background-color: #f5f5f5;
 }
-.gp__preference .preference__modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  opacity: 0;
-  transition: 0.5s all;
-  z-index: 100;
-  border: 1px solid #d1d1d1;
-  background-color: #fff;
-  border-radius: 3px;
-  overflow: hidden;
 
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
-}
-
-.gp__preference .preference__modal .button{
-  all: unset;
-  border: 1px solid #d1d1d1;
-  width: 80px;
-  height: 25px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-}
 
 .gpo-editor-preferences__modal-host {
   position: fixed;
@@ -707,54 +681,6 @@
 .gpo-editor-preferences__modal-host.active {
   opacity: 1;
   pointer-events: auto;
-}
-.gp__preference .preference__modal .preference__modal-wrapper {
-  position: relative;
-}
-.gp__preference .preference__modal .preference__modal-wrapper::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s;
-}
-.gp__preference .preference__modal.dimmed .preference__modal-wrapper::after {
-  opacity: 1;
-  pointer-events: auto;
-}
-.gp__preference .preference__modal.active {
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-}
-.gp__preference .preference__modal-wrapper {
-  width: 408px;
-}
-.gp__preference .preference__modal-header {
-  background: #f5f5f5;
-  border-bottom: 1px solid #d1d1d1;
-  height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-}
-.gp__preference .preference__modal-header .title {
-  font-weight: 600;
-  color: #363636;
-}
-.gp__preference .preference__modal-header .close {
-  border: 0;
-  padding: 0;
-  background-color: transparent;
-  width: 16px;
-  height: 16px;
-  position: absolute;
-  cursor: pointer;
-  right: 12px;
-  top: 12px;
-  background-image: url(../img/svg/close.svg);
 }
 .gp__preference .preference__modal-tabs {
   min-height: 492px;
@@ -820,41 +746,18 @@
 .gp__preference .preference__modal-tabs .tab-content .preference__modal-filters .gpo-editor-filters__toolbar {
   flex-shrink: 0;
 }
-.gp__preference .preference__modal-content > .preference__modal-filters {
-  margin-top: 16px;
-}
-.gp__preference .preference__modal-footer {
-  height: 45px;
-  background-color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: right;
-  gap: 10px;
-  padding: 0 20px;
-  border-top: 1px solid #d1d1d1;
-}
-.gp__preference .targetting__modal {
-  z-index: 1050;
-}
-.gp__preference .targetting__modal .preference__modal-wrapper {
-  width: min(700px, calc(100vw - 40px));
-  display: flex;
-  flex-direction: column;
+.gp__preference .targetting__modal [data-dialog-part="wrapper"] {
   max-height: calc(100vh - 80px);
 }
-.gp__preference .targetting__modal .preference__modal-content {
+.gp__preference .targetting__modal [data-dialog-part="body"] {
   padding: 12px;
   min-height: 0;
   overflow: hidden;
 }
-.gp__preference .targetting__modal .preference__modal-header,
-.gp__preference .targetting__modal .preference__modal-footer {
-  flex-shrink: 0;
-}
 .gp__preference .targetting__modal .preference__modal-filters {
   margin-top: 0;
 }
-.gp__preference .preference__modal .preference__tab-targetting-btn {
+.gp__preference [data-dialog] .preference__tab-targetting-btn {
   width: auto;
   min-width: 80px;
   padding: 0 10px;
@@ -1383,16 +1286,16 @@
   border-color: #c9190b;
   background: #fff4f4;
 }
-.gp__preference .preference__modal--readonly .preference__modal-header {
+.gp__preference .gpo-editor-dialog--readonly [data-dialog-part="header"] {
   background: #eef1f3;
 }
-.gp__preference .preference__modal--readonly .btn-ok,
-.gp__preference .preference__modal--readonly .gpo-editor-filters__toolbar {
+.gp__preference .gpo-editor-dialog--readonly .btn-ok,
+.gp__preference .gpo-editor-dialog--readonly .gpo-editor-filters__toolbar {
   display: none;
 }
-.gp__preference .preference__modal--readonly .gpo-editor-field input,
-.gp__preference .preference__modal--readonly .gpo-editor-field select,
-.gp__preference .preference__modal--readonly .gpo-editor-field textarea {
+.gp__preference .gpo-editor-dialog--readonly .gpo-editor-field input,
+.gp__preference .gpo-editor-dialog--readonly .gpo-editor-field select,
+.gp__preference .gpo-editor-dialog--readonly .gpo-editor-field textarea {
   background: #f5f5f5;
   color: #555;
 }
@@ -1838,7 +1741,7 @@
   padding: 10px 12px;
   border-top: 1px solid #d1d1d1;
 }
-.gp__container .gpo-editor-scripts :is(.preference__modal, [data-dialog]) .gpo-editor-scripts__toolbar .button {
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__toolbar .button {
   width: auto;
   min-width: 64px;
   padding: 0 8px;
@@ -1862,7 +1765,7 @@
 .gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries .gpo-editor-scripts__toolbar .button:nth-child(3) {
   margin-top: 8px;
 }
-.gp__container .gpo-editor-scripts :is(.preference__modal, [data-dialog]) .gpo-editor-scripts__show-files {
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__show-files {
   box-sizing: border-box;
   align-self: flex-start;
   width: auto;
@@ -1870,11 +1773,11 @@
   min-height: 30px;
   padding: 0 12px;
 }
-.gp__container .gpo-editor-scripts :is(.preference__modal, [data-dialog]) .button.active:hover {
+.gp__container .gpo-editor-scripts [data-dialog] .button.active:hover {
   border-color: #297fb0;
   background: #f5f9fc;
 }
-.gp__container .gpo-editor-scripts :is(.preference__modal, [data-dialog]) .button:focus-visible,
+.gp__container .gpo-editor-scripts [data-dialog] .button:focus-visible,
 .gp__container .gpo-editor-scripts .preference__tab-button:focus-visible {
   outline: 2px solid #0088ce;
   outline-offset: 2px;
@@ -1969,7 +1872,7 @@
 .gp__container .gpo-editor-scripts__asset-field .gpo-editor-scripts__browse {
   flex: 0 0 auto;
 }
-.gp__container .gpo-editor-scripts :is(.preference__modal, [data-dialog]) .gpo-editor-scripts__ellipsis {
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__ellipsis {
   flex: 0 0 28px;
   width: 28px;
   padding: 0;
@@ -1988,12 +1891,6 @@
 
 
 @media (max-width: 900px) {
-  .gp__preference .preference__modal-wrapper {
-    width: calc(100vw - 32px);
-  }
-  .gp__preference .targetting__modal .preference__modal-wrapper {
-    width: min(700px, calc(100vw - 32px));
-  }
   .gpo-editor-fields {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2007,7 +1904,7 @@
     flex-direction: column;
     gap: 6px;
   }
-  .gp__preference .preference__modal-content {
+  .gp__preference .gpo-editor-preference-form [data-dialog-part="body"] {
     padding: 12px;
   }
   .gpo-editor-filters__toolbar { gap: 6px; padding: 6px; }
@@ -2324,4 +2221,14 @@
 .gp__container [data-list-navigation][tabindex="0"]:focus-visible {
   outline: 2px solid #297fb0;
   outline-offset: -2px;
+}
+
+/* The preference dialogs live inside the shared `.gpo-editor-preferences__modal-host`, which draws the single backdrop. */
+.gpo-editor-preference-host,
+.gpo-editor-targeting-host {
+  background: transparent;
+}
+/* The form under the targeting modal is dimmed like the window under a discard question, only darker. */
+.gp__preference .gpo-editor-preference-form--dimmed {
+  filter: brightness(0.5);
 }

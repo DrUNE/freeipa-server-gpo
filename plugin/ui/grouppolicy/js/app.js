@@ -6168,12 +6168,12 @@
 		var headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		var admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		var helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		var createButton$1 = headerControls && headerControls.querySelector(".preferences__btn-create");
+		var createButton$2 = headerControls && headerControls.querySelector(".preferences__btn-create");
 		var editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		var deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
 		var headerOwner = "scripts-" + nextHeaderOwnerId$1++;
 		var headerLabels = [
-			createButton$1,
+			createButton$2,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -6192,7 +6192,7 @@
 		if (admxActions) admxActions.style.display = "none";
 		if (helpSeparator) helpSeparator.style.display = "none";
 		[
-			createButton$1,
+			createButton$2,
 			editButton,
 			deleteButton
 		].forEach(function(control, index) {
@@ -6239,7 +6239,7 @@
 			if (!ownsHeader()) return;
 			var editable = Boolean(groupView().editable) && !state.busy && !state.loading && !state.form && !state.picker;
 			[
-				createButton$1,
+				createButton$2,
 				editButton,
 				deleteButton
 			].forEach(function(control, index) {
@@ -6254,8 +6254,8 @@
 				control.removeEventListener("click", handler);
 			});
 		}
-		listenHeader(createButton$1, function() {
-			if (ownsHeader() && createButton$1.classList.contains("active")) openForm("add");
+		listenHeader(createButton$2, function() {
+			if (ownsHeader() && createButton$2.classList.contains("active")) openForm("add");
 		});
 		listenHeader(editButton, function() {
 			if (ownsHeader() && editButton.classList.contains("active")) openForm("edit");
@@ -7400,7 +7400,7 @@
 				headerControls.style.display = "none";
 				headerControls.removeAttribute("data-script-owner");
 				[
-					createButton$1,
+					createButton$2,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
@@ -7452,12 +7452,12 @@
 		var headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		var admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		var helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		var createButton$2 = headerControls && headerControls.querySelector(".preferences__btn-create");
+		var createButton$3 = headerControls && headerControls.querySelector(".preferences__btn-create");
 		var editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		var deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
 		var headerOwner = "scripts-" + nextHeaderOwnerId$1++;
 		var oldHeader = [
-			createButton$2,
+			createButton$3,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -7475,7 +7475,7 @@
 		if (headerControls) {
 			headerControls.setAttribute("data-script-owner", headerOwner);
 			headerControls.style.display = "flex";
-			if (createButton$2) createButton$2.style.display = "none";
+			if (createButton$3) createButton$3.style.display = "none";
 			if (deleteButton) deleteButton.style.display = "none";
 			if (editButton) {
 				editButton.textContent = st("openEvent");
@@ -7740,7 +7740,7 @@
 				editButton && editButton.removeEventListener("click", onOpenEvent);
 				folderButton.getElement().remove();
 				[
-					createButton$2,
+					createButton$3,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
@@ -13487,7 +13487,7 @@
 		var headerActions = headerElement ? headerElement.querySelector(".gp__control-actions") : null;
 		var admxActions = headerElement ? headerElement.querySelector(".gp__control-admx") : null;
 		var helpSeparator = headerElement ? headerElement.querySelector(".gp__control-separator") : null;
-		var createButton = headerControls ? headerControls.querySelector(".preferences__btn-create") : null;
+		var createButton$1 = headerControls ? headerControls.querySelector(".preferences__btn-create") : null;
 		var editButton = headerControls ? headerControls.querySelector(".preferences__btn-edit") : null;
 		var deleteButton = headerControls ? headerControls.querySelector(".preferences__btn-delete") : null;
 		var headerOwner = "preferences-" + nextHeaderOwnerId++;
@@ -13524,7 +13524,7 @@
 			if (typeof config.onFormStateChange === "function") config.onFormStateChange(Boolean(modalState));
 			if (!ownsHeader()) return;
 			var available = Boolean(documentDto.editable) && !modalState && !opening && !deleting;
-			if (createButton) createButton.classList.toggle("active", available);
+			if (createButton$1) createButton$1.classList.toggle("active", available);
 			if (editButton) editButton.classList.toggle("active", available && selectedIdentity !== null);
 			if (deleteButton) deleteButton.classList.toggle("active", available && selectedIdentity !== null);
 		}
@@ -14001,82 +14001,53 @@
 				var filterSection = createElement$4("div", { className: "preference__modal-filters" });
 				filterSection.append(buildFilterEditor(response, formState, readonly));
 				var targettingModalElement = null;
+				var targettingHost = null;
 				var closeTargettingModal = function(accept) {
 					if (accept && !readonly && !formState.acceptFilterDraft()) return;
 					if (!accept) formState.cancelFilterDraft();
 					if (targettingModalElement) {
 						targettingModalElement.classList.remove("active");
 						targettingModalElement.inert = true;
+						targettingHost.style.display = "none";
 					}
-					form.getElement().classList.remove("dimmed");
+					form.getElement().classList.remove("gpo-editor-preference-form--dimmed");
 					form.getElement().inert = false;
 					if (targettingButton) targettingButton.getElement().focus();
 				};
 				var buildTargettingModal = function() {
-					if (targettingModalElement) return targettingModalElement;
-					targettingModalElement = createElement$4("div", {
-						className: [
-							"targetting__modal",
-							"preference__modal",
-							readonly ? "preference__modal--readonly" : null
-						],
-						attrs: {
-							role: "dialog",
-							"aria-modal": "true",
-							"aria-label": pt("targettingTitle"),
-							tabindex: "-1"
-						},
-						children: [createElement$4("div", {
-							className: "preference__modal-wrapper",
-							children: [
-								createElement$4("div", {
-									className: "preference__modal-header",
-									children: [createElement$4("div", {
-										className: "title",
-										text: pt("targettingTitle")
-									}), createElement$4("button", {
-										className: "close",
-										attrs: {
-											type: "button",
-											"aria-label": pt("close")
-										},
-										events: { click: function() {
-											closeTargettingModal(false);
-										} }
-									})]
-								}),
-								createElement$4("div", {
-									className: "preference__modal-content",
-									children: [filterSection]
-								}),
-								createElement$4("div", {
-									className: "preference__modal-footer",
-									children: readonly ? [createElement$4("button", {
-										className: ["button", "btn-cancel"],
-										attrs: { type: "button" },
-										text: pt("close"),
-										events: { click: function() {
-											closeTargettingModal(false);
-										} }
-									})] : [createElement$4("button", {
-										className: ["button", "btn-cancel"],
-										attrs: { type: "button" },
-										text: pt("cancel"),
-										events: { click: function() {
-											closeTargettingModal(false);
-										} }
-									}), createElement$4("button", {
-										className: ["button", "btn-ok"],
-										attrs: { type: "button" },
-										text: pt("targetingOk"),
-										events: { click: function() {
-											closeTargettingModal(true);
-										} }
-									})]
-								})
-							]
-						})]
-					}).getElement();
+					if (targettingModalElement) return targettingHost;
+					var wrap = ElementCreator.wrap;
+					var closeX = wrap(createCloseButton(pt("close")));
+					closeX.on("click", function() {
+						closeTargettingModal(false);
+					});
+					var cancelButton = wrap(createButton("cancel", readonly ? pt("close") : pt("cancel")));
+					cancelButton.on("click", function() {
+						closeTargettingModal(false);
+					});
+					var buttons = [cancelButton.getElement()];
+					if (!readonly) {
+						var okButton = wrap(createButton("apply", pt("targetingOk")));
+						okButton.on("click", function() {
+							closeTargettingModal(true);
+						});
+						buttons.push(okButton.getElement());
+					}
+					var body = createBody(null);
+					body.append(filterSection.getElement());
+					var shell = createDialogShell({
+						titleId: "gpo-editor-targeting-title",
+						title: pt("targettingTitle"),
+						body,
+						closeButton: closeX.getElement(),
+						buttons,
+						width: "min(700px, calc(100vw - 40px))",
+						fill: true,
+						className: ["targetting__modal", readonly ? "gpo-editor-dialog--readonly" : null].filter(Boolean).join(" "),
+						hostClassName: "gpo-editor-targeting-host"
+					});
+					targettingHost = shell.host;
+					targettingModalElement = shell.dialog;
 					targettingModalElement.addEventListener("keydown", function(event) {
 						if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== targettingModalElement) return;
 						if (event.key === "Escape" && !event.defaultPrevented) {
@@ -14086,71 +14057,38 @@
 						trapTab(event, targettingModalElement);
 					});
 					targettingModalElement.inert = true;
-					return targettingModalElement;
+					targettingHost.style.display = "none";
+					return targettingHost;
 				};
-				var buildModalContent = function() {
-					var content = createElement$4("div", { className: "preference__modal-content" });
-					content.append(validationSlot);
-					content.append(errorSlot);
-					content.append(createElement$4("div", { className: "gpo-editor-fields" }));
-					if (fieldTabs) content.append(fieldTabs);
-					return content;
-				};
-				var form = createElement$4("div", {
-					className: [
-						"preference__modal",
-						"gpo-editor-preference-form",
-						readonly ? "preference__modal--readonly" : null
-					],
-					attrs: {
-						role: "dialog",
-						"aria-modal": "true",
-						tabindex: "-1",
-						"aria-label": creating ? pt("createTitle") : readonly ? pt("viewTitle") : pt("editTitle")
-					},
-					events: { keydown: function(event) {
-						if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== form.getElement()) return;
-						if (event.key === "Escape") {
-							event.preventDefault();
-							event.stopPropagation();
-							closeAction();
-						}
-						trapTab(event, form.getElement());
-					} },
-					children: [createElement$4("div", {
-						className: "preference__modal-wrapper",
-						children: [
-							createElement$4("div", {
-								className: "preference__modal-header",
-								children: [createElement$4("div", {
-									className: "title",
-									text: creating ? pt("createTitle") : readonly ? pt("viewTitle") : pt("editTitle")
-								}), createElement$4("button", {
-									className: "close",
-									attrs: {
-										type: "button",
-										"aria-label": pt("close")
-									},
-									events: { click: closeAction }
-								})]
-							}),
-							buildModalContent(),
-							createElement$4("div", {
-								className: "preference__modal-footer",
-								children: readonly ? [createElement$4("button", {
-									className: ["button", "btn-cancel"],
-									attrs: { type: "button" },
-									text: pt("close"),
-									events: { click: closeAction }
-								})] : [createElement$4("button", {
-									className: ["button", "btn-cancel"],
-									attrs: { type: "button" },
-									text: pt("cancel"),
-									events: { click: cancelAction }
-								}), saveButton]
-							})
-						]
-					})]
+				var wrapElement = ElementCreator.wrap;
+				var formBody = createBody(null);
+				formBody.append(validationSlot.getElement());
+				formBody.append(errorSlot.getElement());
+				formBody.append(createElement$4("div", { className: "gpo-editor-fields" }).getElement());
+				if (fieldTabs) formBody.append(fieldTabs.getElement());
+				var formClose = wrapElement(createCloseButton(pt("close")));
+				formClose.on("click", closeAction);
+				var formCancel = wrapElement(createButton("cancel", readonly ? pt("close") : pt("cancel")));
+				formCancel.on("click", readonly ? closeAction : cancelAction);
+				var formShell = createDialogShell({
+					titleId: "gpo-editor-preference-form-title",
+					title: creating ? pt("createTitle") : readonly ? pt("viewTitle") : pt("editTitle"),
+					body: formBody,
+					closeButton: formClose.getElement(),
+					buttons: readonly ? [formCancel.getElement()] : [formCancel.getElement(), saveButton.getElement()],
+					width: "408px",
+					className: ["gpo-editor-preference-form", readonly ? "gpo-editor-dialog--readonly" : null].filter(Boolean).join(" "),
+					hostClassName: "gpo-editor-preference-host"
+				});
+				var form = wrapElement(formShell.dialog);
+				form.on("keydown", function(event) {
+					if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== form.getElement()) return;
+					if (event.key === "Escape") {
+						event.preventDefault();
+						event.stopPropagation();
+						closeAction();
+					}
+					trapTab(event, form.getElement());
 				});
 				var fieldSlot = form.getElement().querySelector(".gpo-editor-fields");
 				if (nameField) {
@@ -14168,12 +14106,13 @@
 					events: { click: function() {
 						if (formState.busy) return;
 						formState.beginFilterDraft();
-						var modal = buildTargettingModal();
-						if (!modal.parentNode) host.appendChild(modal);
-						modal.offsetHeight;
+						var modalHost = buildTargettingModal();
+						if (!modalHost.parentNode) host.appendChild(modalHost);
+						var modal = targettingModalElement;
+						modalHost.style.display = "";
 						modal.inert = false;
 						modal.classList.add("active");
-						form.getElement().classList.add("dimmed");
+						form.getElement().classList.add("gpo-editor-preference-form--dimmed");
 						form.getElement().inert = true;
 						var first = modal.querySelector(".gpo-editor-filter-add:not(:disabled), [role=\"treeitem\"], .btn-cancel");
 						if (first) first.focus();
@@ -14185,7 +14124,7 @@
 				if (generalTabElement && descriptionField && descriptionField.parentNode) descriptionField.parentNode.insertBefore(targettingButton.getElement(), descriptionField);
 				else if (generalTabElement) generalTabElement.appendChild(targettingButton.getElement());
 				else {
-					var formContentSlot = form.getElement().querySelector(".preference__modal-content");
+					var formContentSlot = form.getElement().querySelector("[data-dialog-part=\"body\"]");
 					if (formContentSlot) formContentSlot.appendChild(targettingButton.getElement());
 				}
 				if (!readonly) {
@@ -14197,9 +14136,8 @@
 					});
 				}
 				host.innerHTML = "";
-				host.appendChild(form.getElement());
+				host.appendChild(formShell.host);
 				host.classList.add("active");
-				form.getElement().offsetHeight;
 				form.getElement().classList.add("active");
 				modalState = {
 					creating,
@@ -14259,8 +14197,8 @@
 			pendingDiscard = { action };
 			if (modalState && modalState.formElement) {
 				modalState.formElement.classList.add("gpo-editor-preference-form--confirming");
-				if (modalState.formElement.parentNode) {
-					var targettingModal = modalState.formElement.parentNode.querySelector(".targetting__modal");
+				if (modalState.formElement.closest("[data-dialog-host]")) {
+					var targettingModal = modalState.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
 					if (targettingModal) targettingModal.classList.add("gpo-editor-preference-form--confirming");
 				}
 			}
@@ -14295,11 +14233,13 @@
 			host.classList.remove("active");
 			var modals = Array.prototype.slice.call(host.children);
 			modals.forEach(function(element) {
-				element.classList.remove("active");
+				Array.prototype.forEach.call(element.querySelectorAll("[data-dialog].active"), function(dialog) {
+					dialog.classList.remove("active");
+				});
 			});
 			setTimeout(function() {
 				modals.forEach(function(element) {
-					if (!element.classList.contains("active") && element.parentNode === host) host.removeChild(element);
+					if (!element.querySelector("[data-dialog].active") && element.parentNode === host) host.removeChild(element);
 				});
 			}, 500);
 		}
@@ -14324,8 +14264,8 @@
 		function formInteractiveElements(state) {
 			var elements = [];
 			var roots = [state.formElement];
-			if (state.formElement.parentNode) {
-				var targettingModal = state.formElement.parentNode.querySelector(".targetting__modal");
+			if (state.formElement.closest("[data-dialog-host]")) {
+				var targettingModal = state.formElement.closest("[data-dialog-host]").parentNode.querySelector(".targetting__modal");
 				if (targettingModal) roots.push(targettingModal);
 			}
 			roots.forEach(function(root) {
@@ -14589,8 +14529,8 @@
 			}
 		});
 		setHeaderState();
-		addListener(createButton, "click", function() {
-			if (createButton.classList.contains("active")) openForm(null);
+		addListener(createButton$1, "click", function() {
+			if (createButton$1.classList.contains("active")) openForm(null);
 		});
 		addListener(editButton, "click", function() {
 			if (editButton.classList.contains("active")) openForm(selectedIdentity);
@@ -14622,7 +14562,7 @@
 				headerControls.style.display = "none";
 				headerControls.removeAttribute("data-preference-owner");
 				[
-					createButton,
+					createButton$1,
 					editButton,
 					deleteButton
 				].forEach(function(button) {

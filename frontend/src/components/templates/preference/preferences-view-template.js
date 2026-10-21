@@ -4,6 +4,12 @@ import * as dto from '../../../util/editor-dto';
 import * as editorStatus from '../../editor-status';
 import * as confirmationDialog from '../../confirmation-dialog';
 import * as editorDialog from '../../editor-dialog';
+import {
+    createBody,
+    createButton as createDialogButton,
+    createCloseButton,
+    createDialogShell
+} from '../../Dialog/Dialog';
 import * as listNavigation from '../../list-navigation';
 import * as translations from '../../../locales/translations';
 import * as preferenceLayouts from './layouts/index';
@@ -666,99 +672,55 @@ async function renderPreferencesTemplate(options) {
             var filterSection = createElement('div', { className: 'preference__modal-filters' });
             filterSection.append(buildFilterEditor(response, formState, readonly));
             var targettingModalElement = null;
+            var targettingHost = null;
             var closeTargettingModal = function (accept) {
                 if (accept && !readonly && !formState.acceptFilterDraft()) return;
                 if (!accept) formState.cancelFilterDraft();
                 if (targettingModalElement) {
                     targettingModalElement.classList.remove('active');
                     targettingModalElement.inert = true;
+                    targettingHost.style.display = 'none';
                 }
-                form.getElement().classList.remove('dimmed');
+                form.getElement().classList.remove('gpo-editor-preference-form--dimmed');
                 form.getElement().inert = false;
                 if (targettingButton) targettingButton.getElement().focus();
             };
             var buildTargettingModal = function () {
-                if (targettingModalElement) return targettingModalElement;
-                targettingModalElement = createElement('div', {
-                    className: [
-                        'targetting__modal',
-                        'preference__modal',
-                        readonly ? 'preference__modal--readonly' : null
-                    ],
-                    attrs: {
-                        role: 'dialog',
-                        'aria-modal': 'true',
-                        'aria-label': pt('targettingTitle'),
-                        tabindex: '-1'
-                    },
-                    children: [
-                        createElement('div', {
-                            className: 'preference__modal-wrapper',
-                            children: [
-                                createElement('div', {
-                                    className: 'preference__modal-header',
-                                    children: [
-                                        createElement('div', {
-                                            className: 'title',
-                                            text: pt('targettingTitle')
-                                        }),
-                                        createElement('button', {
-                                            className: 'close',
-                                            attrs: { type: 'button', 'aria-label': pt('close') },
-                                            events: {
-                                                click: function () {
-                                                    closeTargettingModal(false);
-                                                }
-                                            }
-                                        })
-                                    ]
-                                }),
-                                createElement('div', {
-                                    className: 'preference__modal-content',
-                                    children: [filterSection]
-                                }),
-                                createElement('div', {
-                                    className: 'preference__modal-footer',
-                                    children: readonly
-                                        ? [
-                                              createElement('button', {
-                                                  className: ['button', 'btn-cancel'],
-                                                  attrs: { type: 'button' },
-                                                  text: pt('close'),
-                                                  events: {
-                                                      click: function () {
-                                                          closeTargettingModal(false);
-                                                      }
-                                                  }
-                                              })
-                                          ]
-                                        : [
-                                              createElement('button', {
-                                                  className: ['button', 'btn-cancel'],
-                                                  attrs: { type: 'button' },
-                                                  text: pt('cancel'),
-                                                  events: {
-                                                      click: function () {
-                                                          closeTargettingModal(false);
-                                                      }
-                                                  }
-                                              }),
-                                              createElement('button', {
-                                                  className: ['button', 'btn-ok'],
-                                                  attrs: { type: 'button' },
-                                                  text: pt('targetingOk'),
-                                                  events: {
-                                                      click: function () {
-                                                          closeTargettingModal(true);
-                                                      }
-                                                  }
-                                              })
-                                          ]
-                                })
-                            ]
-                        })
-                    ]
-                }).getElement();
+                if (targettingModalElement) return targettingHost;
+                var wrap = elementCreator.ElementCreator.wrap;
+                var closeX = wrap(createCloseButton(pt('close')));
+                closeX.on('click', function () {
+                    closeTargettingModal(false);
+                });
+                var cancelButton = wrap(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
+                cancelButton.on('click', function () {
+                    closeTargettingModal(false);
+                });
+                var buttons = [cancelButton.getElement()];
+                if (!readonly) {
+                    var okButton = wrap(createDialogButton('apply', pt('targetingOk')));
+                    okButton.on('click', function () {
+                        closeTargettingModal(true);
+                    });
+                    buttons.push(okButton.getElement());
+                }
+                var body = createBody(null);
+                body.append(filterSection.getElement());
+                var shell = createDialogShell({
+                    titleId: 'gpo-editor-targeting-title',
+                    title: pt('targettingTitle'),
+                    body: body,
+                    closeButton: closeX.getElement(),
+                    buttons: buttons,
+                    width: 'min(700px, calc(100vw - 40px))',
+                    fill: true,
+                    className: ['targetting__modal', readonly ? 'gpo-editor-dialog--readonly' : null]
+                        .filter(Boolean)
+                        .join(' '),
+                    hostClassName: 'gpo-editor-targeting-host'
+                });
+                targettingHost = shell.host;
+                targettingModalElement = shell.dialog;
                 targettingModalElement.addEventListener('keydown', function (event) {
                     if (
                         event.defaultPrevented ||
@@ -772,90 +734,44 @@ async function renderPreferencesTemplate(options) {
                     editorDialog.trapTab(event, targettingModalElement);
                 });
                 targettingModalElement.inert = true;
-                return targettingModalElement;
+                targettingHost.style.display = 'none';
+                return targettingHost;
             };
-            var buildModalContent = function () {
-                var content = createElement('div', { className: 'preference__modal-content' });
-                content.append(validationSlot);
-                content.append(errorSlot);
-                content.append(createElement('div', { className: 'gpo-editor-fields' }));
-                if (fieldTabs) content.append(fieldTabs);
-                return content;
-            };
-            var form = createElement('div', {
-                className: [
-                    'preference__modal',
-                    'gpo-editor-preference-form',
-                    readonly ? 'preference__modal--readonly' : null
-                ],
-                attrs: {
-                    role: 'dialog',
-                    'aria-modal': 'true',
-                    tabindex: '-1',
-                    'aria-label': creating ? pt('createTitle') : readonly ? pt('viewTitle') : pt('editTitle')
-                },
-                events: {
-                    keydown: function (event) {
-                        if (
-                            event.defaultPrevented ||
-                            event.target.closest('[role="dialog"], [role="alertdialog"]') !== form.getElement()
-                        )
-                            return;
-                        if (event.key === 'Escape') {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            closeAction();
-                        }
-                        editorDialog.trapTab(event, form.getElement());
-                    }
-                },
-                children: [
-                    createElement('div', {
-                        className: 'preference__modal-wrapper',
-                        children: [
-                            createElement('div', {
-                                className: 'preference__modal-header',
-                                children: [
-                                    createElement('div', {
-                                        className: 'title',
-                                        text: creating
-                                            ? pt('createTitle')
-                                            : readonly
-                                              ? pt('viewTitle')
-                                              : pt('editTitle')
-                                    }),
-                                    createElement('button', {
-                                        className: 'close',
-                                        attrs: { type: 'button', 'aria-label': pt('close') },
-                                        events: { click: closeAction }
-                                    })
-                                ]
-                            }),
-                            buildModalContent(),
-                            createElement('div', {
-                                className: 'preference__modal-footer',
-                                children: readonly
-                                    ? [
-                                          createElement('button', {
-                                              className: ['button', 'btn-cancel'],
-                                              attrs: { type: 'button' },
-                                              text: pt('close'),
-                                              events: { click: closeAction }
-                                          })
-                                      ]
-                                    : [
-                                          createElement('button', {
-                                              className: ['button', 'btn-cancel'],
-                                              attrs: { type: 'button' },
-                                              text: pt('cancel'),
-                                              events: { click: cancelAction }
-                                          }),
-                                          saveButton
-                                      ]
-                            })
-                        ]
-                    })
-                ]
+            var wrapElement = elementCreator.ElementCreator.wrap;
+            var formBody = createBody(null);
+            formBody.append(validationSlot.getElement());
+            formBody.append(errorSlot.getElement());
+            formBody.append(createElement('div', { className: 'gpo-editor-fields' }).getElement());
+            if (fieldTabs) formBody.append(fieldTabs.getElement());
+            var formClose = wrapElement(createCloseButton(pt('close')));
+            formClose.on('click', closeAction);
+            var formCancel = wrapElement(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
+            formCancel.on('click', readonly ? closeAction : cancelAction);
+            var formShell = createDialogShell({
+                titleId: 'gpo-editor-preference-form-title',
+                title: creating ? pt('createTitle') : readonly ? pt('viewTitle') : pt('editTitle'),
+                body: formBody,
+                closeButton: formClose.getElement(),
+                buttons: readonly ? [formCancel.getElement()] : [formCancel.getElement(), saveButton.getElement()],
+                width: '408px',
+                className: ['gpo-editor-preference-form', readonly ? 'gpo-editor-dialog--readonly' : null]
+                    .filter(Boolean)
+                    .join(' '),
+                hostClassName: 'gpo-editor-preference-host'
+            });
+            var form = wrapElement(formShell.dialog);
+            form.on('keydown', function (event) {
+                if (
+                    event.defaultPrevented ||
+                    event.target.closest('[role="dialog"], [role="alertdialog"]') !== form.getElement()
+                )
+                    return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closeAction();
+                }
+                editorDialog.trapTab(event, form.getElement());
             });
             var fieldSlot = form.getElement().querySelector('.gpo-editor-fields');
             if (nameField) {
@@ -878,12 +794,13 @@ async function renderPreferencesTemplate(options) {
                     click: function () {
                         if (formState.busy) return;
                         formState.beginFilterDraft();
-                        var modal = buildTargettingModal();
-                        if (!modal.parentNode) host.appendChild(modal);
-                        void modal.offsetHeight;
+                        var modalHost = buildTargettingModal();
+                        if (!modalHost.parentNode) host.appendChild(modalHost);
+                        var modal = targettingModalElement;
+                        modalHost.style.display = '';
                         modal.inert = false;
                         modal.classList.add('active');
-                        form.getElement().classList.add('dimmed');
+                        form.getElement().classList.add('gpo-editor-preference-form--dimmed');
                         form.getElement().inert = true;
                         var first = modal.querySelector(
                             '.gpo-editor-filter-add:not(:disabled), [role="treeitem"], .btn-cancel'
@@ -901,7 +818,7 @@ async function renderPreferencesTemplate(options) {
             } else if (generalTabElement) {
                 generalTabElement.appendChild(targettingButton.getElement());
             } else {
-                var formContentSlot = form.getElement().querySelector('.preference__modal-content');
+                var formContentSlot = form.getElement().querySelector('[data-dialog-part="body"]');
                 if (formContentSlot) formContentSlot.appendChild(targettingButton.getElement());
             }
             if (!readonly) {
@@ -913,9 +830,8 @@ async function renderPreferencesTemplate(options) {
                 });
             }
             host.innerHTML = '';
-            host.appendChild(form.getElement());
+            host.appendChild(formShell.host);
             host.classList.add('active');
-            void form.getElement().offsetHeight;
             form.getElement().classList.add('active');
             modalState = {
                 creating: creating,
@@ -981,8 +897,10 @@ async function renderPreferencesTemplate(options) {
         pendingDiscard = { action: action };
         if (modalState && modalState.formElement) {
             modalState.formElement.classList.add('gpo-editor-preference-form--confirming');
-            if (modalState.formElement.parentNode) {
-                var targettingModal = modalState.formElement.parentNode.querySelector('.targetting__modal');
+            if (modalState.formElement.closest('[data-dialog-host]')) {
+                var targettingModal = modalState.formElement
+                    .closest('[data-dialog-host]')
+                    .parentNode.querySelector('.targetting__modal');
                 if (targettingModal) {
                     targettingModal.classList.add('gpo-editor-preference-form--confirming');
                 }
@@ -1024,11 +942,13 @@ async function renderPreferencesTemplate(options) {
         host.classList.remove('active');
         var modals = Array.prototype.slice.call(host.children);
         modals.forEach(function (element) {
-            element.classList.remove('active');
+            Array.prototype.forEach.call(element.querySelectorAll('[data-dialog].active'), function (dialog) {
+                dialog.classList.remove('active');
+            });
         });
         setTimeout(function () {
             modals.forEach(function (element) {
-                if (!element.classList.contains('active') && element.parentNode === host) {
+                if (!element.querySelector('[data-dialog].active') && element.parentNode === host) {
                     host.removeChild(element);
                 }
             });
@@ -1057,8 +977,10 @@ async function renderPreferencesTemplate(options) {
     function formInteractiveElements(state) {
         var elements = [];
         var roots = [state.formElement];
-        if (state.formElement.parentNode) {
-            var targettingModal = state.formElement.parentNode.querySelector('.targetting__modal');
+        if (state.formElement.closest('[data-dialog-host]')) {
+            var targettingModal = state.formElement
+                .closest('[data-dialog-host]')
+                .parentNode.querySelector('.targetting__modal');
             if (targettingModal) roots.push(targettingModal);
         }
         roots.forEach(function (root) {
