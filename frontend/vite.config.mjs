@@ -35,11 +35,12 @@ function devStand() {
                         } catch (error) {
                             return send(400, JSON.stringify({ error: { message: 'Invalid JSON: ' + error.message } }));
                         }
-                        const reply = backend.dispatch(body);
+                        const scenario = url.searchParams.get('scenario') || 'normal';
+                        const reply = backend.dispatch(body, scenario);
                         console.log(
-                            `[rpc ${reply.error ? '✗' : '←'}] ${body.method}${reply.error ? ': ' + reply.error.message : ''}`
+                            `[rpc ${reply.error ? '✗' : '←'}${scenario === 'normal' ? '' : ' ' + scenario}] ${body.method}${reply.error ? ': ' + reply.error.message : ''}`
                         );
-                        send(200, JSON.stringify(reply));
+                        setTimeout(() => send(200, JSON.stringify(reply)), scenario === 'slow' ? 1500 : 0);
                     });
                     return;
                 }

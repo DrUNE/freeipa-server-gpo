@@ -739,7 +739,28 @@ const methods = {
 
 /* ---------------------------------------------------------------- dispatch */
 
-function dispatch(body) {
+/** The scenarios of the dev stand (`?scenario=` on the page): how the mock server behaves, to see the UI states. */
+const SCENARIOS = ['normal', 'error', 'slow', 'empty'];
+// The top-level lists of the `gpo_editor_*` answers that `empty` empties.
+const LISTS = ['items', 'assets', 'children', 'policies', 'preference_documents'];
+
+function emptied(result) {
+    if (!result || typeof result !== 'object') return result;
+    const copy = { ...result };
+    for (const key of LISTS) if (Array.isArray(copy[key])) copy[key] = [];
+    if (copy.scripts && typeof copy.scripts === 'object') {
+        copy.scripts = Object.fromEntries(
+            Object.entries(copy.scripts).map(([key, value]) => [key, Array.isArray(value) ? [] : value])
+        );
+    }
+    return copy;
+}
+
+/**
+ * Answers one JSON-RPC request. `scenario` changes the answer: `error` fails every `gpo_editor_*` call like an
+ * unavailable server, `empty` returns the lists empty, `slow` is delayed by the stand (see the dev server plugin).
+ */
+function dispatch(body, scenario) {
     const method = body && body.method;
     const params = Array.isArray(body && body.params) ? body.params : [[], {}];
     const args = Array.isArray(params[0]) ? params[0] : [];
@@ -758,8 +779,21 @@ function dispatch(body) {
             id: body && body.id
         };
     }
+    if (scenario === 'error' && String(method).startsWith('gpo_editor_')) {
+        return {
+            result: null,
+            error: {
+                code: 4301,
+                name: 'ServerUnavailable',
+                message: 'Dev scenario "error": the server does not answer',
+                data: { category: 'unavailable' }
+            },
+            id: body.id
+        };
+    }
     try {
-        const result = handler(...args, options);
+        let result = handler(...args, options);
+        if (scenario === 'empty') result = emptied(result);
         return { result: { result, value: args[0] || null, summary: null }, error: null, id: body.id };
     } catch (error) {
         const data = {};
@@ -774,4 +808,4 @@ function dispatch(body) {
     }
 }
 
-export { dispatch, reset, methods, RpcError };
+export { dispatch, reset, methods, RpcError, SCENARIOS };
