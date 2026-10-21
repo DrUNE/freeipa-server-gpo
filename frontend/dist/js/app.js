@@ -3769,14 +3769,15 @@
 		return names.filter(Boolean).join(" ");
 	}
 	var EditorStatus_module_default = {
-		status: "_status_duf15_1",
-		error: "_error_duf15_9",
-		pending: "_pending_duf15_15",
-		unsupported: "_unsupported_duf15_16",
-		actions: "_actions_duf15_22",
-		message: "_message_duf15_32",
-		field: "_field_duf15_32",
-		diagnostics: "_diagnostics_duf15_32"
+		status: "_status_1fqo6_1",
+		error: "_error_1fqo6_9",
+		pending: "_pending_1fqo6_15",
+		unsupported: "_unsupported_1fqo6_16",
+		actions: "_actions_1fqo6_22",
+		action: "_action_1fqo6_22",
+		message: "_message_1fqo6_57",
+		field: "_field_1fqo6_57",
+		diagnostics: "_diagnostics_1fqo6_57"
 	};
 	//#endregion
 	//#region src/components/EditorStatus/EditorStatus.js
@@ -3805,7 +3806,7 @@
 	}
 	function createAction(label, onClick) {
 		const button = h("button", {
-			class: "button",
+			class: cx("button", EditorStatus_module_default.action),
 			type: "button",
 			"data-editor-status-action": true
 		}, label);

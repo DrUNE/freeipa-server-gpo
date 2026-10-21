@@ -99,7 +99,7 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 
 | Step | What | Days |
 |---|---|---|
-| 1 | Storybook infrastructure: the fake RPC from the reference answers, the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
+| 1 | ✅ Storybook infrastructure: the fake RPC (the mock server of the stand, whose answers are checked against the reference answers), the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
 | 2 | Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
 | 3 | Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
 | 4 | Components 3-8 with stories | 9-12 |
@@ -108,6 +108,12 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 | | **Total** | **22-29** |
 
 Steps 1-3 can go in parallel with migration stage 0 (`frontend/src/core/`).
+
+**Step 1 is done.** `.storybook/shims/rpc.js` calls `dev/backend.mjs` in the page (so stories and the stand share the fixtures and the
+scenarios); `Foundations/Tokens` and `Infrastructure/Fake RPC` (`src/util/API.stories.js`) are the examples; `@storybook/addon-a11y`
+runs in every story test with `a11y.test: 'error'`. Its first run found a real defect: the action buttons of `EditorStatus`
+(Refresh, Reconcile) were rendered in the editor's disabled grey (contrast 1.4:1) because the global `.button` is grey until it
+is `.active`; they now have their own look.
 
 ## 7. What not to do
 
