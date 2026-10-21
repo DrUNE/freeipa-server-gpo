@@ -144,10 +144,6 @@
 .gp__container .field.radio.disabled .field__label-radio {
   color: var(--gpui-muted);
 }
-.gp__container .field.radio.disabled .radio__label {
-  color: var(--gpui-muted);
-  cursor: not-allowed;
-}
 .gp__container .field.radio {
   /*
   input[type="radio"] {
@@ -174,13 +170,6 @@
       }
   }*/
 }
-.gp__container .field.radio .radio__label {
-  padding-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
 .gp__container .field__group_one {
   display: flex;
   gap: 10px;
@@ -193,13 +182,7 @@
 .gp__container .field__group_one.field__group-disk-name {
   align-items: end;
 }
-.gp__container .field__group_one.field__group-disk-name .select-half {
-  margin-bottom: 20px;
-}
 .gp__container .field__group-equal .field {
-  width: 45%;
-}
-.gp__container .field.select-half {
   width: 45%;
 }
 .gp__container .environment__field-label {

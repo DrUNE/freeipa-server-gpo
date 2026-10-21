@@ -63,8 +63,8 @@ TypeScript is optional and incremental: a `.ts` file sits next to the JavaScript
 without an extension (`@gpui/util/editor-dto`); the test tree turns it into a `.js` AMD module with Vite's `transformWithOxc`.
 
 Source maps: the dev stand and Storybook serve them for scripts (Vite) and for styles (`css.devSourcemap`: the Styles pane shows `File.module.css:line`).
-`npm run watch` makes a development build (`--mode development`) with `app.js.map` and the `data-source` marks; the styles of that build have no maps
-(a Vite limit). The committed production build has no maps, and `npm run build:check` fails on a leftover `.map`.
+`npm run watch` makes a development build (`--mode development`) with `app.js.map` and the `data-source` marks; the styles of that build have no map (a Vite limit), so
+each source file of the sheet is named in a comment before its rules (`/* src/styles/shell.css */`). The committed production build has no maps, and `npm run build:check` fails on a leftover `.map`.
 
 Inside a component: state in local variables (a `view`/`ui` object in big templates), one `render` function that writes the state
 into the DOM (also called once at creation), handlers that change the state and call `render`. In the dev stand and in Storybook every
@@ -177,7 +177,7 @@ tests/integration/dialogs-visual` in the container and review the PNG diff befor
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 407 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 408 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

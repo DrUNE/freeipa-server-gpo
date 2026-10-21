@@ -93,3 +93,52 @@ test('in the dev stand elements built with h() name the file and line that creat
         await server.close();
     }
 });
+
+test('restarting the editor leaves no listeners of the previous one on the document', { skip }, async () => {
+    const server = await createServer({
+        root: path.join(root, 'dev'),
+        configFile: path.join(root, 'vite.config.mjs'),
+        logLevel: 'silent',
+        server: { port: 0, host: '127.0.0.1' }
+    });
+    await server.listen();
+    let browser;
+    try {
+        browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        page.setDefaultTimeout(10000);
+        // The divider of the editor is resized with listeners on the document; count what stays registered.
+        await page.addInitScript(() => {
+            window.__listeners = 0;
+            const add = document.addEventListener.bind(document);
+            const remove = document.removeEventListener.bind(document);
+            document.addEventListener = (type, ...rest) => {
+                if (type === 'mousemove') window.__listeners += 1;
+                return add(type, ...rest);
+            };
+            document.removeEventListener = (type, ...rest) => {
+                if (type === 'mousemove') window.__listeners -= 1;
+                return remove(type, ...rest);
+            };
+        });
+        await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/ipa/ui/`);
+        await page.waitForSelector('#gp__container .gp__header');
+        await page.waitForFunction(() => window.__listeners === 1);
+        await page.evaluate(() => {
+            window.__first = window.gpui;
+        });
+
+        server.watcher.emit('change', path.join(root, 'src/util/API.js'));
+        await page.waitForFunction(() => window.gpui !== window.__first);
+        await page.waitForSelector('#gp__container .gp__header');
+        await page.waitForTimeout(500);
+        assert.equal(await page.evaluate(() => window.__listeners), 1);
+
+        // Closing the editor (the owner calls cleanup) releases the rest.
+        await page.evaluate(() => window.__editor.cleanup());
+        assert.equal(await page.evaluate(() => window.__listeners), 0);
+    } finally {
+        if (browser) await browser.close();
+        await server.close();
+    }
+});

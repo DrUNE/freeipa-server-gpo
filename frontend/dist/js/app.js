@@ -18396,14 +18396,33 @@
 		const containerId = options && options.containerId ? options.containerId : "gp__container";
 		return document.getElementById(containerId);
 	}
+	var running = /* @__PURE__ */ new WeakMap();
 	function init(options) {
 		const container = resolveContainer(options || {});
 		if (!container) return null;
+		const previous = running.get(container);
+		if (previous) previous.cleanup();
 		container.innerHTML = "";
+		let stopped = false;
+		let currentTreeViewState = null;
+		let stopResizing = null;
+		const editor = {
+			container,
+			cleanup: function() {
+				stopped = true;
+				if (stopResizing) stopResizing();
+				stopResizing = null;
+				if (currentTreeViewState) currentTreeViewState.cleanupCurrentView();
+				if (running.get(container) === editor) running.delete(container);
+			}
+		};
+		running.set(container, editor);
 		const policyName = (options || {}).policyName;
 		setLanguage((navigator.language || "en").slice(0, 2).toLowerCase());
 		initialize$1(policyName).then(function(openResult) {
+			if (stopped) return;
 			const treeViewState = createTreeViewState();
+			currentTreeViewState = treeViewState;
 			const header = renderHeader(container);
 			const headerElement = header.getElement();
 			const initialPreferenceControls = headerElement.querySelector(".gp__control");
@@ -18469,14 +18488,14 @@
 			const policyBtnYes = treeViewState.policyChangedModal.querySelector(".btn-yes");
 			policyBtnNo.addEventListener("click", treeViewState.handlePolicyChangedNo.bind(treeViewState));
 			policyBtnYes.addEventListener("click", treeViewState.handlePolicyChangedYes.bind(treeViewState));
-			resizable(renderedMain.divider.getElement(), renderedMain.treeView.getElement(), renderedMain.main.getElement());
+			stopResizing = resizable(renderedMain.divider.getElement(), renderedMain.treeView.getElement(), renderedMain.main.getElement());
 		}).catch(function(error) {
 			container.innerHTML = "";
 			container.appendChild(renderError(error, { onRefresh: function() {
 				init(options);
 			} }).getElement());
 		});
-		return { container };
+		return editor;
 	}
 	//#endregion
 	exports._test = { createTreeViewState };

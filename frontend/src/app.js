@@ -796,6 +796,9 @@ function resolveContainer(options) {
     return document.getElementById(containerId);
 }
 
+// The editors that are running, by container: starting a new one in the same container stops the previous one.
+const running = new WeakMap();
+
 function init(options) {
     const container = resolveContainer(options || {});
 
@@ -803,7 +806,26 @@ function init(options) {
         return null;
     }
 
+    const previous = running.get(container);
+    if (previous) previous.cleanup();
     container.innerHTML = '';
+
+    // What the editor leaves outside its container (listeners on `document`, the current view's own cleanup) is
+    // released by `cleanup()`; the caller that removes the container should call it.
+    let stopped = false;
+    let currentTreeViewState = null;
+    let stopResizing = null;
+    const editor = {
+        container: container,
+        cleanup: function () {
+            stopped = true;
+            if (stopResizing) stopResizing();
+            stopResizing = null;
+            if (currentTreeViewState) currentTreeViewState.cleanupCurrentView();
+            if (running.get(container) === editor) running.delete(container);
+        }
+    };
+    running.set(container, editor);
 
     const policyName = (options || {}).policyName;
 
@@ -812,7 +834,9 @@ function init(options) {
 
     API.initialize(policyName)
         .then(function (openResult) {
+            if (stopped) return;
             const treeViewState = createTreeViewState();
+            currentTreeViewState = treeViewState;
             const header = renderHeader(container);
             const headerElement = header.getElement();
             const initialPreferenceControls = headerElement.querySelector('.gp__control');
@@ -904,7 +928,7 @@ function init(options) {
             policyBtnNo.addEventListener('click', treeViewState.handlePolicyChangedNo.bind(treeViewState));
             policyBtnYes.addEventListener('click', treeViewState.handlePolicyChangedYes.bind(treeViewState));
 
-            resizable(
+            stopResizing = resizable(
                 renderedMain.divider.getElement(),
                 renderedMain.treeView.getElement(),
                 renderedMain.main.getElement()
@@ -923,9 +947,7 @@ function init(options) {
             );
         });
 
-    return {
-        container: container
-    };
+    return editor;
 }
 
 const _test = {

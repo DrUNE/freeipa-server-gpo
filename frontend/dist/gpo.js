@@ -300,6 +300,7 @@ define([
 
             var previousFocus = document.activeElement;
             var closing = false;
+            var editor = null;
             var titleId = 'gpo-shell-title-' + (++nextDialogId);
             var backdrop = $('<div class="modal-backdrop fade modal-gpui-backdrop"></div>');
             var modal = $(
@@ -331,6 +332,8 @@ define([
                 backdrop.removeClass('in');
                 setTimeout(function() {
                     modal.off('keydown.gpui');
+                    // The editor puts listeners on the document; they go with the window.
+                    if (editor && typeof editor.cleanup === 'function') editor.cleanup();
                     modal.remove();
                     backdrop.remove();
                     facet.refresh();
@@ -355,7 +358,7 @@ define([
             require(['./js/app'], function(app) {
                 if (closing || !modal[0].isConnected) return;
                 if (app && typeof app.init === 'function') {
-                    app.init({
+                    editor = app.init({
                         containerId: 'gp__container',
                         policyName: policyName,
                         path: '/'

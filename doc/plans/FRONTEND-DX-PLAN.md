@@ -18,7 +18,7 @@
 | CI and RPM build | `python-backend.yml` and the `.spec` run only pytest and Python coverage. `make test-ui` is never called. |
 | Dev stand | `tools/ui-dev`: mock backend and `requirejs` without a build, refresh with F5. It does not cover `chain.js`/`gpo.js` (they depend on `freeipa/*`). |
 | Sizes | Large files: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. The rest of the code is split reasonably well. |
-| RPC contract | `util/API.js` (407 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
+| RPC contract | `util/API.js` (408 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
 
 Deployment constraint: the RPM is built in hasher without a network, and what is needed in the end is static files in `/usr/share/ipa/ui/js/plugins/chain`.
 
@@ -79,7 +79,7 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 - A stand on **Vite** replaces the hand-written server: it serves `frontend/src` directly, `freeipa/*` resolve to ES shims, and `/ipa/session/json` is answered by the mock backend `dev/backend.mjs` (or the stand can be pointed at a live FreeIPA from the dev container). The page reloads on save.
 - **Partly done:** `chain.js` and `gpo.js` are now covered by unit tests with doubles of `freeipa/*` (`tests/unit/helpers/load-plugin.js`; 22 tests: the actions and their RPC commands, registration, the menu, the status formatter, saving with rename). Mutations of the pages break them. Rendering the pages in the stand is a different task: it needs a reimplementation of FreeIPA's facet and widget framework (`IPA.facet`, search facets, tables, jQuery widgets), so it is not planned.
 - **Done:** the `?scenario=normal|error|slow|empty` mode of the mock backend (a selector in the stand's top bar; `tests/unit/dev-backend.test.js`) for checking the error, loading and empty states.
-- **Done:** HMR instead of a full reload: a change under `src/` re-imports `app.js` and restarts the editor in the same page (`dev/index.html`, `tests/integration/dev-stand-hmr.browser.test.js`); styles are applied without a restart. Listeners that the old instance put on `document`/`window` stay until the next page reload — acceptable for development.
+- **Done:** HMR instead of a full reload: a change under `src/` re-imports `app.js` and restarts the editor in the same page (`dev/index.html`, `tests/integration/dev-stand-hmr.browser.test.js`); styles are applied without a restart. `init()` now returns `{ container, cleanup }`; `cleanup()` releases what the editor puts outside its container (the listeners of the divider on `document`, the current view); the stand calls it before a restart and `gpo.js` when the window closes (this also fixed a leak in production: each opening of the editor left two `document` listeners behind).
 
 **Done when:** `make ui-dev` shows the editor without FreeIPA with the states `error`, `slow` and `empty`, saving a file updates the page without a reload, and `chain.js`/`gpo.js` have tests that need no FreeIPA.
 
@@ -129,7 +129,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 407 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 408 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -160,7 +160,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (407 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (408 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 

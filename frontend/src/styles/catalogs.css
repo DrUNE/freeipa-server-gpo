@@ -28,11 +28,11 @@
   user-select: none;
   -webkit-user-select: none;
 }
-.gp__container :is(input, textarea, select, pre, [contenteditable="true"], .gpo-copyable,
+.gp__container :is(input, textarea, select, pre, [contenteditable="true"],
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note),
-.gp__container :is(pre, [contenteditable="true"], .gpo-copyable,
+.gp__container :is(pre, [contenteditable="true"],
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note) * {

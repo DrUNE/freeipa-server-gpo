@@ -716,10 +716,6 @@
 .gp__container .field.radio.disabled .field__label-radio {
   color: var(--gpui-muted);
 }
-.gp__container .field.radio.disabled .radio__label {
-  color: var(--gpui-muted);
-  cursor: not-allowed;
-}
 .gp__container .field.radio {
   /*
   input[type="radio"] {
@@ -746,13 +742,6 @@
       }
   }*/
 }
-.gp__container .field.radio .radio__label {
-  padding-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
 .gp__container .field__group_one {
   display: flex;
   gap: 10px;
@@ -765,13 +754,7 @@
 .gp__container .field__group_one.field__group-disk-name {
   align-items: end;
 }
-.gp__container .field__group_one.field__group-disk-name .select-half {
-  margin-bottom: 20px;
-}
 .gp__container .field__group-equal .field {
-  width: 45%;
-}
-.gp__container .field.select-half {
   width: 45%;
 }
 .gp__container .environment__field-label {
@@ -1420,15 +1403,12 @@
 .gp__container .gpo-editor-filters__fields .field__element input.gpo-targeting-prefix { box-sizing: border-box; width: 80px; height: 28px; min-height: 28px; }
 .gpo-targeting-prefix__hint { display: inline-block; max-width: calc(100% - 8px); margin-left: 8px; vertical-align: middle; line-height: 1.4; }
 
-.gpo-editor-filters__toolbar--disabled,
-.gpo-editor-filters__toolbar.is-disabled {
+.gpo-editor-filters__toolbar--disabled {
   background: var(--gpui-surface);
   color: #777;
 }
 .gpo-editor-filters__toolbar--disabled button,
 .gpo-editor-filters__toolbar--disabled select,
-.gpo-editor-filters__toolbar.is-disabled button,
-.gpo-editor-filters__toolbar.is-disabled select,
 .gpo-editor-filters__toolbar button:disabled,
 .gpo-editor-filters__toolbar select:disabled {
   cursor: not-allowed;
@@ -1514,8 +1494,6 @@
   background-position: center;
   background-repeat: no-repeat;
 }
-.gpo-editor-filter-icon.is-collection { background-image: url(../img/svg/ico/folder.svg); }
-.gpo-editor-filter-icon.is-condition { background-image: url(../img/svg/ico/file.svg); }
 .gpo-editor-filter-label {
   display: flex;
   align-items: center;
@@ -1639,11 +1617,6 @@
   min-width: 157px;
   padding: 0 10px;
   white-space: nowrap;
-}
-
-.gp__container .gp__scripts .btn-startup,
-.gp__container .gp__scripts .btn-shutdown{
-  width: 220px;
 }
 
 .gp__container .gp__scripts .btn.disabled {
@@ -2233,11 +2206,11 @@
   user-select: none;
   -webkit-user-select: none;
 }
-.gp__container :is(input, textarea, select, pre, [contenteditable="true"], .gpo-copyable,
+.gp__container :is(input, textarea, select, pre, [contenteditable="true"],
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note),
-.gp__container :is(pre, [contenteditable="true"], .gpo-copyable,
+.gp__container :is(pre, [contenteditable="true"],
   .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
   .gp__admx-content, .gp__list-children-help, .preference__info,
   .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note) * {

@@ -87,7 +87,9 @@ import * as app from '@gpui/app.js';
 
     function start(module) {
         window.gpui = module;
-        module.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
+        // A re-imported module has its own registry of running editors, so the previous one is stopped here.
+        if (window.__editor) window.__editor.cleanup();
+        window.__editor = module.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
     }
     start(app);
     // Hot update: a change in any module under src/ re-imports app.js (Vite bubbles it up to this boundary) and starts

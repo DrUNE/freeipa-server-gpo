@@ -63,8 +63,8 @@ TypeScript необязателен и вводится постепенно: ф
 без расширения (`@gpui/util/editor-dto`); тестовое дерево превращает его в AMD-модуль `.js` через `transformWithOxc` из Vite.
 
 Source maps: стенд и Storybook отдают их для скриптов (Vite) и для стилей (`css.devSourcemap`: в панели Styles видно `File.module.css:строка`).
-`npm run watch` собирает dev-сборку (`--mode development`) с `app.js.map` и метками `data-source`; у стилей такой сборки карт нет
-(ограничение Vite). В закоммиченной production-сборке карт нет, а `npm run build:check` падает на оставшемся `.map`.
+`npm run watch` собирает dev-сборку (`--mode development`) с `app.js.map` и метками `data-source`; у стилей такой сборки карты нет (ограничение Vite), поэтому
+перед правилами каждого исходного файла стоит комментарий с его именем (`/* src/styles/shell.css */`). В закоммиченной production-сборке карт нет, а `npm run build:check` падает на оставшемся `.map`.
 
 Внутри компонента: состояние в локальных переменных (объект `view`/`ui` в крупных шаблонах), одна функция `render`, которая пишет
 состояние в DOM (её же вызывают один раз при создании), обработчики меняют состояние и вызывают `render`. В стенде и в Storybook
@@ -176,7 +176,7 @@ integration tests/integration/dialogs-visual` и просмотреть разн
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 407 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 408 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

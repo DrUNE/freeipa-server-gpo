@@ -32,7 +32,8 @@ async function bundle(mode) {
     try {
         await build({ root, configFile, mode, logLevel: 'silent', build: { outDir, emptyOutDir: true } });
         const script = fs.readFileSync(path.join(outDir, 'js/app.js'), 'utf8');
-        return { script, maps: fs.readdirSync(path.join(outDir, 'js')).filter(name => name.endsWith('.map')) };
+        const styles = fs.readFileSync(path.join(outDir, 'js/app.css'), 'utf8');
+        return { script, styles, maps: fs.readdirSync(path.join(outDir, 'js')).filter(name => name.endsWith('.map')) };
     } finally {
         fs.rmSync(outDir, { recursive: true, force: true });
     }
@@ -43,8 +44,12 @@ test('the development build has a script source map and the data-source marks; t
     assert.deepEqual(development.maps, ['app.js.map']);
     assert.match(development.script, /sourceMappingURL=app\.js\.map/);
     assert.match(development.script, /data-source/);
+    // Styles have no map there, so every source file of the sheet is named in a comment.
+    assert.match(development.styles, /\/\* src\/styles\/shell\.css \*\//);
+    assert.match(development.styles, /\/\* src\/components\/Dialog\/Dialog\.module\.css \*\//);
 
     const production = await bundle('production');
     assert.deepEqual(production.maps, []);
     assert.doesNotMatch(production.script, /sourceMappingURL|callerSource/);
+    assert.doesNotMatch(production.styles, /\/\* src\//);
 }, 60000);

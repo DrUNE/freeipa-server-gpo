@@ -54,6 +54,29 @@ function devStand() {
     };
 }
 
+// The development build has no source map for styles (Vite does not make one for the extracted sheet), so each source file
+// of the sheet is marked with a comment instead: `/* src/styles/shell.css */`. Works on the merged sheet: the nodes still
+// know their file, also after @import has been inlined.
+function markStyleSources() {
+    return {
+        postcssPlugin: 'gpui-mark-style-sources',
+        Once(root) {
+            let current = null;
+            for (const node of [...root.nodes]) {
+                const file = node.source && node.source.input && node.source.input.file;
+                if (!file || file === current || node.type === 'comment') continue;
+                current = file;
+                node.parent.insertBefore(node, {
+                    type: 'comment',
+                    text: path.relative(import.meta.dirname, file),
+                    raws: { left: ' ', right: ' ' }
+                });
+            }
+        }
+    };
+}
+markStyleSources.postcss = true;
+
 export default defineConfig(({ command, mode }) =>
     command === 'serve'
         ? {
@@ -83,7 +106,10 @@ export default defineConfig(({ command, mode }) =>
               // `--mode development` (npm run watch) is the dev build: source maps for scripts and styles and the
               // data-source marks of h(); the committed build (production) has neither.
               define: { __GPUI_DEV__: mode === 'development' },
-              css: { devSourcemap: true },
+              css: {
+                  devSourcemap: true,
+                  postcss: { plugins: mode === 'development' ? [markStyleSources()] : [] }
+              },
               resolve: { alias: { '@gpui': path.join(root, 'src') } },
               build: {
                   outDir,
