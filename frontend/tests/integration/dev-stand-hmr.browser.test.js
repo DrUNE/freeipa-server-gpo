@@ -7,7 +7,7 @@ let createServer;
 try {
     chromium = (await import('playwright')).chromium;
     ({ createServer } = await import('vite'));
-} catch (_) {
+} catch {
     /* Optional browser dependencies. */
 }
 

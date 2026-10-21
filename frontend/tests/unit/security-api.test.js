@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 async function loadApi(rpc) {
     return loadModule(

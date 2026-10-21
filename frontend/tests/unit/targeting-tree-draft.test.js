@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as targetingModule from '@gpui/util/targeting-tree-draft.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as targeting from '@gpui/util/targeting-tree-draft';
 
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
-const targeting = targetingModule;
 
 function field(value = '', extra = {}) {
     return { id: 'operand', editable: true, required: false, value: { kind: 'text', value }, ...extra };

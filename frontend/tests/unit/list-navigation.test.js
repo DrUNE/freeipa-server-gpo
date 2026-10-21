@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { test } from 'vitest';
-import * as navigationModule from '@gpui/components/list-navigation.js';
-const navigation = navigationModule;
+import * as navigation from '@gpui/components/list-navigation';
 
 test('Deletion neighbors prefer a previous visible survivor, then the following survivor', () => {
     assert.equal(navigation.neighbor(['a', 'b', 'c'], ['b'], ['a', 'c']), 'a');

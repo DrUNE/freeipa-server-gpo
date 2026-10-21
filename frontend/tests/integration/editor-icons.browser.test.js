@@ -9,7 +9,7 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Optional browser dependencies. */
 }
 const root = path.resolve(import.meta.dirname, '../../.test-root');

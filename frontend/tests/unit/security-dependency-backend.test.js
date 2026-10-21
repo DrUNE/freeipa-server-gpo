@@ -5,7 +5,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const root = path.resolve(import.meta.dirname, '../../src/components/templates');
 const catalogRoot = process.env.SDMX_BASEALT_ROOT || null;
 const definitions = catalogRoot ? path.join(catalogRoot, 'definitions') : '/usr/share/PolicyDefinitions';
 const schemas = catalogRoot ? path.join(catalogRoot, 'docs/schema') : '/usr/share/xml/sdmx/1.0';

@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, vi } from 'vitest';
-import * as iconsModule from '@gpui/components/editor-icons.js';
-import * as presentationsModule from '@gpui/components/templates/preference/targeting-presentations.js';
-import * as treeModule from '@gpui/components/tree-view/tree-view-list-data.js';
-import * as modelModule from '@gpui/components/templates/all-policies/model.js';
+import * as icons from '@gpui/components/editor-icons';
+import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as tree from '@gpui/components/tree-view/tree-view-list-data';
+import * as model from '@gpui/components/templates/all-policies/model';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
 vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
@@ -16,10 +16,6 @@ vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
 const styles = path.resolve(import.meta.dirname, '../../src/styles');
 // `url(/img/...)` in the CSS is a file of the public directory (the plugin's img/).
 const publicDir = path.resolve(import.meta.dirname, '../../public');
-const icons = iconsModule;
-const presentations = presentationsModule;
-const tree = treeModule;
-const model = modelModule;
 const preferenceKinds = [
     'applications',
     'control_panel',
@@ -65,6 +61,7 @@ test('all 22 native preference families and all 29 targeting kinds have explicit
     assert.equal(new Set([...icons.targetingKinds].map(icons.targeting)).size, 29);
     // An ES module namespace is immutable by definition; the exported lists must be frozen too.
     assert.throws(() => {
+        // eslint-disable-next-line no-import-assign -- the assignment is what is under test
         icons.preferenceKinds = [];
     }, TypeError);
     assert.ok(Object.isFrozen(icons.preferenceKinds) && Object.isFrozen(icons.targetingKinds));

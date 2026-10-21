@@ -1,17 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as enModule from '@gpui/locales/en.js';
-import * as ruModule from '@gpui/locales/ru.js';
-import * as translationsModule from '@gpui/locales/translations.js';
-import * as statusModule from '@gpui/components/EditorStatus/EditorStatus.js';
+import * as en from '@gpui/locales/en';
+import * as ru from '@gpui/locales/ru';
+import * as translations from '@gpui/locales/translations';
+import * as status from '@gpui/components/EditorStatus/EditorStatus';
 
 import fs from 'node:fs';
 import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '../../src');
-const en = enModule;
-const ru = ruModule;
-const translations = translationsModule;
-const status = statusModule;
 
 test('error messages use the selected language and translate known server details', () => {
     for (const [language, locale] of [

@@ -8,7 +8,7 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Optional browser dependencies. */
 }
 const root = path.resolve(import.meta.dirname, '../../.test-root');
@@ -67,7 +67,7 @@ async function fixture(run) {
         try {
             response.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : 'application/javascript');
             response.end(fs.readFileSync(file));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }

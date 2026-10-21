@@ -9,7 +9,7 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Browser runner is optional in unit-only environments. */
 }
 const skip =
@@ -44,7 +44,7 @@ async function fixture(run, options = {}) {
                       : 'application/javascript'
             );
             response.end(fs.readFileSync(filename));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }

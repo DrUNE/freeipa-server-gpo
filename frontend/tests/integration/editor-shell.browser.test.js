@@ -9,7 +9,7 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Optional browser dependencies in unit-only environments. */
 }
 // FreeIPA's own jQuery: installed on a FreeIPA host, or copied out of the dev container by `npm run test:ipa`.
@@ -95,7 +95,7 @@ async function fixture(run, language = 'en') {
                       : 'application/javascript'
             );
             response.end(fs.readFileSync(filename));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }

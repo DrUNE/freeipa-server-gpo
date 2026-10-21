@@ -1,15 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as enModule from '@gpui/locales/en.js';
-import * as ruModule from '@gpui/locales/ru.js';
-import * as translationsModule from '@gpui/locales/translations.js';
-import * as modelModule from '@gpui/components/templates/advanced-audit/model.js';
+import * as enModule from '@gpui/locales/en';
+import * as ruModule from '@gpui/locales/ru';
+import * as translations from '@gpui/locales/translations';
+import * as model from '@gpui/components/templates/advanced-audit/model';
 import fs from 'node:fs';
-import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 const locales = { en: enModule, ru: ruModule };
-const translations = translationsModule;
-const model = modelModule;
 const plain = value => JSON.parse(JSON.stringify(value));
 const guid = number => '0cce' + number.toString(16) + '-69ae-11d9-bed3-505054503030';
 const catalog = Array.from({ length: 58 }, (_, index) => ({

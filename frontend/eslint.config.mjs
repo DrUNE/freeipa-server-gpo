@@ -14,7 +14,10 @@ export default [
         },
         rules: {
             eqeqeq: ['error', 'always', { null: 'ignore' }],
-            'no-unused-vars': ['error', { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none' }],
+            'no-unused-vars': [
+                'error',
+                { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true }
+            ],
             'no-empty': ['error', { allowEmptyCatch: true }],
             // Legacy code: tracked as warnings until cleaned up.
             'no-redeclare': 'warn',
@@ -38,7 +41,10 @@ export default [
         rules: {
             // Functions passed to page.evaluate() run in the browser and use its globals.
             'no-undef': 'off',
-            'no-unused-vars': 'warn'
+            'no-unused-vars': [
+                'error',
+                { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none', ignoreRestSiblings: true }
+            ]
         }
     }
 ];

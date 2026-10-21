@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-import * as editorIcons from '@gpui/components/editor-icons.js';
-import * as enLocale from '@gpui/locales/en.js';
-import * as ruLocale from '@gpui/locales/ru.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as editorIcons from '@gpui/components/editor-icons';
+import * as enLocale from '@gpui/locales/en';
+import * as ruLocale from '@gpui/locales/ru';
 
 function locale(language) {
     return language === 'ru' ? ruLocale : enLocale;

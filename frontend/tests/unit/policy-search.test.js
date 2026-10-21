@@ -1,21 +1,11 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { test } from 'vitest';
-import * as enModule from '@gpui/locales/en.js';
-import * as ruModule from '@gpui/locales/ru.js';
-import * as translationsModule from '@gpui/locales/translations.js';
-import * as securityModule from '@gpui/components/templates/security/model.js';
-import * as auditModule from '@gpui/components/templates/advanced-audit/model.js';
-import * as editorIconsModule from '@gpui/components/editor-icons.js';
-import * as modelModule from '@gpui/components/templates/all-policies/model.js';
+import * as enModule from '@gpui/locales/en';
+import * as ruModule from '@gpui/locales/ru';
+import * as translations from '@gpui/locales/translations';
+import * as model from '@gpui/components/templates/all-policies/model';
 
 const locales = { en: enModule, ru: ruModule };
-const translations = translationsModule;
-const security = securityModule;
-const audit = auditModule;
-const editorIcons = editorIconsModule;
-const model = modelModule;
 const plain = value => JSON.parse(JSON.stringify(value));
 function freeze(value) {
     if (value && typeof value === 'object') {

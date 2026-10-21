@@ -5,7 +5,7 @@ import { test } from 'vitest';
 let chromium;
 try {
     chromium = (await import('playwright')).chromium;
-} catch (_) {
+} catch {
     /* Browser dependencies are optional in unit-only environments. */
 }
 
