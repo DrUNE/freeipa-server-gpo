@@ -92,3 +92,9 @@ function saveDownloadedAsset(asset) {
 }
 
 export { st, eventLabel, nameCell, assetIcon, button, fileBase64, saveDownloadedAsset };
+
+// Header controls are shared between the editors on one page; each takes a fresh owner id.
+let headerOwners = 1;
+export function nextHeaderOwner() {
+    return 'scripts-' + headerOwners++;
+}

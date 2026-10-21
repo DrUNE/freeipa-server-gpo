@@ -1,0 +1,346 @@
+.gp__container .field {
+  display: flex;
+  height: 25px;
+  margin-bottom: 5px;
+}
+.gp__container .field.h-auto {
+  height: auto;
+}
+.gp__container .field__label {
+  width: 144px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+.gp__container .field__label-radio {
+  padding-bottom: 10px;
+}
+.gp__container .field__label-global {
+  padding-bottom: 5px;
+}
+.gp__container .field__line {
+  width: 100%;
+  height: 1px;
+  background: var(--gpui-border);
+  margin: 10px 0;
+}
+.gp__container .field__line-vertical {
+  width: 1px;
+  background: var(--gpui-border);
+}
+.gp__container .field__element {
+  position: relative;
+  flex-grow: 1;
+}
+.gp__container .field__element select {
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  background-color: var(--gpui-surface);
+  border: 1px solid var(--gpui-border);
+  border-radius: var(--gpui-radius);
+  padding-left: 5px;
+}
+.gp__container .field__element select:focus-visible {
+  outline: none;
+}
+.gp__container .field__element input[type=text] {
+  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  border: 1px solid var(--gpui-border);
+  padding: 5px;
+  border-radius: var(--gpui-radius);
+}
+.gp__container .field__element input[type=text]:disabled {
+  color: #aaa;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.gp__container .field__element input[type=text]:focus-visible {
+  outline: none;
+}
+.gp__container .field__element input[type=number] {
+  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  border: 1px solid var(--gpui-border);
+  padding: 5px;
+  border-radius: var(--gpui-radius);
+}
+.gp__container .field__element textarea {
+  font-size: 12px;
+  width: 100%;
+  height: 34px;
+  resize: none;
+  border: 1px solid var(--gpui-border);
+  padding: 5px;
+  border-radius: var(--gpui-radius);
+}
+.gp__container .field__element textarea:focus-visible {
+  outline: none;
+}
+.gp__container .field__checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.gp__container .field.field__checkbox {
+  height: auto;
+}
+.gp__container .field__checkbox .field__label-checkbox {
+  line-height: 1.3;
+}
+.gp__container .field__checkbox input[type="checkbox"] {
+  flex-shrink: 0;
+}
+.gp__container .field__checkbox label input:disabled + .field__label-checkbox {
+  color: #aaa;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.gp__container .field__description {
+  flex: 1;
+  height: auto;
+  flex-direction: column;
+}
+.gp__container .field__description .field__label {
+  padding-bottom: 10px;
+}
+.gp__container .field__description .field__element {
+  display: flex;
+  flex-direction: column;
+}
+.gp__container .field__description .field__element textarea {
+  flex: 1;
+  font-size: 12px;
+  border: 1px solid var(--gpui-border);
+  padding: 5px;
+  min-height: 60px;
+}
+.gp__container .field__details {
+  margin-top: 10px;
+}
+.gp__container .field__details-label {
+  padding-bottom: 10px;
+}
+.gp__container .field__details-content {
+  padding: 5px;
+  border: 1px solid var(--gpui-border);
+  min-height: 100px;
+}
+.gp__container .field.radio {
+  flex-direction: column;
+  height: auto;
+}
+.gp__container .field.radio .field__element {
+  display: flex;
+  flex-direction: column;
+}
+.gp__container .field.radio.disabled .field__label-radio {
+  color: var(--gpui-muted);
+}
+.gp__container .field.radio.disabled .radio__label {
+  color: var(--gpui-muted);
+  cursor: not-allowed;
+}
+.gp__container .field.radio {
+  /*
+  input[type="radio"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--gpui-border);      
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      flex-shrink: 0;
+
+      &:checked::before {
+          content: '';
+          display: block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+      }
+  }*/
+}
+.gp__container .field.radio .radio__label {
+  padding-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.gp__container .field__group_one {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.gp__container .field__group_one .field__label {
+  width: auto;
+  padding-right: 10px;
+}
+.gp__container .field__group_one.field__group-disk-name {
+  align-items: end;
+}
+.gp__container .field__group_one.field__group-disk-name .select-half {
+  margin-bottom: 20px;
+}
+.gp__container .field__group-equal .field {
+  width: 45%;
+}
+.gp__container .field.select-half {
+  width: 45%;
+}
+.gp__container .environment__field-label {
+  width: 92px;
+}
+.gp__container .environment__group-variable .field__wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+}
+.gp__container .environment__group-variable .field__wrapper .field__label {
+  width: 92px;
+}
+.gp__container .environment__group-variable .field__wrapper .field__element {
+  width: 150px;
+}
+.gp__container .environment__group-variable .field__checkbox-group .field__checkbox {
+  height: 16px;
+}
+
+.gp__container .btn {
+  border: 1px solid var(--gpui-border);
+  width: 80px;
+  height: 25px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+.gp__container .btn-oк {
+  border: 1px solid var(--gpui-accent);
+}
+.gp__container .button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  box-shadow: none;
+  color: var(--gpui-border);
+}
+.gp__container .button.active {
+  cursor: pointer;
+  color: var(--gpui-text);
+}
+
+@media (hover: hover) {
+  .gp__container .button.active {
+    transition: color 0.3s ease-in-out;
+  }
+  .gp__container .button.active:hover {
+    color: var(--gpui-accent);
+  }
+}
+.gp__preference {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+.gp__preference .preference__info {
+  /* background-color: var(--gpui-surface); */
+  height: 100%;
+  width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-left: 1px solid var(--gpui-border);
+  transition: width 0.3s ease, border-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  padding-top: 20px;
+  transition: width 0.3s ease, padding 0.3s ease, border-left 0.3s ease;
+}
+.gp__preference .preference__info.is-open {
+  width: 432px;
+  padding: 20px;
+}
+.gp__preference .preference__data {
+  background-color: var(--gpui-white);
+  height: 100%;
+}
+.gp__preference .preference__settings {
+  padding: 5px;
+  min-width: 199px;
+}
+.gp__preference .preference__settings-title {
+  font-weight: 600;
+  padding-bottom: 5px;
+}
+.gp__preference .preference__settings-data {
+  border: 1px solid var(--gpui-border);
+  width: 100%;
+  padding: 5px 15px;
+}
+.gp__preference .preference__settings-item {
+  display: flex;
+  padding-bottom: 10px;
+  justify-content: space-between;
+}
+.gp__preference .preference__settings-item.empty {
+  color: var(--gpui-muted);
+}
+/* .gp__preference .preference__settings-name {
+  width: 116px;
+  flex-shrink: 0;
+} */
+.gp__preference .preference__settings-value {
+  width: 30px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.gp__preference .preference__description {
+  padding: 5px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.gp__preference .preference__description-title {
+  font-weight: 600;
+  padding-bottom: 5px;
+}
+.gp__preference .preference__description-data {
+  border: 1px solid var(--gpui-border);
+  background: var(--gpui-white);
+  min-height: 150px;
+  max-height: 292px;
+  padding: 5px 15px;
+  min-width: 189px;
+  flex-grow: 1;
+  overflow: auto;
+}
+.gp__preference .preference__description-data.empty {
+  color: var(--gpui-muted);
+}
+.gp__preference .preference__description-data.disable {
+  background: transparent;
+}
+.gp__preference .preference__data-table {
+  padding: 0 15px;
+  flex: 1 1 0px;
+  overflow: auto;
+}

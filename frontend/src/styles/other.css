@@ -54,7 +54,7 @@
 .gp__control-separator {
   width: 1px;
   height: 24px;
-  background-color: #d1d1d1;
+  background-color: var(--gpui-border);
 }
 
 .gp__container .policy-changed__modal {
@@ -65,9 +65,9 @@
   opacity: 0;
   transition: 0.5s all;
   z-index: 100;
-  border: 1px solid #d1d1d1;
-  background-color: #fff;
-  border-radius: 3px;
+  border: 1px solid var(--gpui-border);
+  background-color: var(--gpui-white);
+  border-radius: var(--gpui-radius);
   overflow: hidden;
 }
 .gp__container .policy-changed__modal.active {
@@ -78,8 +78,8 @@
   width: 408px;
 }
 .gp__container .policy-changed__modal-header {
-  background: #f5f5f5;
-  border-bottom: 1px solid #d1d1d1;
+  background: var(--gpui-surface);
+  border-bottom: 1px solid var(--gpui-border);
   height: 40px;
   display: flex;
   justify-content: center;
@@ -88,7 +88,7 @@
 }
 .gp__container .policy-changed__modal-header .title {
   font-weight: 600;
-  color: #363636;
+  color: var(--gpui-text);
 }
 .gp__container .policy-changed__modal-content {
   display: flex;
@@ -107,12 +107,12 @@
 }
 .gp__container .policy-changed__modal-footer {
   height: 45px;
-  background-color: #fff;
+  background-color: var(--gpui-white);
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 20px;
-  border-top: 1px solid #d1d1d1;
+  border-top: 1px solid var(--gpui-border);
 }
 .gp__container .policy-changed__modal-footer .btn {
   width: auto;
@@ -120,12 +120,12 @@
 }
 .gp__container .policy-changed__modal-footer button.btn {
   appearance: none;
-  background: #fff;
-  color: #363636;
+  background: var(--gpui-white);
+  color: var(--gpui-text);
   font: inherit;
 }
 .gp__container .policy-changed__modal-footer button.btn:focus-visible {
-  outline: 2px solid #297fb0;
+  outline: 2px solid var(--gpui-accent);
   outline-offset: 2px;
 }
 .gp__container .policy-changed__modal-footer .btn-yes {
@@ -209,11 +209,11 @@ tr.chain-dnd-source > td {
 }
 
 tbody.chain-dnd-active tr.chain-dnd-insert.chain-dnd-before td:first-child {
-    box-shadow: inset 0 3px 0 0 #0088ce;
+    box-shadow: inset 0 3px 0 0 var(--gpui-focus);
 }
 
 tbody.chain-dnd-active tr.chain-dnd-insert.chain-dnd-after td:first-child {
-    box-shadow: inset 0 -3px 0 0 #0088ce;
+    box-shadow: inset 0 -3px 0 0 var(--gpui-focus);
 } 
 
 

@@ -1,0 +1,340 @@
+/* Scripts reuse the Preferences tables, controls, and modal windows. */
+.gp__container .gpo-editor-scripts {
+  overflow: auto;
+  align-items: stretch;
+}
+.gp__container .gpo-editor-scripts__overview {
+  flex: 0 0 auto;
+  height: auto;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+.gp__container .gpo-editor-scripts__event-table {
+  table-layout: fixed;
+}
+.gp__container .gpo-editor-scripts__event-table th:first-child {
+  width: 60%;
+}
+.gp__container .gpo-editor-scripts__event-table td {
+  border-top: 1px solid #eee;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gp__container .gpo-editor-scripts .preference__table tbody tr:focus-visible {
+  outline: 2px solid var(--gpui-focus);
+  outline-offset: -2px;
+}
+.gp__container .gpo-editor-scripts__event-dialog [data-dialog-part="body"],
+.gp__container .gpo-editor-scripts__explorer [data-dialog-part="body"] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__detail-host,
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__detail-host {
+  width: 100%;
+  min-width: 0;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__detail-host > .gp__scripts,
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__detail-host > .gp__scripts {
+  padding: 0;
+  height: auto;
+  overflow: visible;
+}
+.gp__container .gpo-editor-scripts .gpo-editor-scripts__file-input {
+  display: none !important;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-field select {
+  flex: 1;
+  min-width: 160px;
+  height: 26px;
+  border: 1px solid var(--gpui-border);
+  background: var(--gpui-white);
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__hint {
+  overflow-wrap: anywhere;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets .preference__table th:first-child,
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets .preference__table td:first-child {
+  box-sizing: border-box;
+  width: 32px;
+  padding: 4px 6px;
+  text-align: center;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets input[type="checkbox"] {
+  margin: 0;
+  vertical-align: middle;
+}
+.gp__container .gpo-editor-scripts__title {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--gpui-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+.gp__container .gpo-editor-scripts .scripts__modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 1100px;
+}
+.gp__container .gpo-editor-scripts__hint {
+  margin: 0;
+  color: var(--gpui-muted);
+  font-size: 12px;
+}
+.gp__container .gpo-editor-scripts .preference__modal-tabs {
+  min-height: 0;
+  border: 1px solid var(--gpui-border);
+}
+.gp__container .gpo-editor-scripts .preference__modal-tabs .tab-buttons {
+  height: 26px;
+}
+.gp__container .gpo-editor-scripts__entries,
+.gp__container .gpo-editor-scripts__assets {
+  min-width: 0;
+  border: 1px solid var(--gpui-border);
+}
+.gp__container .gpo-editor-scripts .preference__modal-tabs .gpo-editor-scripts__entries {
+  border: 0;
+}
+.gp__container .gpo-editor-scripts__entries .preference__table,
+.gp__container .gpo-editor-scripts__assets .preference__table {
+  table-layout: fixed;
+}
+.gp__container .gpo-editor-scripts__list {
+  min-width: 0;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--gpui-border);
+}
+.gp__container .gpo-editor-scripts__list .preference__table th,
+.gp__container .gpo-editor-scripts__list .preference__table td {
+  padding: 6px 10px;
+}
+.gp__container .gpo-editor-scripts__list .preference__table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fafafa;
+}
+.gp__container .gpo-editor-scripts__list .preference__table .gpo-editor-scripts__empty-row td {
+  padding: 18px 10px;
+  white-space: normal;
+  text-align: center;
+  cursor: default;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 10px;
+  padding: 10px;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries .gpo-editor-scripts__list {
+  min-height: 172px;
+}
+.gp__container .gpo-editor-scripts__entries .preference__table td,
+.gp__container .gpo-editor-scripts__assets .preference__table td {
+  border-top: 1px solid #eee;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gp__container .gpo-editor-scripts__assets h3 {
+  margin: 0;
+  padding: 10px 20px;
+  color: var(--gpui-text);
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--gpui-border);
+}
+.gp__container .gpo-editor-scripts__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--gpui-border);
+}
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__toolbar .button {
+  width: auto;
+  min-width: 64px;
+  padding: 0 8px;
+}
+.gp__container .gpo-editor-scripts__toolbar .button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries .gpo-editor-scripts__toolbar {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries .gpo-editor-scripts__toolbar .button {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 28px;
+}
+.gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries .gpo-editor-scripts__toolbar .button:nth-child(3) {
+  margin-top: 8px;
+}
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__show-files {
+  box-sizing: border-box;
+  align-self: flex-start;
+  width: auto;
+  min-width: 132px;
+  min-height: 30px;
+  padding: 0 12px;
+}
+.gp__container .gpo-editor-scripts [data-dialog] .button.active:hover {
+  border-color: var(--gpui-accent);
+  background: #f5f9fc;
+}
+.gp__container .gpo-editor-scripts [data-dialog] .button:focus-visible,
+.gp__container .gpo-editor-scripts .preference__tab-button:focus-visible {
+  outline: 2px solid var(--gpui-focus);
+  outline-offset: 2px;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets {
+  border: 0;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets .gpo-editor-scripts__toolbar {
+  gap: 6px;
+  padding: 0 0 10px;
+  border: 0;
+}
+.gp__container .gpo-editor-scripts__explorer .gpo-editor-scripts__assets .gpo-editor-scripts__list {
+  min-height: 112px;
+}
+.gp__container .gpo-editor-scripts__order {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gp__container .gpo-editor-scripts__order select {
+  flex: 1;
+  min-width: 180px;
+  height: 26px;
+  border: 1px solid var(--gpui-border);
+  background: var(--gpui-white);
+}
+.gp__container .gpo-editor-scripts__order > .button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 80px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.gp__container .gpo-editor-scripts__save-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--gpui-muted);
+}
+.gp__container .gpo-editor-scripts__save-status:empty {
+  display: none;
+}
+@media (max-width: 480px) {
+  .gp__container .gpo-editor-scripts__event-dialog .gpo-editor-scripts__entries {
+    grid-template-columns: minmax(0, 1fr) 86px;
+    gap: 8px;
+    padding: 8px;
+  }
+  .gp__container .gpo-editor-scripts__order label {
+    flex-basis: 100%;
+  }
+}
+.gp__container .gpo-editor-scripts__form {
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.gp__container .gpo-editor-scripts__form [data-dialog-part="wrapper"],
+.gp__container .gpo-editor-scripts__picker [data-dialog-part="wrapper"] {
+  width: min(500px, calc(100vw - 32px));
+}
+.gp__container .gpo-editor-scripts__picker [data-dialog-part="body"] {
+  max-height: min(400px, 55vh);
+  min-height: 130px;
+  overflow-y: auto;
+}
+.gp__container .gpo-editor-scripts__form [data-dialog-part="body"],
+.gp__container .gpo-editor-scripts__picker [data-dialog-part="body"] {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+.gp__container .gpo-editor-scripts__form .gpo-editor-field {
+  display: grid;
+  gap: 6px;
+}
+.gp__container .gpo-editor-scripts__form .gpo-editor-field input,
+.gp__container .gpo-editor-scripts__form .gpo-editor-field select {
+  width: 100%;
+  box-sizing: border-box;
+  height: 26px;
+}
+.gp__container .gpo-editor-scripts__asset-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gp__container .gpo-editor-scripts__asset-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.gp__container .gpo-editor-scripts__asset-field .gpo-editor-scripts__browse {
+  flex: 0 0 auto;
+}
+.gp__container .gpo-editor-scripts [data-dialog] .gpo-editor-scripts__ellipsis {
+  flex: 0 0 28px;
+  width: 28px;
+  padding: 0;
+  font-size: 16px;
+}
+.gp__container .gpo-editor-scripts__form-error:not(:empty) {
+  padding: 4px 0;
+  color: #a52b2b;
+}
+
+@keyframes tree-view-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+@media (max-width: 900px) {
+  .gpo-editor-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .gpo-editor-preferences {
+    padding: 12px;
+  }
+  .gpo-editor-preferences__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .gp__preference .gpo-editor-preference-form [data-dialog-part="body"] {
+    padding: 12px;
+  }
+  .gpo-editor-filters__toolbar { gap: 6px; padding: 6px; }
+  .gpo-editor-filters__toolbar > .gpo-editor-filters__create { flex: 1 1 auto; }
+  .gpo-editor-targeting-calendar { margin-left: 0; }
+}
+.tree-view__lazy-error {
+  color: var(--gpui-danger-text);
+}

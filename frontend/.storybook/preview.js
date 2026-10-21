@@ -3,6 +3,8 @@
 // happens after this file, so the sheets are appended on the first render instead.
 import mainCss from '@gpui/styles/main.css?url';
 import otherCss from '@gpui/styles/other.css?url';
+// The components' CSS Modules read the design tokens; unlike the global sheets they are needed from the first render.
+import '@gpui/styles/tokens.css';
 import * as translations from '@gpui/locales/translations';
 
 let globalSheets = false;

@@ -1,0 +1,94 @@
+/* In-place family browsers reuse the existing Preferences and script dialogs. */
+.gpo-preferences-family-dialog [data-dialog-part="body"] {
+  padding: 14px;
+}
+.gpo-preferences-family-dialog__content > .gp__control {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 0;
+}
+.gpo-preferences-family-dialog__content > .gpo-editor-preferences {
+  height: auto;
+  min-height: 160px;
+}
+.gpo-preferences-family-dialog__content .preference__data-table {
+  padding: 0;
+}
+.gpo-preferences-family-dialog__content .gpo-editor-preferences__header {
+  margin-bottom: 12px;
+}
+.gpo-preferences-family-dialog__content .preference__info {
+  display: none;
+}
+
+/* Navigation behaves like controls; explanatory and editable content stays copyable. */
+.gp__container,
+.gp__container * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gp__container :is(input, textarea, select, pre, [contenteditable="true"], .gpo-copyable,
+  .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
+  .gp__admx-content, .gp__list-children-help, .preference__info,
+  .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note),
+.gp__container :is(pre, [contenteditable="true"], .gpo-copyable,
+  .gpo-security-explanation, .gpo-admx-dialog__explanation, .gp__admx-help,
+  .gp__admx-content, .gp__list-children-help, .preference__info,
+  .gpo-editor-field__diagnostic, .gpo-editor-field__hint, .gpo-editor-targeting-operands__note) * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* The same selected/inactive/focused treatment applies to every list family. */
+.gp__container :is(.gpo-catalog-table, .gpo-collection-table) tbody tr.active,
+.gp__container .workspace-list-item.active,
+.gp__container .gpo-editor-filter-node.active {
+  background: var(--gpui-surface);
+  color: var(--gpui-text);
+  box-shadow: inset 3px 0 var(--gpui-border);
+}
+.gp__container :is(.gpo-catalog-table, .gpo-collection-table):focus-within tbody tr.active,
+.gp__container .gp__list-children__list:focus-within .workspace-list-item.active,
+.gp__container .gpo-editor-filters__tree:focus-within .gpo-editor-filter-node.active {
+  color: var(--gpui-accent);
+  box-shadow: inset 3px 0 var(--gpui-accent);
+}
+.gp__container :is(.workspace-list-item, .gpo-editor-filter-node):focus-visible,
+.gp__container :is(.gpo-catalog-table, .gpo-collection-table) tbody tr:focus-visible {
+  outline: 2px solid var(--gpui-accent);
+  outline-offset: -2px;
+}
+.gp__container .tree-view .tree-item {
+  position: relative;
+  isolation: isolate;
+}
+.gp__container .tree-view .tree-item::before {
+  content: "";
+  position: absolute;
+  inset: -3px -4px;
+  z-index: -1;
+  pointer-events: none;
+}
+.gp__container .tree-view .tree-item.active {
+  color: var(--gpui-text);
+  background: transparent;
+  box-shadow: none;
+}
+.gp__container .tree-view .tree-item.active::before {
+  background: var(--gpui-surface);
+}
+.gp__container .tree-view:focus-within .tree-item.active {
+  color: var(--gpui-accent);
+}
+.gp__container .tree-view .tree-item:focus-visible {
+  outline: none;
+}
+.gp__container .tree-view .tree-item:focus-visible::before {
+  outline: 2px solid var(--gpui-accent);
+  outline-offset: -1px;
+}
+.gp__container [data-list-navigation][tabindex="0"]:focus-visible {
+  outline: 2px solid var(--gpui-accent);
+  outline-offset: -2px;
+}

@@ -1,0 +1,93 @@
+/* Security Settings: scoped additions to the existing editor visual language. */
+.icon-switcher.icon-switcher--empty { visibility: hidden; }
+.gpo-security-workbench { min-width: 0; width: 100%; height: 100%; }
+.gpo-security-workbench__panel { flex: 1; min-width: 0; overflow: auto; padding: 16px 20px; }
+.gpo-security-workbench__toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.gpo-security-workbench__toolbar h2 { margin: 0 auto 0 0; font-size: 14px; font-weight: 600; }
+.gpo-security-workbench__toolbar h2,
+.gpo-editor-preferences__header h2,
+.gpo-editor-scripts__title { min-width: 0; overflow-wrap: anywhere; }
+.gpo-editor-preferences__header h2 { margin: 0 auto 0 0; font-size: 14px; font-weight: 600; }
+.gpo-security-workbench__toolbar input { flex-shrink: 0; }
+.gp__admx-wrapper > .gpo-security-workbench__toolbar { flex: 0 0 100%; padding: 20px 20px 0; box-sizing: border-box; margin-bottom: 0; }
+.gpo-security-workbench__toolbar input { width: 220px; padding: 6px 9px; border: 1px solid #bbb; border-radius: 2px; }
+.gpo-security-workbench--embedded { height: auto; }
+.gpo-security-workbench--embedded .gpo-security-workbench__panel { padding: 0; }
+.gpo-security-workbench--embedded .gpo-security-workbench__toolbar { flex-wrap: wrap; }
+.gpo-security-table { table-layout: fixed; }
+.gpo-security-table th:first-child { width: 60%; }
+.gpo-security-table tbody tr, .gpo-security-table tbody td { user-select: none; -webkit-user-select: none; }
+.gpo-security-table__empty { text-align: center; color: #666; padding: 30px 12px !important; }
+.gpo-security-workbench__notice { padding: 10px 12px; background: var(--gpui-surface); border-left: 3px solid #bbb; line-height: 1.5; }
+.gpo-policy-search__status { margin: 0 0 10px; color: var(--gpui-muted); font-size: 12px; }
+.gpo-policy-search__errors { margin-bottom: 10px; }
+.gpo-policy-search__errors:empty { display: none; }
+.gpo-policy-search__errors .button { margin-top: 8px; }
+.gpo-policy-search__table td { min-width: 0; }
+.gpo-policy-search__paging { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 12px; }
+.gpo-policy-search__paging[hidden] { display: none; }
+.gpo-policy-search__paging .button { padding: 4px 10px; border: 1px solid var(--gpui-border); }
+.gpo-policy-search__back { padding: 4px 10px; }
+.gpo-security-dialog__body { min-height: 0; }
+.gpo-security-dialog__body > .gpo-security-error:not(:empty) { margin: 20px; }
+.gpo-security-dialog__body > :not(.gpo-security-policy-editor):not(.gpo-security-error) { padding: 20px; }
+.gpo-security-workbench__toolbar > .button { width: 80px; height: 25px; border: 1px solid var(--gpui-border); cursor: pointer; }
+.gpo-security-workbench__toolbar button:disabled { opacity: .55; cursor: default; }
+.gpo-security-workbench :focus-visible { outline: 2px solid var(--gpui-accent); outline-offset: 2px; }
+
+/* AT properties reuse the Preferences modal, tabs, fields and buttons. */
+.gpo-admx-dialog [data-dialog-part="body"] { display: flex; flex-direction: column; overflow: hidden; }
+.gp__preference .gpo-admx-dialog [data-dialog-part="body"] { padding: 0; }
+.gpo-admx-dialog__content, .gpo-admx-dialog .gpo-editor-policy { display: flex; flex-direction: column; min-height: 0; height: auto; }
+.gp__preference .gpo-admx-dialog .preference__modal-tabs { min-height: 0; overflow: hidden; }
+.gpo-admx-dialog .tab-buttons { flex-shrink: 0; }
+.gp__preference .gpo-admx-dialog .tab-content { height: auto; min-height: min(360px, calc(100vh - 217px)); max-height: 540px; flex: 1 1 auto; box-sizing: border-box; }
+.gp__preference .gpo-admx-dialog .tab-content[hidden] { display: none; }
+.gpo-admx-dialog .gp__admx-state-policy { padding-bottom: 0; }
+.gpo-admx-dialog .gp__admx-item { display: grid; gap: 7px; margin-top: 16px; padding: 0; min-width: 0; }
+.gpo-admx-dialog .gp__admx-options, .gpo-admx-dialog .gp__admx-options .field__element { min-width: 0; width: 100%; }
+.gp__container .gpo-admx-dialog input[type=text], .gp__container .gpo-admx-dialog select { height: 25px; }
+.gp__container .gpo-admx-dialog input[type=number] { height: 25px; max-width: 190px; }
+.gpo-admx-dialog__comment { display: grid; gap: 7px; margin-top: 16px; }
+.gp__container .gpo-admx-dialog__comment textarea { height: 80px; min-height: 80px; width: 100%; box-sizing: border-box; resize: vertical; }
+.gpo-admx-dialog__explanation { line-height: 1.5; overflow-wrap: anywhere; }
+.gpo-admx-dialog__explanation h3 { font-size: inherit; font-weight: 600; margin: 0; }
+.gpo-admx-dialog__explanation p { margin: 7px 0 20px; }
+.gpo-admx-dialog__explanation p:last-child { margin-bottom: 0; }
+.gpo-admx-dialog__loading { padding: 20px; }
+.gpo-admx-dialog .gpo-editor-form__error:empty { display: none; }
+.gpo-admx-dialog [data-editor-status] { margin: 0 0 16px; }
+.gpo-admx-dialog .gpo-editor-unsupported { max-width: 100%; }
+.gp__preference .gpo-admx-dialog [data-dialog-part="apply"] { min-width: 96px; }
+@media (max-width: 760px) {
+  .gp__preference .gpo-admx-dialog .tab-content { min-height: min(360px, calc(100vh - 161px)); }
+}
+.gpo-security-policy-editor .field.field__checkbox { display: flex; height: auto; gap: 8px; align-items: flex-start; margin: 0; line-height: 1.5; }
+.gp__container .gpo-security-policy-editor input[type=checkbox] { appearance: auto; -webkit-appearance: auto; position: static; display: inline-block; opacity: 1; width: 14px; height: 14px; min-width: 14px; margin: 3px 0 0; clip: auto; flex: 0 0 auto; cursor: pointer; }
+.gp__container .gpo-security-policy-editor input[type=checkbox]:disabled { cursor: default; }
+.gpo-security-policy-editor .gpo-security-policy-editor__define { padding-bottom: 20px; font-weight: 400; }
+.gpo-security-policy-editor .gpo-editor-field { display: grid; gap: 7px; margin-bottom: 18px; }
+.gpo-security-policy-editor .field__element { min-width: 0; }
+.gpo-security-policy-editor .field__element input[type=number] { max-width: 190px; }
+.gpo-security-policy-editor .field__element textarea { min-height: 112px; height: auto; resize: vertical; line-height: 1.5; }
+.gpo-security-policy-editor [data-security-value-kind=sddl] { font-family: monospace; }
+.gpo-editor-security-group { border: 1px solid var(--gpui-border); padding: 16px; margin: 0 0 16px; min-width: 0; }
+.gpo-editor-security-group legend { width: auto; margin: 0; padding: 0 6px; font: inherit; font-weight: 600; border: 0; }
+.gpo-editor-security-flags { display: grid; gap: 7px; }
+.gpo-editor-security-range, .gpo-editor-security-suffix { color: #666; font-size: 12px; }
+.gp__preference .gpo-security-tabs .tab-content[hidden] { display: none; }
+.gpo-security-explanation { line-height: 1.55; }
+.gpo-security-explanation h3 { margin: 0; font-size: inherit; font-weight: 600; }
+.gpo-security-explanation p { margin: 12px 0 0; white-space: pre-line; }
+.gpo-security-error, .gpo-security-policy-editor .gpo-editor-preferences__error { line-height: 1.5; }
+.gpo-security-error:not(:empty), .gpo-security-policy-editor .gpo-editor-preferences__error:not(:empty) { margin-bottom: 14px; }
+.gpo-security-policy-editor .gpo-editor-preference-notice { margin-bottom: 14px; line-height: 1.5; }
+.gpo-editor-security-record__field { display: grid; gap: 7px; margin: 0 0 16px; }
+.gpo-editor-security-record-identity { display: grid; grid-template-columns: 100px 1fr; gap: 6px 12px; margin-bottom: 16px; }
+.gpo-editor-security-record-identity dd { margin: 0; overflow-wrap: anywhere; }
+.gpo-security-preserved-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .gpo-security-workbench__toolbar { flex-wrap: wrap; }
+  .gpo-security-workbench__toolbar h2 { flex: 1 1 100%; }
+  .gpo-security-table th:first-child { width: 55%; }
+}

@@ -1,0 +1,122 @@
+/* High-level editor DTO surfaces. */
+.gpo-editor-field--error {
+  border-color: var(--gpui-danger);
+}
+.gpo-editor-form__error,
+.gp__admx-wrapper > [data-editor-status] {
+  flex-basis: 100%;
+}
+.gp__admx-wrapper {
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+.gpo-editor-policy {
+  height: 100%;
+}
+.gpo-editor-control--disabled,
+.gpo-editor-field--readonly {
+  color: #777;
+}
+.gpo-editor-boolean {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+}
+.gpo-editor-boolean input[type="checkbox"] + label {
+  cursor: pointer;
+  z-index: 1;
+}
+
+.gpo-editor-boolean input[type="checkbox"] + label:before{
+  margin-right: 0;
+}
+
+.gpo-editor-unsupported {
+  max-width: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.gp__admx-options input[type=text],
+.gp__admx-options input[type=number],
+.gp__admx-options select,
+.gp__admx-options textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gpo-editor-preferences__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.gpo-editor-document-state--readonly {
+  color: var(--gpui-danger-text);
+}
+.gpo-editor-empty {
+  padding: 24px;
+  text-align: center;
+  color: #777;
+}
+.gpo-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 12px 20px;
+}
+.gpo-editor-field input,
+.gpo-editor-field select,
+.gpo-editor-field textarea {
+  min-height: 27px;
+  box-sizing: border-box;
+}
+.gpo-editor-field__label {
+  font-weight: 600;
+}
+.gpo-editor-field__required {
+  margin-left: 3px;
+  color: var(--gpui-danger);
+  font-weight: 700;
+}
+.gpo-editor-field__hint {
+  font-size: 11px;
+}
+.gpo-editor-field__error {
+  min-height: 14px;
+  color: var(--gpui-danger);
+  position: absolute;
+  right: 3px;
+  bottom: 0px;
+  font-size: 10px;
+}
+.gpo-editor-field--error {
+  background: var(--gpui-danger-bg);
+}
+.gpo-editor-field--error input,
+.gpo-editor-field--error select,
+.gpo-editor-field--error textarea,
+.gpo-editor-field [aria-invalid="true"] {
+  border-color: var(--gpui-danger);
+  outline: 1px solid var(--gpui-danger);
+  outline-offset: -1px;
+}
+.gpo-editor-preference-form--invalid .gpo-editor-preference-form__validation {
+  display: block;
+}
+.gpo-editor-preference-form__validation {
+  display: none;
+  margin-bottom: 10px;
+  color: var(--gpui-danger-text);
+  text-align: center;
+  padding-top: 10px;
+}
+.gpo-editor-optional-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gpo-editor-optional-text__presence {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+}

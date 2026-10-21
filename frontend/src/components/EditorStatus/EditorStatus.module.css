@@ -2,14 +2,14 @@
     margin: 10px 20px;
     padding: 10px 12px;
     border: 1px solid #c7c7c7;
-    border-radius: 3px;
+    border-radius: var(--gpui-radius);
     background: #f7f7f7;
 }
 
 .error {
-    border-color: #c9190b;
-    color: #8c2b2b;
-    background: #fff4f4;
+    border-color: var(--gpui-danger);
+    color: var(--gpui-danger-text);
+    background: var(--gpui-danger-bg);
 }
 
 .pending,

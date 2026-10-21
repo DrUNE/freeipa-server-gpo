@@ -53,7 +53,7 @@ const styles = path.join(src, 'styles');
 const globalSheets = ['main', 'other']
     .map(name => fs.readFileSync(path.join(styles, name + '.css'), 'utf8'))
     .join('\n')
-    .replace(/@import url\("icons\.css"\);/, () => fs.readFileSync(path.join(styles, 'icons.css'), 'utf8'));
+    .replace(/@import url\("([\w-]+\.css)"\);/g, (_, name) => fs.readFileSync(path.join(styles, name), 'utf8'));
 fs.mkdirSync(path.join(out, 'js'), { recursive: true });
 fs.writeFileSync(path.join(out, 'js', 'app.css'), globalSheets);
 // The tests link /css/main.css and /css/other.css like the page did before the styles joined the bundle;

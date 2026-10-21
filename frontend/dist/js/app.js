@@ -3764,14 +3764,14 @@
 		return names.filter(Boolean).join(" ");
 	}
 	var EditorStatus_module_default = {
-		status: "_status_1wza4_1",
-		error: "_error_1wza4_9",
-		pending: "_pending_1wza4_15",
-		unsupported: "_unsupported_1wza4_16",
-		actions: "_actions_1wza4_22",
-		message: "_message_1wza4_32",
-		field: "_field_1wza4_32",
-		diagnostics: "_diagnostics_1wza4_32"
+		status: "_status_duf15_1",
+		error: "_error_duf15_9",
+		pending: "_pending_duf15_15",
+		unsupported: "_unsupported_duf15_16",
+		actions: "_actions_duf15_22",
+		message: "_message_duf15_32",
+		field: "_field_duf15_32",
+		diagnostics: "_diagnostics_duf15_32"
 	};
 	//#endregion
 	//#region src/components/EditorStatus/EditorStatus.js
@@ -3850,20 +3850,20 @@
 	}
 	//#endregion
 	//#region src/components/editor-status.js
-	function wrap$1(element) {
+	function wrap$3(element) {
 		return element && ElementCreator.wrap(element);
 	}
 	function renderError(error, options) {
-		return wrap$1(createErrorStatus(error, options));
+		return wrap$3(createErrorStatus(error, options));
 	}
 	function renderPending(pending, onReconcile) {
-		return wrap$1(createPendingStatus(pending, onReconcile));
+		return wrap$3(createPendingStatus(pending, onReconcile));
 	}
 	function renderDiagnostics(diagnostics) {
-		return wrap$1(createDiagnostics(diagnostics));
+		return wrap$3(createDiagnostics(diagnostics));
 	}
 	function renderUnsupported(message) {
-		return wrap$1(createUnsupportedStatus(message));
+		return wrap$3(createUnsupportedStatus(message));
 	}
 	//#endregion
 	//#region src/components/confirmation-dialog.js
@@ -3961,16 +3961,16 @@
 		};
 	}
 	var Dialog_module_default = {
-		host: "_host_pw4p1_11",
-		dialog: "_dialog_pw4p1_18",
-		fill: "_fill_pw4p1_39",
-		wrapper: "_wrapper_pw4p1_48",
-		header: "_header_pw4p1_68",
-		title: "_title_pw4p1_79",
-		close: "_close_pw4p1_87",
-		body: "_body_pw4p1_100",
-		error: "_error_pw4p1_108",
-		footer: "_footer_pw4p1_116"
+		host: "_host_19o5h_11",
+		dialog: "_dialog_19o5h_18",
+		fill: "_fill_19o5h_39",
+		wrapper: "_wrapper_19o5h_48",
+		header: "_header_19o5h_68",
+		title: "_title_19o5h_79",
+		close: "_close_19o5h_87",
+		body: "_body_19o5h_100",
+		error: "_error_19o5h_108",
+		footer: "_footer_19o5h_116"
 	};
 	//#endregion
 	//#region src/components/Dialog/Dialog.js
@@ -6064,10 +6064,337 @@
 			URL.revokeObjectURL(url);
 		}, 0);
 	}
+	var headerOwners = 1;
+	function nextHeaderOwner() {
+		return "scripts-" + headerOwners++;
+	}
 	//#endregion
-	//#region src/components/templates/script-template.js
-	var wrap = ElementCreator.wrap;
-	var nextHeaderOwnerId$1 = 1;
+	//#region src/components/templates/script/picker.js
+	var wrap$2 = ElementCreator.wrap;
+	/**
+	* The SYSVOL file picker of the script form: a dialog over the form that lists the event's files.
+	* @param {{ state: any, assets: () => any[], current: () => boolean, rootElement: HTMLElement, setHeaderState: () => void }} context
+	*/
+	function createAssetPicker({ state, assets, current, rootElement, setHeaderState }) {
+		function closePicker() {
+			if (state.pickerNavigation) {
+				state.pickerNavigation.cleanup();
+				state.pickerNavigation = null;
+			}
+			if (state.picker) {
+				state.picker.remove();
+				state.picker = null;
+			}
+			if (state.pickerOverlay) {
+				state.pickerOverlay.remove();
+				state.pickerOverlay = null;
+			}
+			if (state.pickerFocus && state.pickerFocus.isConnected) state.pickerFocus.focus();
+			state.pickerFocus = null;
+			setHeaderState();
+		}
+		function openPicker(initialName, onSelect) {
+			if (state.busy || state.picker) return;
+			state.pickerFocus = document.activeElement;
+			let chosen = assets().some(function(asset) {
+				return asset.name === initialName;
+			}) ? initialName : null;
+			const selectButton = button(st("selectFile"), function() {
+				choose();
+			}, !chosen, "btn-ok");
+			selectButton.addClass("gpo-editor-scripts__picker-select");
+			const rows = assets().map(function(asset) {
+				const row = createElement("tr", {
+					className: asset.name === chosen ? "active" : null,
+					attrs: {
+						tabindex: "-1",
+						"data-script-asset": asset.name
+					},
+					children: [nameCell(asset.name, assetIcon(asset.name)), createElement("td", { text: String(asset.byte_size) + " " + st("bytes") })]
+				});
+				function select() {
+					chosen = asset.name;
+					Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
+						candidate.classList.toggle("active", candidate === row.getElement());
+					});
+					selectButton.getElement().disabled = false;
+					selectButton.addClass("active");
+					if (state.pickerNavigation) state.pickerNavigation.sync();
+				}
+				row.getElement().__select = select;
+				row.on("click", function() {
+					select();
+					if (state.pickerNavigation) state.pickerNavigation.focusSelected();
+				});
+				row.on("dblclick", function() {
+					select();
+					choose();
+				});
+				return row;
+			});
+			const table = createElement("table", {
+				className: ["preference__table", "gpo-catalog-table"],
+				children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: st("columnName") }), createElement("th", { text: st("columnSize") })] })] }), createElement("tbody", { children: rows })]
+			});
+			function choose() {
+				if (!chosen || state.busy) return;
+				closePicker();
+				onSelect(chosen);
+			}
+			const pickerContent = assets().length ? table : createElement("div", {
+				className: "gpo-editor-empty",
+				text: st("emptyAssets")
+			});
+			const cancelButton = wrap$2(createButton("cancel", t("header.cancel")));
+			cancelButton.on("click", closePicker);
+			const closeButton = wrap$2(createCloseButton(st("close")));
+			closeButton.on("click", closePicker);
+			const shell = createDialogShell({
+				titleId: "gpo-editor-scripts-picker-title",
+				title: st("browseFiles"),
+				body: createBody(pickerContent.getElement()),
+				closeButton: closeButton.getElement(),
+				buttons: [cancelButton.getElement(), selectButton.getElement()],
+				className: "gpo-editor-scripts__picker",
+				hostClassName: "gpo-editor-scripts__picker-overlay"
+			});
+			const picker = wrap$2(shell.dialog);
+			shell.dialog.setAttribute("aria-label", st("browseFiles"));
+			shell.host.addEventListener("click", function(event) {
+				if (event.target === shell.host) closePicker();
+			});
+			picker.on("keydown", function(event) {
+				if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== shell.dialog) return;
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					closePicker();
+				}
+				trapTab(event, shell.dialog);
+			});
+			rootElement.appendChild(shell.host);
+			state.pickerOverlay = shell.host;
+			state.picker = shell.dialog;
+			state.pickerNavigation = bind$1(table.getElement(), {
+				rows: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
+				},
+				selected: function() {
+					return Array.from(table.getElement().querySelectorAll("[data-script-asset]")).find(function(row) {
+						return row.getAttribute("data-script-asset") === chosen;
+					}) || null;
+				},
+				select: function(row) {
+					row.__select();
+				},
+				activate: choose,
+				busy: function() {
+					return state.busy || !current();
+				}
+			});
+			setHeaderState();
+			if (chosen && rows.length) rows.find(function(row) {
+				return row.getElement().classList.contains("active");
+			}).getElement().focus();
+			else picker.getElement().querySelector(".btn-cancel").focus();
+		}
+		return {
+			open: openPicker,
+			close: closePicker
+		};
+	}
+	//#endregion
+	//#region src/components/templates/script/entry-form.js
+	var wrap$1 = ElementCreator.wrap;
+	/**
+	* The add/edit dialog of one script entry.
+	* @param {any} context the editor's state and operations (see renderScriptEventEditor)
+	*/
+	function createEntryForm({ config, scope, state, groupView, selectedEntry, selectedAsset, assets, rootElement, mutate, setHeaderState, openPicker, closeForm, requestCloseForm }) {
+		function openForm(kind) {
+			if (state.busy || state.loading || !groupView().editable) return;
+			const entry = kind === "edit" ? selectedEntry() : null;
+			if (kind === "edit" && !entry) return;
+			if (kind === "select" && !selectedAsset()) return;
+			closeForm();
+			state.formFocus = document.activeElement;
+			const isEdit = kind === "edit";
+			const modern = Boolean(config.mode);
+			const sourceSelect = createElement("select", { children: [createElement("option", {
+				attrs: { value: "existing_asset" },
+				text: st("existingAsset")
+			}), createElement("option", {
+				attrs: { value: "external_command" },
+				text: st("externalCommand")
+			})] });
+			sourceSelect.getElement().value = entry ? entry.managed_asset_name ? "existing_asset" : "external_command" : kind === "select" || assets().length ? "existing_asset" : "external_command";
+			const assetInput = createElement("input", { attrs: {
+				type: "text",
+				readonly: "readonly",
+				value: entry && entry.managed_asset_name || kind === "select" && selectedAsset() && selectedAsset().name || ""
+			} });
+			const browseButton = button(config.mode ? "…" : st("browseFiles"), function() {
+				const input = modern ? commandInput : assetInput;
+				openPicker(input.getElement().value, function(name) {
+					input.getElement().value = name;
+					markDirty();
+					browseButton.getElement().focus();
+				});
+			}, false, config.mode ? "gpo-editor-scripts__ellipsis" : "gpo-editor-scripts__browse");
+			if (config.mode) {
+				browseButton.getElement().setAttribute("aria-label", st("selectFromSysvol"));
+				browseButton.getElement().title = st("selectFromSysvol");
+			}
+			const commandInput = createElement("input", { attrs: {
+				type: "text",
+				value: entry ? entry.command_line : "",
+				placeholder: modern ? st("externalCommand") : null
+			} });
+			const parametersInput = createElement("input", { attrs: {
+				type: "text",
+				value: entry ? entry.parameters : ""
+			} });
+			const assetRow = field(st("nameLabel"), createElement("div", {
+				className: "gpo-editor-scripts__asset-field",
+				children: [modern ? commandInput : assetInput, browseButton]
+			}));
+			const commandRow = modern ? null : field(st("nameLabel"), commandInput);
+			const formError = createElement("div", { className: "gpo-editor-scripts__form-error" });
+			function values() {
+				if (modern) return [commandInput.getElement().value, parametersInput.getElement().value];
+				return [
+					sourceSelect.getElement().value,
+					assetInput.getElement().value,
+					commandInput.getElement().value,
+					parametersInput.getElement().value
+				];
+			}
+			const initialValues = JSON.stringify(values());
+			function markDirty() {
+				setHeaderState();
+			}
+			function syncSource() {
+				if (modern) return;
+				const existing = sourceSelect.getElement().value === "existing_asset";
+				assetRow.getElement().hidden = !existing;
+				commandRow.getElement().hidden = existing;
+				markDirty();
+			}
+			sourceSelect.on("change", syncSource);
+			commandInput.on("input", markDirty);
+			parametersInput.on("input", markDirty);
+			const formBody = wrap$1(createBody(null));
+			(modern ? [
+				assetRow,
+				field(st("argumentsLabel"), parametersInput),
+				formError
+			] : [
+				field(st("sourceLabel"), sourceSelect),
+				assetRow,
+				commandRow,
+				field(st("argumentsLabel"), parametersInput),
+				formError
+			]).forEach(function(child) {
+				formBody.append(child);
+			});
+			const formCancel = wrap$1(createButton("cancel", t("header.cancel")));
+			formCancel.on("click", requestCloseForm);
+			const formApply = wrap$1(createButton("apply", t("header.apply")));
+			formApply.on("click", function() {
+				submit();
+			});
+			const formClose = wrap$1(createCloseButton(st("close")));
+			formClose.on("click", requestCloseForm);
+			const shell = createDialogShell({
+				titleId: "gpo-editor-scripts-form-title",
+				title: st(isEdit ? "editTitle" : "addTitle"),
+				body: formBody.getElement(),
+				closeButton: formClose.getElement(),
+				buttons: [formCancel.getElement(), formApply.getElement()],
+				className: "gpo-editor-scripts__form"
+			});
+			const form = wrap$1(shell.dialog);
+			shell.host.addEventListener("click", function(event) {
+				if (event.target === shell.host) requestCloseForm();
+			});
+			form.on("keydown", function(event) {
+				if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== shell.dialog) return;
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					requestCloseForm();
+				}
+				trapTab(event, shell.dialog);
+			});
+			async function submit() {
+				if (state.busy) return false;
+				formError.setText("");
+				const command = modern ? commandInput.getElement().value.trim() : sourceSelect.getElement().value === "existing_asset" ? assetInput.getElement().value : commandInput.getElement().value.trim();
+				const matchedAsset = modern && assets().find(function(asset) {
+					return asset.name.toLowerCase() === command.toLowerCase();
+				});
+				const source = modern ? matchedAsset ? "existing_asset" : "external_command" : sourceSelect.getElement().value;
+				const name = modern && matchedAsset ? matchedAsset.name : assetInput.getElement().value;
+				if (!modern && source === "existing_asset" && !assets().some(function(asset) {
+					return asset.name === name;
+				})) {
+					formError.setText(st("chooseFile"));
+					return false;
+				}
+				if (!command) {
+					formError.setText(st("chooseCommand"));
+					return false;
+				}
+				const parameters = parametersInput.getElement().value.trim();
+				const group = state.group;
+				const event = state.event;
+				const snapshot = groupView().snapshot;
+				const ok = await mutate(function() {
+					if (isEdit) return scriptEntryUpdate(scope, event, {
+						executable_group: group,
+						identity: entry.identity,
+						command_line: command,
+						parameters
+					});
+					const request = {
+						mode: source,
+						executable_group: group,
+						snapshot,
+						parameters
+					};
+					if (source === "existing_asset") request.name = name;
+					else request.command_line = command;
+					return scriptEntryAdd(scope, event, request);
+				}, formError.getElement());
+				if (ok) closeForm(true);
+				return ok;
+			}
+			rootElement.appendChild(shell.host);
+			state.formHost = shell.host;
+			state.form = shell.dialog;
+			state.formState = {
+				dirty: function() {
+					return JSON.stringify(values()) !== initialValues;
+				},
+				submit
+			};
+			syncSource();
+			setHeaderState();
+			(modern ? commandInput : sourceSelect).getElement().focus();
+		}
+		function field(label, input) {
+			return createElement("div", {
+				className: "gpo-editor-field",
+				children: [createElement("div", {
+					className: "gpo-editor-field__label",
+					text: label
+				}), input]
+			});
+		}
+		return { open: openForm };
+	}
+	//#endregion
+	//#region src/components/templates/script/event-editor.js
 	var GROUPS = ["classic", "powershell"];
 	var EVENTS = {
 		computer: ["startup", "shutdown"],
@@ -6101,7 +6428,8 @@
 			orderDraft: null,
 			saveStatus: null
 		};
-		let navigations = {}, pickerNavigation = null;
+		let navigations = {};
+		state.pickerNavigation = null;
 		state.assetFocus = null;
 		state.removal = null;
 		const root = createElement("div", { className: [
@@ -6115,12 +6443,12 @@
 		const headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		const admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		const helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		const createButton$2 = headerControls && headerControls.querySelector(".preferences__btn-create");
+		const createButton = headerControls && headerControls.querySelector(".preferences__btn-create");
 		const editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		const deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
-		const headerOwner = "scripts-" + nextHeaderOwnerId$1++;
+		const headerOwner = nextHeaderOwner();
 		const headerLabels = [
-			createButton$2,
+			createButton,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -6139,7 +6467,7 @@
 		if (admxActions) admxActions.style.display = "none";
 		if (helpSeparator) helpSeparator.style.display = "none";
 		[
-			createButton$2,
+			createButton,
 			editButton,
 			deleteButton
 		].forEach(function(control, index) {
@@ -6186,7 +6514,7 @@
 			if (!ownsHeader()) return;
 			const editable = Boolean(groupView().editable) && !state.busy && !state.loading && !state.form && !state.picker;
 			[
-				createButton$2,
+				createButton,
 				editButton,
 				deleteButton
 			].forEach(function(control, index) {
@@ -6201,8 +6529,8 @@
 				control.removeEventListener("click", handler);
 			});
 		}
-		listenHeader(createButton$2, function() {
-			if (ownsHeader() && createButton$2.classList.contains("active")) openForm("add");
+		listenHeader(createButton, function() {
+			if (ownsHeader() && createButton.classList.contains("active")) openForm("add");
 		});
 		listenHeader(editButton, function() {
 			if (ownsHeader() && editButton.classList.contains("active")) openForm("edit");
@@ -6376,23 +6704,6 @@
 				}
 			});
 		}
-		function closePicker() {
-			if (pickerNavigation) {
-				pickerNavigation.cleanup();
-				pickerNavigation = null;
-			}
-			if (state.picker) {
-				state.picker.remove();
-				state.picker = null;
-			}
-			if (state.pickerOverlay) {
-				state.pickerOverlay.remove();
-				state.pickerOverlay = null;
-			}
-			if (state.pickerFocus && state.pickerFocus.isConnected) state.pickerFocus.focus();
-			state.pickerFocus = null;
-			setHeaderState();
-		}
 		function closeForm(force) {
 			if (state.busy && !force) return false;
 			closePicker();
@@ -6420,291 +6731,30 @@
 			}
 			return closeForm();
 		}
-		function openPicker(initialName, onSelect) {
-			if (state.busy || state.picker) return;
-			state.pickerFocus = document.activeElement;
-			let chosen = assets().some(function(asset) {
-				return asset.name === initialName;
-			}) ? initialName : null;
-			const selectButton = button(st("selectFile"), function() {
-				choose();
-			}, !chosen, "btn-ok");
-			selectButton.addClass("gpo-editor-scripts__picker-select");
-			const rows = assets().map(function(asset) {
-				const row = createElement("tr", {
-					className: asset.name === chosen ? "active" : null,
-					attrs: {
-						tabindex: "-1",
-						"data-script-asset": asset.name
-					},
-					children: [nameCell(asset.name, assetIcon(asset.name)), createElement("td", { text: String(asset.byte_size) + " " + st("bytes") })]
-				});
-				function select() {
-					chosen = asset.name;
-					Array.prototype.forEach.call(table.getElement().querySelectorAll("tbody tr"), function(candidate) {
-						candidate.classList.toggle("active", candidate === row.getElement());
-					});
-					selectButton.getElement().disabled = false;
-					selectButton.addClass("active");
-					if (pickerNavigation) pickerNavigation.sync();
-				}
-				row.getElement().__select = select;
-				row.on("click", function() {
-					select();
-					if (pickerNavigation) pickerNavigation.focusSelected();
-				});
-				row.on("dblclick", function() {
-					select();
-					choose();
-				});
-				return row;
-			});
-			const table = createElement("table", {
-				className: ["preference__table", "gpo-catalog-table"],
-				children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: st("columnName") }), createElement("th", { text: st("columnSize") })] })] }), createElement("tbody", { children: rows })]
-			});
-			function choose() {
-				if (!chosen || state.busy) return;
-				closePicker();
-				onSelect(chosen);
-			}
-			const pickerContent = assets().length ? table : createElement("div", {
-				className: "gpo-editor-empty",
-				text: st("emptyAssets")
-			});
-			const cancelButton = wrap(createButton("cancel", t("header.cancel")));
-			cancelButton.on("click", closePicker);
-			const closeButton = wrap(createCloseButton(st("close")));
-			closeButton.on("click", closePicker);
-			const shell = createDialogShell({
-				titleId: "gpo-editor-scripts-picker-title",
-				title: st("browseFiles"),
-				body: createBody(pickerContent.getElement()),
-				closeButton: closeButton.getElement(),
-				buttons: [cancelButton.getElement(), selectButton.getElement()],
-				className: "gpo-editor-scripts__picker",
-				hostClassName: "gpo-editor-scripts__picker-overlay"
-			});
-			const picker = wrap(shell.dialog);
-			shell.dialog.setAttribute("aria-label", st("browseFiles"));
-			shell.host.addEventListener("click", function(event) {
-				if (event.target === shell.host) closePicker();
-			});
-			picker.on("keydown", function(event) {
-				if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== shell.dialog) return;
-				if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					closePicker();
-				}
-				trapTab(event, shell.dialog);
-			});
-			rootElement.appendChild(shell.host);
-			state.pickerOverlay = shell.host;
-			state.picker = shell.dialog;
-			pickerNavigation = bind$1(table.getElement(), {
-				rows: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
-				},
-				selected: function() {
-					return Array.from(table.getElement().querySelectorAll("[data-script-asset]")).find(function(row) {
-						return row.getAttribute("data-script-asset") === chosen;
-					}) || null;
-				},
-				select: function(row) {
-					row.__select();
-				},
-				activate: choose,
-				busy: function() {
-					return state.busy || !current();
-				}
-			});
-			setHeaderState();
-			if (chosen && rows.length) rows.find(function(row) {
-				return row.getElement().classList.contains("active");
-			}).getElement().focus();
-			else picker.getElement().querySelector(".btn-cancel").focus();
-		}
-		function openForm(kind) {
-			if (state.busy || state.loading || !groupView().editable) return;
-			const entry = kind === "edit" ? selectedEntry() : null;
-			if (kind === "edit" && !entry) return;
-			if (kind === "select" && !selectedAsset()) return;
-			closeForm();
-			state.formFocus = document.activeElement;
-			const isEdit = kind === "edit";
-			const modern = Boolean(config.mode);
-			const sourceSelect = createElement("select", { children: [createElement("option", {
-				attrs: { value: "existing_asset" },
-				text: st("existingAsset")
-			}), createElement("option", {
-				attrs: { value: "external_command" },
-				text: st("externalCommand")
-			})] });
-			sourceSelect.getElement().value = entry ? entry.managed_asset_name ? "existing_asset" : "external_command" : kind === "select" || assets().length ? "existing_asset" : "external_command";
-			const assetInput = createElement("input", { attrs: {
-				type: "text",
-				readonly: "readonly",
-				value: entry && entry.managed_asset_name || kind === "select" && selectedAsset() && selectedAsset().name || ""
-			} });
-			const browseButton = button(config.mode ? "…" : st("browseFiles"), function() {
-				const input = modern ? commandInput : assetInput;
-				openPicker(input.getElement().value, function(name) {
-					input.getElement().value = name;
-					markDirty();
-					browseButton.getElement().focus();
-				});
-			}, false, config.mode ? "gpo-editor-scripts__ellipsis" : "gpo-editor-scripts__browse");
-			if (config.mode) {
-				browseButton.getElement().setAttribute("aria-label", st("selectFromSysvol"));
-				browseButton.getElement().title = st("selectFromSysvol");
-			}
-			const commandInput = createElement("input", { attrs: {
-				type: "text",
-				value: entry ? entry.command_line : "",
-				placeholder: modern ? st("externalCommand") : null
-			} });
-			const parametersInput = createElement("input", { attrs: {
-				type: "text",
-				value: entry ? entry.parameters : ""
-			} });
-			const assetRow = field(st("nameLabel"), createElement("div", {
-				className: "gpo-editor-scripts__asset-field",
-				children: [modern ? commandInput : assetInput, browseButton]
-			}));
-			const commandRow = modern ? null : field(st("nameLabel"), commandInput);
-			const formError = createElement("div", { className: "gpo-editor-scripts__form-error" });
-			function values() {
-				if (modern) return [commandInput.getElement().value, parametersInput.getElement().value];
-				return [
-					sourceSelect.getElement().value,
-					assetInput.getElement().value,
-					commandInput.getElement().value,
-					parametersInput.getElement().value
-				];
-			}
-			const initialValues = JSON.stringify(values());
-			function markDirty() {
-				setHeaderState();
-			}
-			function syncSource() {
-				if (modern) return;
-				const existing = sourceSelect.getElement().value === "existing_asset";
-				assetRow.getElement().hidden = !existing;
-				commandRow.getElement().hidden = existing;
-				markDirty();
-			}
-			sourceSelect.on("change", syncSource);
-			commandInput.on("input", markDirty);
-			parametersInput.on("input", markDirty);
-			const formBody = wrap(createBody(null));
-			(modern ? [
-				assetRow,
-				field(st("argumentsLabel"), parametersInput),
-				formError
-			] : [
-				field(st("sourceLabel"), sourceSelect),
-				assetRow,
-				commandRow,
-				field(st("argumentsLabel"), parametersInput),
-				formError
-			]).forEach(function(child) {
-				formBody.append(child);
-			});
-			const formCancel = wrap(createButton("cancel", t("header.cancel")));
-			formCancel.on("click", requestCloseForm);
-			const formApply = wrap(createButton("apply", t("header.apply")));
-			formApply.on("click", function() {
-				submit();
-			});
-			const formClose = wrap(createCloseButton(st("close")));
-			formClose.on("click", requestCloseForm);
-			const shell = createDialogShell({
-				titleId: "gpo-editor-scripts-form-title",
-				title: st(isEdit ? "editTitle" : "addTitle"),
-				body: formBody.getElement(),
-				closeButton: formClose.getElement(),
-				buttons: [formCancel.getElement(), formApply.getElement()],
-				className: "gpo-editor-scripts__form"
-			});
-			const form = wrap(shell.dialog);
-			shell.host.addEventListener("click", function(event) {
-				if (event.target === shell.host) requestCloseForm();
-			});
-			form.on("keydown", function(event) {
-				if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== shell.dialog) return;
-				if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					requestCloseForm();
-				}
-				trapTab(event, shell.dialog);
-			});
-			async function submit() {
-				if (state.busy) return false;
-				formError.setText("");
-				const command = modern ? commandInput.getElement().value.trim() : sourceSelect.getElement().value === "existing_asset" ? assetInput.getElement().value : commandInput.getElement().value.trim();
-				const matchedAsset = modern && assets().find(function(asset) {
-					return asset.name.toLowerCase() === command.toLowerCase();
-				});
-				const source = modern ? matchedAsset ? "existing_asset" : "external_command" : sourceSelect.getElement().value;
-				const name = modern && matchedAsset ? matchedAsset.name : assetInput.getElement().value;
-				if (!modern && source === "existing_asset" && !assets().some(function(asset) {
-					return asset.name === name;
-				})) {
-					formError.setText(st("chooseFile"));
-					return false;
-				}
-				if (!command) {
-					formError.setText(st("chooseCommand"));
-					return false;
-				}
-				const parameters = parametersInput.getElement().value.trim();
-				const group = state.group;
-				const event = state.event;
-				const snapshot = groupView().snapshot;
-				const ok = await mutate(function() {
-					if (isEdit) return scriptEntryUpdate(scope, event, {
-						executable_group: group,
-						identity: entry.identity,
-						command_line: command,
-						parameters
-					});
-					const request = {
-						mode: source,
-						executable_group: group,
-						snapshot,
-						parameters
-					};
-					if (source === "existing_asset") request.name = name;
-					else request.command_line = command;
-					return scriptEntryAdd(scope, event, request);
-				}, formError.getElement());
-				if (ok) closeForm(true);
-				return ok;
-			}
-			rootElement.appendChild(shell.host);
-			state.formHost = shell.host;
-			state.form = shell.dialog;
-			state.formState = {
-				dirty: function() {
-					return JSON.stringify(values()) !== initialValues;
-				},
-				submit
-			};
-			syncSource();
-			setHeaderState();
-			(modern ? commandInput : sourceSelect).getElement().focus();
-		}
-		function field(label, input) {
-			return createElement("div", {
-				className: "gpo-editor-field",
-				children: [createElement("div", {
-					className: "gpo-editor-field__label",
-					text: label
-				}), input]
-			});
-		}
+		const picker = createAssetPicker({
+			state,
+			assets,
+			current,
+			rootElement,
+			setHeaderState
+		});
+		const openPicker = picker.open;
+		const closePicker = picker.close;
+		const openForm = createEntryForm({
+			config,
+			scope,
+			state,
+			groupView,
+			selectedEntry,
+			selectedAsset,
+			assets,
+			rootElement,
+			mutate,
+			setHeaderState,
+			openPicker,
+			closeForm,
+			requestCloseForm
+		}).open;
 		function removeEntry() {
 			const entry = selectedEntry();
 			if (!entry || !groupView().editable || state.busy) return;
@@ -7347,7 +7397,7 @@
 				headerControls.style.display = "none";
 				headerControls.removeAttribute("data-script-owner");
 				[
-					createButton$2,
+					createButton,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
@@ -7366,6 +7416,9 @@
 		loadEvent();
 		return root;
 	}
+	//#endregion
+	//#region src/components/templates/script-template.js
+	var wrap = ElementCreator.wrap;
 	function renderScriptsTemplate(options) {
 		const config = options || {};
 		if (config.item && config.item.event) return renderScriptEventEditor(config);
@@ -7399,12 +7452,12 @@
 		const headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		const admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		const helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		const createButton$3 = headerControls && headerControls.querySelector(".preferences__btn-create");
+		const createButton$2 = headerControls && headerControls.querySelector(".preferences__btn-create");
 		const editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		const deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
-		const headerOwner = "scripts-" + nextHeaderOwnerId$1++;
+		const headerOwner = nextHeaderOwner();
 		const oldHeader = [
-			createButton$3,
+			createButton$2,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -7422,7 +7475,7 @@
 		if (headerControls) {
 			headerControls.setAttribute("data-script-owner", headerOwner);
 			headerControls.style.display = "flex";
-			if (createButton$3) createButton$3.style.display = "none";
+			if (createButton$2) createButton$2.style.display = "none";
 			if (deleteButton) deleteButton.style.display = "none";
 			if (editButton) {
 				editButton.textContent = st("openEvent");
@@ -7687,7 +7740,7 @@
 				editButton && editButton.removeEventListener("click", onOpenEvent);
 				folderButton.getElement().remove();
 				[
-					createButton$3,
+					createButton$2,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
