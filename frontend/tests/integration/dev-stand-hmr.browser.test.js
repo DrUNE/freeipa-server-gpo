@@ -49,7 +49,7 @@ test(
             });
 
             // The file watcher reports a change; the stand re-imports app.js and calls init again.
-            server.watcher.emit('change', path.join(root, 'src/util/API.js'));
+            server.watcher.emit('change', path.join(root, 'src/util/API.ts'));
             await page.waitForFunction(() => window.gpui !== window.__first);
             await page.waitForSelector('#gp__container .gp__header');
             assert.equal(await page.evaluate(() => window.__marker), 'same page');
@@ -128,7 +128,7 @@ test('restarting the editor leaves no listeners of the previous one on the docum
             window.__first = window.gpui;
         });
 
-        server.watcher.emit('change', path.join(root, 'src/util/API.js'));
+        server.watcher.emit('change', path.join(root, 'src/util/API.ts'));
         await page.waitForFunction(() => window.gpui !== window.__first);
         await page.waitForSelector('#gp__container .gp__header');
         await page.waitForTimeout(500);

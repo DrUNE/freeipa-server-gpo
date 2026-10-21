@@ -2,104 +2,39 @@
 
 import { validate } from '@gpui/util/collection-value';
 
-/** A libadmix discriminated value: `kind` names the type, `value` carries it (see tests/contracts). */
-export interface TypedValue {
-    kind: string;
-    value?: any;
-}
+import type {
+    TypedValue,
+    FieldDescriptor,
+    FieldEdit,
+    Collection,
+    PolicyParameter,
+    StateAction,
+    Policy,
+    PolicyDraft,
+    FilterOperation,
+    ParentCandidate,
+    PreferenceRequestOptions,
+    PreferenceRequest,
+    PolicyUpdateRequest,
+    RequestError
+} from '@gpui/util/dto-types';
 
-/** A form field of a preference item or of a targeting filter, as the server describes it. */
-export interface FieldDescriptor {
-    id: string;
-    label?: string;
-    value: TypedValue;
-    editable?: boolean;
-    required?: boolean;
-    control?: string;
-    choices?: { key: string; label: string }[];
-}
-
-/** The value a user edited, keyed by the field it belongs to. */
-export interface FieldEdit {
-    id: string;
-    value: TypedValue;
-}
-
-export interface Collection {
-    mode?: string;
-    unique_keys?: boolean;
-    key_case_sensitive?: boolean;
-    allow_empty_values?: boolean;
-    min_items?: number;
-}
-
-export interface PolicyParameter {
-    id: string;
-    kind?: string;
-    value: TypedValue | null;
-    default_value?: TypedValue | null;
-    editable?: boolean;
-    required?: boolean;
-    collection?: Collection | null;
-    choices?: { value: TypedValue }[];
-}
-
-export interface StateAction {
-    available?: boolean;
-    mode?: string | null;
-    requires_parameters?: boolean;
-}
-
-export interface Policy {
-    state: string;
-    comment?: { text: string; source?: string; locale?: string } | null;
-    capabilities?: Record<string, boolean>;
-    state_actions?: Record<string, StateAction | null>;
-    parameters?: PolicyParameter[];
-}
-
-export interface PolicyDraft {
-    state: string;
-    comment: string;
-    parameters?: { parameter_id: string; value: TypedValue | null }[];
-}
-
-export type FilterOperation =
-    | { op: 'insert'; collection_path: number[]; index: number; filter_kind: string; fields: FieldEdit[] }
-    | { op: 'edit'; path: number[]; fields: FieldEdit[] }
-    | { op: 'replace'; path: number[]; filter_kind: string; fields: FieldEdit[] }
-    | { op: 'remove'; path: number[] };
-
-export interface ParentCandidate {
-    identity: unknown[] | null;
-}
-
-export interface PreferenceRequestOptions {
-    descriptors?: FieldDescriptor[];
-    fields?: FieldEdit[];
-    validationExemptions?: Set<string> | string[];
-    creating?: boolean;
-    name?: string | null;
-    originalName?: string | null;
-    identity?: unknown[];
-    parent?: unknown[];
-    filters?: FilterOperation[];
-}
-
-export interface PreferenceRequest {
-    identity?: unknown[];
-    fields?: FieldEdit[];
-    parent?: unknown[];
-    name?: string;
-    filters?: FilterOperation[];
-}
-
-/** A validation error of a form: a field (`id`) or, for a targeting filter, its position (`path`). */
-export interface RequestError {
-    id: string;
-    code: string;
-    path?: number[];
-}
+export type {
+    TypedValue,
+    FieldDescriptor,
+    FieldEdit,
+    Collection,
+    PolicyParameter,
+    StateAction,
+    Policy,
+    PolicyDraft,
+    FilterOperation,
+    ParentCandidate,
+    PreferenceRequestOptions,
+    PreferenceRequest,
+    PolicyUpdateRequest,
+    RequestError
+};
 
 function clone<T>(value: T): T {
     if (value === undefined) return undefined as T;
@@ -110,7 +45,8 @@ function equal(left: unknown, right: unknown): boolean {
     return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function valuePayload(value: any): any {
+/** The plain payload of a typed value; its type depends on `kind`, so callers narrow it. */
+function valuePayload(value: TypedValue | null | undefined): any {
     if (!value || typeof value !== 'object') return value;
     if (value.kind === 'registry') return value.value ? value.value.value : null;
     if (value.kind === 'unsupported') return null;
@@ -184,8 +120,8 @@ function buildPolicyUpdate(
     policy: Policy,
     draft: PolicyDraft,
     baselineDraft?: PolicyDraft | null
-): Record<string, any> {
-    const request: Record<string, any> = {};
+): PolicyUpdateRequest {
+    const request: PolicyUpdateRequest = {};
     const originalState = baselineDraft ? baselineDraft.state : policy.state;
     if (draft.state !== originalState) request.state = draft.state;
 
@@ -401,7 +337,7 @@ function preferenceFieldIds(fields?: { id?: unknown }[] | null): { seen: Set<str
     return { seen: seen, duplicates: Array.from(duplicates) };
 }
 
-function preferenceValueIsEmpty(value: any): boolean {
+function preferenceValueIsEmpty(value: TypedValue | null | undefined): boolean {
     if (!value || typeof value !== 'object') return true;
     if (value.value === null || value.value === undefined) return true;
     if (typeof value.value === 'string') return value.value.trim() === '';
@@ -409,7 +345,10 @@ function preferenceValueIsEmpty(value: any): boolean {
     return false;
 }
 
-function validatePreferenceField(field: FieldDescriptor | null | undefined, value: any): string | null {
+function validatePreferenceField(
+    field: FieldDescriptor | null | undefined,
+    value: TypedValue | null | undefined
+): string | null {
     if (!field || !value || typeof value !== 'object' || typeof value.kind !== 'string') {
         return 'invalid_value';
     }
@@ -580,7 +519,7 @@ function submitPreservingDraft<D, R>(
         });
 }
 
-function errorCategory(error: any): string {
+function errorCategory(error: { category?: unknown; code?: unknown } | null | undefined): string {
     return String((error && (error.category || error.code)) || 'operational').toLowerCase();
 }
 

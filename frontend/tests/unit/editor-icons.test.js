@@ -9,7 +9,7 @@ import * as model from '@gpui/components/templates/all-policies/model';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
 vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
-vi.mock('@gpui/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
+vi.mock('@gpui/util/API', () => ({ getDisplayName: () => 'Example GPO' }));
 vi.mock('@gpui/components/templates/security/model.js', () => ({}));
 vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
 

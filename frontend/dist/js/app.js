@@ -2027,7 +2027,7 @@
 		return renderTreeList(treeData, treeViewState, null);
 	}
 	//#endregion
-	//#region src/util/API.js
+	//#region src/util/API.ts
 	/**
 	* High-level GPO editor RPC client.
 	*
@@ -2042,37 +2042,46 @@
 		if (value === void 0) return void 0;
 		return JSON.parse(JSON.stringify(value));
 	}
+	/** What the FreeIPA transport hands over: a JSON-RPC answer, possibly wrapped once more, or nothing. */
 	function unwrapResponse(data) {
 		const outer = data && data.result !== void 0 ? data.result : data;
 		const payload = outer && outer.result !== void 0 ? outer.result : outer;
 		return payload === null || payload === void 0 ? {} : payload;
 	}
 	function firstObject(candidates) {
-		for (let i = 0; i < candidates.length; i += 1) if (candidates[i] && typeof candidates[i] === "object") return candidates[i];
+		for (let i = 0; i < candidates.length; i += 1) {
+			const candidate = candidates[i];
+			if (candidate && typeof candidate === "object") return candidate;
+		}
 		return {};
 	}
-	function EditorError(message, details) {
-		const info = details || {};
-		this.name = "GpoEditorError";
-		this.message = message || "GPO editor request failed";
-		let inferredCategory = info.category || info.error_category || null;
-		const errorName = String(info.name || info.error_name || "");
-		if (!inferredCategory && /ACIError|Authorization|NotAllowed/i.test(errorName + " " + (message || ""))) inferredCategory = "authorization";
-		this.category = inferredCategory || (typeof info.code === "string" ? info.code : null) || "operational";
-		this.code = info.code || this.category;
-		this.field = info.field || null;
-		this.path = info.path || null;
-		let parsedDetails = info.details;
-		if (typeof parsedDetails === "string") try {
-			parsedDetails = JSON.parse(parsedDetails);
-		} catch (ignore) {}
-		this.details = parsedDetails && typeof parsedDetails === "object" ? parsedDetails : info;
-		this.pendingPublication = info.pending_publication || info.pendingPublication || this.details && this.details.pending_publication || null;
-		const errorCtor = Error;
-		if (errorCtor.captureStackTrace) errorCtor.captureStackTrace(this, EditorError);
-	}
-	EditorError.prototype = Object.create(Error.prototype);
-	EditorError.prototype.constructor = EditorError;
+	/** The error of an editor call, in one shape whatever FreeIPA or the server reported (see `normalizeError`). */
+	var EditorError = class extends Error {
+		category;
+		code;
+		field;
+		path;
+		details;
+		pendingPublication;
+		constructor(message, details) {
+			super(message || "GPO editor request failed");
+			const info = details || {};
+			this.name = "GpoEditorError";
+			let inferredCategory = info.category || info.error_category || null;
+			const errorName = String(info.name || info.error_name || "");
+			if (!inferredCategory && /ACIError|Authorization|NotAllowed/i.test(errorName + " " + (message || ""))) inferredCategory = "authorization";
+			this.category = inferredCategory || (typeof info.code === "string" ? info.code : null) || "operational";
+			this.code = info.code || this.category;
+			this.field = info.field || null;
+			this.path = info.path || null;
+			let parsedDetails = info.details;
+			if (typeof parsedDetails === "string") try {
+				parsedDetails = JSON.parse(parsedDetails);
+			} catch {}
+			this.details = parsedDetails && typeof parsedDetails === "object" ? parsedDetails : info;
+			this.pendingPublication = info.pending_publication || info.pendingPublication || this.details && this.details.pending_publication || null;
+		}
+	};
 	function normalizeError(xhr, textStatus, thrown) {
 		if (thrown instanceof EditorError) return thrown;
 		const response = xhr && (xhr.responseJSON || xhr.response || xhr.data);
@@ -2103,7 +2112,7 @@
 	function localePreferences() {
 		const uiLocale = getLanguage();
 		let browserLocales = [];
-		if (typeof navigator !== "undefined") browserLocales = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language];
+		if (typeof navigator !== "undefined") browserLocales = Array.isArray(navigator.languages) && navigator.languages.length ? [...navigator.languages] : [navigator.language];
 		const result = [];
 		[uiLocale].concat(browserLocales, ["en-US"]).forEach(function(locale) {
 			const normalized = normalizeLocale(locale);
@@ -2148,17 +2157,17 @@
 	function rememberEnvelope(result) {
 		const cached = editorOpenResult;
 		if (!cached || !result || typeof result !== "object") return result;
+		const target = cached;
 		[
 			"gpo",
 			"template",
 			"diagnostics",
 			"pending_publication"
 		].forEach(function(key) {
-			if (Object.prototype.hasOwnProperty.call(result, key)) cached[key] = clone$4(result[key]);
+			if (Object.prototype.hasOwnProperty.call(result, key)) target[key] = clone$4(result[key]);
 		});
 		return result;
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 	function initialize$1(displayName) {
 		selectedDisplayName = displayName ? String(displayName) : null;
 		editorOpenResult = null;
@@ -2171,7 +2180,6 @@
 		}));
 		return editorOpenPromise;
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorOpenResult>} */
 	function open$4(options) {
 		if (!options && editorOpenResult) return Promise.resolve(editorOpenResult);
 		if (!options && editorOpenPromise) return editorOpenPromise;
@@ -2180,101 +2188,77 @@
 			return result;
 		});
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorChildrenResult>} */
 	function children(scope, categoryId) {
 		const options = {};
 		if (categoryId !== null && categoryId !== void 0) options.category_id = categoryId;
 		return execute("editor_children", [scope], withLocales(options));
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyIndexResult>} */
 	function policyIndex(scope) {
 		return execute("editor_policy_index", [scope], withLocales());
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyShowResult>} */
 	function policyShow(scope, policyId) {
 		return execute("editor_policy_show", [scope, policyId], withLocales());
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPolicyUpdateResult>} */
 	function policyUpdate(scope, policyId, request) {
 		return execute("editor_policy_update", [scope, policyId], withLocales({ request: clone$4(request || {}) })).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceItemsResult>} */
 	function preferenceItems(scope, kind) {
 		return execute("editor_preference_items", [scope, kind], {});
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceShowResult>} */
 	function preferenceShow(scope, kind, identity) {
 		return execute("editor_preference_show", [scope, kind], { request: { identity: identity === void 0 ? null : clone$4(identity) } });
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceCreateResult>} */
 	function preferenceCreate(scope, kind, request) {
 		return execute("editor_preference_create", [scope, kind], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceUpdateResult>} */
 	function preferenceUpdate(scope, kind, request) {
 		return execute("editor_preference_update", [scope, kind], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorPreferenceDeleteResult>} */
 	function preferenceDelete(scope, kind, identity) {
 		return execute("editor_preference_delete", [scope, kind], { request: { identity: clone$4(identity) } }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptsShowResult>} */
 	function scriptsShow(scope, event) {
 		return execute("editor_scripts_show", [scope, event], {});
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryAddResult>} */
 	function scriptEntryAdd(scope, event, request) {
 		return execute("editor_script_entry_add", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryUpdateResult>} */
 	function scriptEntryUpdate(scope, event, request) {
 		return execute("editor_script_entry_update", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntryRemoveResult>} */
 	function scriptEntryRemove(scope, event, request) {
 		return execute("editor_script_entry_remove", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptEntriesReorderResult>} */
 	function scriptEntriesReorder(scope, event, request) {
 		return execute("editor_script_entries_reorder", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptOrderUpdateResult>} */
 	function scriptOrderUpdate(scope, event, request) {
 		return execute("editor_script_order_update", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetUploadResult>} */
 	function scriptAssetUpload(scope, event, request) {
 		return execute("editor_script_asset_upload", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetReplaceResult>} */
 	function scriptAssetReplace(scope, event, request) {
 		return execute("editor_script_asset_replace", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDeleteResult>} */
 	function scriptAssetDelete(scope, event, request) {
 		return execute("editor_script_asset_delete", [scope, event], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorScriptAssetDownloadResult>} */
 	function scriptAssetDownload(scope, event, request) {
 		return execute("editor_script_asset_download", [scope, event], { request: clone$4(request || {}) });
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorReconcileResult>} */
 	function reconcile() {
 		return execute("editor_reconcile", [], {}).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsShowResult>} */
 	function securityDefinitionsShow() {
 		return execute("editor_security_definitions_show", [], withLocales());
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorSecurityDefinitionsUpdateResult>} */
 	function securityDefinitionsUpdate(request) {
 		return execute("editor_security_definitions_update", [], withLocales({ request: clone$4(request || {}) })).then(rememberEnvelope);
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditShowResult>} */
 	function advancedAuditShow() {
 		return execute("editor_advanced_audit_show", [], {});
 	}
-	/** @returns {Promise<import('../../types/rpc').GpoEditorAdvancedAuditUpdateResult>} */
 	function advancedAuditUpdate(request) {
 		return execute("editor_advanced_audit_update", [], { request: clone$4(request || {}) }).then(rememberEnvelope);
 	}
@@ -3179,8 +3163,7 @@
 		});
 	}
 	//#endregion
-	//#region src/util/collection-value.js
-	/** Typed collection values and isolated editor sessions; no DOM or persistence. */
+	//#region src/util/collection-value.ts
 	function clone$3(value) {
 		return JSON.parse(JSON.stringify(value));
 	}
@@ -3213,7 +3196,7 @@
 		const rules = constraints(parameter, value);
 		const errors = [];
 		const entries = value && value.value;
-		if (!Array.isArray(entries) || value.kind !== (rules.mode === "key_value" ? "key_value_list" : "text_list")) return [{
+		if (!value || !Array.isArray(entries) || value.kind !== (rules.mode === "key_value" ? "key_value_list" : "text_list")) return [{
 			index: null,
 			field: null,
 			code: "invalidValue"
@@ -3426,6 +3409,7 @@
 	function equal(left, right) {
 		return JSON.stringify(left) === JSON.stringify(right);
 	}
+	/** The plain payload of a typed value; its type depends on `kind`, so callers narrow it. */
 	function valuePayload(value) {
 		if (!value || typeof value !== "object") return value;
 		if (value.kind === "registry") return value.value ? value.value.value : null;
@@ -6932,6 +6916,117 @@
 		};
 	}
 	//#endregion
+	//#region src/components/templates/script/event-loader.js
+	var GROUPS$1 = ["classic", "powershell"];
+	/**
+	* Loading the event view and publishing mutations: the request counters, the busy state and the answers that replace the view.
+	* @param {any} context the editor's state and operations
+	*/
+	function createEventLoader({ assets, config, current, navigations, renderBody, rootElement, scope, setError, state, syncModalBusy }) {
+		function applyResponse(response) {
+			const previousOrder = state.view && state.view.execution_order;
+			state.envelope = response;
+			state.view = response && response.scripts || null;
+			state.error = null;
+			if (state.view && (state.orderDraft === null || state.orderDraft === previousOrder)) state.orderDraft = state.view.execution_order || "unspecified";
+			GROUPS$1.forEach(function(group) {
+				const rows = state.view && state.view[group] && state.view[group].entries || [];
+				if (state.removal && state.removal.group === group) state.selectedEntry[group] = neighbor(state.removal.before, state.removal.removed, rows.map(function(entry) {
+					return entry.identity;
+				}));
+				if (!rows.some(function(entry) {
+					return entry.identity === state.selectedEntry[group];
+				})) state.selectedEntry[group] = null;
+			});
+			if (!assets().some(function(asset) {
+				return asset.name === state.selectedAsset;
+			})) state.selectedAsset = null;
+			state.selectedAssets.forEach(function(name) {
+				if (!assets().some(function(asset) {
+					return asset.name === name;
+				})) state.selectedAssets.delete(name);
+			});
+			if (state.removal && state.removal.assets) {
+				const surviving = assets().map(function(asset) {
+					return asset.name;
+				});
+				const removed = state.removal.removed.filter(function(name) {
+					return surviving.indexOf(name) === -1;
+				});
+				if (removed.length) {
+					const neighbor$2 = neighbor(state.removal.before, removed, surviving);
+					state.selectedAssets = new Set(neighbor$2 ? [neighbor$2] : []);
+					state.selectedAsset = neighbor$2;
+					state.assetFocus = neighbor$2;
+				}
+			}
+			if (!assets().some(function(asset) {
+				return asset.name === state.assetFocus;
+			})) state.assetFocus = state.selectedAsset;
+			renderBody();
+		}
+		async function loadEvent() {
+			const requestId = ++state.requestId;
+			const event = state.event;
+			state.loading = true;
+			state.error = null;
+			renderBody();
+			try {
+				const response = await scriptsShow(scope, event);
+				if (!current() || requestId !== state.requestId || event !== state.event) return;
+				state.loading = false;
+				applyResponse(response);
+			} catch (error) {
+				if (!current() || requestId !== state.requestId) return;
+				state.loading = false;
+				setError(error);
+			}
+		}
+		async function mutate(operation, errorSlot) {
+			if (state.busy || !current()) return false;
+			const focusedTable = document.activeElement && document.activeElement.closest("[data-script-list]");
+			const returnList = focusedTable && rootElement.contains(focusedTable) ? focusedTable.getAttribute("data-script-list") : null;
+			const returnGroup = state.group;
+			state.busy = true;
+			state.error = null;
+			state.saveStatus = "saving";
+			syncModalBusy();
+			renderBody();
+			try {
+				const response = await operation();
+				if (!current()) return false;
+				applyResponse(response);
+				state.saveStatus = "saved";
+				if (typeof config.onSaved === "function") config.onSaved(response);
+				return true;
+			} catch (error) {
+				if (current()) {
+					state.saveStatus = null;
+					if (errorSlot && errorSlot.isConnected) {
+						errorSlot.textContent = "";
+						errorSlot.appendChild(renderError(error, { onRefresh: function() {
+							loadEvent();
+						} }).getElement());
+					} else setError(error);
+				}
+				return false;
+			} finally {
+				state.busy = false;
+				state.removal = null;
+				if (current()) {
+					syncModalBusy();
+					renderBody();
+				}
+				if (current() && returnList && returnGroup === state.group && !state.form && !state.picker && document.activeElement === document.body && navigations[returnList]) navigations[returnList].focusSelected();
+			}
+		}
+		return {
+			applyResponse,
+			loadEvent,
+			mutate
+		};
+	}
+	//#endregion
 	//#region src/components/templates/script/event-editor.js
 	var GROUPS = ["classic", "powershell"];
 	var EVENTS = {
@@ -7105,103 +7200,18 @@
 			state.error = error;
 			renderBody();
 		}
-		function applyResponse(response) {
-			const previousOrder = state.view && state.view.execution_order;
-			state.envelope = response;
-			state.view = response && response.scripts || null;
-			state.error = null;
-			if (state.view && (state.orderDraft === null || state.orderDraft === previousOrder)) state.orderDraft = state.view.execution_order || "unspecified";
-			GROUPS.forEach(function(group) {
-				const rows = state.view && state.view[group] && state.view[group].entries || [];
-				if (state.removal && state.removal.group === group) state.selectedEntry[group] = neighbor(state.removal.before, state.removal.removed, rows.map(function(entry) {
-					return entry.identity;
-				}));
-				if (!rows.some(function(entry) {
-					return entry.identity === state.selectedEntry[group];
-				})) state.selectedEntry[group] = null;
-			});
-			if (!assets().some(function(asset) {
-				return asset.name === state.selectedAsset;
-			})) state.selectedAsset = null;
-			state.selectedAssets.forEach(function(name) {
-				if (!assets().some(function(asset) {
-					return asset.name === name;
-				})) state.selectedAssets.delete(name);
-			});
-			if (state.removal && state.removal.assets) {
-				const surviving = assets().map(function(asset) {
-					return asset.name;
-				});
-				const removed = state.removal.removed.filter(function(name) {
-					return surviving.indexOf(name) === -1;
-				});
-				if (removed.length) {
-					const neighbor$2 = neighbor(state.removal.before, removed, surviving);
-					state.selectedAssets = new Set(neighbor$2 ? [neighbor$2] : []);
-					state.selectedAsset = neighbor$2;
-					state.assetFocus = neighbor$2;
-				}
-			}
-			if (!assets().some(function(asset) {
-				return asset.name === state.assetFocus;
-			})) state.assetFocus = state.selectedAsset;
-			renderBody();
-		}
-		async function loadEvent() {
-			const requestId = ++state.requestId;
-			const event = state.event;
-			state.loading = true;
-			state.error = null;
-			renderBody();
-			try {
-				const response = await scriptsShow(scope, event);
-				if (!current() || requestId !== state.requestId || event !== state.event) return;
-				state.loading = false;
-				applyResponse(response);
-			} catch (error) {
-				if (!current() || requestId !== state.requestId) return;
-				state.loading = false;
-				setError(error);
-			}
-		}
-		async function mutate(operation, errorSlot) {
-			if (state.busy || !current()) return false;
-			const focusedTable = document.activeElement && document.activeElement.closest("[data-script-list]");
-			const returnList = focusedTable && rootElement.contains(focusedTable) ? focusedTable.getAttribute("data-script-list") : null;
-			const returnGroup = state.group;
-			state.busy = true;
-			state.error = null;
-			state.saveStatus = "saving";
-			syncModalBusy();
-			renderBody();
-			try {
-				const response = await operation();
-				if (!current()) return false;
-				applyResponse(response);
-				state.saveStatus = "saved";
-				if (typeof config.onSaved === "function") config.onSaved(response);
-				return true;
-			} catch (error) {
-				if (current()) {
-					state.saveStatus = null;
-					if (errorSlot && errorSlot.isConnected) {
-						errorSlot.textContent = "";
-						errorSlot.appendChild(renderError(error, { onRefresh: function() {
-							loadEvent();
-						} }).getElement());
-					} else setError(error);
-				}
-				return false;
-			} finally {
-				state.busy = false;
-				state.removal = null;
-				if (current()) {
-					syncModalBusy();
-					renderBody();
-				}
-				if (current() && returnList && returnGroup === state.group && !state.form && !state.picker && document.activeElement === document.body && navigations[returnList]) navigations[returnList].focusSelected();
-			}
-		}
+		const { applyResponse, loadEvent, mutate } = createEventLoader({
+			assets,
+			config,
+			current,
+			navigations,
+			renderBody,
+			rootElement,
+			scope,
+			setError,
+			state,
+			syncModalBusy
+		});
 		function syncModalBusy() {
 			[state.form, state.picker].forEach(function(modal) {
 				if (!modal) return;
@@ -10403,279 +10413,286 @@
 		});
 		return descriptor ? descriptor.fields || [] : [];
 	}
-	function Draft(showResult, restored) {
-		this._showResult = copy(showResult || {});
-		this._kinds = new Map((this._showResult.filter_kinds || []).map(function(kind) {
-			return [kind.kind, kind];
-		}));
-		if (restored) {
-			this.roots = copy(restored.roots);
-			this._original = copy(restored.original);
-			this._nextId = restored.nextId;
-			return;
-		}
-		this.roots = [];
-		this._nextId = 1;
-		const fieldsByPath = inventory(this._showResult);
-		const nodesByPath = /* @__PURE__ */ new Map();
-		const self = this;
-		copy(this._showResult.filters || []).sort(function(left, right) {
-			return comparePaths(left.path || [], right.path || []);
-		}).forEach(function(filter) {
-			const path = filter.path;
-			if (!Array.isArray(path) || !path.length || !path.every(function(index) {
-				return Number.isInteger(index) && index >= 0;
-			}) || nodesByPath.has(pathKey(path))) throw new Error("Invalid targeting filter snapshot");
-			const descriptor = fieldsByPath.get(pathKey(path)) || {
-				fields: filter.fields || [],
-				available: Boolean(filter.kind)
-			};
-			const node = {
-				id: "filter-" + self._nextId++,
-				originalPath: copy(path),
-				kind: filter.kind || null,
-				element_name: filter.element_name || "",
-				label: filter.label || filter.kind || filter.element_name || "",
-				detail: filter.detail || "",
-				combine: filter.combine,
-				negate: filter.negate,
-				hidden: filter.hidden,
-				supports_children: Boolean(filter.supports_children),
-				available: descriptor.available !== false && Boolean(filter.kind),
-				fields: copy(descriptor.fields || []),
-				children: []
-			};
-			const parent = path.length > 1 ? nodesByPath.get(pathKey(path.slice(0, -1))) : null;
-			const siblings = parent ? parent.children : self.roots;
-			if (path.length > 1 && !parent || path[path.length - 1] !== siblings.length) throw new Error("Invalid targeting filter snapshot");
-			siblings.push(node);
-			nodesByPath.set(pathKey(path), node);
-		});
-		this._original = copy(this.roots);
-	}
-	Draft.prototype.find = function(id) {
-		const found = locate(this.roots, id);
-		return found ? found.node : null;
-	};
-	Draft.prototype.clone = function() {
-		return new Draft(this._showResult, {
-			roots: this.roots,
-			original: this._original,
-			nextId: this._nextId
-		});
-	};
-	Draft.prototype.flatten = function() {
-		return flattenRoots(this.roots);
-	};
-	Draft.prototype.add = function(kind, parentId, index) {
-		const descriptor = this._kinds.get(kind);
-		const parent = parentId === null || parentId === void 0 ? null : locate(this.roots, parentId);
-		if (!descriptor || parentId !== null && parentId !== void 0 && !parent || parent && !parent.node.supports_children) return null;
-		const siblings = parent ? parent.node.children : this.roots;
-		const position = index === void 0 || index === null ? siblings.length : index;
-		if (!validIndex(position, siblings.length) || (parent ? collectionDepth(this.roots, parent.path) : 0) + (descriptor.supports_children ? 1 : 0) > 64) return null;
-		const node = {
-			id: "filter-" + this._nextId++,
-			originalPath: null,
-			kind,
-			element_name: descriptor.element_name || "",
-			label: descriptor.label || kind,
-			detail: "",
-			supports_children: Boolean(descriptor.supports_children),
-			available: true,
-			fields: copy(defaults(this._showResult, kind)),
-			children: []
-		};
-		siblings.splice(position, 0, node);
-		return node;
-	};
-	Draft.prototype.remove = function(id) {
-		const found = locate(this.roots, id);
-		if (!found) return false;
-		found.siblings.splice(found.index, 1);
-		return true;
-	};
-	/** Both identities are stable; index addresses destination siblings after source removal. */
-	Draft.prototype.move = function(id, parentId, index) {
-		const source = locate(this.roots, id);
-		const parent = parentId === null || parentId === void 0 ? null : locate(this.roots, parentId);
-		if (!source || parentId !== null && parentId !== void 0 && !parent || parent && (!parent.node.supports_children || contains(source.node, parentId))) return false;
-		const siblings = parent ? parent.node.children : this.roots;
-		const length = siblings.length - (siblings === source.siblings ? 1 : 0);
-		const position = index === void 0 || index === null ? length : index;
-		if (!validIndex(position, length) || (parent ? collectionDepth(this.roots, parent.path) : 0) + subtreeCollectionHeight(source.node) > 64) return false;
-		if (siblings === source.siblings && position === source.index) return false;
-		source.siblings.splice(source.index, 1);
-		siblings.splice(position, 0, source.node);
-		return true;
-	};
-	Draft.prototype.updateFields = function(id, fields) {
-		const node = this.find(id);
-		if (!node || !node.available || !Array.isArray(fields)) return false;
-		const values = new Map(fields.map(function(field) {
-			return [field.id, field.value];
-		}));
-		let changed = false;
-		node.fields = node.fields.map(function(field) {
-			if (!field.editable || !values.has(field.id) || equal(field.value, values.get(field.id))) return field;
-			changed = true;
-			return Object.assign({}, field, { value: copy(values.get(field.id)) });
-		});
-		return changed;
-	};
-	/** Replacing a kind is an intentional new node; its former descendants are discarded. */
-	Draft.prototype.replace = function(id, kind) {
-		const source = locate(this.roots, id);
-		if (!source || !this._kinds.has(kind)) return null;
-		const node = this.add(kind, source.parent ? source.parent.id : null, source.index);
-		if (!node) return null;
-		this.remove(id);
-		return node;
-	};
-	Draft.prototype.compile = function(options) {
-		const opts = options || {};
-		const desired = this.flatten();
-		const desiredById = new Map(desired.map(function(entry) {
-			return [entry.node.id, entry.node];
-		}));
-		const wanted = new Set(desired.map(function(entry) {
-			return entry.node.id;
-		}));
-		const wantedParents = /* @__PURE__ */ new Map();
-		function rememberParents(nodes, parentId) {
-			nodes.forEach(function(node) {
-				wantedParents.set(node.id, parentId);
-				rememberParents(node.children, node.id);
-			});
-		}
-		rememberParents(this.roots, null);
-		const errors = [];
-		const roots = this.roots;
-		desired.forEach(function(entry) {
-			const node = entry.node;
-			if (collectionDepth(roots, entry.path) > 64) errors.push({
-				id: node.id,
-				fieldId: null,
-				code: "max_depth"
-			});
-			if (!node.available) return;
-			const duplicates = preferenceFieldIds(node.fields).duplicates;
-			duplicates.forEach(function(id) {
-				errors.push({
-					id: node.id,
-					fieldId: id,
-					code: "duplicate_descriptor"
-				});
-			});
-			const specificErrors = typeof opts.validateNode === "function" ? opts.validateNode(node) : null;
-			if (Array.isArray(specificErrors)) {
-				specificErrors.forEach(function(error) {
-					errors.push({
-						id: node.id,
-						fieldId: error.fieldId,
-						code: error.code
-					});
-				});
+	var Draft = class Draft {
+		roots;
+		_showResult;
+		_kinds;
+		_original;
+		_nextId;
+		constructor(showResult, restored) {
+			this._showResult = copy(showResult || {});
+			this._kinds = new Map((this._showResult.filter_kinds || []).map(function(kind) {
+				return [kind.kind, kind];
+			}));
+			if (restored) {
+				this.roots = copy(restored.roots);
+				this._original = copy(restored.original);
+				this._nextId = restored.nextId;
 				return;
 			}
-			node.fields.forEach(function(field) {
-				if (!field.editable || duplicates.indexOf(field.id) !== -1) return;
-				const code = validatePreferenceField(field, field.value);
-				if (code) errors.push({
+			this.roots = [];
+			this._nextId = 1;
+			const fieldsByPath = inventory(this._showResult);
+			const nodesByPath = /* @__PURE__ */ new Map();
+			const self = this;
+			copy(this._showResult.filters || []).sort(function(left, right) {
+				return comparePaths(left.path || [], right.path || []);
+			}).forEach(function(filter) {
+				const path = filter.path;
+				if (!Array.isArray(path) || !path.length || !path.every(function(index) {
+					return Number.isInteger(index) && index >= 0;
+				}) || nodesByPath.has(pathKey(path))) throw new Error("Invalid targeting filter snapshot");
+				const descriptor = fieldsByPath.get(pathKey(path)) || {
+					fields: filter.fields || [],
+					available: Boolean(filter.kind)
+				};
+				const node = {
+					id: "filter-" + self._nextId++,
+					originalPath: copy(path),
+					kind: filter.kind || null,
+					element_name: filter.element_name || "",
+					label: filter.label || filter.kind || filter.element_name || "",
+					detail: filter.detail || "",
+					combine: filter.combine,
+					negate: filter.negate,
+					hidden: filter.hidden,
+					supports_children: Boolean(filter.supports_children),
+					available: descriptor.available !== false && Boolean(filter.kind),
+					fields: copy(descriptor.fields || []),
+					children: []
+				};
+				const parent = path.length > 1 ? nodesByPath.get(pathKey(path.slice(0, -1))) : null;
+				const siblings = parent ? parent.children : self.roots;
+				if (path.length > 1 && !parent || path[path.length - 1] !== siblings.length) throw new Error("Invalid targeting filter snapshot");
+				siblings.push(node);
+				nodesByPath.set(pathKey(path), node);
+			});
+			this._original = copy(this.roots);
+		}
+		find(id) {
+			const found = locate(this.roots, id);
+			return found ? found.node : null;
+		}
+		clone() {
+			return new Draft(this._showResult, {
+				roots: this.roots,
+				original: this._original,
+				nextId: this._nextId
+			});
+		}
+		flatten() {
+			return flattenRoots(this.roots);
+		}
+		add(kind, parentId, index) {
+			const descriptor = this._kinds.get(kind);
+			const parent = parentId === null || parentId === void 0 ? null : locate(this.roots, parentId);
+			if (!descriptor || parentId !== null && parentId !== void 0 && !parent || parent && !parent.node.supports_children) return null;
+			const siblings = parent ? parent.node.children : this.roots;
+			const position = index === void 0 || index === null ? siblings.length : index;
+			if (!validIndex(position, siblings.length) || (parent ? collectionDepth(this.roots, parent.path) : 0) + (descriptor.supports_children ? 1 : 0) > 64) return null;
+			const node = {
+				id: "filter-" + this._nextId++,
+				originalPath: null,
+				kind,
+				element_name: descriptor.element_name || "",
+				label: descriptor.label || kind,
+				detail: "",
+				supports_children: Boolean(descriptor.supports_children),
+				available: true,
+				fields: copy(defaults(this._showResult, kind)),
+				children: []
+			};
+			siblings.splice(position, 0, node);
+			return node;
+		}
+		remove(id) {
+			const found = locate(this.roots, id);
+			if (!found) return false;
+			found.siblings.splice(found.index, 1);
+			return true;
+		}
+		/** Both identities are stable; index addresses destination siblings after source removal. */
+		move(id, parentId, index) {
+			const source = locate(this.roots, id);
+			const parent = parentId === null || parentId === void 0 ? null : locate(this.roots, parentId);
+			if (!source || parentId !== null && parentId !== void 0 && !parent || parent && (!parent.node.supports_children || contains(source.node, parentId))) return false;
+			const siblings = parent ? parent.node.children : this.roots;
+			const length = siblings.length - (siblings === source.siblings ? 1 : 0);
+			const position = index === void 0 || index === null ? length : index;
+			if (!validIndex(position, length) || (parent ? collectionDepth(this.roots, parent.path) : 0) + subtreeCollectionHeight(source.node) > 64) return false;
+			if (siblings === source.siblings && position === source.index) return false;
+			source.siblings.splice(source.index, 1);
+			siblings.splice(position, 0, source.node);
+			return true;
+		}
+		updateFields(id, fields) {
+			const node = this.find(id);
+			if (!node || !node.available || !Array.isArray(fields)) return false;
+			const values = new Map(fields.map(function(field) {
+				return [field.id, field.value];
+			}));
+			let changed = false;
+			node.fields = node.fields.map(function(field) {
+				if (!field.editable || !values.has(field.id) || equal(field.value, values.get(field.id))) return field;
+				changed = true;
+				return Object.assign({}, field, { value: copy(values.get(field.id)) });
+			});
+			return changed;
+		}
+		/** Replacing a kind is an intentional new node; its former descendants are discarded. */
+		replace(id, kind) {
+			const source = locate(this.roots, id);
+			if (!source || !this._kinds.has(kind)) return null;
+			const node = this.add(kind, source.parent ? source.parent.id : null, source.index);
+			if (!node) return null;
+			this.remove(id);
+			return node;
+		}
+		compile(options) {
+			const opts = options || {};
+			const desired = this.flatten();
+			const desiredById = new Map(desired.map(function(entry) {
+				return [entry.node.id, entry.node];
+			}));
+			const wanted = new Set(desired.map(function(entry) {
+				return entry.node.id;
+			}));
+			const wantedParents = /* @__PURE__ */ new Map();
+			function rememberParents(nodes, parentId) {
+				nodes.forEach(function(node) {
+					wantedParents.set(node.id, parentId);
+					rememberParents(node.children, node.id);
+				});
+			}
+			rememberParents(this.roots, null);
+			const errors = [];
+			const roots = this.roots;
+			desired.forEach(function(entry) {
+				const node = entry.node;
+				if (collectionDepth(roots, entry.path) > 64) errors.push({
 					id: node.id,
-					fieldId: field.id,
-					code
+					fieldId: null,
+					code: "max_depth"
+				});
+				if (!node.available) return;
+				const duplicates = preferenceFieldIds(node.fields).duplicates;
+				duplicates.forEach(function(id) {
+					errors.push({
+						id: node.id,
+						fieldId: id,
+						code: "duplicate_descriptor"
+					});
+				});
+				const specificErrors = typeof opts.validateNode === "function" ? opts.validateNode(node) : null;
+				if (Array.isArray(specificErrors)) {
+					specificErrors.forEach(function(error) {
+						errors.push({
+							id: node.id,
+							fieldId: error.fieldId,
+							code: error.code
+						});
+					});
+					return;
+				}
+				node.fields.forEach(function(field) {
+					if (!field.editable || duplicates.indexOf(field.id) !== -1) return;
+					const code = validatePreferenceField(field, field.value);
+					if (code) errors.push({
+						id: node.id,
+						fieldId: field.id,
+						code
+					});
 				});
 			});
-		});
-		if (errors.length) return {
-			operations: [],
-			errors
-		};
-		const working = copy(this._original);
-		const originalById = new Map(flattenRoots(this._original).map(function(entry) {
-			return [entry.node.id, entry.node];
-		}));
-		const operations = [];
-		function removeAt(found) {
-			operations.push({
-				op: "remove",
-				path: copy(found.path)
-			});
-			found.siblings.splice(found.index, 1);
-		}
-		function moveAt(found, parentId, index) {
-			const parent = parentId === null ? null : locate(working, parentId);
-			const destination = parent ? parent.node.children : working;
-			operations.push({
-				op: "move",
-				source_path: copy(found.path),
-				collection_path: parent ? copy(parent.path) : [],
-				index
-			});
-			found.siblings.splice(found.index, 1);
-			destination.splice(index, 0, found.node);
-		}
-		function hasWanted(node) {
-			return wanted.has(node.id) || node.children.some(hasWanted);
-		}
-		function prune(nodes) {
-			nodes.slice().forEach(function(node) {
-				if (!hasWanted(node)) removeAt(locate(working, node.id));
-				else prune(node.children);
-			});
-		}
-		prune(working);
-		function detachDepartingDescendants(source) {
-			flattenRoots(source.node.children).reverse().forEach(function(entry) {
-				if (!wanted.has(entry.node.id)) return;
-				const found = locate(working, entry.node.id);
-				if (found.parent && wantedParents.get(found.node.id) !== found.parent.id) moveAt(found, null, working.length);
-			});
-		}
-		function reconcile(nodes, parentId) {
-			nodes.forEach(function(node, index) {
-				let found = locate(working, node.id);
+			if (errors.length) return {
+				operations: [],
+				errors
+			};
+			const working = copy(this._original);
+			const originalById = new Map(flattenRoots(this._original).map(function(entry) {
+				return [entry.node.id, entry.node];
+			}));
+			const operations = [];
+			function removeAt(found) {
+				operations.push({
+					op: "remove",
+					path: copy(found.path)
+				});
+				found.siblings.splice(found.index, 1);
+			}
+			function moveAt(found, parentId, index) {
 				const parent = parentId === null ? null : locate(working, parentId);
-				const siblings = parent ? parent.node.children : working;
-				if (!found) {
-					operations.push({
-						op: "insert",
-						collection_path: parent ? copy(parent.path) : [],
-						index,
-						filter_kind: node.kind,
-						fields: preferenceFieldEdits(node.fields, node.fields, false)
-					});
-					const inserted = copy(node);
-					inserted.children = [];
-					siblings.splice(index, 0, inserted);
-				} else if (found.siblings !== siblings || found.index !== index) {
-					if ((parent ? collectionDepth(working, parent.path) : 0) + subtreeCollectionHeight(found.node) > 64) {
-						detachDepartingDescendants(found);
-						found = locate(working, node.id);
+				const destination = parent ? parent.node.children : working;
+				operations.push({
+					op: "move",
+					source_path: copy(found.path),
+					collection_path: parent ? copy(parent.path) : [],
+					index
+				});
+				found.siblings.splice(found.index, 1);
+				destination.splice(index, 0, found.node);
+			}
+			function hasWanted(node) {
+				return wanted.has(node.id) || node.children.some(hasWanted);
+			}
+			function prune(nodes) {
+				nodes.slice().forEach(function(node) {
+					if (!hasWanted(node)) removeAt(locate(working, node.id));
+					else prune(node.children);
+				});
+			}
+			prune(working);
+			function detachDepartingDescendants(source) {
+				flattenRoots(source.node.children).reverse().forEach(function(entry) {
+					if (!wanted.has(entry.node.id)) return;
+					const found = locate(working, entry.node.id);
+					if (found.parent && wantedParents.get(found.node.id) !== found.parent.id) moveAt(found, null, working.length);
+				});
+			}
+			function reconcile(nodes, parentId) {
+				nodes.forEach(function(node, index) {
+					let found = locate(working, node.id);
+					const parent = parentId === null ? null : locate(working, parentId);
+					const siblings = parent ? parent.node.children : working;
+					if (!found) {
+						operations.push({
+							op: "insert",
+							collection_path: parent ? copy(parent.path) : [],
+							index,
+							filter_kind: node.kind,
+							fields: preferenceFieldEdits(node.fields, node.fields, false)
+						});
+						const inserted = copy(node);
+						inserted.children = [];
+						siblings.splice(index, 0, inserted);
+					} else if (found.siblings !== siblings || found.index !== index) {
+						if ((parent ? collectionDepth(working, parent.path) : 0) + subtreeCollectionHeight(found.node) > 64) {
+							detachDepartingDescendants(found);
+							found = locate(working, node.id);
+						}
+						moveAt(found, parentId, index);
 					}
-					moveAt(found, parentId, index);
-				}
-				reconcile(node.children, node.id);
+					reconcile(node.children, node.id);
+				});
+			}
+			reconcile(this.roots, null);
+			prune(working);
+			flattenRoots(working).forEach(function(entry) {
+				const original = originalById.get(entry.node.id);
+				const node = desiredById.get(entry.node.id);
+				if (!original || !node || !node.available) return;
+				const fields = preferenceFieldEdits(original.fields, node.fields, true);
+				if (fields.length) operations.push({
+					op: "edit",
+					path: copy(entry.path),
+					fields
+				});
 			});
+			return {
+				operations,
+				errors: []
+			};
 		}
-		reconcile(this.roots, null);
-		prune(working);
-		flattenRoots(working).forEach(function(entry) {
-			const original = originalById.get(entry.node.id);
-			const node = desiredById.get(entry.node.id);
-			if (!original || !node.available) return;
-			const fields = preferenceFieldEdits(original.fields, node.fields, true);
-			if (fields.length) operations.push({
-				op: "edit",
-				path: copy(entry.path),
-				fields
-			});
-		});
-		return {
-			operations,
-			errors: []
-		};
 	};
 	var create = function(showResult) {
 		return new Draft(showResult);
@@ -15217,6 +15234,329 @@
 		return actions;
 	}
 	//#endregion
+	//#region src/components/templates/security/policy-draft.js
+	function tr$2(key, fallback) {
+		const translated = t(key);
+		return translated && translated !== key ? translated : fallback;
+	}
+	function stateFor(policy, element) {
+		if (policy.state.state === "defined") return policy.state.elements && policy.state.elements[element.id] ? clone$1(policy.state.elements[element.id]) : { state: "unset" };
+		return element.initial ? {
+			state: "set",
+			value: clone$1(element.initial)
+		} : { state: "unset" };
+	}
+	function initialDraft(policy) {
+		const elements = {};
+		(policy.definition.elements || []).forEach(function(element) {
+			elements[element.id] = stateFor(policy, element);
+		});
+		return {
+			defined: policy.state.state === "defined",
+			elements
+		};
+	}
+	function canCreateRow(collection, controls) {
+		const writable = /* @__PURE__ */ new Set();
+		function visit(items, parentReadOnly) {
+			(items || []).forEach(function(control) {
+				const readOnly = parentReadOnly || control.read_only;
+				if (control.element_id && !readOnly) writable.add(control.element_id);
+				visit(control.children, readOnly);
+			});
+		}
+		visit(controls, false);
+		return (collection.fields || []).every(function(field) {
+			return !field.required || field.element.initial || writable.has(field.id);
+		});
+	}
+	function registerBinding(bindings, id, binding) {
+		if (!bindings.has(id)) bindings.set(id, []);
+		bindings.get(id).push(binding);
+	}
+	function syncBindings(bindings, id, source, state) {
+		(bindings.get(id) || []).forEach(function(binding) {
+			binding.update(state, binding === source);
+		});
+	}
+	function controlLabel(control, element, state) {
+		let label = control.label || element.id;
+		if (label === "value") label = tr$2("security.value", "Value");
+		if (!state || state.state !== "set" || element.value_type !== "integer") return label;
+		const match = (control.labels_when || []).find(function(item) {
+			return Number(item[0]) === state.value.value;
+		});
+		return match ? match[1] : label;
+	}
+	function rangeText(control, element) {
+		if (element.value_type !== "integer" || control.show_range !== true) return null;
+		return (element.input_ranges && element.input_ranges.length ? element.input_ranges : element.ranges || []).map(function(range) {
+			return range.min === range.max ? String(range.min) : String(range.min) + "–" + String(range.max);
+		}).join(", ") || null;
+	}
+	function elementAction(element, before, after) {
+		if (same(before, after)) return null;
+		if (after.state === "unset") return {
+			element_id: element.id,
+			action: "unset"
+		};
+		if (element.value_type === "collection" && before.state === "set") {
+			const rows = rowActions(element, before.value.value || [], after.value.value || []);
+			return rows.length ? {
+				element_id: element.id,
+				action: "rows",
+				rows
+			} : null;
+		}
+		return {
+			element_id: element.id,
+			action: "set",
+			value: clone$1(after.value)
+		};
+	}
+	function updateRequest(model, policy, baseline, draft) {
+		const update = {
+			namespace: policy.namespace,
+			policy_id: policy.policyId,
+			elements: []
+		};
+		if (baseline.defined !== draft.defined) update.transition = draft.defined ? "define" : "undefine";
+		if (!draft.defined) return {
+			expected_semantic_revision: model.catalog.semantic_revision,
+			policies: [update]
+		};
+		(policy.definition.elements || []).forEach(function(element) {
+			const action = elementAction(element, baseline.elements[element.id] || { state: "unset" }, draft.elements[element.id] || { state: "unset" });
+			if (action) update.elements.push(action);
+		});
+		return {
+			expected_semantic_revision: model.catalog.semantic_revision,
+			policies: [update]
+		};
+	}
+	function validateDraft(policy, draft) {
+		if (!draft.defined) return null;
+		function validateState(element, state, label, required) {
+			if (state.state !== "set") return required ? label + ": " + tr$2("security.validationRequired", "A value is required.") : null;
+			const typeError = validationError(element, state.value);
+			if (typeError) return label + ": " + typeError;
+			if (element.value_type !== "collection") return null;
+			if (!Array.isArray(state.value.value)) return label + ": " + tr$2("security.validationRows", "Enter valid collection rows.");
+			if (!state.value.value.length) return tr$2("security.validationRows", "Add at least one item, or leave this policy not configured.");
+			const seen = /* @__PURE__ */ new Set();
+			for (const row of state.value.value) {
+				if (element.unique_by === "group" && (element.fields || []).some(function(field) {
+					return field.id === "members";
+				}) && (!row.members || row.members.state !== "set") && (!row.member_of || row.member_of.state !== "set")) return tr$2("security.validationGroupRelationship", "Define Members or Member of. An explicitly empty list is allowed.");
+				if (element.unique_by) {
+					const key = rowKey(element, row);
+					if (!key) return label + ": " + tr$2("security.validationKey", "Every row requires its unique key.");
+					const encoded = JSON.stringify(key);
+					if (seen.has(encoded)) return element.duplicate_message || tr$2("security.validationDuplicate", "Collection row keys must be unique.");
+					seen.add(encoded);
+				}
+				for (const field of element.fields || []) {
+					const fieldError = validateState(field.element, row && row[field.id] || { state: "unset" }, field.display_name || field.id, field.required);
+					if (fieldError) return fieldError;
+				}
+			}
+			return null;
+		}
+		for (const element of policy.definition.elements || []) {
+			const error = validateState(element, draft.elements[element.id] || { state: "unset" }, element.id, element.required);
+			if (error) return error;
+		}
+		return null;
+	}
+	function renderPreserved(model) {
+		const root = createElement("div", {
+			className: ["gp__preference", "gpo-editor-preferences"],
+			attrs: { "data-security-preserved": "" }
+		});
+		root.append(createElement("h2", { text: tr$2("security.preservedTitle", "Preserved and diagnostic records") }));
+		if ((model.diagnostics || []).length) root.append(renderDiagnostics(model.diagnostics));
+		const list = createElement("dl", { className: "gpo-editor-security-preserved" });
+		(model.preserved || []).forEach(function(record) {
+			list.append(createElement("dt", { text: record.section + " — " + record.identity }));
+			list.append(createElement("dd", { children: [createElement("p", { text: record.damaged ? tr$2("security.damaged", "Damaged record") : tr$2("security.preservedReadOnly", "This setting is preserved and is read-only.") }), renderDiagnostics([{ message: record.reason }])] }));
+		});
+		root.append(list);
+		return root;
+	}
+	//#endregion
+	//#region src/components/templates/security/controls.js
+	function renderControl(control, elements, context) {
+		if (control.kind === "text") return createElement("p", { text: control.text || control.label || "" });
+		if (control.kind === "group") {
+			const childContext = Object.assign({}, context, { writable: context.writable && !control.read_only });
+			return createElement("fieldset", {
+				className: "gpo-editor-security-group",
+				children: [control.label ? createElement("legend", { text: control.label }) : null].concat((control.children || []).map(function(child) {
+					return renderControl(child, elements, childContext);
+				}))
+			});
+		}
+		const element = (elements || []).find(function(item) {
+			return item.id === control.element_id;
+		});
+		if (!element) return createElement("div", {
+			className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--warning"],
+			text: tr$2("security.unresolvedElement", "This setting cannot be displayed:") + " " + (control.element_id || "")
+		});
+		return element.value_type === "collection" ? collectionControl(control, element, context) : scalarControl(control, element, context);
+	}
+	function scalarControl(control, element, context) {
+		const state = context.getState(element.id);
+		const writable = context.writable && !control.read_only;
+		const required = element.required === true;
+		const configured = createElement("input", { attrs: { type: "checkbox" } });
+		const labelText = createElement("span", { text: controlLabel(control, element, state) });
+		configured.getElement().checked = state.state === "set" || required;
+		configured.getElement().disabled = !writable;
+		const editor = inputFor(element, control, state.state === "set" ? state.value : defaultTyped(element), !writable || !required && state.state !== "set");
+		editor.root.getElement().setAttribute("aria-label", controlLabel(control, element, state));
+		const binding = { update: function(next, source) {
+			configured.getElement().checked = next.state === "set" || required;
+			configured.getElement().disabled = !writable;
+			labelText.getElement().textContent = controlLabel(control, element, next);
+			if (!source) editor.write(next.state === "set" ? next.value : defaultTyped(element));
+			editor.setDisabled(!writable || !required && next.state !== "set");
+		} };
+		registerBinding(context.bindings, element.id, binding);
+		function changed() {
+			const next = configured.getElement().checked ? {
+				state: "set",
+				value: editor.read()
+			} : { state: "unset" };
+			context.setState(element.id, next);
+			syncBindings(context.bindings, element.id, binding, next);
+		}
+		configured.on("change", changed);
+		editor.root.getElement().addEventListener("input", changed);
+		editor.root.getElement().addEventListener("change", changed);
+		return createElement("div", {
+			className: ["gpo-editor-field", !writable ? "gpo-editor-field--readonly" : null],
+			attrs: { "data-security-element": element.id },
+			children: [
+				createElement("label", {
+					className: ["field", "field__checkbox"],
+					children: [required ? null : configured, labelText]
+				}),
+				createElement("div", {
+					className: "field__element",
+					children: [editor.root]
+				}),
+				control.integer_suffix ? createElement("span", {
+					className: "gpo-editor-security-suffix",
+					text: control.integer_suffix
+				}) : null,
+				rangeText(control, element) ? createElement("span", {
+					className: "gpo-editor-security-range",
+					text: rangeText(control, element)
+				}) : null
+			]
+		});
+	}
+	function collectionControl(control, element, context) {
+		const container = createElement("div", {
+			className: "gpo-editor-security-collection",
+			attrs: { "data-security-element": element.id }
+		});
+		const writable = context.writable && !control.read_only && Boolean(element.unique_by);
+		const state = context.getState(element.id);
+		const configured = createElement("input", { attrs: { type: "checkbox" } });
+		configured.getElement().checked = state.state === "set";
+		configured.getElement().disabled = !writable;
+		let rows = state.state === "set" ? clone$1(state.value.value || []) : [];
+		const rowsHost = createElement("div", { className: "gpo-editor-security-collection__rows" });
+		const add = createElement("button", {
+			className: "button",
+			attrs: { type: "button" },
+			text: tr$2("security.addRow", "Add row")
+		});
+		const binding = { update: function(next, source) {
+			configured.getElement().checked = next.state === "set";
+			if (!source) {
+				rows = next.state === "set" ? clone$1(next.value.value || []) : [];
+				renderRows();
+			}
+			add.getElement().disabled = !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
+		} };
+		registerBinding(context.bindings, element.id, binding);
+		function sync() {
+			const next = configured.getElement().checked ? {
+				state: "set",
+				value: {
+					kind: "collection",
+					value: clone$1(rows)
+				}
+			} : { state: "unset" };
+			context.setState(element.id, next);
+			syncBindings(context.bindings, element.id, binding, next);
+		}
+		function renderRows() {
+			rowsHost.getElement().innerHTML = "";
+			rows.forEach(function(row, rowIndex) {
+				const rowRoot = createElement("div", { className: "gpo-editor-security-collection__row" });
+				const fields = (element.fields || []).map(function(field) {
+					return Object.assign({}, field.element, { id: field.id });
+				});
+				const rowContext = {
+					writable: writable && configured.getElement().checked,
+					bindings: /* @__PURE__ */ new Map(),
+					getState: function(id) {
+						return row[id] || { state: "unset" };
+					},
+					setState: function(id, next) {
+						row[id] = next;
+						sync();
+					}
+				};
+				(control.children || []).forEach(function(child) {
+					rowRoot.append(renderControl(child, fields, rowContext));
+				});
+				rowRoot.append(createElement("button", {
+					className: "button",
+					attrs: {
+						type: "button",
+						disabled: rowContext.writable ? null : "disabled"
+					},
+					text: tr$2("security.removeRow", "Remove row"),
+					events: { click: function() {
+						rows.splice(rowIndex, 1);
+						sync();
+						renderRows();
+					} }
+				}));
+				rowsHost.append(rowRoot);
+			});
+		}
+		configured.on("change", function() {
+			if (configured.getElement().checked && !rows.length) rows = [];
+			sync();
+			renderRows();
+		});
+		add.getElement().disabled = !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
+		add.on("click", function() {
+			if (add.getElement().disabled) return;
+			rows.push(newRow(element));
+			sync();
+			renderRows();
+		});
+		container.append(createElement("label", {
+			className: ["field", "field__checkbox"],
+			children: [configured, createElement("span", { text: control.label || element.id })]
+		}));
+		if (!element.unique_by) container.append(createElement("div", {
+			className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--warning"],
+			text: tr$2("security.readOnlyCollection", "This collection has no stable row key and is read-only.")
+		}));
+		container.append(rowsHost);
+		container.append(add);
+		renderRows();
+		return container;
+	}
+	//#endregion
 	//#region src/components/templates/security/dependency-plan.js
 	var BASE = "urn:altlinux:sdmx:policies:";
 	var AGE_BASED = "overwrite_events_older_than_the_retention_period";
@@ -15658,26 +15998,26 @@
 	}
 	//#endregion
 	//#region src/components/templates/security/workbench.js
-	function tr$2(key, fallback) {
+	function tr$1(key, fallback) {
 		const text = t("security." + key);
 		return text && text !== "security." + key ? text : fallback;
 	}
 	function typedSummary(definition, state) {
-		if (!state || state.state !== "set") return tr$2("notConfigured", "Not configured");
+		if (!state || state.state !== "set") return tr$1("notConfigured", "Not configured");
 		const value = state.value.value;
-		if (state.value.kind === "boolean") return value ? tr$2("enabled", "Enabled") : tr$2("disabled", "Disabled");
+		if (state.value.kind === "boolean") return value ? tr$1("enabled", "Enabled") : tr$1("disabled", "Disabled");
 		if (state.value.kind === "enum" || state.value.kind === "flags") return (Array.isArray(value) ? value : [value]).map(function(id) {
 			const option = (definition.options || []).find(function(option) {
 				return option.id === id;
 			});
 			return option ? option.display_name || id : id;
 		}).join(", ");
-		if (state.value.kind === "sddl") return tr$2("permissionsDefined", "Permissions defined");
-		if (Array.isArray(value)) return value.length ? value.join(", ") : tr$2("emptyValue", "Empty list");
+		if (state.value.kind === "sddl") return tr$1("permissionsDefined", "Permissions defined");
+		if (Array.isArray(value)) return value.length ? value.join(", ") : tr$1("emptyValue", "Empty list");
 		return String(value);
 	}
 	function policySummary(policy) {
-		if (policy.state.state !== "defined") return tr$2("notConfigured", "Not configured");
+		if (policy.state.state !== "defined") return tr$1("notConfigured", "Not configured");
 		return (policy.definition.elements || []).filter(function(definition) {
 			const state = policy.state.elements && policy.state.elements[definition.id];
 			return state && state.state === "set";
@@ -15694,7 +16034,7 @@
 		const model = item.securityModel || buildSecurityModel(await securityDefinitionsShow());
 		if (config.isCurrent && !config.isCurrent()) return null;
 		const policy$2 = policy(model, item.securityPolicy);
-		if (!policy$2) throw new Error(tr$2("missingPolicy", "The security definition is no longer available."));
+		if (!policy$2) throw new Error(tr$1("missingPolicy", "The security definition is no longer available."));
 		const definition = item.securityCollection && collectionElement(policy$2);
 		let title = policy$2.definition.display_name || policy$2.policyId;
 		let editor;
@@ -15716,7 +16056,7 @@
 			if (definition) {
 				const row = config.rowIndex === void 0 ? config.initialRow : configuredRows(policy$2, definition)[config.rowIndex];
 				const key = row && rowKey(definition, row);
-				title = key ? String(key.value) : tr$2("addItem", "Add item") + " — " + title;
+				title = key ? String(key.value) : tr$1("addItem", "Add item") + " — " + title;
 			}
 		}
 		if (!editor) return null;
@@ -15729,7 +16069,7 @@
 			title,
 			content: editor,
 			readOnly,
-			cancelLabel: readOnly ? tr$2("close", "Close") : void 0,
+			cancelLabel: readOnly ? tr$1("close", "Close") : void 0,
 			restoreFocus: config.restoreFocus,
 			isDirty: editor.hasUnsavedChanges,
 			onApply: editor.applyChanges,
@@ -15773,11 +16113,11 @@
 		const search = createElement("input", { attrs: {
 			type: "search",
 			"data-policy-filter": "",
-			placeholder: tr$2("filter", "Filter settings"),
-			"aria-label": tr$2("filter", "Filter settings")
+			placeholder: tr$1("filter", "Filter settings"),
+			"aria-label": tr$1("filter", "Filter settings")
 		} });
 		if (!config.embedded && !config.hideHeading) toolbar.append(createElement("h2", {
-			text: config.categoryPath || item.title || tr$2("title", "Security Settings"),
+			text: config.categoryPath || item.title || tr$1("title", "Security Settings"),
 			attrs: { "data-category-path": "" }
 		}));
 		toolbar.append(search);
@@ -15865,7 +16205,7 @@
 			if (activeDialog || opening || disposed || !collectionWritable) return;
 			const policy = selectedPolicy();
 			const key = rowKey(collection, configuredRows(policy, collection)[index]);
-			const content = createElement("div", { children: [createElement("p", { text: tr$2("removeQuestion", "Remove this item from the policy?") }), createElement("p", { text: String(key.value) })] });
+			const content = createElement("div", { children: [createElement("p", { text: tr$1("removeQuestion", "Remove this item from the policy?") }), createElement("p", { text: String(key.value) })] });
 			const failure = createElement("div", {
 				className: "gpo-security-error",
 				attrs: { role: "alert" }
@@ -15876,9 +16216,9 @@
 			});
 			const removedId = selectedId;
 			activeDialog = open(modalHost, {
-				title: tr$2("removeItem", "Remove item"),
+				title: tr$1("removeItem", "Remove item"),
 				content,
-				applyLabel: tr$2("remove", "Remove"),
+				applyLabel: tr$1("remove", "Remove"),
 				onApply: async function() {
 					try {
 						const response = await securityDefinitionsUpdate({
@@ -16029,7 +16369,7 @@
 							value: service.sddl
 						}
 					};
-					addRow(service.display_name ? service.display_name + " (" + service.name + ")" : service.name, tr$2("notConfigured", "Not configured"), function() {
+					addRow(service.display_name ? service.display_name + " (" + service.name + ")" : service.name, tr$1("notConfigured", "Not configured"), function() {
 						edit(item, void 0, row);
 					}, null, "service:" + service.name);
 				});
@@ -16037,7 +16377,7 @@
 				(item.children || []).filter(function(child) {
 					return child.type === "folder";
 				}).forEach(function(child) {
-					addRow(child.title, tr$2("folder", "Folder"), function() {
+					addRow(child.title, tr$1("folder", "Folder"), function() {
 						if (config.onNavigate) config.onNavigate(child);
 					}, null, "folder:" + (child.id || child.title));
 				});
@@ -16068,7 +16408,7 @@
 			if (!body.getElement().children.length) body.append(createElement("tr", { children: [createElement("td", {
 				attrs: { colspan: "2" },
 				className: "gpo-security-table__empty",
-				text: search.getElement().value ? tr$2("noMatches", "No matching settings.") : tr$2("noItems", "No items are configured.")
+				text: search.getElement().value ? tr$1("noMatches", "No matching settings.") : tr$1("noItems", "No items are configured.")
 			})] }));
 			navigation.sync();
 			if (heldFocus) navigation.focusSelected();
@@ -16076,10 +16416,10 @@
 		if (collection) {
 			if (collection.unique_by === "service_name" && !serviceCatalog().length) panel.append(createElement("p", {
 				className: "gpo-security-workbench__notice",
-				text: tr$2("serviceCatalogMissing", "The service catalog has not been supplied. Configured services are shown below; additional services can be added by name.")
+				text: tr$1("serviceCatalogMissing", "The service catalog has not been supplied. Configured services are shown below; additional services can be added by name.")
 			}));
 		}
-		table.append(createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: collection ? tr$2("item", "Item") : tr$2("policy", "Policy") }), createElement("th", { text: tr$2("policySetting", "Policy setting") })] })] }));
+		table.append(createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: collection ? tr$1("item", "Item") : tr$1("policy", "Policy") }), createElement("th", { text: tr$1("policySetting", "Policy setting") })] })] }));
 		table.append(body);
 		const navigation = bind$1(table.getElement(), {
 			rows: function() {
@@ -16131,156 +16471,6 @@
 		return root;
 	}
 	//#endregion
-	//#region src/components/templates/security/policy-draft.js
-	function tr$1(key, fallback) {
-		const translated = t(key);
-		return translated && translated !== key ? translated : fallback;
-	}
-	function stateFor(policy, element) {
-		if (policy.state.state === "defined") return policy.state.elements && policy.state.elements[element.id] ? clone$1(policy.state.elements[element.id]) : { state: "unset" };
-		return element.initial ? {
-			state: "set",
-			value: clone$1(element.initial)
-		} : { state: "unset" };
-	}
-	function initialDraft(policy) {
-		const elements = {};
-		(policy.definition.elements || []).forEach(function(element) {
-			elements[element.id] = stateFor(policy, element);
-		});
-		return {
-			defined: policy.state.state === "defined",
-			elements
-		};
-	}
-	function canCreateRow(collection, controls) {
-		const writable = /* @__PURE__ */ new Set();
-		function visit(items, parentReadOnly) {
-			(items || []).forEach(function(control) {
-				const readOnly = parentReadOnly || control.read_only;
-				if (control.element_id && !readOnly) writable.add(control.element_id);
-				visit(control.children, readOnly);
-			});
-		}
-		visit(controls, false);
-		return (collection.fields || []).every(function(field) {
-			return !field.required || field.element.initial || writable.has(field.id);
-		});
-	}
-	function registerBinding(bindings, id, binding) {
-		if (!bindings.has(id)) bindings.set(id, []);
-		bindings.get(id).push(binding);
-	}
-	function syncBindings(bindings, id, source, state) {
-		(bindings.get(id) || []).forEach(function(binding) {
-			binding.update(state, binding === source);
-		});
-	}
-	function controlLabel(control, element, state) {
-		let label = control.label || element.id;
-		if (label === "value") label = tr$1("security.value", "Value");
-		if (!state || state.state !== "set" || element.value_type !== "integer") return label;
-		const match = (control.labels_when || []).find(function(item) {
-			return Number(item[0]) === state.value.value;
-		});
-		return match ? match[1] : label;
-	}
-	function rangeText(control, element) {
-		if (element.value_type !== "integer" || control.show_range !== true) return null;
-		return (element.input_ranges && element.input_ranges.length ? element.input_ranges : element.ranges || []).map(function(range) {
-			return range.min === range.max ? String(range.min) : String(range.min) + "–" + String(range.max);
-		}).join(", ") || null;
-	}
-	function elementAction(element, before, after) {
-		if (same(before, after)) return null;
-		if (after.state === "unset") return {
-			element_id: element.id,
-			action: "unset"
-		};
-		if (element.value_type === "collection" && before.state === "set") {
-			const rows = rowActions(element, before.value.value || [], after.value.value || []);
-			return rows.length ? {
-				element_id: element.id,
-				action: "rows",
-				rows
-			} : null;
-		}
-		return {
-			element_id: element.id,
-			action: "set",
-			value: clone$1(after.value)
-		};
-	}
-	function updateRequest(model, policy, baseline, draft) {
-		const update = {
-			namespace: policy.namespace,
-			policy_id: policy.policyId,
-			elements: []
-		};
-		if (baseline.defined !== draft.defined) update.transition = draft.defined ? "define" : "undefine";
-		if (!draft.defined) return {
-			expected_semantic_revision: model.catalog.semantic_revision,
-			policies: [update]
-		};
-		(policy.definition.elements || []).forEach(function(element) {
-			const action = elementAction(element, baseline.elements[element.id] || { state: "unset" }, draft.elements[element.id] || { state: "unset" });
-			if (action) update.elements.push(action);
-		});
-		return {
-			expected_semantic_revision: model.catalog.semantic_revision,
-			policies: [update]
-		};
-	}
-	function validateDraft(policy, draft) {
-		if (!draft.defined) return null;
-		function validateState(element, state, label, required) {
-			if (state.state !== "set") return required ? label + ": " + tr$1("security.validationRequired", "A value is required.") : null;
-			const typeError = validationError(element, state.value);
-			if (typeError) return label + ": " + typeError;
-			if (element.value_type !== "collection") return null;
-			if (!Array.isArray(state.value.value)) return label + ": " + tr$1("security.validationRows", "Enter valid collection rows.");
-			if (!state.value.value.length) return tr$1("security.validationRows", "Add at least one item, or leave this policy not configured.");
-			const seen = /* @__PURE__ */ new Set();
-			for (const row of state.value.value) {
-				if (element.unique_by === "group" && (element.fields || []).some(function(field) {
-					return field.id === "members";
-				}) && (!row.members || row.members.state !== "set") && (!row.member_of || row.member_of.state !== "set")) return tr$1("security.validationGroupRelationship", "Define Members or Member of. An explicitly empty list is allowed.");
-				if (element.unique_by) {
-					const key = rowKey(element, row);
-					if (!key) return label + ": " + tr$1("security.validationKey", "Every row requires its unique key.");
-					const encoded = JSON.stringify(key);
-					if (seen.has(encoded)) return element.duplicate_message || tr$1("security.validationDuplicate", "Collection row keys must be unique.");
-					seen.add(encoded);
-				}
-				for (const field of element.fields || []) {
-					const fieldError = validateState(field.element, row && row[field.id] || { state: "unset" }, field.display_name || field.id, field.required);
-					if (fieldError) return fieldError;
-				}
-			}
-			return null;
-		}
-		for (const element of policy.definition.elements || []) {
-			const error = validateState(element, draft.elements[element.id] || { state: "unset" }, element.id, element.required);
-			if (error) return error;
-		}
-		return null;
-	}
-	function renderPreserved(model) {
-		const root = createElement("div", {
-			className: ["gp__preference", "gpo-editor-preferences"],
-			attrs: { "data-security-preserved": "" }
-		});
-		root.append(createElement("h2", { text: tr$1("security.preservedTitle", "Preserved and diagnostic records") }));
-		if ((model.diagnostics || []).length) root.append(renderDiagnostics(model.diagnostics));
-		const list = createElement("dl", { className: "gpo-editor-security-preserved" });
-		(model.preserved || []).forEach(function(record) {
-			list.append(createElement("dt", { text: record.section + " — " + record.identity }));
-			list.append(createElement("dd", { children: [createElement("p", { text: record.damaged ? tr$1("security.damaged", "Damaged record") : tr$1("security.preservedReadOnly", "This setting is preserved and is read-only.") }), renderDiagnostics([{ message: record.reason }])] }));
-		});
-		root.append(list);
-		return root;
-	}
-	//#endregion
 	//#region src/components/templates/security-template.js
 	async function renderPolicyEditor(options) {
 		const config = options || {};
@@ -16295,7 +16485,7 @@
 		let policy$1 = policy(model, item.securityPolicy);
 		if (!policy$1) return createElement("div", {
 			className: "gpo-editor-preferences__error",
-			text: tr$1("security.missingPolicy", "The security definition is no longer available.")
+			text: tr$2("security.missingPolicy", "The security definition is no longer available.")
 		});
 		const root = createElement("div", {
 			className: "gpo-security-policy-editor",
@@ -16342,191 +16532,20 @@
 		function isDirty() {
 			return !same(baseline, draft);
 		}
-		function scalarControl(control, element, context) {
-			const state = context.getState(element.id);
-			const writable = context.writable && !control.read_only;
-			const required = element.required === true;
-			const configured = createElement("input", { attrs: { type: "checkbox" } });
-			const labelText = createElement("span", { text: controlLabel(control, element, state) });
-			configured.getElement().checked = state.state === "set" || required;
-			configured.getElement().disabled = !writable;
-			const editor = inputFor(element, control, state.state === "set" ? state.value : defaultTyped(element), !writable || !required && state.state !== "set");
-			editor.root.getElement().setAttribute("aria-label", controlLabel(control, element, state));
-			const binding = { update: function(next, source) {
-				configured.getElement().checked = next.state === "set" || required;
-				configured.getElement().disabled = !writable;
-				labelText.getElement().textContent = controlLabel(control, element, next);
-				if (!source) editor.write(next.state === "set" ? next.value : defaultTyped(element));
-				editor.setDisabled(!writable || !required && next.state !== "set");
-			} };
-			registerBinding(context.bindings, element.id, binding);
-			function changed() {
-				const next = configured.getElement().checked ? {
-					state: "set",
-					value: editor.read()
-				} : { state: "unset" };
-				context.setState(element.id, next);
-				syncBindings(context.bindings, element.id, binding, next);
-			}
-			configured.on("change", changed);
-			editor.root.getElement().addEventListener("input", changed);
-			editor.root.getElement().addEventListener("change", changed);
-			return createElement("div", {
-				className: ["gpo-editor-field", !writable ? "gpo-editor-field--readonly" : null],
-				attrs: { "data-security-element": element.id },
-				children: [
-					createElement("label", {
-						className: ["field", "field__checkbox"],
-						children: [required ? null : configured, labelText]
-					}),
-					createElement("div", {
-						className: "field__element",
-						children: [editor.root]
-					}),
-					control.integer_suffix ? createElement("span", {
-						className: "gpo-editor-security-suffix",
-						text: control.integer_suffix
-					}) : null,
-					rangeText(control, element) ? createElement("span", {
-						className: "gpo-editor-security-range",
-						text: rangeText(control, element)
-					}) : null
-				]
-			});
-		}
-		function collectionControl(control, element, context) {
-			const container = createElement("div", {
-				className: "gpo-editor-security-collection",
-				attrs: { "data-security-element": element.id }
-			});
-			const writable = context.writable && !control.read_only && Boolean(element.unique_by);
-			const state = context.getState(element.id);
-			const configured = createElement("input", { attrs: { type: "checkbox" } });
-			configured.getElement().checked = state.state === "set";
-			configured.getElement().disabled = !writable;
-			let rows = state.state === "set" ? clone$1(state.value.value || []) : [];
-			const rowsHost = createElement("div", { className: "gpo-editor-security-collection__rows" });
-			const add = createElement("button", {
-				className: "button",
-				attrs: { type: "button" },
-				text: tr$1("security.addRow", "Add row")
-			});
-			const binding = { update: function(next, source) {
-				configured.getElement().checked = next.state === "set";
-				if (!source) {
-					rows = next.state === "set" ? clone$1(next.value.value || []) : [];
-					renderRows();
-				}
-				add.getElement().disabled = !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
-			} };
-			registerBinding(context.bindings, element.id, binding);
-			function sync() {
-				const next = configured.getElement().checked ? {
-					state: "set",
-					value: {
-						kind: "collection",
-						value: clone$1(rows)
-					}
-				} : { state: "unset" };
-				context.setState(element.id, next);
-				syncBindings(context.bindings, element.id, binding, next);
-			}
-			function renderRows() {
-				rowsHost.getElement().innerHTML = "";
-				rows.forEach(function(row, rowIndex) {
-					const rowRoot = createElement("div", { className: "gpo-editor-security-collection__row" });
-					const fields = (element.fields || []).map(function(field) {
-						return Object.assign({}, field.element, { id: field.id });
-					});
-					const rowContext = {
-						writable: writable && configured.getElement().checked,
-						bindings: /* @__PURE__ */ new Map(),
-						getState: function(id) {
-							return row[id] || { state: "unset" };
-						},
-						setState: function(id, next) {
-							row[id] = next;
-							sync();
-						}
-					};
-					(control.children || []).forEach(function(child) {
-						rowRoot.append(renderControl(child, fields, rowContext));
-					});
-					rowRoot.append(createElement("button", {
-						className: "button",
-						attrs: {
-							type: "button",
-							disabled: rowContext.writable ? null : "disabled"
-						},
-						text: tr$1("security.removeRow", "Remove row"),
-						events: { click: function() {
-							rows.splice(rowIndex, 1);
-							sync();
-							renderRows();
-						} }
-					}));
-					rowsHost.append(rowRoot);
-				});
-			}
-			configured.on("change", function() {
-				if (configured.getElement().checked && !rows.length) rows = [];
-				sync();
-				renderRows();
-			});
-			add.getElement().disabled = !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
-			add.on("click", function() {
-				if (add.getElement().disabled) return;
-				rows.push(newRow(element));
-				sync();
-				renderRows();
-			});
-			container.append(createElement("label", {
-				className: ["field", "field__checkbox"],
-				children: [configured, createElement("span", { text: control.label || element.id })]
-			}));
-			if (!element.unique_by) container.append(createElement("div", {
-				className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--warning"],
-				text: tr$1("security.readOnlyCollection", "This collection has no stable row key and is read-only.")
-			}));
-			container.append(rowsHost);
-			container.append(add);
-			renderRows();
-			return container;
-		}
-		function renderControl(control, elements, context) {
-			if (control.kind === "text") return createElement("p", { text: control.text || control.label || "" });
-			if (control.kind === "group") {
-				const childContext = Object.assign({}, context, { writable: context.writable && !control.read_only });
-				return createElement("fieldset", {
-					className: "gpo-editor-security-group",
-					children: [control.label ? createElement("legend", { text: control.label }) : null].concat((control.children || []).map(function(child) {
-						return renderControl(child, elements, childContext);
-					}))
-				});
-			}
-			const element = (elements || []).find(function(item) {
-				return item.id === control.element_id;
-			});
-			if (!element) return createElement("div", {
-				className: ["gpo-editor-preference-notice", "gpo-editor-preference-notice--warning"],
-				text: tr$1("security.unresolvedElement", "This setting cannot be displayed:") + " " + (control.element_id || "")
-			});
-			return element.value_type === "collection" ? collectionControl(control, element, context) : scalarControl(control, element, context);
-		}
 		function proposedUnit(policyId) {
-			if (/^account\.password\.(minimum|maximum)_password_age$/.test(policyId) || /^account\.kerberos\.max_renew_age$/.test(policyId) || /^event_log\.(security|application|system)_log_retention_days$/.test(policyId)) return tr$1("security.dependency.days", "day(s)");
-			if (/^account\.kerberos\.max_ticket_age$/.test(policyId)) return tr$1("security.dependency.hours", "hour(s)");
-			if (/^account\.kerberos\.max_service_age$/.test(policyId) || /^account\.lockout\.(reset_lockout_count|lockout_duration)$/.test(policyId)) return tr$1("security.dependency.minutes", "minute(s)");
-			if (/^account\.lockout\.lockout_bad_count$/.test(policyId)) return tr$1("security.dependency.attempts", "attempt(s)");
+			if (/^account\.password\.(minimum|maximum)_password_age$/.test(policyId) || /^account\.kerberos\.max_renew_age$/.test(policyId) || /^event_log\.(security|application|system)_log_retention_days$/.test(policyId)) return tr$2("security.dependency.days", "day(s)");
+			if (/^account\.kerberos\.max_ticket_age$/.test(policyId)) return tr$2("security.dependency.hours", "hour(s)");
+			if (/^account\.kerberos\.max_service_age$/.test(policyId) || /^account\.lockout\.(reset_lockout_count|lockout_duration)$/.test(policyId)) return tr$2("security.dependency.minutes", "minute(s)");
+			if (/^account\.lockout\.lockout_bad_count$/.test(policyId)) return tr$2("security.dependency.attempts", "attempt(s)");
 			return "";
 		}
 		function proposedValue(change) {
-			if (!change.draft.defined) return tr$1("security.dependency.notConfigured", "Not configured");
+			if (!change.draft.defined) return tr$2("security.dependency.notConfigured", "Not configured");
 			return (change.policy.definition.elements || []).filter(function(element) {
 				return change.draft.elements[element.id] && change.draft.elements[element.id].state === "set";
 			}).map(function(element) {
 				const typed = change.draft.elements[element.id].value;
-				if (typed.kind === "boolean") return typed.value ? tr$1("security.enabled", "Enabled") : tr$1("security.disabled", "Disabled");
+				if (typed.kind === "boolean") return typed.value ? tr$2("security.enabled", "Enabled") : tr$2("security.disabled", "Disabled");
 				if (typed.kind === "enum") {
 					const option = (element.options || []).find(function(item) {
 						return item.id === typed.value;
@@ -16550,11 +16569,11 @@
 				const modal = root.getElement().closest(".gpo-security-dialog");
 				const table = createElement("table", {
 					className: ["preference__table", "gpo-security-table"],
-					children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: tr$1("security.dependency.policy", "Policy") }), createElement("th", { text: tr$1("security.dependency.value", "Value") })] })] }), createElement("tbody", { children: changes.map(function(change) {
+					children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: tr$2("security.dependency.policy", "Policy") }), createElement("th", { text: tr$2("security.dependency.value", "Value") })] })] }), createElement("tbody", { children: changes.map(function(change) {
 						return createElement("tr", { children: [createElement("td", { text: change.policy.definition.display_name || change.policy.policyId }), createElement("td", { text: proposedValue(change) })] });
 					}) })]
 				});
-				const content = createElement("div", { children: [createElement("p", { text: tr$1("security.dependency.intro", "To save this policy, apply the following related settings as well.") }), table] });
+				const content = createElement("div", { children: [createElement("p", { text: tr$2("security.dependency.intro", "To save this policy, apply the following related settings as well.") }), table] });
 				function finish(confirmed) {
 					if (modal) {
 						modal.inert = false;
@@ -16565,10 +16584,10 @@
 				}
 				pendingConfirmation = {
 					dialog: open$3(host, {
-						title: tr$1("security.dependency.title", "Related policy settings"),
+						title: tr$2("security.dependency.title", "Related policy settings"),
 						content,
-						confirmLabel: tr$1("security.dependency.apply", "Apply changes"),
-						cancelLabel: tr$1("security.dependency.cancel", "Cancel"),
+						confirmLabel: tr$2("security.dependency.apply", "Apply changes"),
+						cancelLabel: tr$2("security.dependency.cancel", "Cancel"),
 						onConfirm: function() {
 							finish(true);
 						},
@@ -16674,7 +16693,7 @@
 					"field__checkbox",
 					"gpo-security-policy-editor__define"
 				],
-				children: [defined, createElement("span", { text: tr$1("security.definePolicy", "Define this policy") })]
+				children: [defined, createElement("span", { text: tr$2("security.definePolicy", "Define this policy") })]
 			}));
 			let displayedControls = policy$1.controls;
 			let displayedElements = policy$1.definition.elements;
@@ -16726,7 +16745,7 @@
 			while (root.getElement().firstChild) settingsPanel.getElement().appendChild(root.getElement().firstChild);
 			const explanationPanel = createElement("div", {
 				className: "gpo-security-explanation",
-				children: [createElement("h3", { text: policy$1.definition.display_name || policy$1.policyId })].concat((explanation.length ? explanation : [tr$1("security.noExplanation", "No explanation is available for this setting.")]).map(function(text) {
+				children: [createElement("h3", { text: policy$1.definition.display_name || policy$1.policyId })].concat((explanation.length ? explanation : [tr$2("security.noExplanation", "No explanation is available for this setting.")]).map(function(text) {
 					return createElement("p", { text });
 				}))
 			});
@@ -16944,7 +16963,7 @@
 		});
 	}
 	//#endregion
-	//#region src/components/templates/advanced-audit-template.js
+	//#region src/components/templates/advanced-audit/presentation.js
 	function tr(key, fallback) {
 		const value = t(key);
 		return value && value !== key ? value : fallback;
@@ -16994,6 +17013,8 @@
 			clear_global_sacls: []
 		};
 	}
+	//#endregion
+	//#region src/components/templates/advanced-audit-template.js
 	async function renderAdvancedAuditTemplate(options) {
 		const config = options || {};
 		const item = config.item || {};
