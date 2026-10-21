@@ -6739,6 +6739,178 @@
 		return { open: openForm };
 	}
 	//#endregion
+	//#region src/components/templates/script/order-panel.js
+	/**
+	* The order block of the event page: the draft order of the entries and its save.
+	* @param {any} context the editor's state and operations
+	*/
+	function createOrderPanel({ mutate, scope, state }) {
+		function renderOrder() {
+			const select = createElement("select", { children: [
+				createElement("option", {
+					attrs: { value: "unspecified" },
+					text: st("orderUnspecified")
+				}),
+				createElement("option", {
+					attrs: { value: "classic_first" },
+					text: st("orderClassicFirst")
+				}),
+				createElement("option", {
+					attrs: { value: "powershell_first" },
+					text: st("orderPowershellFirst")
+				})
+			] });
+			select.getElement().value = state.orderDraft || state.view.execution_order || "unspecified";
+			const canApply = !state.busy && Boolean(state.view.powershell.editable) && state.orderDraft !== state.view.execution_order;
+			const apply = button(st("applyOrder"), function() {
+				saveOrderDraft();
+			}, !canApply);
+			select.on("change", function() {
+				state.orderDraft = select.getElement().value;
+				const available = !state.busy && state.view.powershell.editable && state.orderDraft !== state.view.execution_order;
+				apply.getElement().disabled = !available;
+				apply.getElement().classList.toggle("active", available);
+			});
+			select.getElement().disabled = state.busy || !state.view.powershell.editable;
+			return createElement("div", {
+				className: "gpo-editor-scripts__order",
+				children: [
+					createElement("label", { text: st("psOrderLabel") }),
+					select,
+					apply
+				]
+			});
+		}
+		function saveOrderDraft() {
+			if (!state.view || state.busy || !state.view.powershell.editable || state.orderDraft === state.view.execution_order) return Promise.resolve(true);
+			const snapshot = state.view.powershell.snapshot;
+			const order = state.orderDraft;
+			return mutate(function() {
+				return scriptOrderUpdate(scope, state.event, {
+					snapshot,
+					execution_order: order
+				});
+			});
+		}
+		return {
+			renderOrder,
+			saveOrderDraft
+		};
+	}
+	//#endregion
+	//#region src/components/templates/script/asset-actions.js
+	/**
+	* Operations on the event's files: upload, replace, download and delete.
+	* @param {any} context the editor's state and operations
+	*/
+	function createAssetActions({ applyResponse, confirm, assets, config, current, mutate, navigations, renderBody, scope, selectedAsset, setError, state }) {
+		async function uploadChosen(event, replace) {
+			const file = event.target.files && event.target.files[0];
+			event.target.value = "";
+			if (!file || state.busy || !state.view) return;
+			const asset = replace ? selectedAsset() : null;
+			if (replace && !asset) return;
+			if (file.size > state.view.upload_limit_bytes) {
+				setError({
+					category: "size_limit",
+					message: st("uploadTooLarge")
+				});
+				return;
+			}
+			async function upload() {
+				try {
+					const content = await fileBase64(file);
+					if (!current() || !state.event) return;
+					await mutate(function() {
+						return replace ? scriptAssetReplace(scope, state.event, {
+							name: asset.name,
+							revision: asset.revision,
+							content_base64: content
+						}) : scriptAssetUpload(scope, state.event, {
+							name: file.name,
+							content_base64: content
+						});
+					});
+				} catch (error) {
+					if (current()) setError(error);
+				}
+			}
+			if (replace) confirm(st("replaceFileConfirm"), function() {
+				upload();
+			});
+			else await upload();
+		}
+		function deleteAsset() {
+			const selected = config.mode === "assets" ? assets().filter(function(asset) {
+				return state.selectedAssets.has(asset.name);
+			}) : [selectedAsset()].filter(Boolean);
+			if (!selected.length || state.busy) return;
+			if (selected.some(function(asset) {
+				return asset.references && asset.references.length;
+			})) {
+				setError({
+					category: "validation",
+					message: st("fileInUse")
+				});
+				return;
+			}
+			const event = state.event;
+			confirm(st(selected.length > 1 ? "deleteSelectedFilesConfirm" : "deleteFileConfirm"), function() {
+				state.removal = {
+					assets: true,
+					before: assets().map(function(asset) {
+						return asset.name;
+					}),
+					removed: selected.map(function(asset) {
+						return asset.name;
+					})
+				};
+				mutate(async function() {
+					let response = null;
+					try {
+						for (let index = 0; index < selected.length; index++) response = await scriptAssetDelete(scope, event, {
+							name: selected[index].name,
+							revision: selected[index].revision
+						});
+						return response;
+					} catch (error) {
+						if (response) {
+							applyResponse(response);
+							if (typeof config.onSaved === "function") config.onSaved(response);
+						}
+						throw error;
+					}
+				});
+			});
+		}
+		async function downloadAsset() {
+			const asset = selectedAsset();
+			if (!asset || state.busy) return;
+			state.busy = true;
+			renderBody();
+			try {
+				const response = await scriptAssetDownload(scope, state.event, {
+					name: asset.name,
+					revision: asset.revision
+				});
+				if (current()) saveDownloadedAsset(response && response.asset);
+			} catch (error) {
+				if (current()) setError(error);
+			} finally {
+				state.busy = false;
+				if (current()) {
+					renderBody();
+					if (document.activeElement === document.body && navigations.assets) navigations.assets.focusSelected();
+				}
+			}
+		}
+		return {
+			deleteAsset,
+			uploadChosen,
+			downloadAsset
+		};
+	}
+	//#endregion
 	//#region src/components/templates/script/event-editor.js
 	var GROUPS = ["classic", "powershell"];
 	var EVENTS = {
@@ -7144,106 +7316,20 @@
 				});
 			});
 		}
-		async function uploadChosen(event, replace) {
-			const file = event.target.files && event.target.files[0];
-			event.target.value = "";
-			if (!file || state.busy || !state.view) return;
-			const asset = replace ? selectedAsset() : null;
-			if (replace && !asset) return;
-			if (file.size > state.view.upload_limit_bytes) {
-				setError({
-					category: "size_limit",
-					message: st("uploadTooLarge")
-				});
-				return;
-			}
-			async function upload() {
-				try {
-					const content = await fileBase64(file);
-					if (!current() || !state.event) return;
-					await mutate(function() {
-						return replace ? scriptAssetReplace(scope, state.event, {
-							name: asset.name,
-							revision: asset.revision,
-							content_base64: content
-						}) : scriptAssetUpload(scope, state.event, {
-							name: file.name,
-							content_base64: content
-						});
-					});
-				} catch (error) {
-					if (current()) setError(error);
-				}
-			}
-			if (replace) confirm(st("replaceFileConfirm"), function() {
-				upload();
-			});
-			else await upload();
-		}
-		function deleteAsset() {
-			const selected = config.mode === "assets" ? assets().filter(function(asset) {
-				return state.selectedAssets.has(asset.name);
-			}) : [selectedAsset()].filter(Boolean);
-			if (!selected.length || state.busy) return;
-			if (selected.some(function(asset) {
-				return asset.references && asset.references.length;
-			})) {
-				setError({
-					category: "validation",
-					message: st("fileInUse")
-				});
-				return;
-			}
-			const event = state.event;
-			confirm(st(selected.length > 1 ? "deleteSelectedFilesConfirm" : "deleteFileConfirm"), function() {
-				state.removal = {
-					assets: true,
-					before: assets().map(function(asset) {
-						return asset.name;
-					}),
-					removed: selected.map(function(asset) {
-						return asset.name;
-					})
-				};
-				mutate(async function() {
-					let response = null;
-					try {
-						for (let index = 0; index < selected.length; index++) response = await scriptAssetDelete(scope, event, {
-							name: selected[index].name,
-							revision: selected[index].revision
-						});
-						return response;
-					} catch (error) {
-						if (response) {
-							applyResponse(response);
-							if (typeof config.onSaved === "function") config.onSaved(response);
-						}
-						throw error;
-					}
-				});
-			});
-		}
-		async function downloadAsset() {
-			const asset = selectedAsset();
-			if (!asset || state.busy) return;
-			state.busy = true;
-			renderBody();
-			try {
-				const response = await scriptAssetDownload(scope, state.event, {
-					name: asset.name,
-					revision: asset.revision
-				});
-				if (current()) saveDownloadedAsset(response && response.asset);
-			} catch (error) {
-				if (current()) setError(error);
-			} finally {
-				state.busy = false;
-				if (current()) {
-					renderBody();
-					if (document.activeElement === document.body && navigations.assets) navigations.assets.focusSelected();
-				}
-			}
-		}
+		const { deleteAsset, uploadChosen, downloadAsset } = createAssetActions({
+			applyResponse,
+			confirm,
+			assets,
+			config,
+			current,
+			mutate,
+			navigations,
+			renderBody,
+			scope,
+			selectedAsset,
+			setError,
+			state
+		});
 		const renderEntries = createEntriesPanel({
 			bindTable,
 			config,
@@ -7271,53 +7357,11 @@
 			state,
 			uploadInput
 		});
-		function renderOrder() {
-			const select = createElement("select", { children: [
-				createElement("option", {
-					attrs: { value: "unspecified" },
-					text: st("orderUnspecified")
-				}),
-				createElement("option", {
-					attrs: { value: "classic_first" },
-					text: st("orderClassicFirst")
-				}),
-				createElement("option", {
-					attrs: { value: "powershell_first" },
-					text: st("orderPowershellFirst")
-				})
-			] });
-			select.getElement().value = state.orderDraft || state.view.execution_order || "unspecified";
-			const canApply = !state.busy && Boolean(state.view.powershell.editable) && state.orderDraft !== state.view.execution_order;
-			const apply = button(st("applyOrder"), function() {
-				saveOrderDraft();
-			}, !canApply);
-			select.on("change", function() {
-				state.orderDraft = select.getElement().value;
-				const available = !state.busy && state.view.powershell.editable && state.orderDraft !== state.view.execution_order;
-				apply.getElement().disabled = !available;
-				apply.getElement().classList.toggle("active", available);
-			});
-			select.getElement().disabled = state.busy || !state.view.powershell.editable;
-			return createElement("div", {
-				className: "gpo-editor-scripts__order",
-				children: [
-					createElement("label", { text: st("psOrderLabel") }),
-					select,
-					apply
-				]
-			});
-		}
-		function saveOrderDraft() {
-			if (!state.view || state.busy || !state.view.powershell.editable || state.orderDraft === state.view.execution_order) return Promise.resolve(true);
-			const snapshot = state.view.powershell.snapshot;
-			const order = state.orderDraft;
-			return mutate(function() {
-				return scriptOrderUpdate(scope, state.event, {
-					snapshot,
-					execution_order: order
-				});
-			});
-		}
+		const { renderOrder, saveOrderDraft } = createOrderPanel({
+			mutate,
+			scope,
+			state
+		});
 		function renderBody() {
 			if (!current()) return;
 			setHeaderState();
