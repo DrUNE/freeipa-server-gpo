@@ -194,7 +194,7 @@ test(
             await form.waitFor({ state: 'hidden' });
             await family.locator('tbody tr').filter({ hasText: 'Renamed file' }).waitFor();
             assert.equal(await page.evaluate(() => saved.length), 1);
-            await family.locator('.preference__modal-footer > .btn-cancel').click();
+            await family.locator('[data-dialog-part="footer"] > .btn-cancel').click();
             await family.waitFor({ state: 'hidden' });
             assert.equal(await page.evaluate(() => closeCount), 1);
             assert.equal(
@@ -249,7 +249,7 @@ test(
             await confirmation.locator('.btn-yes').click();
             await family.waitFor({ state: 'hidden' });
             assert.equal(await page.locator('.gpo-editor-preference-form').count(), 0);
-            assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
+            assert.equal(await page.locator('.gpo-editor-preferences__modal-host, [data-dialog-host]').count(), 0);
             assert.equal(await page.evaluate(() => calls.some(call => call.method === 'preferenceUpdate')), false);
             await unchangedCatalog(page);
         });
@@ -275,7 +275,7 @@ test(
             });
             assert.equal(await page.evaluate(() => current), null);
             assert.equal(await page.locator('[role="dialog"]').count(), 0);
-            assert.equal(await page.locator('.gpo-editor-preferences__modal-host').count(), 0);
+            assert.equal(await page.locator('.gpo-editor-preferences__modal-host, [data-dialog-host]').count(), 0);
             assert.equal(await page.evaluate(() => closeCount), 1);
             await unchangedCatalog(page);
         });
@@ -332,7 +332,7 @@ test(
                 )
             );
             await page.evaluate(() => current.editor.cancelChanges());
-            await event.locator('.preference__modal-footer > .btn-cancel').last().click();
+            await event.locator('[data-dialog-part="footer"] > .btn-cancel').last().click();
             await event.waitFor({ state: 'hidden' });
             assert.equal(await page.evaluate(() => closeCount), 1);
             await unchangedCatalog(page);
@@ -379,7 +379,7 @@ test(
             assert.equal(await form.isVisible(), true);
             await page.evaluate(() => resolveWrite());
             await form.waitFor({ state: 'hidden' });
-            await event.locator('.preference__modal-footer > .btn-cancel').last().click();
+            await event.locator('[data-dialog-part="footer"] > .btn-cancel').last().click();
             await event.waitFor({ state: 'hidden' });
             await unchangedCatalog(page);
         });

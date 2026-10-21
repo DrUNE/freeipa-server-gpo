@@ -15,7 +15,8 @@ const plugin = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy');
 
 fs.rmSync(out, { recursive: true, force: true });
 // A CSS module becomes an AMD module `X.module.css.js` (RequireJS appends `.js` to ids): it injects the scoped
-// stylesheet and returns the class map, like Vite's `import styles from './X.module.css'`.
+// stylesheet (at the front of <head>, like js/app.css in production) and returns the class map, like Vite's
+// `import styles from './X.module.css'`.
 async function cssModule(file) {
     let classes = {};
     const result = await postcss([
@@ -24,10 +25,12 @@ async function cssModule(file) {
             generateScopedName: '[name]__[local]___[hash:base64:5]'
         })
     ]).process(fs.readFileSync(file, 'utf8'), { from: file });
+    // url(...) into plugin/ui/grouppolicy/img: the test server serves that directory at /img.
+    result.css = result.css.replace(/url\((?:\.\.\/)+plugin\/ui\/grouppolicy\/img\//g, 'url(/img/');
     return `define([], function () {
     var style = document.createElement('style');
     style.textContent = ${JSON.stringify(result.css)};
-    document.head.appendChild(style);
+    document.head.insertBefore(style, document.head.firstChild);
     return ${JSON.stringify(classes)};
 });
 `;

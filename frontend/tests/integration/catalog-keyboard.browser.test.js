@@ -748,13 +748,13 @@ test(
                 await page.keyboard.press('Enter');
                 let dialog = page.getByRole('dialog');
                 await dialog.waitFor();
-                assert.equal(await dialog.locator('.preference__modal-header .title').textContent(), title);
+                assert.equal(await dialog.locator('[data-dialog-part="title"]').textContent(), title);
                 await dialog.locator('.btn-cancel').click();
                 assert.equal(await rows.nth(1).evaluate(row => row === document.activeElement), true);
                 await rows.first().dblclick();
                 await dialog.waitFor();
                 assert.equal(
-                    await dialog.locator('.preference__modal-header .title').textContent(),
+                    await dialog.locator('[data-dialog-part="title"]').textContent(),
                     await rows.first().locator('td').first().textContent()
                 );
                 await dialog.locator('.btn-cancel').click();
@@ -774,20 +774,14 @@ test(
                 await page.keyboard.press('Enter');
                 dialog = page.locator('.gpo-security-dialog');
                 await dialog.waitFor();
-                assert.equal(
-                    await dialog.locator('.preference__modal-header .title').textContent(),
-                    'Minimum password age'
-                );
+                assert.equal(await dialog.locator('[data-dialog-part="title"]').textContent(), 'Minimum password age');
                 assert.equal(await query.inputValue(), 'password age');
                 assert.deepEqual(await page.evaluate(() => navigations), []);
                 await dialog.locator('.btn-cancel').click();
                 assert.equal(await rows.nth(1).evaluate(row => row === document.activeElement), true);
                 await rows.first().dblclick();
                 await dialog.waitFor();
-                assert.equal(
-                    await dialog.locator('.preference__modal-header .title').textContent(),
-                    'Maximum password age'
-                );
+                assert.equal(await dialog.locator('[data-dialog-part="title"]').textContent(), 'Maximum password age');
                 await dialog.locator('.btn-cancel').click();
                 await query.focus();
                 await page.keyboard.press('Delete');

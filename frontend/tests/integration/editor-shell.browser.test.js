@@ -215,12 +215,12 @@ for (const language of ['en', 'ru']) {
                 await open(page, language);
                 await page.locator('#outer-last').focus();
                 await page.evaluate(() => openNested(true));
-                const nested = page.locator('.gpo-editor-dialog');
+                const nested = page.locator('[data-dialog]');
                 await nested.waitFor();
                 await nested.press('Shift+Tab');
                 assert.equal(await focused(nested.locator('.btn-ok')), true);
                 await nested.locator('.btn-ok').press('Tab');
-                assert.equal(await focused(nested.locator('.gpo-editor-dialog__close')), true);
+                assert.equal(await focused(nested.locator('[data-dialog-part="close"]')), true);
                 await nested.locator('.btn-cancel').click();
                 const confirmation = page.locator('[role=alertdialog]');
                 await confirmation.waitFor();

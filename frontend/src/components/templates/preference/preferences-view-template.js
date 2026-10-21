@@ -1440,6 +1440,7 @@ async function openPreferencesDialog(host, options) {
     var dialog = editorDialog.open(host, {
         title: item.title || (item.document && item.document.label) || item.preferenceKind,
         className: ['gpo-preferences-family-dialog'],
+        width: 'min(680px, calc(100vw - 32px))',
         content: content,
         readOnly: true,
         cancelLabel: pt('close'),

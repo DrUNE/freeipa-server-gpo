@@ -5,6 +5,7 @@ import * as editorStatus from '../editor-status';
 import * as translations from '../../locales/translations';
 import * as collectionControls from '../collection-control';
 import * as editorDialog from '../editor-dialog';
+import { setConfirming } from '../Dialog/Dialog';
 import * as policyTabs from './security/dialog';
 import * as confirmationDialog from '../confirmation-dialog';
 
@@ -695,6 +696,8 @@ function openAdmxDialog(host, options) {
     var dialog = editorDialog.open(host, {
         title: item.title || item.label || item.policyId,
         className: ['gpo-admx-dialog'],
+        width: '640px',
+        fill: true,
         content: content,
         applyLabel: t('security.apply'),
         cancelLabel: t('security.cancel'),
@@ -710,12 +713,12 @@ function openAdmxDialog(host, options) {
             var modal = dialog.root.getElement();
             var previousFocus = /** @type {HTMLElement | null} */ (document.activeElement);
             modal.inert = true;
-            modal.classList.add('gpo-editor-dialog--confirming');
+            setConfirming(modal, true);
             finishRefreshConfirmation = function (confirmed) {
                 refreshConfirmation = null;
                 finishRefreshConfirmation = null;
                 modal.inert = false;
-                modal.classList.remove('gpo-editor-dialog--confirming');
+                setConfirming(modal, false);
                 if (!closed && previousFocus && previousFocus.isConnected) previousFocus.focus();
                 resolve(confirmed);
             };
@@ -759,7 +762,7 @@ function openAdmxDialog(host, options) {
             },
             onRendered: function (policy) {
                 if (!ownsLoad()) return;
-                var title = dialog.root.getElement().querySelector('.preference__modal-header .title');
+                var title = dialog.root.getElement().querySelector('[data-dialog-part="title"]');
                 title.textContent = policy.label || item.title || policy.policy_id;
             }
         })

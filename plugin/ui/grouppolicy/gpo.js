@@ -18,10 +18,11 @@ define([
 
     (function loadCSS() {
         var files = [
+            // Styles of the components written with CSS Modules come first: they are the base layer that the
+            // global sheets (and the pages that embed a component) refine at equal specificity.
+            'js/plugins/chain/js/app.css',
             'js/plugins/chain/css/main.css',
-            'js/plugins/chain/css/other.css',
-            // Styles of the components written with CSS Modules; after the global sheets, which they may override.
-            'js/plugins/chain/js/app.css'
+            'js/plugins/chain/css/other.css'
         ];
         files.forEach(function(href) {
             var link = document.createElement('link');

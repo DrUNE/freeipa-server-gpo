@@ -437,8 +437,8 @@ test(
                 actual.parentNode.append(reference);
                 const failures = [];
                 for (const selector of [
-                    '.preference__modal-header',
-                    '.preference__modal-footer',
+                    '[data-dialog-part="header"]',
+                    '[data-dialog-part="footer"]',
                     '.btn-cancel',
                     '.btn-ok',
                     '.preference__table th'

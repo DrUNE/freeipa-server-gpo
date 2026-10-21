@@ -128,9 +128,9 @@ for (const language of ['en', 'ru']) {
                 };
                 return {
                     modal: box(element),
-                    header: box(element.querySelector('.preference__modal-header')),
+                    header: box(element.querySelector('[data-dialog-part="header"]')),
                     tabs: box(element.querySelector('.tab-buttons')),
-                    footer: box(element.querySelector('.preference__modal-footer')),
+                    footer: box(element.querySelector('[data-dialog-part="footer"]')),
                     number: box(element.querySelector('input[type=number]'))
                 };
             });
@@ -318,8 +318,8 @@ test('AT unknown values remain read-only and modal controls fit a narrow viewpor
         );
         const geometry = await modal.evaluate(element => {
             const rect = element.getBoundingClientRect();
-            const footer = element.querySelector('.preference__modal-footer').getBoundingClientRect();
-            const header = element.querySelector('.preference__modal-header').getBoundingClientRect();
+            const footer = element.querySelector('[data-dialog-part="footer"]').getBoundingClientRect();
+            const header = element.querySelector('[data-dialog-part="header"]').getBoundingClientRect();
             const tabs = element.querySelector('.tab-buttons').getBoundingClientRect();
             return {
                 left: rect.left,

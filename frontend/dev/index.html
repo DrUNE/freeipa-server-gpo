@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <title>GPUI dev harness</title>
-<link rel="stylesheet" href="/ipa/ui/js/plugins/chain/css/main.css">
-<link rel="stylesheet" href="/ipa/ui/js/plugins/chain/css/other.css">
 <style>
     html, body { margin: 0; height: 100%; font: 12px Arial, sans-serif; background: #f4f4f4; }
     .dev-bar { display: flex; gap: 12px; align-items: center; padding: 6px 12px; background: #1f2a44; color: #fff; font: 13px/1.4 system-ui, sans-serif; }
@@ -47,6 +45,13 @@
 
 <script type="module">
 import * as app from '@gpui/app.js';
+// The global sheets go after the components' styles (Vite adds those while importing), as in production.
+for (const name of ['main', 'other']) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `/ipa/ui/js/plugins/chain/css/${name}.css`;
+  document.head.append(link);
+}
 (function() {
     var params = new URLSearchParams(location.search);
     var gpoName = params.get('gpo') || 'Dev GPO';

@@ -106,8 +106,8 @@ test(
                 reference.classList.remove('gpo-security-dialog');
                 actual.parentNode.appendChild(reference);
                 const comparisons = [
-                    ['.preference__modal-header', ['backgroundColor', 'borderBottom', 'height']],
-                    ['.preference__modal-footer', ['height', 'padding', 'borderTop', 'gap']],
+                    ['[data-dialog-part="header"]', ['backgroundColor', 'borderBottom', 'height']],
+                    ['[data-dialog-part="footer"]', ['height', 'padding', 'borderTop', 'gap']],
                     ['.btn-cancel', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
                     ['.btn-ok', ['width', 'height', 'padding', 'border', 'backgroundColor', 'color']],
                     ['.preference__tab-button', ['height', 'padding', 'border', 'backgroundColor', 'color']],

@@ -74,9 +74,16 @@ get the same styles from Vite. For the browser tests `npm test` builds each `*.m
 (`scripts/build-test-root.mjs`); `scripts/read-amd.mjs` understands `import x from`, named imports and inline `export function`
 but not `export default`.
 
-Status: `EditorStatus` is migrated. `editor-dialog` has story tests that pin its behavior (roles, focus, Escape, Tab trap, discard
-question, busy state, error display); its styles are still the shared `preference__modal*` rules, and moving them to a module is the
-next step (five consumers add their own classes and overrides, so it needs an options-based API instead of class names).
+Status: `EditorStatus` and the chrome of the editor's dialogs (`Dialog`, used by `editor-dialog.js`) are migrated. A dialog takes
+`width` and `fill` options instead of consumers overriding its classes, and exposes `[data-dialog]` and `[data-dialog-part="..."]`
+hooks (header, title, close, body, error, footer, cancel, apply) for the content layout of its five consumers. Not yet migrated: the
+hand-built modals in `script-template.js` (3) and `preferences-view-template.js` (2), which still use the global `.preference__modal*`
+rules; those rules stay in `css/main.css` until the modals move onto `Dialog`.
+
+Moving shared chrome is risky because many places depend on the same class names. A temporary regression harness helped: a Vitest setup
+file patched `chromium.launch` so that every dialog opened by the integration tests was recorded (size and computed style of the window,
+header, title, close button, body, footer and the buttons and fields inside) by structure rather than by class, before and after the
+change; 72 snapshots had to stay identical. The harness is not in the repository.
 
 ## Dev stand (`dev/`)
 
@@ -144,7 +151,7 @@ Install the browser once: `npx playwright install chromium` (in `frontend/`).
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 302 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 309 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

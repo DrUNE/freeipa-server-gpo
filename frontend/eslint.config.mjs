@@ -23,6 +23,11 @@ export default [
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } }
     },
     {
+        // Storybook's preview runs in the browser.
+        files: ['.storybook/preview.js'],
+        languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } }
+    },
+    {
         files: ['tests/**/*.js'],
         languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
         rules: {

@@ -95,17 +95,15 @@ for (const language of ['en', 'ru']) {
             await modal.press('Shift+Tab');
             assert.equal(await focused(modal.locator('.btn-ok')), true, 'root Shift+Tab stays inside the dialog');
             await modal.locator('.btn-ok').press('Tab');
-            assert.equal(await focused(modal.locator('.gpo-editor-dialog__close')), true);
-            await modal.locator('.gpo-editor-dialog__close').press('Shift+Tab');
+            assert.equal(await focused(modal.locator('[data-dialog-part="close"]')), true);
+            await modal.locator('[data-dialog-part="close"]').press('Shift+Tab');
             assert.equal(await focused(modal.locator('.btn-ok')), true);
             assert.equal(
                 await modal.locator('[data-field-id=value] input').evaluate(node => getComputedStyle(node).userSelect),
                 'text'
             );
             assert.equal(
-                await modal
-                    .locator('.preference__modal-header .title')
-                    .evaluate(node => getComputedStyle(node).userSelect),
+                await modal.locator('[data-dialog-part="title"]').evaluate(node => getComputedStyle(node).userSelect),
                 'none'
             );
             await modal.getByRole('tab').last().click();

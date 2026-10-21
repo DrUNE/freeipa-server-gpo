@@ -2,9 +2,16 @@ import * as elements from '../util/element-creator';
 import * as translations from '../locales/translations';
 import * as confirmationDialog from './confirmation-dialog';
 import * as editorStatus from './editor-status';
+import {
+    createBody,
+    createButton,
+    createCloseButton,
+    createDialogShell,
+    createErrorRegion,
+    setConfirming
+} from './Dialog/Dialog';
 
 ('use strict');
-var create = elements.createElement;
 var sequence = 0;
 
 function trapTab(event, modal) {
@@ -57,56 +64,35 @@ function open(host, options) {
     var closed = false;
     var applyDisabled = Boolean(options.applyDisabled);
     var confirmation = null;
-    var body = create('div', {
-        className: ['preference__modal-content', 'gpo-editor-dialog__body', options.bodyClassName],
-        children: [options.content]
-    });
-    var failure = create('div', {
-        className: ['gpo-editor-dialog__error', options.errorClassName],
-        attrs: { role: 'alert' }
-    });
+    var wrap = elements.ElementCreator.wrap;
+    var classes = function (value) {
+        return [].concat(value || []).join(' ');
+    };
+    var body = wrap(createBody(null, classes(options.bodyClassName)));
+    body.append(options.content);
+    var failure = wrap(createErrorRegion(classes(options.errorClassName)));
     body.getElement().prepend(failure.getElement());
-    var cancel = create('button', {
-        className: ['button', 'btn-cancel'],
-        attrs: { type: 'button' },
-        text: options.cancelLabel || translations.t('collections.cancel')
-    });
-    var apply = create('button', {
-        className: ['button', 'btn-ok', 'gpo-editor-dialog__apply', options.applyClassName],
-        attrs: { type: 'button' },
-        text: options.applyLabel || translations.t('collections.ok')
-    });
+    var cancel = wrap(createButton('cancel', options.cancelLabel || translations.t('collections.cancel')));
+    var apply = wrap(
+        createButton('apply', options.applyLabel || translations.t('collections.ok'), classes(options.applyClassName))
+    );
     apply.getElement().disabled = applyDisabled;
-    var closeButton = create('button', {
-        className: ['close', 'gpo-editor-dialog__close', options.closeClassName],
-        attrs: { type: 'button', 'aria-label': options.closeLabel || translations.t('collections.close') }
+    var closeButton = wrap(
+        createCloseButton(options.closeLabel || translations.t('collections.close'), classes(options.closeClassName))
+    );
+    var shell = createDialogShell({
+        titleId: titleId,
+        title: options.title,
+        body: body.getElement(),
+        closeButton: closeButton.getElement(),
+        buttons: options.readOnly ? [cancel.getElement()] : [cancel.getElement(), apply.getElement()],
+        width: options.width,
+        fill: options.fill,
+        className: classes(options.className),
+        hostClassName: classes(options.hostClassName)
     });
-    var modal = create('div', {
-        className: ['preference__modal', 'active', 'gpo-editor-dialog'].concat(options.className || []),
-        attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId, tabindex: '-1' },
-        children: [
-            create('div', {
-                className: 'preference__modal-wrapper',
-                children: [
-                    create('div', {
-                        className: 'preference__modal-header',
-                        children: [create('div', { id: titleId, className: 'title', text: options.title }), closeButton]
-                    }),
-                    body,
-                    create('div', {
-                        className: 'preference__modal-footer',
-                        children: [cancel, options.readOnly ? null : apply]
-                    })
-                ]
-            })
-        ]
-    });
-    var backdrop = create('div', {
-        className: ['gp__preference', 'gpo-editor-preferences__modal-host', 'active', 'gpo-editor-dialog-host'].concat(
-            options.hostClassName || []
-        ),
-        children: [modal]
-    });
+    var modal = wrap(shell.dialog);
+    var backdrop = wrap(shell.host);
     function close() {
         if (closed) return;
         closed = true;
@@ -127,14 +113,14 @@ function open(host, options) {
             return true;
         }
         modal.getElement().inert = true;
-        modal.getElement().classList.add('gpo-editor-dialog--confirming');
+        setConfirming(modal.getElement(), true);
         confirmation = confirmationDialog.open(backdrop, {
             message: options.discardMessage || translations.t('collections.discardQuestion'),
             onConfirm: close,
             onCancel: function () {
                 confirmation = null;
                 modal.getElement().inert = false;
-                modal.getElement().classList.remove('gpo-editor-dialog--confirming');
+                setConfirming(modal.getElement(), false);
                 cancel.getElement().focus();
             }
         });

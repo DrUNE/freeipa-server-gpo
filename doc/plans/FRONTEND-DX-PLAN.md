@@ -82,7 +82,7 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 
 ### Stage 6. Code structure and styles (5-8 days, iteratively)
 
-**Status (the first part is done).** Module-level functions that do not depend on closures were extracted: from `preferences-view-template.js` into `preference/view/{common,field-control,field-dependencies,field-tabs}.js` and from `script-template.js` into `script/helpers.js`. This was a mechanical move by AST without changing the logic; the tests (302 of 302 in the container) and the bundle confirm it. Sizes in this stage are given after Prettier formatting (long lines wrap, so files are longer than before formatting: now `preferences-view-template.js` 1501 lines and `script-template.js` 2113).
+**Status (the first part is done).** Module-level functions that do not depend on closures were extracted: from `preferences-view-template.js` into `preference/view/{common,field-control,field-dependencies,field-tabs}.js` and from `script-template.js` into `script/helpers.js`. This was a mechanical move by AST without changing the logic; the tests (309 of 309 in the container) and the bundle confirm it. Sizes in this stage are given after Prettier formatting (long lines wrap, so files are longer than before formatting: now `preferences-view-template.js` 1501 lines and `script-template.js` 2113).
 **Remaining:** the large functions themselves — `renderPreferencesTemplate` (1364 lines, 74 shared variables; `openForm` 435 lines, `renderTable` 120), `renderScriptEventEditor` (1566 lines, 58 variables, state mostly in one `state` object; `renderAssets` 267, `openForm` 231, `renderEntries` 156, `openPicker` 155, `renderBody` 105) and `renderScriptsTemplate` (408). Splitting them needs a shared context (`ctx`) and separate modules by area (table, form, panel, discard dialog), which is refactoring, not a move.
 
 - Split the largest files on the model of `security/` (model + dialog + view): `preferences-view-template.js`, `script-template.js`, `chain.js`. Criterion: a file over 600 lines needs a justification. Every step is accompanied by the existing tests.
@@ -122,7 +122,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 302 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 309 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -151,9 +151,9 @@ Cost: the job depends on three external sources being available, takes longer, a
 2. How to attach Chromium without `playwright install`: the system `chromium` through `executablePath` / a `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`-like mechanism (there are 23 `chromium.launch` calls in the tests, so a shared wrapper is needed), or an image with a pre-downloaded `PLAYWRIGHT_BROWSERS_PATH`. It must be checked that Playwright works with the system ALT Chromium of the version in Sisyphus (currently 155 against Playwright's 156).
 3. How to provide npm dependencies without a network: a cache in the image (`npm ci --offline`), `node_modules` in the image checked against `package-lock.json`, or an internal npm proxy.
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
-5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (302 tests, no skips).
+5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (302 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (309 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 

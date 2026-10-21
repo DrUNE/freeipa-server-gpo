@@ -6,11 +6,13 @@ import * as confirmationDialog from '../confirmation-dialog';
 import * as editorDialog from '../editor-dialog';
 import * as listNavigation from '../list-navigation';
 import * as editorIcons from '../editor-icons';
+import { createBody, createButton as createDialogButton, createCloseButton, createDialogShell } from '../Dialog/Dialog';
 import * as helpersModule from './script/helpers';
 
 ('use strict');
 
 var create = elements.createElement;
+var wrap = elements.ElementCreator.wrap;
 var t = translations.t;
 var nextHeaderOwnerId = 1;
 var st = helpersModule.st;
@@ -408,10 +410,6 @@ function renderScriptEventEditor(options) {
         })
             ? initialName
             : null;
-        var pickerOverlay = create('div', {
-            className: ['scripts__overlay', 'active', 'gpo-editor-scripts__picker-overlay'],
-            events: { click: closePicker }
-        });
         var selectButton = button(
             st('selectFile'),
             function () {
@@ -471,62 +469,43 @@ function renderScriptEventEditor(options) {
             closePicker();
             onSelect(chosen);
         }
-        var picker = create('div', {
-            className: ['preference__modal', 'active', 'gpo-editor-scripts__picker'],
-            attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': st('browseFiles') },
-            events: {
-                keydown: function (event) {
-                    if (
-                        event.defaultPrevented ||
-                        event.target.closest('[role="dialog"], [role="alertdialog"]') !== picker.getElement()
-                    )
-                        return;
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closePicker();
-                    }
-                    editorDialog.trapTab(event, picker.getElement());
-                }
-            },
-            children: [
-                create('div', {
-                    className: 'preference__modal-wrapper',
-                    children: [
-                        create('div', {
-                            className: 'preference__modal-header',
-                            children: [
-                                create('div', { className: 'title', text: st('browseFiles') }),
-                                create('button', {
-                                    className: 'close',
-                                    attrs: { type: 'button', 'aria-label': st('close') },
-                                    events: { click: closePicker }
-                                })
-                            ]
-                        }),
-                        create('div', {
-                            className: 'preference__modal-content',
-                            children: [
-                                assets().length
-                                    ? table
-                                    : create('div', {
-                                          className: 'gpo-editor-empty',
-                                          text: st('emptyAssets')
-                                      })
-                            ]
-                        }),
-                        create('div', {
-                            className: 'preference__modal-footer',
-                            children: [button(t('header.cancel'), closePicker, false, 'btn-cancel'), selectButton]
-                        })
-                    ]
-                })
-            ]
+        var pickerContent = assets().length
+            ? table
+            : create('div', { className: 'gpo-editor-empty', text: st('emptyAssets') });
+        var cancelButton = wrap(createDialogButton('cancel', t('header.cancel')));
+        cancelButton.on('click', closePicker);
+        var closeButton = wrap(createCloseButton(st('close')));
+        closeButton.on('click', closePicker);
+        var shell = createDialogShell({
+            titleId: 'gpo-editor-scripts-picker-title',
+            title: st('browseFiles'),
+            body: createBody(pickerContent.getElement()),
+            closeButton: closeButton.getElement(),
+            buttons: [cancelButton.getElement(), selectButton.getElement()],
+            className: 'gpo-editor-scripts__picker',
+            hostClassName: 'gpo-editor-scripts__picker-overlay'
         });
-        rootElement.appendChild(pickerOverlay.getElement());
-        rootElement.appendChild(picker.getElement());
-        state.pickerOverlay = pickerOverlay.getElement();
-        state.picker = picker.getElement();
+        var picker = wrap(shell.dialog);
+        shell.dialog.setAttribute('aria-label', st('browseFiles'));
+        shell.host.addEventListener('click', function (event) {
+            if (event.target === shell.host) closePicker();
+        });
+        picker.on('keydown', function (event) {
+            if (
+                event.defaultPrevented ||
+                event.target.closest('[role="dialog"], [role="alertdialog"]') !== shell.dialog
+            )
+                return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                closePicker();
+            }
+            editorDialog.trapTab(event, shell.dialog);
+        });
+        rootElement.appendChild(shell.host);
+        state.pickerOverlay = shell.host;
+        state.picker = shell.dialog;
         pickerNavigation = listNavigation.bind(table.getElement(), {
             rows: function () {
                 return Array.from(table.getElement().querySelectorAll('[data-script-asset]'));
@@ -2020,6 +1999,7 @@ function openScriptsDialog(host, options) {
     var dialog = editorDialog.open(host, {
         title: eventLabel(event),
         className: ['gpo-editor-scripts__event-dialog'],
+        width: 'min(600px, calc(100vw - 32px))',
         hostClassName: ['gpo-editor-scripts'],
         content: detailHost,
         readOnly: true,
@@ -2059,6 +2039,7 @@ function openScriptsDialog(host, options) {
         var filesDialog = editorDialog.open(host, {
             title: st('folderForEvent').replace('{event}', eventLabel(event)),
             className: ['gpo-editor-scripts__explorer'],
+            width: 'min(620px, calc(100vw - 32px))',
             hostClassName: ['gpo-editor-scripts'],
             content: filesHost,
             readOnly: true,

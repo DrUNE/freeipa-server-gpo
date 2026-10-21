@@ -3097,12 +3097,12 @@
 	}
 	//#endregion
 	//#region src/components/category-path.js
-	var create$12 = createElement$17;
+	var create$11 = createElement$17;
 	function render$4(segments, onNavigate) {
 		var parts = (segments || []).filter(function(segment) {
 			return segment && segment.title;
 		});
-		var list = create$12("ol", { className: "gpo-category-path__list" });
+		var list = create$11("ol", { className: "gpo-category-path__list" });
 		var focused = Math.max(0, parts.length - 1);
 		function syncFocus() {
 			var buttons = list.getElement().querySelectorAll("button");
@@ -3112,7 +3112,7 @@
 		}
 		parts.forEach(function(segment, index) {
 			var last = index === parts.length - 1;
-			var label = create$12(segment.item && onNavigate ? "button" : "span", {
+			var label = create$11(segment.item && onNavigate ? "button" : "span", {
 				className: "gpo-category-path__segment",
 				attrs: {
 					type: segment.item && onNavigate ? "button" : null,
@@ -3130,7 +3130,7 @@
 					syncFocus();
 				});
 			}
-			list.append(create$12("li", { children: [index ? create$12("span", {
+			list.append(create$11("li", { children: [index ? create$11("span", {
 				className: "gpo-category-path__separator",
 				attrs: { "aria-hidden": "true" },
 				text: " / "
@@ -3149,7 +3149,7 @@
 			buttons[focused].focus({ preventScroll: true });
 		});
 		syncFocus();
-		return create$12("nav", {
+		return create$11("nav", {
 			className: "gpo-category-path",
 			attrs: {
 				"data-category-path": "",
@@ -3884,24 +3884,24 @@
 	}
 	//#endregion
 	//#region src/components/editor-status.js
-	function wrap(element) {
+	function wrap$1(element) {
 		return element && ElementCreator.wrap(element);
 	}
 	function renderError(error, options) {
-		return wrap(createErrorStatus(error, options));
+		return wrap$1(createErrorStatus(error, options));
 	}
 	function renderPending(pending, onReconcile) {
-		return wrap(createPendingStatus(pending, onReconcile));
+		return wrap$1(createPendingStatus(pending, onReconcile));
 	}
 	function renderDiagnostics(diagnostics) {
-		return wrap(createDiagnostics(diagnostics));
+		return wrap$1(createDiagnostics(diagnostics));
 	}
 	function renderUnsupported(message) {
-		return wrap(createUnsupportedStatus(message));
+		return wrap$1(createUnsupportedStatus(message));
 	}
 	//#endregion
 	//#region src/components/confirmation-dialog.js
-	var create$11 = createElement$17;
+	var create$10 = createElement$17;
 	var nextId = 0;
 	function open$3(host, options) {
 		var config = options || {};
@@ -3910,23 +3910,23 @@
 		var previous = document.activeElement;
 		var id = "gpo-confirmation-" + ++nextId;
 		var closed = false;
-		var no = create$11("button", {
+		var no = create$10("button", {
 			className: ["btn", "btn-no"],
 			attrs: { type: "button" },
 			text: config.cancelLabel || t$12("policyChangedModal.no")
 		});
-		var yes = create$11("button", {
+		var yes = create$10("button", {
 			className: ["btn", "btn-yes"],
 			attrs: { type: "button" },
 			text: config.confirmLabel || t$12("policyChangedModal.yes")
 		});
-		var content = create$11("div", {
+		var content = create$10("div", {
 			id: id + "-message",
 			className: "policy-changed__modal-content",
 			text: config.message || ""
 		});
 		if (config.content) content.getElement().appendChild(config.content.getElement ? config.content.getElement() : config.content);
-		var modal = create$11("div", {
+		var modal = create$10("div", {
 			className: ["policy-changed__modal", "policy-changed__modal--discard"],
 			attrs: {
 				role: "alertdialog",
@@ -3934,19 +3934,19 @@
 				"aria-labelledby": id + "-title",
 				"aria-describedby": id + "-message"
 			},
-			children: [create$11("div", {
+			children: [create$10("div", {
 				className: "policy-changed__modal-wrapper",
 				children: [
-					create$11("div", {
+					create$10("div", {
 						className: "policy-changed__modal-header",
-						children: [create$11("div", {
+						children: [create$10("div", {
 							id: id + "-title",
 							className: "title",
 							text: config.title || t$12("confirmModal.title")
 						})]
 					}),
 					content,
-					create$11("div", {
+					create$10("div", {
 						className: "policy-changed__modal-footer",
 						children: [no, yes]
 					})
@@ -3995,13 +3995,116 @@
 			root: modal.getElement()
 		};
 	}
+	var Dialog_module_default = {
+		host: "_host_13wmc_11",
+		dialog: "_dialog_13wmc_18",
+		fill: "_fill_13wmc_39",
+		wrapper: "_wrapper_13wmc_48",
+		header: "_header_13wmc_68",
+		title: "_title_13wmc_79",
+		close: "_close_13wmc_87",
+		body: "_body_13wmc_100",
+		error: "_error_13wmc_108",
+		footer: "_footer_13wmc_116"
+	};
+	//#endregion
+	//#region src/components/Dialog/Dialog.js
+	/** The window's own attributes; `data-dialog-confirming` is toggled with {@link setConfirming}. */
+	function setConfirming(dialog, confirming) {
+		if (confirming) dialog.setAttribute("data-dialog-confirming", "");
+		else dialog.removeAttribute("data-dialog-confirming");
+	}
+	/**
+	* The content area. Extra classes belong to the consumer.
+	* @param {Node | string | null} content
+	* @param {string} [className]
+	*/
+	function createBody(content, className) {
+		return h("div", {
+			class: cx(Dialog_module_default.body, className),
+			"data-dialog-part": "body"
+		}, content);
+	}
+	/**
+	* The always-present, initially empty region that shows an error on top of the body.
+	* @param {string} [className]
+	*/
+	function createErrorRegion(className) {
+		return h("div", {
+			class: cx(Dialog_module_default.error, className),
+			role: "alert",
+			"data-dialog-part": "error"
+		});
+	}
+	/**
+	* A footer button. `button` and `btn-ok` / `btn-cancel` are legacy markers kept for code that queries them;
+	* the look comes from the dialog's content-scope rules.
+	* @param {'cancel' | 'apply'} kind
+	* @param {string} label
+	* @param {string} [className]
+	*/
+	function createButton(kind, label, className) {
+		return h("button", {
+			class: cx("button", kind === "apply" ? "btn-ok" : "btn-cancel", className),
+			type: "button",
+			"data-dialog-part": kind
+		}, label);
+	}
+	/**
+	* The close button in the header (`close` is a legacy marker for code that queries it; it carries no styles).
+	* @param {string} label accessible name
+	* @param {string} [className]
+	*/
+	function createCloseButton(label, className) {
+		return h("button", {
+			class: cx(Dialog_module_default.close, "close", className),
+			type: "button",
+			"aria-label": label,
+			"data-dialog-part": "close"
+		});
+	}
+	/**
+	* Assembles the dialog around ready parts.
+	* @param {{ titleId: string, title: string, body: HTMLElement, closeButton: HTMLElement, buttons: HTMLElement[],
+	*   width?: string, fill?: boolean, className?: string, hostClassName?: string }} options
+	*/
+	function createDialogShell({ titleId, title, body, closeButton, buttons, width, fill, className, hostClassName }) {
+		const dialog = h("div", {
+			class: cx(Dialog_module_default.dialog, fill && Dialog_module_default.fill, className),
+			role: "dialog",
+			"aria-modal": "true",
+			"aria-labelledby": titleId,
+			tabindex: "-1",
+			"data-dialog": true
+		}, h("div", {
+			class: Dialog_module_default.wrapper,
+			"data-dialog-part": "wrapper"
+		}, h("div", {
+			class: Dialog_module_default.header,
+			"data-dialog-part": "header"
+		}, h("div", {
+			id: titleId,
+			class: Dialog_module_default.title,
+			"data-dialog-part": "title"
+		}, title), closeButton), body, h("div", {
+			class: Dialog_module_default.footer,
+			"data-dialog-part": "footer"
+		}, ...buttons)));
+		if (width) dialog.style.setProperty("--dialog-width", width);
+		return {
+			host: h("div", {
+				class: cx("gp__preference", Dialog_module_default.host, hostClassName),
+				"data-dialog-host": true
+			}, dialog),
+			dialog
+		};
+	}
 	//#endregion
 	//#region src/components/editor-dialog.js
 	var editor_dialog_exports = /* @__PURE__ */ __exportAll({
 		open: () => open$2,
 		trapTab: () => trapTab
 	});
-	var create$10 = createElement$17;
 	var sequence$4 = 0;
 	function trapTab(event, modal) {
 		if (event.key !== "Tab" || event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== modal) return;
@@ -4033,86 +4136,31 @@
 		var closed = false;
 		var applyDisabled = Boolean(options.applyDisabled);
 		var confirmation = null;
-		var body = create$10("div", {
-			className: [
-				"preference__modal-content",
-				"gpo-editor-dialog__body",
-				options.bodyClassName
-			],
-			children: [options.content]
-		});
-		var failure = create$10("div", {
-			className: ["gpo-editor-dialog__error", options.errorClassName],
-			attrs: { role: "alert" }
-		});
+		var wrap = ElementCreator.wrap;
+		var classes = function(value) {
+			return [].concat(value || []).join(" ");
+		};
+		var body = wrap(createBody(null, classes(options.bodyClassName)));
+		body.append(options.content);
+		var failure = wrap(createErrorRegion(classes(options.errorClassName)));
 		body.getElement().prepend(failure.getElement());
-		var cancel = create$10("button", {
-			className: ["button", "btn-cancel"],
-			attrs: { type: "button" },
-			text: options.cancelLabel || t$12("collections.cancel")
-		});
-		var apply = create$10("button", {
-			className: [
-				"button",
-				"btn-ok",
-				"gpo-editor-dialog__apply",
-				options.applyClassName
-			],
-			attrs: { type: "button" },
-			text: options.applyLabel || t$12("collections.ok")
-		});
+		var cancel = wrap(createButton("cancel", options.cancelLabel || t$12("collections.cancel")));
+		var apply = wrap(createButton("apply", options.applyLabel || t$12("collections.ok"), classes(options.applyClassName)));
 		apply.getElement().disabled = applyDisabled;
-		var closeButton = create$10("button", {
-			className: [
-				"close",
-				"gpo-editor-dialog__close",
-				options.closeClassName
-			],
-			attrs: {
-				type: "button",
-				"aria-label": options.closeLabel || t$12("collections.close")
-			}
+		var closeButton = wrap(createCloseButton(options.closeLabel || t$12("collections.close"), classes(options.closeClassName)));
+		var shell = createDialogShell({
+			titleId,
+			title: options.title,
+			body: body.getElement(),
+			closeButton: closeButton.getElement(),
+			buttons: options.readOnly ? [cancel.getElement()] : [cancel.getElement(), apply.getElement()],
+			width: options.width,
+			fill: options.fill,
+			className: classes(options.className),
+			hostClassName: classes(options.hostClassName)
 		});
-		var modal = create$10("div", {
-			className: [
-				"preference__modal",
-				"active",
-				"gpo-editor-dialog"
-			].concat(options.className || []),
-			attrs: {
-				role: "dialog",
-				"aria-modal": "true",
-				"aria-labelledby": titleId,
-				tabindex: "-1"
-			},
-			children: [create$10("div", {
-				className: "preference__modal-wrapper",
-				children: [
-					create$10("div", {
-						className: "preference__modal-header",
-						children: [create$10("div", {
-							id: titleId,
-							className: "title",
-							text: options.title
-						}), closeButton]
-					}),
-					body,
-					create$10("div", {
-						className: "preference__modal-footer",
-						children: [cancel, options.readOnly ? null : apply]
-					})
-				]
-			})]
-		});
-		var backdrop = create$10("div", {
-			className: [
-				"gp__preference",
-				"gpo-editor-preferences__modal-host",
-				"active",
-				"gpo-editor-dialog-host"
-			].concat(options.hostClassName || []),
-			children: [modal]
-		});
+		var modal = wrap(shell.dialog);
+		var backdrop = wrap(shell.host);
 		function close() {
 			if (closed) return;
 			closed = true;
@@ -4133,14 +4181,14 @@
 				return true;
 			}
 			modal.getElement().inert = true;
-			modal.getElement().classList.add("gpo-editor-dialog--confirming");
+			setConfirming(modal.getElement(), true);
 			confirmation = open$3(backdrop, {
 				message: options.discardMessage || t$12("collections.discardQuestion"),
 				onConfirm: close,
 				onCancel: function() {
 					confirmation = null;
 					modal.getElement().inert = false;
-					modal.getElement().classList.remove("gpo-editor-dialog--confirming");
+					setConfirming(modal.getElement(), false);
 					cancel.getElement().focus();
 				}
 			});
@@ -4979,6 +5027,8 @@
 		dialog = open$2(host, {
 			title: options.parameter.label || options.parameter.id,
 			className: ["gpo-collection-dialog"],
+			width: "640px",
+			fill: true,
 			content,
 			readOnly,
 			cancelLabel: tr$6(readOnly ? "close" : "cancel"),
@@ -5751,6 +5801,8 @@
 		var dialog = open$2(host, {
 			title: item.title || item.label || item.policyId,
 			className: ["gpo-admx-dialog"],
+			width: "640px",
+			fill: true,
 			content,
 			applyLabel: t$8("security.apply"),
 			cancelLabel: t$8("security.cancel"),
@@ -5766,12 +5818,12 @@
 				var modal = dialog.root.getElement();
 				var previousFocus = document.activeElement;
 				modal.inert = true;
-				modal.classList.add("gpo-editor-dialog--confirming");
+				setConfirming(modal, true);
 				finishRefreshConfirmation = function(confirmed) {
 					refreshConfirmation = null;
 					finishRefreshConfirmation = null;
 					modal.inert = false;
-					modal.classList.remove("gpo-editor-dialog--confirming");
+					setConfirming(modal, false);
 					if (!closed && previousFocus && previousFocus.isConnected) previousFocus.focus();
 					resolve(confirmed);
 				};
@@ -5813,7 +5865,7 @@
 				},
 				onRendered: function(policy) {
 					if (!ownsLoad()) return;
-					var title = dialog.root.getElement().querySelector(".preference__modal-header .title");
+					var title = dialog.root.getElement().querySelector("[data-dialog-part=\"title\"]");
 					title.textContent = policy.label || item.title || policy.policy_id;
 				}
 			}).then(function(loaded) {
@@ -6059,6 +6111,7 @@
 	//#endregion
 	//#region src/components/templates/script-template.js
 	var create$5 = createElement$17;
+	var wrap = ElementCreator.wrap;
 	var t$5 = t$12;
 	var nextHeaderOwnerId$1 = 1;
 	var st = st$1;
@@ -6115,12 +6168,12 @@
 		var headerActions = headerElement && headerElement.querySelector(".gp__control-actions");
 		var admxActions = headerElement && headerElement.querySelector(".gp__control-admx");
 		var helpSeparator = headerElement && headerElement.querySelector(".gp__control-separator");
-		var createButton = headerControls && headerControls.querySelector(".preferences__btn-create");
+		var createButton$1 = headerControls && headerControls.querySelector(".preferences__btn-create");
 		var editButton = headerControls && headerControls.querySelector(".preferences__btn-edit");
 		var deleteButton = headerControls && headerControls.querySelector(".preferences__btn-delete");
 		var headerOwner = "scripts-" + nextHeaderOwnerId$1++;
 		var headerLabels = [
-			createButton,
+			createButton$1,
 			editButton,
 			deleteButton
 		].map(function(control) {
@@ -6139,7 +6192,7 @@
 		if (admxActions) admxActions.style.display = "none";
 		if (helpSeparator) helpSeparator.style.display = "none";
 		[
-			createButton,
+			createButton$1,
 			editButton,
 			deleteButton
 		].forEach(function(control, index) {
@@ -6192,7 +6245,7 @@
 			if (!ownsHeader()) return;
 			var editable = Boolean(groupView().editable) && !state.busy && !state.loading && !state.form && !state.picker;
 			[
-				createButton,
+				createButton$1,
 				editButton,
 				deleteButton
 			].forEach(function(control, index) {
@@ -6207,8 +6260,8 @@
 				control.removeEventListener("click", handler);
 			});
 		}
-		listenHeader(createButton, function() {
-			if (ownsHeader() && createButton.classList.contains("active")) openForm("add");
+		listenHeader(createButton$1, function() {
+			if (ownsHeader() && createButton$1.classList.contains("active")) openForm("add");
 		});
 		listenHeader(editButton, function() {
 			if (ownsHeader() && editButton.classList.contains("active")) openForm("edit");
@@ -6432,14 +6485,6 @@
 			var chosen = assets().some(function(asset) {
 				return asset.name === initialName;
 			}) ? initialName : null;
-			var pickerOverlay = create$5("div", {
-				className: [
-					"scripts__overlay",
-					"active",
-					"gpo-editor-scripts__picker-overlay"
-				],
-				events: { click: closePicker }
-			});
 			var selectButton = button(st("selectFile"), function() {
 				choose();
 			}, !chosen, "btn-ok");
@@ -6482,61 +6527,40 @@
 				closePicker();
 				onSelect(chosen);
 			}
-			var picker = create$5("div", {
-				className: [
-					"preference__modal",
-					"active",
-					"gpo-editor-scripts__picker"
-				],
-				attrs: {
-					role: "dialog",
-					"aria-modal": "true",
-					"aria-label": st("browseFiles")
-				},
-				events: { keydown: function(event) {
-					if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== picker.getElement()) return;
-					if (event.key === "Escape") {
-						event.preventDefault();
-						event.stopPropagation();
-						closePicker();
-					}
-					trapTab(event, picker.getElement());
-				} },
-				children: [create$5("div", {
-					className: "preference__modal-wrapper",
-					children: [
-						create$5("div", {
-							className: "preference__modal-header",
-							children: [create$5("div", {
-								className: "title",
-								text: st("browseFiles")
-							}), create$5("button", {
-								className: "close",
-								attrs: {
-									type: "button",
-									"aria-label": st("close")
-								},
-								events: { click: closePicker }
-							})]
-						}),
-						create$5("div", {
-							className: "preference__modal-content",
-							children: [assets().length ? table : create$5("div", {
-								className: "gpo-editor-empty",
-								text: st("emptyAssets")
-							})]
-						}),
-						create$5("div", {
-							className: "preference__modal-footer",
-							children: [button(t$5("header.cancel"), closePicker, false, "btn-cancel"), selectButton]
-						})
-					]
-				})]
+			var pickerContent = assets().length ? table : create$5("div", {
+				className: "gpo-editor-empty",
+				text: st("emptyAssets")
 			});
-			rootElement.appendChild(pickerOverlay.getElement());
-			rootElement.appendChild(picker.getElement());
-			state.pickerOverlay = pickerOverlay.getElement();
-			state.picker = picker.getElement();
+			var cancelButton = wrap(createButton("cancel", t$5("header.cancel")));
+			cancelButton.on("click", closePicker);
+			var closeButton = wrap(createCloseButton(st("close")));
+			closeButton.on("click", closePicker);
+			var shell = createDialogShell({
+				titleId: "gpo-editor-scripts-picker-title",
+				title: st("browseFiles"),
+				body: createBody(pickerContent.getElement()),
+				closeButton: closeButton.getElement(),
+				buttons: [cancelButton.getElement(), selectButton.getElement()],
+				className: "gpo-editor-scripts__picker",
+				hostClassName: "gpo-editor-scripts__picker-overlay"
+			});
+			var picker = wrap(shell.dialog);
+			shell.dialog.setAttribute("aria-label", st("browseFiles"));
+			shell.host.addEventListener("click", function(event) {
+				if (event.target === shell.host) closePicker();
+			});
+			picker.on("keydown", function(event) {
+				if (event.defaultPrevented || event.target.closest("[role=\"dialog\"], [role=\"alertdialog\"]") !== shell.dialog) return;
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					closePicker();
+				}
+				trapTab(event, shell.dialog);
+			});
+			rootElement.appendChild(shell.host);
+			state.pickerOverlay = shell.host;
+			state.picker = shell.dialog;
 			pickerNavigation = bind$1(table.getElement(), {
 				rows: function() {
 					return Array.from(table.getElement().querySelectorAll("[data-script-asset]"));
@@ -7398,7 +7422,7 @@
 				headerControls.style.display = "none";
 				headerControls.removeAttribute("data-script-owner");
 				[
-					createButton,
+					createButton$1,
 					editButton,
 					deleteButton
 				].forEach(function(control, index) {
@@ -7822,6 +7846,7 @@
 		var dialog = open$2(host, {
 			title: eventLabel(event),
 			className: ["gpo-editor-scripts__event-dialog"],
+			width: "min(600px, calc(100vw - 32px))",
 			hostClassName: ["gpo-editor-scripts"],
 			content: detailHost,
 			readOnly: true,
@@ -7865,6 +7890,7 @@
 				dialog: open$2(host, {
 					title: st("folderForEvent").replace("{event}", eventLabel(event)),
 					className: ["gpo-editor-scripts__explorer"],
+					width: "min(620px, calc(100vw - 32px))",
 					hostClassName: ["gpo-editor-scripts"],
 					content: filesHost,
 					readOnly: true,
@@ -14702,6 +14728,7 @@
 		var dialog = open$2(host, {
 			title: item.title || item.document && item.document.label || item.preferenceKind,
 			className: ["gpo-preferences-family-dialog"],
+			width: "min(680px, calc(100vw - 32px))",
 			content,
 			readOnly: true,
 			cancelLabel: pt("close"),

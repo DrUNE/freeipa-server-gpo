@@ -626,6 +626,8 @@ function open(host, options) {
     dialog = editorDialog.open(host, {
         title: options.parameter.label || options.parameter.id,
         className: ['gpo-collection-dialog'],
+        width: '640px',
+        fill: true,
         content: content,
         readOnly: readOnly,
         cancelLabel: tr(readOnly ? 'close' : 'cancel'),
