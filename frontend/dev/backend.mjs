@@ -780,9 +780,21 @@ function emptied(result) {
     if (!result || typeof result !== 'object') return result;
     const copy = { ...result };
     for (const key of LISTS) if (Array.isArray(copy[key])) copy[key] = [];
+    // The Advanced Audit lists live one level down; `empty` leaves a screen with nothing to configure.
+    if (copy.advanced_audit && typeof copy.advanced_audit === 'object') {
+        copy.advanced_audit = { ...copy.advanced_audit, rows: [], subcategory_catalog: [] };
+    }
     if (copy.scripts && typeof copy.scripts === 'object') {
         copy.scripts = Object.fromEntries(
-            Object.entries(copy.scripts).map(([key, value]) => [key, Array.isArray(value) ? [] : value])
+            Object.entries(copy.scripts).map(([key, value]) => [
+                key,
+                Array.isArray(value)
+                    ? []
+                    : // The entries of a script group (`classic`, `powershell`) are a list one level down.
+                      value && Array.isArray(value.entries)
+                      ? { ...value, entries: [] }
+                      : value
+            ])
         );
     }
     return copy;

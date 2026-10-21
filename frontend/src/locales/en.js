@@ -585,6 +585,7 @@ const systemSettings = {
     download: 'Download',
     deleteFile: 'Delete file',
     applyOrder: 'Apply order',
+    executionOrder: 'Execution order',
     orderUnspecified: 'Not configured',
     orderClassicFirst: 'Scripts first',
     orderPowershellFirst: 'PowerShell first',

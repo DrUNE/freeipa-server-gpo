@@ -181,7 +181,7 @@ tests/integration/dialogs-visual` in the container and review the PNG diff befor
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 428 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 437 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

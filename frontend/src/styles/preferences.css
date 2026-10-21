@@ -80,7 +80,7 @@
   justify-content: center;
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button.active {
-  color: var(--gpui-accent);
+  color: var(--gpui-accent-text);
 }
 .gp__preference .preference__modal-tabs .tab-buttons .preference__tab-button:not(.active) {
   background-color: var(--gpui-surface);

@@ -101,7 +101,7 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 |---|---|---|
 | 1 | ✅ Storybook infrastructure: the fake RPC (the mock server of the stand, whose answers are checked against the reference answers), the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
 | 2 | ✅ Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
-| 3 | Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
+| 3 | ✅ Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
 | 4 | Components 3-8 with stories | 9-12 |
 | 5 | Screen stories for Security, ADMX, the preference form, the tree | 3-4 |
 | 6 | Component 9 (`OrderableList`) when the targeting or the webui chains need it | 2 |
@@ -116,6 +116,8 @@ runs in every story test with `a11y.test: 'error'`. Its first run found a real d
 is `.active`; they now have their own look.
 
 **Step 2 is done for the scripts screen.** `Toolbar` (a `role="group"` of buttons; `setToolbarItem` keeps `disabled` and the global `.active` look together) and `DataTable` (markup, selection marks, empty row; `setSelectedRows`; keyboard movement stays in `list-navigation.js`) are used by `script/entries-panel.js` and `script/assets-panel.js`; their tables and toolbars keep the legacy classes for the look (`preference__table gpo-catalog-table`, `gpo-editor-scripts__toolbar`), so the geometry tests did not change. Still on the old code: the preference items table, the catalog tables, the toolbars of security, audit and targeting. The accessibility checks of the new stories found two more contrast defects, fixed in the tokens: `--gpui-muted` was 3.3:1 (now `#6a6e73`, 4.7:1 and better) and the accent as a text color was 4.0-4.4:1 (new `--gpui-accent-text`, used for selected and hovered controls).
+
+**Step 3 is done.** `Screens/Advanced Audit` (rows and filtering, slow, server error, nothing to list) and `Screens/Scripts` (the overview of a scope, the event page with its selection rules, the empty and the slow event page) render the real templates on the fake server through `.storybook/screen.js` (`mountScreen`: opens the policy, shows the loading state, shows the error the editor would show). The `empty` scenario of the mock server now also empties the Advanced Audit rows and the script entries. The accessibility checks of the screens found three more defects, fixed: an empty `<h2>` heading on the audit screen (it now falls back to the localized title), the execution-order select of the scripts page without an accessible name (new label `executionOrder`, EN/RU), and the active tab at 4.4:1 (uses `--gpui-accent-text`).
 
 ## 7. What not to do
 

@@ -587,6 +587,7 @@ const systemSettings = {
     download: 'Скачать',
     deleteFile: 'Удалить файл',
     applyOrder: 'Применить порядок',
+    executionOrder: 'Порядок выполнения',
     orderUnspecified: 'Не настроено',
     orderClassicFirst: 'Сначала сценарии',
     orderPowershellFirst: 'Сначала PowerShell',

@@ -880,6 +880,7 @@
 		download: "Download",
 		deleteFile: "Delete file",
 		applyOrder: "Apply order",
+		executionOrder: "Execution order",
 		orderUnspecified: "Not configured",
 		orderClassicFirst: "Scripts first",
 		orderPowershellFirst: "PowerShell first",
@@ -1528,6 +1529,7 @@
 		download: "Скачать",
 		deleteFile: "Удалить файл",
 		applyOrder: "Применить порядок",
+		executionOrder: "Порядок выполнения",
 		orderUnspecified: "Не настроено",
 		orderClassicFirst: "Сначала сценарии",
 		orderPowershellFirst: "Сначала PowerShell",
@@ -6946,20 +6948,23 @@
 	*/
 	function createOrderPanel({ mutate, scope, state }) {
 		function renderOrder() {
-			const select = createElement("select", { children: [
-				createElement("option", {
-					attrs: { value: "unspecified" },
-					text: st("orderUnspecified")
-				}),
-				createElement("option", {
-					attrs: { value: "classic_first" },
-					text: st("orderClassicFirst")
-				}),
-				createElement("option", {
-					attrs: { value: "powershell_first" },
-					text: st("orderPowershellFirst")
-				})
-			] });
+			const select = createElement("select", {
+				attrs: { "aria-label": st("executionOrder") },
+				children: [
+					createElement("option", {
+						attrs: { value: "unspecified" },
+						text: st("orderUnspecified")
+					}),
+					createElement("option", {
+						attrs: { value: "classic_first" },
+						text: st("orderClassicFirst")
+					}),
+					createElement("option", {
+						attrs: { value: "powershell_first" },
+						text: st("orderPowershellFirst")
+					})
+				]
+			});
 			select.getElement().value = state.orderDraft || state.view.execution_order || "unspecified";
 			const canApply = !state.busy && Boolean(state.view.powershell.editable) && state.orderDraft !== state.view.execution_order;
 			const apply = button(st("applyOrder"), function() {
@@ -17258,7 +17263,7 @@
 			const toolbar = createElement("div", {
 				className: "gpo-security-workbench__toolbar",
 				children: [config.hideHeading ? null : createElement("h2", {
-					text: config.categoryPath || family && family.label || "",
+					text: config.categoryPath || family && family.label || tr("security.advancedAudit.title", "Advanced Audit Policy Configuration"),
 					attrs: { "data-category-path": "" }
 				}), search]
 			});

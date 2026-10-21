@@ -5,7 +5,6 @@
  * `useScenario(name)` picks how the server behaves (`normal`, `error`, `slow`, `empty`, see dev/backend.mjs) and starts
  * from fresh fixtures; the preview calls it for every story from `parameters.rpc.scenario`.
  */
-/* global setTimeout */
 import * as backend from '../../dev/backend.mjs';
 
 // `slow` is long enough to see a loading state and short enough for a test to wait for the answer.

@@ -18,7 +18,7 @@
 | CI and RPM build | `python-backend.yml` and the `.spec` run only pytest and Python coverage. `make test-ui` is never called. |
 | Dev stand | `tools/ui-dev`: mock backend and `requirejs` without a build, refresh with F5. It does not cover `chain.js`/`gpo.js` (they depend on `freeipa/*`). |
 | Sizes | Large files: `preferences-view-template.js` 2111, `script-template.js` 1449, `chain.js` 1193, `app.js` 876, `main.css` 2430. The rest of the code is split reasonably well. |
-| RPC contract | `util/API.js` (428 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
+| RPC contract | `util/API.js` (437 lines) and `editor-dto.js` are kept in line with `gpo.py` by hand; there is no schema. |
 
 Deployment constraint: the RPM is built in hasher without a network, and what is needed in the end is static files in `/usr/share/ipa/ui/js/plugins/chain`.
 
@@ -91,7 +91,7 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 **Fourth part (done).** Module-level code moved out without any context: `preference/targeting-operand-model.js` (field catalogs and validation; `targeting-operand-editor.js` 740 lines), `admx/policy-contents.js` (`admx-template.js` 368), `security/policy-draft.js` (`security-template.js` 619). In `preference/targeting-editor.js` the mutable state is one `ui` object and the condition tree is `preference/targeting-tree.js` (the editor is 674 lines). `script/event-editor.js` is down to 660 lines (`script/order-panel.js`, `script/asset-actions.js`).
 **Fifth part (done).** `security-template.js` 399 lines (the controls moved to `security/controls.js`), `advanced-audit-template.js` 547 (`advanced-audit/presentation.js`), `script/event-editor.js` 536 (`script/event-loader.js`). TypeScript now covers `util/{editor-dto,collection-value,targeting-tree-draft,API}.ts`; `EditorError` became a class and the draft a class with typed nodes, operations and errors.
 **Not split, deliberately:** `targeting-editor.js` (674) and the `render` of `targeting-operand-editor.js` (740): their functions call one another in cycles (`select` ↔ `renderFields` ↔ `capture` ↔ `renderTree`), so a split needs late-bound wrappers for every cross call and a test per seam, for a gain of a few dozen lines. `chain.js` (1194) is hand-written AMD over FreeIPA's framework.
-**Remaining:** the large functions themselves — `renderPreferencesTemplate` (1364 lines, 74 shared variables; `openForm` 435 lines, `renderTable` 120), `renderScriptEventEditor` (1566 lines, 58 variables, state mostly in one `state` object; `renderAssets` 267, `openForm` 231, `renderEntries` 156, `openPicker` 155, `renderBody` 105) and `renderScriptsTemplate` (428). Splitting them needs a shared context (`ctx`) and separate modules by area (table, form, panel, discard dialog), which is refactoring, not a move.
+**Remaining:** the large functions themselves — `renderPreferencesTemplate` (1364 lines, 74 shared variables; `openForm` 435 lines, `renderTable` 120), `renderScriptEventEditor` (1566 lines, 58 variables, state mostly in one `state` object; `renderAssets` 267, `openForm` 231, `renderEntries` 156, `openPicker` 155, `renderBody` 105) and `renderScriptsTemplate` (437). Splitting them needs a shared context (`ctx`) and separate modules by area (table, form, panel, discard dialog), which is refactoring, not a move.
 
 - Split the largest files on the model of `security/` (model + dialog + view): `preferences-view-template.js`, `script-template.js`, `chain.js`. Criterion: a file over 600 lines needs a justification. Every step is accompanied by the existing tests.
 - **After the large files are split:** evaluate JSX without React (the `h()` factory from `src/lib/dom.js` through `esbuild.jsxFactory` or `jsxImportSource`, with `JSX.IntrinsicElements`/`JSX.Element = HTMLElement` types). The gain is expected in markup-heavy files (dialogs, forms, tables), where nested `createElement({ attrs, children })` hides the DOM structure; in logic and models it is small. Start with a pilot on one component (`EditorStatus` or `Dialog`): set up the runtime and types, teach `scripts/read-amd.mjs` and `build-test-root.mjs` to run files through `esbuild.transform`, add a JSX parser to ESLint. Continue only if the component's diff became noticeably shorter and clearer; no mass auto-conversion, convert as files are edited. JSX adds no reactivity: updates stay imperative (see `createStore` below).
@@ -131,7 +131,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 428 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 437 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -162,7 +162,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (428 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (437 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 
