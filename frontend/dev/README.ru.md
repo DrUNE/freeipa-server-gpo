@@ -3,7 +3,7 @@
 [English](./README.md) | **Русский**
 
 Автономный стенд для разработки веб-редактора групповых политик
-(`plugin/ui/grouppolicy/js`) без сервера FreeIPA.
+(`frontend/src`) без сервера FreeIPA.
 
 Стенд работает на Vite: он раздаёт исходники `frontend/src` напрямую (перезагрузка страницы при сохранении),
 подменяет `freeipa/ipa` и `freeipa/rpc` ES-шимами из `shims/`, а JSON-RPC `POST /ipa/session/json` обслуживает

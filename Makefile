@@ -52,15 +52,6 @@ check-po:
 	find locale -name "*.po" -exec msgfmt --check -o /dev/null {} \;
 
 install: build install-ui
-
-ui-build-check:
-	cd frontend && npm run build:check
-
-ui-build:
-	@echo "Building frontend..."
-	cd frontend && npm run build
-	@echo "Frontend build complete."
-
 	@echo "Installing $(PACKAGE_NAME)..."
 
 	# Main executable
@@ -103,14 +94,22 @@ ui-build:
 		fi; \
 	done
 
+ui-build-check:
+	cd frontend && npm run build:check
+
+ui-build:
+	@echo "Building frontend..."
+	cd frontend && npm run build
+	@echo "Frontend build complete."
+
 install-ui:
 	@echo "Installing IPA UI plugin..."
-	install -D -m 644 plugin/ui/grouppolicy/chain.js $(UI_PLUGIN_TARGET)/chain.js
-	install -D -m 644 plugin/ui/grouppolicy/gpo.js $(UI_PLUGIN_TARGET)/gpo.js
+	# frontend/dist is the committed build of frontend/ (chain.js, gpo.js, js/, img/); css/ is left by older releases.
 	rm -rf -- $(UI_PLUGIN_TARGET)/css $(UI_PLUGIN_TARGET)/img $(UI_PLUGIN_TARGET)/js
-	cp -a plugin/ui/grouppolicy/css $(UI_PLUGIN_TARGET)/css
-	cp -a plugin/ui/grouppolicy/img $(UI_PLUGIN_TARGET)/img
-	cp -a plugin/ui/grouppolicy/js $(UI_PLUGIN_TARGET)/js
+	install -D -m 644 frontend/dist/chain.js $(UI_PLUGIN_TARGET)/chain.js
+	install -D -m 644 frontend/dist/gpo.js $(UI_PLUGIN_TARGET)/gpo.js
+	cp -a frontend/dist/img $(UI_PLUGIN_TARGET)/img
+	cp -a frontend/dist/js $(UI_PLUGIN_TARGET)/js
 
 clean:
 	find . -name "*.mo" -delete

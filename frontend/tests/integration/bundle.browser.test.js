@@ -1,4 +1,4 @@
-// Loads the committed production bundle (plugin/ui/grouppolicy/js/app.js)
+// Loads the committed production bundle (dist/js/app.js)
 // through RequireJS the way FreeIPA's Web UI does, with stub freeipa/* modules.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -16,7 +16,7 @@ try {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
-const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
+const root = path.resolve(import.meta.dirname, '../../dist');
 const html = `<!doctype html><html><body><div id="gp__container"></div>
 <script src="/require.js"></script><script>
 define('freeipa/ipa', [], () => ({ api_version: '2.0', notify() {}, notify_success() {} }));

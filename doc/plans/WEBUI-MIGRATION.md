@@ -92,7 +92,7 @@ Assumptions:
 - Duplicated UI for a transition period and diverging behavior of the two interfaces.
 - An editor in an iframe or a modal window of `freeipa-webui` will need FreeIPA session authentication and a shared CSP policy.
 - Bundle format: it is currently UMD/AMD for FreeIPA's RequireJS, while `freeipa-webui` is built by Vite without RequireJS; embedding will probably need one more build output (ESM or IIFE) that calls `init`. To be checked in the pilot.
-- Global styles: `css/main.css` uses generic class names (for example `.button`) that may clash with PatternFly styles on the same page; they may have to be scoped to the editor. To be checked in the pilot.
+- Global styles: `src/styles/main.css` uses generic class names (for example `.button`) that may clash with PatternFly styles on the same page; they may have to be scoped to the editor. To be checked in the pilot.
 - Rewriting the editor would freeze GPUI development for months or lead to two parallel versions.
 
 ## 7. Readiness criteria

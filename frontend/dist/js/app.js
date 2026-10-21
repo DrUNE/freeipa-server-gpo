@@ -1578,14 +1578,24 @@
 	var translations_exports = /* @__PURE__ */ __exportAll({
 		getLanguage: () => getLanguage,
 		setLanguage: () => setLanguage,
-		t: () => t$1
+		t: () => t
 	});
 	var translations = {
 		en: en_exports,
 		ru: ru_exports
 	};
 	var currentLang = "en";
-	function t$1(key) {
+	/**
+	* Возвращает перевод по ключу для текущего языка (см. setLanguage).
+	* Ключ — путь через точки во вложенном словаре локали, например 'dialog.title'.
+	* Если ключ не найден (или путь обрывается на несуществующем уровне),
+	* возвращается сам ключ, чтобы в интерфейсе было видно, чего не хватает.
+	* Ключ должен указывать на строку: путь к вложенному словарю вернул бы объект, а не текст.
+	*
+	* @param {string} key Ключ перевода, например 'dialog.title'.
+	* @returns {string} Перевод или сам ключ, если перевод не найден.
+	*/
+	function t(key) {
 		const keys = key.split(".");
 		let value = translations[currentLang];
 		for (const k of keys) if (value && value[k] !== void 0) value = value[k];
@@ -1613,15 +1623,15 @@
 						children: [
 							createElement("button", {
 								className: ["button", "preferences__btn-create"],
-								text: t$1("header.create")
+								text: t("header.create")
 							}),
 							createElement("button", {
 								className: ["button", "preferences__btn-edit"],
-								text: t$1("header.edit")
+								text: t("header.edit")
 							}),
 							createElement("button", {
 								className: ["button", "preferences__btn-delete"],
-								text: t$1("header.delete")
+								text: t("header.delete")
 							})
 						]
 					})
@@ -1633,10 +1643,10 @@
 						className: "gp__control-admx",
 						children: [createElement("button", {
 							className: ["button", "admx__btn-apply"],
-							text: t$1("header.apply")
+							text: t("header.apply")
 						}), createElement("button", {
 							className: ["button", "admx__btn-cancel"],
-							text: t$1("header.cancel")
+							text: t("header.cancel")
 						})]
 					}),
 					createElement("div", { className: "gp__control-separator" }),
@@ -1644,7 +1654,7 @@
 						className: "gp__control-help",
 						children: [createElement("button", {
 							className: ["button", "btn-information"],
-							text: t$1("header.information")
+							text: t("header.information")
 						})]
 					})
 				]
@@ -1776,7 +1786,7 @@
 		switcher.setAttribute("tabindex", "-1");
 		switcher.setAttribute("aria-hidden", String(!expandable));
 		switcher.setAttribute("aria-expanded", String(Boolean(item.opened)));
-		switcher.setAttribute("aria-label", t$1(item.opened ? "tree.collapse" : "tree.expand") + ": " + item.title);
+		switcher.setAttribute("aria-label", t(item.opened ? "tree.collapse" : "tree.expand") + ": " + item.title);
 	}
 	function hasVisibleChildren(item) {
 		return Boolean(item && (item.lazy && !item.loaded || (item.children || []).some(function(child) {
@@ -1834,8 +1844,8 @@
 			className: "tree-view__list",
 			attrs: {
 				role: parentItem ? "group" : "tree",
-				"aria-label": parentItem ? null : t$1("navigation.tree"),
-				title: parentItem ? null : t$1("navigation.keyboardHelp")
+				"aria-label": parentItem ? null : t("navigation.tree"),
+				title: parentItem ? null : t("navigation.keyboardHelp")
 			},
 			children: (items || []).filter(function(item) {
 				return item.showInTree !== false;
@@ -2417,7 +2427,7 @@
 		const model = buildSecurityModel(response);
 		const nodes = categoryNodes(model, model.categories);
 		if (model.preserved.length || model.diagnostics.length) nodes.push({
-			title: t$1("security.preservedTitle"),
+			title: t("security.preservedTitle"),
 			type: "file",
 			icon: "ico-file",
 			template: "security",
@@ -2446,7 +2456,7 @@
 		audit_base_directories: "Audit: Audit the access of global directory service objects"
 	};
 	function tr$7(key, fallback) {
-		const value = t$1("security.advancedAudit." + key);
+		const value = t("security.advancedAudit." + key);
 		return value && value !== "security.advancedAudit." + key ? value : fallback;
 	}
 	function state(response) {
@@ -2689,13 +2699,12 @@
 	};
 	//#endregion
 	//#region src/components/tree-view/tree-view-list-data.js
-	var t = t$1;
 	function payloadList(result, key) {
 		if (Array.isArray(result)) return result;
 		return result && Array.isArray(result[key]) ? result[key] : [];
 	}
 	function policyChildren(scope, result) {
-		var language = typeof getLanguage === "function" ? getLanguage() : void 0;
+		const language = typeof getLanguage === "function" ? getLanguage() : void 0;
 		return payloadList(result, "children").map(function(node) {
 			return policyNode(scope, node);
 		}).sort(function(left, right) {
@@ -2770,7 +2779,7 @@
 	}
 	function windowsPolicySettingsNode(scope) {
 		/** @type {any[]} */
-		var children = [scriptsNode(scope)];
+		const children = [scriptsNode(scope)];
 		if (scope === "computer") children.push(securityNode());
 		return {
 			title: t("policies.windowsSettings"),
@@ -2795,7 +2804,7 @@
 				}, function(error) {
 					return { error };
 				})]).then(function(responses) {
-					var nodes = navigationNodes(responses[0]);
+					const nodes = navigationNodes(responses[0]);
 					if (responses[1].value) nodes.push(navigationNode(responses[1].value));
 					else nodes.push({
 						title: t("security.auditUnavailable"),
@@ -2822,12 +2831,12 @@
 		return value === void 0 || value === null || value === "" || !Number.isFinite(Number(value)) ? 999 : Number(value);
 	}
 	function preferenceCategories(scope, documents) {
-		var categories = /* @__PURE__ */ new Map();
+		const categories = /* @__PURE__ */ new Map();
 		documents.filter(function(document) {
 			return document.scope === scope;
 		}).forEach(function(document) {
-			var id = document.category_id || "other_settings";
-			var category = categories.get(id);
+			const id = document.category_id || "other_settings";
+			let category = categories.get(id);
 			if (!category) {
 				category = {
 					id,
@@ -2857,9 +2866,10 @@
 		});
 	}
 	function scopeNode(scope, documents) {
-		var isComputer = scope === "computer";
-		var preferenceChildren = preferenceCategories(scope, documents);
-		var children = [{
+		const isComputer = scope === "computer";
+		const preferenceChildren = preferenceCategories(scope, documents);
+		/** @type {any[]} */
+		const children = [{
 			title: t("policies.allPolicies"),
 			type: "folder",
 			opened: false,
@@ -2899,8 +2909,8 @@
 		};
 	}
 	function buildTreeViewList(openResult) {
-		var result = openResult || {};
-		var documents = payloadList(result, "preference_documents");
+		const result = openResult || {};
+		const documents = payloadList(result, "preference_documents");
 		return [{
 			title: (result.gpo || {}).displayname || getDisplayName() || t("policies.localGroupPolicy"),
 			type: "folder",
@@ -2927,7 +2937,7 @@
 		}));
 		children.push(createElement("span", {
 			className: "tree-view__status-text",
-			text: isError ? t$1(TREE_VIEW_MESSAGES.error) : t$1(TREE_VIEW_MESSAGES.loading)
+			text: isError ? t(TREE_VIEW_MESSAGES.error) : t(TREE_VIEW_MESSAGES.loading)
 		}));
 		return createElement("div", {
 			className: ["tree-view__status", isError ? "tree-view__status--error" : "tree-view__status--loading"],
@@ -3110,7 +3120,7 @@
 			className: "gpo-category-path",
 			attrs: {
 				"data-category-path": "",
-				"aria-label": t$1("navigation.path")
+				"aria-label": t("navigation.path")
 			},
 			children: [list]
 		});
@@ -3777,13 +3787,13 @@
 		"Invalid collection entries": "collectionInvalidEntry"
 	};
 	function text$1(key) {
-		return t$1("editorStatus." + key);
+		return t("editorStatus." + key);
 	}
 	/** Localized message for an error: its category's text plus a translated detail when the server message is known. */
 	/** @param {EditorStatusError} error */
 	function messageForError(error) {
 		const key = "editorStatus.errors." + errorCategory(error).replace(/-/g, "_");
-		let prefix = t$1(key);
+		let prefix = t(key);
 		if (prefix === key) prefix = text$1("errors.operational");
 		const detail = DETAILS[(error && error.message ? String(error.message) : "").replace(/[.]$/, "")];
 		return detail ? prefix + " " + text$1("details." + detail) : prefix;
@@ -3868,12 +3878,12 @@
 		const no = createElement("button", {
 			className: ["btn", "btn-no"],
 			attrs: { type: "button" },
-			text: config.cancelLabel || t$1("policyChangedModal.no")
+			text: config.cancelLabel || t("policyChangedModal.no")
 		});
 		const yes = createElement("button", {
 			className: ["btn", "btn-yes"],
 			attrs: { type: "button" },
-			text: config.confirmLabel || t$1("policyChangedModal.yes")
+			text: config.confirmLabel || t("policyChangedModal.yes")
 		});
 		const content = createElement("div", {
 			id: id + "-message",
@@ -3897,7 +3907,7 @@
 						children: [createElement("div", {
 							id: id + "-title",
 							className: "title",
-							text: config.title || t$1("confirmModal.title")
+							text: config.title || t("confirmModal.title")
 						})]
 					}),
 					content,
@@ -3951,16 +3961,16 @@
 		};
 	}
 	var Dialog_module_default = {
-		host: "_host_13wmc_11",
-		dialog: "_dialog_13wmc_18",
-		fill: "_fill_13wmc_39",
-		wrapper: "_wrapper_13wmc_48",
-		header: "_header_13wmc_68",
-		title: "_title_13wmc_79",
-		close: "_close_13wmc_87",
-		body: "_body_13wmc_100",
-		error: "_error_13wmc_108",
-		footer: "_footer_13wmc_116"
+		host: "_host_pw4p1_11",
+		dialog: "_dialog_pw4p1_18",
+		fill: "_fill_pw4p1_39",
+		wrapper: "_wrapper_pw4p1_48",
+		header: "_header_pw4p1_68",
+		title: "_title_pw4p1_79",
+		close: "_close_pw4p1_87",
+		body: "_body_pw4p1_100",
+		error: "_error_pw4p1_108",
+		footer: "_footer_pw4p1_116"
 	};
 	//#endregion
 	//#region src/components/Dialog/Dialog.js
@@ -4099,10 +4109,10 @@
 		body.append(options.content);
 		const failure = wrap(createErrorRegion(classes(options.errorClassName)));
 		body.getElement().prepend(failure.getElement());
-		const cancel = wrap(createButton("cancel", options.cancelLabel || t$1("collections.cancel")));
-		const apply = wrap(createButton("apply", options.applyLabel || t$1("collections.ok"), classes(options.applyClassName)));
+		const cancel = wrap(createButton("cancel", options.cancelLabel || t("collections.cancel")));
+		const apply = wrap(createButton("apply", options.applyLabel || t("collections.ok"), classes(options.applyClassName)));
 		apply.getElement().disabled = applyDisabled;
-		const closeButton = wrap(createCloseButton(options.closeLabel || t$1("collections.close"), classes(options.closeClassName)));
+		const closeButton = wrap(createCloseButton(options.closeLabel || t("collections.close"), classes(options.closeClassName)));
 		const shell = createDialogShell({
 			titleId,
 			title: options.title,
@@ -4138,7 +4148,7 @@
 			modal.getElement().inert = true;
 			setConfirming(modal.getElement(), true);
 			confirmation = open$3(backdrop, {
-				message: options.discardMessage || t$1("collections.discardQuestion"),
+				message: options.discardMessage || t("collections.discardQuestion"),
 				onConfirm: close,
 				onCancel: function() {
 					confirmation = null;
@@ -4384,7 +4394,7 @@
 	//#region src/components/collection-dialog.js
 	var sequence$2 = 0;
 	function tr$6(key, values) {
-		let text = t$1("collections." + key);
+		let text = t("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
 			text = text.replace("{" + name + "}", values[name]);
 		});
@@ -5015,7 +5025,7 @@
 	//#endregion
 	//#region src/components/collection-control.js
 	function tr$5(key, values) {
-		let text = t$1("collections." + key);
+		let text = t("collections." + key);
 		Object.keys(values || {}).forEach(function(name) {
 			text = text.replace("{" + name + "}", values[name]);
 		});
@@ -5098,7 +5108,7 @@
 	//#region src/components/templates/security/dialog.js
 	var sequence$1 = 0;
 	function tr$4(key, fallback) {
-		const value = t$1("security." + key);
+		const value = t("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function tabs(settings, explanation) {
@@ -5292,7 +5302,7 @@
 				attrs: { "data-field-id": parameter.id },
 				children: [input, unsupportedDefault ? createElement("span", {
 					className: "gpo-editor-field__diagnostic",
-					text: t$1("policies.unsupportedDefault")
+					text: t("policies.unsupportedDefault")
 				}) : null]
 			}),
 			read,
@@ -5317,9 +5327,9 @@
 		const unknown = policy.state === "unknown_raw_values";
 		const controls = /* @__PURE__ */ new Map();
 		const stateNames = {
-			not_configured: t$1("policies.notConfigured"),
-			enabled: t$1("policies.enabled"),
-			disabled: t$1("policies.disabled")
+			not_configured: t("policies.notConfigured"),
+			enabled: t("policies.enabled"),
+			disabled: t("policies.disabled")
 		};
 		const stateControls = Object.keys(stateNames).map(function(state) {
 			const allowed = canSelectPolicyState(policy, state);
@@ -5373,7 +5383,7 @@
 					})]
 				}) : null,
 				errorSlot,
-				unknown ? renderUnsupported(t$1("policies.unsupportedSource")) : null,
+				unknown ? renderUnsupported(t("policies.unsupportedSource")) : null,
 				createElement("div", {
 					className: ["gp__admx", (policy.parameters || []).some(function(parameter) {
 						return parameter.kind === "list";
@@ -5383,14 +5393,14 @@
 						children: [
 							createElement("div", {
 								className: "title",
-								children: [t$1("policies.policy") + " ", createElement("span", {
+								children: [t("policies.policy") + " ", createElement("span", {
 									className: "title__name",
 									text: policy.label || policy.policy_id
 								})]
 							}),
 							createElement("div", {
 								className: "gp__admx-state-policy-title",
-								text: t$1("policies.policyState")
+								text: t("policies.policyState")
 							}),
 							createElement("div", {
 								className: "gp__admx-state-policy",
@@ -5404,10 +5414,10 @@
 							className: "gp__admx-item",
 							children: [createElement("div", {
 								className: "gp__admx-description",
-								text: t$1("common.description")
+								text: t("common.description")
 							}), createElement("div", {
 								className: "gp__admx-options",
-								text: t$1("common.options")
+								text: t("common.options")
 							})]
 						})].concat(parameterRows) : []
 					})]
@@ -5419,7 +5429,7 @@
 							className: "gp__admx-supported",
 							children: [createElement("div", {
 								className: "title",
-								text: t$1("policies.supportedOn")
+								text: t("policies.supportedOn")
 							}), createElement("div", {
 								className: "gp__admx-content",
 								text: policy.supported_on || ""
@@ -5429,14 +5439,14 @@
 							className: "gp__admx-comment",
 							children: [createElement("div", {
 								className: "title",
-								text: t$1("common.comment")
+								text: t("common.comment")
 							}), comment]
 						}),
 						createElement("div", {
 							className: "gp__admx-text-help",
 							children: [createElement("div", {
 								className: "title",
-								text: t$1("common.help")
+								text: t("common.help")
 							}), createElement("div", { className: "gp__admx-content" })]
 						})
 					]
@@ -5449,12 +5459,12 @@
 				className: "gpo-admx-dialog__settings",
 				children: [
 					errorSlot,
-					unknown ? renderUnsupported(t$1("policies.unsupportedSource")) : null,
+					unknown ? renderUnsupported(t("policies.unsupportedSource")) : null,
 					createElement("div", {
 						className: "gp__admx-settings",
 						children: [createElement("div", {
 							className: "gp__admx-state-policy-title",
-							text: t$1("policies.policyState")
+							text: t("policies.policyState")
 						}), createElement("div", {
 							className: "gp__admx-state-policy",
 							children: stateControls
@@ -5463,7 +5473,7 @@
 				].concat(parameterRows, [createElement("div", {
 					className: "gpo-admx-dialog__comment",
 					children: [createElement("label", {
-						text: t$1("common.comment"),
+						text: t("common.comment"),
 						attrs: { for: "admx-comment-" + nextParameterControlId }
 					}), createElement("div", {
 						className: "field__element",
@@ -5475,17 +5485,17 @@
 			const supported = createElement("p");
 			appendLines(supported.getElement(), policy.supported_on || "—");
 			const help = createElement("p");
-			appendLines(help.getElement(), policy.explain_text || t$1("security.noExplanation"));
+			appendLines(help.getElement(), policy.explain_text || t("security.noExplanation"));
 			const tabs$1 = tabs(settings, createElement("div", {
 				className: "gpo-admx-dialog__explanation",
 				children: [
-					createElement("h3", { text: t$1("policies.supportedOn") }),
+					createElement("h3", { text: t("policies.supportedOn") }),
 					supported,
-					createElement("h3", { text: t$1("security.explanationTab") }),
+					createElement("h3", { text: t("security.explanationTab") }),
 					help
 				]
 			}));
-			tabs$1.getElement().querySelector("[role=\"tab\"]").textContent = t$1("policies.parametersTab");
+			tabs$1.getElement().querySelector("[role=\"tab\"]").textContent = t("policies.parametersTab");
 			root.appendChild(tabs$1.getElement());
 		} else {
 			root.appendChild(wrapper.getElement());
@@ -5610,7 +5620,7 @@
 				}
 			} };
 			if (category === "storage_conflict" || category === "publication_conflict" || category === "not_found") errorActions.onRefresh = async function() {
-				if (!(config.confirmRefresh ? await config.confirmRefresh() : window.confirm(t$1("collections.discardQuestion")))) return;
+				if (!(config.confirmRefresh ? await config.confirmRefresh() : window.confirm(t("collections.discardQuestion")))) return;
 				try {
 					const response = await policyShow(item.scope, item.policyId);
 					policy = response.policy || response;
@@ -5708,7 +5718,7 @@
 			children: [createElement("div", {
 				className: "gpo-admx-dialog__loading",
 				attrs: { role: "status" },
-				text: t$1("treeView.loadingPolicies")
+				text: t("treeView.loadingPolicies")
 			})]
 		});
 		let currentEditor = null;
@@ -5754,8 +5764,8 @@
 			width: "640px",
 			fill: true,
 			content,
-			applyLabel: t$1("security.apply"),
-			cancelLabel: t$1("security.cancel"),
+			applyLabel: t("security.apply"),
+			cancelLabel: t("security.cancel"),
 			applyDisabled: true,
 			restoreFocus: config.restoreFocus,
 			isDirty: editor.hasUnsavedChanges,
@@ -5778,7 +5788,7 @@
 					resolve(confirmed);
 				};
 				refreshConfirmation = open$3(modal.parentElement, {
-					message: t$1("collections.discardQuestion"),
+					message: t("collections.discardQuestion"),
 					onConfirm: function() {
 						finishRefreshConfirmation(true);
 					},
@@ -5809,7 +5819,7 @@
 					content.getElement().replaceChildren(createElement("div", {
 						className: "gpo-admx-dialog__loading",
 						attrs: { role: "status" },
-						text: t$1("treeView.loadingPolicies")
+						text: t("treeView.loadingPolicies")
 					}).getElement());
 					editor.ready = load();
 				},
@@ -5877,7 +5887,7 @@
 			className: ["gp__list-children-help", isOpen ? "is-open" : null],
 			children: [createElement("div", {
 				className: "title",
-				text: t$1("common.help")
+				text: t("common.help")
 			}), createElement("div", {
 				className: "content",
 				text: help
@@ -5907,12 +5917,12 @@
 		const search = createElement("input", { attrs: {
 			type: "search",
 			value: listState.query || "",
-			placeholder: t$1("policySearch.categoryPlaceholder"),
-			"aria-label": t$1("policySearch.categoryPlaceholder"),
+			placeholder: t("policySearch.categoryPlaceholder"),
+			"aria-label": t("policySearch.categoryPlaceholder"),
 			"data-policy-filter": ""
 		} });
 		const empty = createElement("p", {
-			text: t$1("policySearch.noMatches"),
+			text: t("policySearch.noMatches"),
 			attrs: { role: "status" }
 		});
 		function filter() {
@@ -5980,7 +5990,7 @@
 	//#endregion
 	//#region src/components/templates/script/helpers.js
 	function st(key) {
-		return t$1("systemSettings." + key);
+		return t("systemSettings." + key);
 	}
 	function eventLabel(event) {
 		return st({
@@ -6462,7 +6472,7 @@
 				className: "gpo-editor-empty",
 				text: st("emptyAssets")
 			});
-			const cancelButton = wrap(createButton("cancel", t$1("header.cancel")));
+			const cancelButton = wrap(createButton("cancel", t("header.cancel")));
 			cancelButton.on("click", closePicker);
 			const closeButton = wrap(createCloseButton(st("close")));
 			closeButton.on("click", closePicker);
@@ -6601,9 +6611,9 @@
 			]).forEach(function(child) {
 				formBody.append(child);
 			});
-			const formCancel = wrap(createButton("cancel", t$1("header.cancel")));
+			const formCancel = wrap(createButton("cancel", t("header.cancel")));
 			formCancel.on("click", requestCloseForm);
-			const formApply = wrap(createButton("apply", t$1("header.apply")));
+			const formApply = wrap(createButton("apply", t("header.apply")));
 			formApply.on("click", function() {
 				submit();
 			});
@@ -12688,7 +12698,7 @@
 	//#region src/components/templates/preference/view/common.js
 	var PREFERENCE_LAYOUTS$2 = layouts_exports;
 	function pt(key) {
-		return t$1("preferences.editor." + key);
+		return t("preferences.editor." + key);
 	}
 	function validationMessage(code) {
 		if (code === "required") return pt("validationRequired");
@@ -13534,7 +13544,7 @@
 							type: "button",
 							disabled: opening ? "disabled" : null
 						},
-						text: documentDto.editable ? t$1("header.edit") : pt("viewTitle"),
+						text: documentDto.editable ? t("header.edit") : pt("viewTitle"),
 						events: { click: function(event) {
 							event.stopPropagation();
 							selectItem(preferenceItem.identity);
@@ -14503,17 +14513,17 @@
 				createElement("button", {
 					className: ["button", "preferences__btn-create"],
 					attrs: { type: "button" },
-					text: t$1("header.create")
+					text: t("header.create")
 				}),
 				createElement("button", {
 					className: ["button", "preferences__btn-edit"],
 					attrs: { type: "button" },
-					text: t$1("header.edit")
+					text: t("header.edit")
 				}),
 				createElement("button", {
 					className: ["button", "preferences__btn-delete"],
 					attrs: { type: "button" },
-					text: t$1("header.delete")
+					text: t("header.delete")
 				})
 			]
 		});
@@ -14521,7 +14531,7 @@
 			className: "gpo-preferences-family-dialog__content",
 			children: [controls, createElement("div", {
 				className: "gpo-editor-empty",
-				text: t$1("policySearch.loading")
+				text: t("policySearch.loading")
 			})]
 		});
 		const dialog = open$2(host, {
@@ -14577,7 +14587,7 @@
 	//#endregion
 	//#region src/components/templates/security/value-editor.js
 	function tr$3(key, fallback) {
-		const value = t$1("security." + key);
+		const value = t("security." + key);
 		return value && value !== "security." + key ? value : fallback;
 	}
 	function clone$1(value) {
@@ -15228,7 +15238,7 @@
 				active: button.classList.contains("active")
 			};
 			const handler = handlers[action];
-			button.textContent = t$1(action === "create" ? "security.addItem" : action === "delete" ? "security.remove" : "header.edit");
+			button.textContent = t(action === "create" ? "security.addItem" : action === "delete" ? "security.remove" : "header.edit");
 			button.style.display = handler ? "" : "none";
 			function click(event) {
 				if (!button.disabled && handler) handler(event);
@@ -15279,7 +15289,7 @@
 	//#endregion
 	//#region src/components/templates/security/workbench.js
 	function tr$2(key, fallback) {
-		const text = t$1("security." + key);
+		const text = t("security." + key);
 		return text && text !== "security." + key ? text : fallback;
 	}
 	function typedSummary(definition, state) {
@@ -15753,7 +15763,7 @@
 	//#endregion
 	//#region src/components/templates/security-template.js
 	function tr$1(key, fallback) {
-		const translated = t$1(key);
+		const translated = t(key);
 		return translated && translated !== key ? translated : fallback;
 	}
 	function stateFor(policy, element) {
@@ -16373,7 +16383,7 @@
 	//#endregion
 	//#region src/components/templates/all-policies/model.js
 	function text(key, fallback) {
-		const value = t$1(key);
+		const value = t(key);
 		return value && value !== key ? value : fallback;
 	}
 	function language() {
@@ -16564,7 +16574,7 @@
 	//#endregion
 	//#region src/components/templates/advanced-audit-template.js
 	function tr(key, fallback) {
-		const value = t$1(key);
+		const value = t(key);
 		return value && value !== key ? value : fallback;
 	}
 	function configured(row) {
@@ -16653,8 +16663,8 @@
 			search = createElement("input", { attrs: {
 				type: "search",
 				value: listState.query || "",
-				placeholder: t$1("policySearch.categoryPlaceholder"),
-				"aria-label": t$1("policySearch.categoryPlaceholder"),
+				placeholder: t("policySearch.categoryPlaceholder"),
+				"aria-label": t("policySearch.categoryPlaceholder"),
 				"data-policy-filter": ""
 			} });
 			const toolbar = createElement("div", {
@@ -17041,7 +17051,7 @@
 				return auditIdentity(row) === item.advancedAuditTarget;
 			})[item.advancedAuditOccurrence || 0];
 			if (row) return edit(row);
-			const error = new Error(t$1("policySearch.targetUnavailable"));
+			const error = new Error(t("policySearch.targetUnavailable"));
 			if (errorSlot) errorSlot.append(renderError(error));
 			else throw error;
 			return null;
@@ -17074,7 +17084,7 @@
 	//#region src/components/templates/all-policies-template.js
 	var PAGE_SIZE = 100;
 	function format(key, values) {
-		let result = t$1("policySearch." + key);
+		let result = t("policySearch." + key);
 		Object.keys(values || {}).forEach(function(name) {
 			result = result.replace("{" + name + "}", String(values[name]));
 		});
@@ -17082,15 +17092,15 @@
 	}
 	function checkedRows(name, response, scope) {
 		if (name === "admx") {
-			if (!response || !Array.isArray(response.policies)) throw new Error(t$1("policySearch.invalidIndex"));
+			if (!response || !Array.isArray(response.policies)) throw new Error(t("policySearch.invalidIndex"));
 			return admxRows(response, scope);
 		}
 		if (name === "security") {
-			if (!response || !response.security_catalog || !Array.isArray(response.security_catalog.policies) || !Array.isArray(response.security_catalog.categories)) throw new Error(t$1("policySearch.invalidIndex"));
+			if (!response || !response.security_catalog || !Array.isArray(response.security_catalog.policies) || !Array.isArray(response.security_catalog.categories)) throw new Error(t("policySearch.invalidIndex"));
 			return securityRows(response, scope);
 		}
 		if (name === "audit") {
-			if (!response || !response.advanced_audit || !Array.isArray(response.advanced_audit.rows) || !Array.isArray(response.advanced_audit.subcategory_catalog)) throw new Error(t$1("policySearch.invalidIndex"));
+			if (!response || !response.advanced_audit || !Array.isArray(response.advanced_audit.rows) || !Array.isArray(response.advanced_audit.subcategory_catalog)) throw new Error(t("policySearch.invalidIndex"));
 			return auditRows(response, scope);
 		}
 		return [];
@@ -17131,8 +17141,8 @@
 			type: "search",
 			value: state.query || "",
 			"data-policy-filter": "",
-			placeholder: t$1("policySearch." + (scope === "user" ? "userPlaceholder" : "computerPlaceholder")),
-			"aria-label": t$1("policySearch." + (scope === "user" ? "userPlaceholder" : "computerPlaceholder"))
+			placeholder: t("policySearch." + (scope === "user" ? "userPlaceholder" : "computerPlaceholder")),
+			"aria-label": t("policySearch." + (scope === "user" ? "userPlaceholder" : "computerPlaceholder"))
 		} });
 		const status = createElement("div", {
 			className: "gpo-policy-search__status",
@@ -17147,7 +17157,7 @@
 				"gpo-security-table",
 				"gpo-policy-search__table"
 			],
-			children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: t$1("policySearch.name") }), createElement("th", { text: t$1("policySearch.path") })] })] }), body]
+			children: [createElement("thead", { children: [createElement("tr", { children: [createElement("th", { text: t("policySearch.name") }), createElement("th", { text: t("policySearch.path") })] })] }), body]
 		});
 		const previous = createElement("button", {
 			className: "button",
@@ -17155,7 +17165,7 @@
 				type: "button",
 				"data-policy-page-previous": ""
 			},
-			text: t$1("policySearch.previous")
+			text: t("policySearch.previous")
 		});
 		const next = createElement("button", {
 			className: "button",
@@ -17163,7 +17173,7 @@
 				type: "button",
 				"data-policy-page-next": ""
 			},
-			text: t$1("policySearch.next")
+			text: t("policySearch.next")
 		});
 		const pageText = createElement("span", { attrs: { "data-policy-page": "" } });
 		const paging = createElement("div", {
@@ -17174,7 +17184,7 @@
 				next
 			]
 		});
-		if (!config.hideHeading) toolbar.append(createElement("h2", { text: t$1("policies.allPolicies") }));
+		if (!config.hideHeading) toolbar.append(createElement("h2", { text: t("policies.allPolicies") }));
 		toolbar.append(query);
 		panel.append(toolbar);
 		panel.append(errors);
@@ -17221,7 +17231,7 @@
 				const sourceName = audit ? "audit" : kind;
 				const modalModel = security ? buildSecurityModel(sources.security.response) : null;
 				const openDialog = audit ? openAdvancedAuditDialog : security ? openSecurityDialog : kind === "admx" ? openAdmxDialog : kind === "scripts" ? openScriptsDialog : kind === "preferences" ? openPreferencesDialog : null;
-				if (!openDialog) throw new Error(t$1("policySearch.targetUnavailable"));
+				if (!openDialog) throw new Error(t("policySearch.targetUnavailable"));
 				const opened = await openDialog(root, {
 					item: Object.assign({}, row.target, audit ? { advancedAuditResponse: sources.audit.response } : security ? { securityModel: modalModel } : {}),
 					browseCollection: Boolean(row.target.securityCollection),
@@ -17352,7 +17362,7 @@
 			if (incomplete.length) {
 				errors.append(createElement("p", {
 					className: "gpo-security-workbench__notice",
-					text: t$1("policySearch.incomplete")
+					text: t("policySearch.incomplete")
 				}));
 				incomplete.forEach(function(failure) {
 					errors.append(renderError(failure.error));
@@ -17363,7 +17373,7 @@
 						type: "button",
 						"data-policy-retry": ""
 					},
-					text: t$1("policySearch.retry")
+					text: t("policySearch.retry")
 				});
 				retry.on("click", function() {
 					incomplete.forEach(function(failure) {
@@ -17373,7 +17383,7 @@
 				});
 				errors.append(retry);
 			}
-			status.getElement().textContent = pending.length ? t$1("policySearch.loading") + " " + format("count", {
+			status.getElement().textContent = pending.length ? t("policySearch.loading") + " " + format("count", {
 				matched: rows.length,
 				total: allRows.length
 			}) : format("count", {
@@ -17383,7 +17393,7 @@
 			if (!rows.length && !pending.length && !incomplete.length) body.append(createElement("tr", { children: [createElement("td", {
 				className: "gpo-security-table__empty",
 				attrs: { colspan: "2" },
-				text: t$1("policySearch.noMatches")
+				text: t("policySearch.noMatches")
 			})] }));
 			pageText.getElement().textContent = format("page", {
 				page: state.page + 1,
@@ -17512,7 +17522,7 @@
 				const node = workspace && workspace.getElement();
 				if (!node) return;
 				node.setAttribute("role", "region");
-				node.setAttribute("aria-label", t$1("navigation.catalog"));
+				node.setAttribute("aria-label", t("navigation.catalog"));
 				const container = node.closest(".gp__container");
 				if (!container) return;
 				if (container._gpoPaneNavigation) container.removeEventListener("keydown", container._gpoPaneNavigation);
@@ -17906,7 +17916,7 @@
 							type: "button",
 							"data-policy-search-back": ""
 						},
-						text: t$1("policySearch.back"),
+						text: t("policySearch.back"),
 						events: { click: function() {
 							this.navigateToNode(item.searchReturnTo, {
 								openPath: true,
@@ -18061,21 +18071,21 @@
 							className: "policy-changed__modal-header",
 							children: [createElement("div", {
 								className: "title",
-								text: t$1("policyChangedModal.title")
+								text: t("policyChangedModal.title")
 							})]
 						}),
 						createElement("div", {
 							className: "policy-changed__modal-content",
-							text: t$1("policyChangedModal.message")
+							text: t("policyChangedModal.message")
 						}),
 						createElement("div", {
 							className: "policy-changed__modal-footer",
 							children: [createElement("div", {
 								className: ["btn", "btn-no"],
-								text: t$1("policyChangedModal.no")
+								text: t("policyChangedModal.no")
 							}), createElement("div", {
 								className: ["btn", "btn-yes"],
-								text: t$1("policyChangedModal.yes")
+								text: t("policyChangedModal.yes")
 							})]
 						})
 					]

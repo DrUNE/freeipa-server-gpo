@@ -1,8 +1,8 @@
-// The editor's global stylesheets, as served by FreeIPA under /ipa/ui/js/plugins/chain/css/. In production they come
+// The editor's global stylesheets, (src/styles). In production they come
 // after the components' CSS Modules (js/app.css); Vite adds a module's styles when the component is imported, which
 // happens after this file, so the sheets are appended on the first render instead.
-import mainCss from '../../plugin/ui/grouppolicy/css/main.css?url';
-import otherCss from '../../plugin/ui/grouppolicy/css/other.css?url';
+import mainCss from '@gpui/styles/main.css?url';
+import otherCss from '@gpui/styles/other.css?url';
 import * as translations from '@gpui/locales/translations';
 
 let globalSheets = false;

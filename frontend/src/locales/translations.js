@@ -1,12 +1,19 @@
-import * as __dep0 from '@gpui/locales/en';
-import * as __dep1 from '@gpui/locales/ru';
-
-var en = __dep0;
-var ru = __dep1;
+import * as en from '@gpui/locales/en';
+import * as ru from '@gpui/locales/ru';
 
 const translations = { en, ru };
 let currentLang = 'en';
 
+/**
+ * Возвращает перевод по ключу для текущего языка (см. setLanguage).
+ * Ключ — путь через точки во вложенном словаре локали, например 'dialog.title'.
+ * Если ключ не найден (или путь обрывается на несуществующем уровне),
+ * возвращается сам ключ, чтобы в интерфейсе было видно, чего не хватает.
+ * Ключ должен указывать на строку: путь к вложенному словарю вернул бы объект, а не текст.
+ *
+ * @param {string} key Ключ перевода, например 'dialog.title'.
+ * @returns {string} Перевод или сам ключ, если перевод не найден.
+ */
 function t(key) {
     const keys = key.split('.');
     let value = translations[currentLang];
@@ -19,7 +26,7 @@ function t(key) {
         }
     }
 
-    return value;
+    return /** @type {string} */ (value);
 }
 
 function setLanguage(lang) {

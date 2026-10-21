@@ -275,7 +275,7 @@ submits SYSVOL or registry paths. File changes are committed atomically by
 attributes to LDAP with a snapshot assertion before acknowledging the commit.
 
 The editor frontend is built from `frontend/` into one bundle,
-`plugin/ui/grouppolicy/js/app.js` (see [frontend/README.md](./frontend/README.md)).
+`frontend/dist/js/app.js` (see [frontend/README.md](./frontend/README.md)).
 
 ## Management commands
 

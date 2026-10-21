@@ -1,4 +1,4 @@
-// Fails when the committed bundle differs from a fresh build of frontend/src.
+// Fails when the committed plugin directory (frontend/dist) differs from a fresh build of frontend/.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const committed = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy', 'js');
+const committed = path.join(root, 'dist');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gpui-artifact-'));
 try {
     execFileSync('npx', ['vite', 'build', '--logLevel', 'error', '--outDir', tmp, '--emptyOutDir'], {

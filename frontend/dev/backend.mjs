@@ -2,7 +2,7 @@
  * In-memory fixture backend for the GPUI editor.
  *
  * Implements the `gpo_editor_*` JSON-RPC methods that
- * plugin/ui/grouppolicy/js/util/API.js calls, with the response shapes of
+ * frontend/src/util/API.js calls, with the response shapes of
  * plugin/ipaserver/plugins/gpo.py.  State lives in process memory; restart the
  * server or POST /__dev/reset to start over.
  */

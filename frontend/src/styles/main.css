@@ -95,7 +95,7 @@
   color: #297FB0;
 }
 .gp__container .tree-view .icon-switcher {
-  background-image: url(../img/svg/arrow.svg);
+  background-image: url(/img/svg/arrow.svg);
   width: 12px;
   height: 10px;
   display: flex;
@@ -135,16 +135,16 @@
   flex-shrink: 0;
 }
 .gp__container .tree-view .icon.ico-computer {
-  background-image: url(../img/svg/ico/computer.svg);
+  background-image: url(/img/svg/ico/computer.svg);
 }
 .gp__container .tree-view .icon.ico-folder {
-  background-image: url(../img/svg/ico/folder.svg);
+  background-image: url(/img/svg/ico/folder.svg);
 }
 .gp__container .tree-view .icon.ico-user {
-  background-image: url(../img/svg/ico/user.svg);
+  background-image: url(/img/svg/ico/user.svg);
 }
 .gp__container .tree-view .icon.ico-file {
-  background-image: url(../img/svg/ico/file.svg);
+  background-image: url(/img/svg/ico/file.svg);
 }
 .gp__container .tree-view .view.folder {
   display: grid;
@@ -237,16 +237,16 @@
   flex-shrink: 0;
 }
 .gp__container .workspace .icon.ico-computer {
-  background-image: url(../img/svg/ico/computer.svg);
+  background-image: url(/img/svg/ico/computer.svg);
 }
 .gp__container .workspace .icon.ico-folder {
-  background-image: url(../img/svg/ico/folder.svg);
+  background-image: url(/img/svg/ico/folder.svg);
 }
 .gp__container .workspace .icon.ico-user {
-  background-image: url(../img/svg/ico/user.svg);
+  background-image: url(/img/svg/ico/user.svg);
 }
 .gp__container .workspace .icon.ico-file {
-  background-image: url(../img/svg/ico/file.svg);
+  background-image: url(/img/svg/ico/file.svg);
 }
 .gp__container .divider {
   width: 5px;
@@ -1226,8 +1226,8 @@
   background-position: center;
   background-repeat: no-repeat;
 }
-.gpo-editor-filter-icon.is-collection { background-image: url(../img/svg/ico/folder.svg); }
-.gpo-editor-filter-icon.is-condition { background-image: url(../img/svg/ico/file.svg); }
+.gpo-editor-filter-icon.is-collection { background-image: url(/img/svg/ico/folder.svg); }
+.gpo-editor-filter-icon.is-condition { background-image: url(/img/svg/ico/file.svg); }
 .gpo-editor-filter-label {
   display: flex;
   align-items: center;
@@ -1440,7 +1440,7 @@
   cursor: pointer;
   right: 12px;
   top: 12px;
-  background-image: url(../img/svg/close.svg);
+  background-image: url(/img/svg/close.svg);
 }
 .gp__container .scripts__modal-tabs {
   height: 492px;
@@ -2227,6 +2227,8 @@
 .gpo-editor-preference-host,
 .gpo-editor-targeting-host {
   background: transparent;
+  /* Below the discard question (.policy-changed__modal--discard, 1100) that the form opens in the same host. */
+  z-index: 100;
 }
 /* The form under the targeting modal is dimmed like the window under a discard question, only darker. */
 .gp__preference .gpo-editor-preference-form--dimmed {

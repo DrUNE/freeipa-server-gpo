@@ -11,7 +11,8 @@ import { readAmd } from './read-amd.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = path.join(root, 'src');
 const out = path.join(root, '.test-root');
-const plugin = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy');
+// Verbatim files of the plugin directory (chain.js, gpo.js, img/); the global sheets are src/styles.
+const publicDir = path.join(root, 'public');
 
 fs.rmSync(out, { recursive: true, force: true });
 // A CSS module becomes an AMD module `X.module.css.js` (RequireJS appends `.js` to ids): it injects the scoped
@@ -25,8 +26,6 @@ async function cssModule(file) {
             generateScopedName: '[name]__[local]___[hash:base64:5]'
         })
     ]).process(fs.readFileSync(file, 'utf8'), { from: file });
-    // url(...) into plugin/ui/grouppolicy/img: the test server serves that directory at /img.
-    result.css = result.css.replace(/url\((?:\.\.\/)+plugin\/ui\/grouppolicy\/img\//g, 'url(/img/');
     return `define([], function () {
     var style = document.createElement('style');
     style.textContent = ${JSON.stringify(result.css)};
@@ -49,5 +48,16 @@ for (const entry of fs.readdirSync(src, { recursive: true, withFileTypes: true }
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(entry.name.endsWith('.css') ? dest + '.js' : dest, code);
 }
-for (const name of ['css', 'img', 'chain.js', 'gpo.js']) fs.symlinkSync(path.join(plugin, name), path.join(out, name));
+// gpo.js links js/app.css; in the test tree the CSS Modules are injected by their modules, so it holds the global sheets.
+const styles = path.join(src, 'styles');
+const globalSheets = ['main', 'other']
+    .map(name => fs.readFileSync(path.join(styles, name + '.css'), 'utf8'))
+    .join('\n')
+    .replace(/@import url\("icons\.css"\);/, () => fs.readFileSync(path.join(styles, 'icons.css'), 'utf8'));
+fs.mkdirSync(path.join(out, 'js'), { recursive: true });
+fs.writeFileSync(path.join(out, 'js', 'app.css'), globalSheets);
+// The tests link /css/main.css and /css/other.css like the page did before the styles joined the bundle;
+// `url(/img/...)` in them is served from /img.
+fs.symlinkSync(path.join(src, 'styles'), path.join(out, 'css'));
+for (const name of ['img', 'chain.js', 'gpo.js']) fs.symlinkSync(path.join(publicDir, name), path.join(out, name));
 console.log('test root: ' + out);

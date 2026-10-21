@@ -94,7 +94,7 @@
     cursor: pointer;
     right: 12px;
     top: 12px;
-    background-image: url(../../../../plugin/ui/grouppolicy/img/svg/close.svg);
+    background-image: url(/img/svg/close.svg);
 }
 
 .body {

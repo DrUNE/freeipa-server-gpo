@@ -12,7 +12,7 @@ The main change is not the frontend tools themselves but that the project now ha
 | Role | Before | After |
 |---|---|---|
 | Backend developer (Python plugins, installer) | Python tests on mocks; a plugin could be tried live only on a FreeIPA you set up yourself; the full pytest suite did not run locally (it needs `ipalib` and other FreeIPA packages) | a container with a real FreeIPA (ALT Sisyphus, as in CI); Python plugin edits are picked up with `ipa-dev-reload`; all 863 Python tests pass in the container |
-| Frontend developer (GPUI editor) | 69 AMD modules edited directly in `plugin/ui/grouppolicy/js/`; checking was possible only on an installed FreeIPA | ES modules in `frontend/src/`, a stand without FreeIPA (`make ui-dev`), linter, formatter, types, 311 tests, a build into one bundle |
+| Frontend developer (GPUI editor) | 69 AMD modules edited directly in `plugin/ui/grouppolicy/js/` (before the move to `frontend/`); checking was possible only on an installed FreeIPA | ES modules in `frontend/src/`, a stand without FreeIPA (`make ui-dev`), linter, formatter, types, 311 tests, a build into one bundle |
 | Tester, reviewer | JS tests without a Makefile target, without CI, with a manual `NODE_PATH` | `make test-ui` and `make test-ui-ipa`; the CI job `frontend` |
 | New contributor | set up the environment yourself | run `host-setup.sh` once and "Reopen in Container" (or `podman` commands for vim); credentials and addresses are defined |
 | CI | RPM build, integration into FreeIPA, publication | the same + the `frontend` job (lint, format, typecheck, bundle check, tests with coverage, no skips allowed) |
@@ -54,7 +54,7 @@ The container `freeipa-gpo-dev` (`.devcontainer/`): ALT Sisyphus with systemd as
 ### What is good about it
 
 - **A real environment instead of mocks.** The plugins, the LDAP schema, the oddjob handlers and the Web UI run as they do in production; integration errors show up immediately rather than in CI.
-- **Live sources.** `plugin/ui/grouppolicy/`, the three Python plugins (`gpo.py`, `chain.py`, `gpmaster.py`) and the `ipa_gpo_install` package are mounted over the installed ones (`dev-mounts.sh`). There is no need to rebuild the RPM and reinstall. The Apache UI cache is switched off for the plugin: an edit is visible after a page reload.
+- **Live sources.** `frontend/dist/` (the built plugin directory), the three Python plugins (`gpo.py`, `chain.py`, `gpmaster.py`) and the `ipa_gpo_install` package are mounted over the installed ones (`dev-mounts.sh`). There is no need to rebuild the RPM and reinstall. The Apache UI cache is switched off for the plugin: an edit is visible after a page reload.
 - **Fast Python reload.** `ipa-dev-reload` clears `__pycache__`, drops the `ipa` command schema cache and restarts Apache (about 4 seconds).
 - **Ready to work at once.** The administrator gets a Kerberos ticket at start, the `ipa` CLI works (`ipa gpo-add …`), passwords and addresses are fixed (`devcontainer.json`), and the CA certificate is exported to `.devcontainer/.state/ipa-ca.crt` for the browser.
 - **The same test set as CI.** The image has everything for the Python tests (`ipalib`, pytest, coverage, `ldap`, `dbus`), for the frontend tests (Node, Chromium, a font, `libadmix`, the SDMX catalog, FreeIPA's jQuery) and for e2e. All 863 Python tests (about 6 seconds) and all 311 frontend tests run in the container without skips.
@@ -115,13 +115,13 @@ The same commands work from the VS Code terminal inside the container, without `
 Two options, which can be combined.
 
 1. **On the host, without FreeIPA** (fastest): edit `frontend/src/` → `make ui-dev` (`http://127.0.0.1:8765/ipa/ui/`, `?gpo=Name&lang=ru`, reload on save, mock backend) → `make test-ui`.
-2. **On a real FreeIPA:** edit → `make ui-build` (rebuilds `plugin/ui/grouppolicy/js/app.js`) → reload `https://server.ipa.test/ipa/ui/` (the bundle is mounted into the container). For `chain.js` and `gpo.js` this is the only way to check: they do not work in the stand.
+2. **On a real FreeIPA:** edit → `make ui-build` (rebuilds `frontend/dist/`) → reload `https://server.ipa.test/ipa/ui/` (the bundle is mounted into the container). For `chain.js` and `gpo.js` this is the only way to check: they do not work in the stand.
 
 The Vite stand inside the container is not reachable from the host (ports are not forwarded); to work in VS Code inside the container, forward port 8765 by hand ("Forward a Port") or run the stand on the host. `node_modules` is shared between the host and the container (the same directory): both are ALT with the same glibc version, so there are no conflicts.
 
 The daily loop (from the repository root):
 
-1. Edit `frontend/src/` (do not edit the files in `plugin/ui/grouppolicy/js/` by hand — that is the generated bundle).
+1. Edit `frontend/src/` (do not edit `frontend/dist/` by hand — that is the generated plugin directory).
 2. `make ui-dev` — the stand; `make test-ui` — unit and integration on mocks (`npm test -- --coverage` from `frontend/` adds coverage).
 3. `make ui-lint`, `make ui-format-check` (or `make ui-format` to fix), `npm run typecheck` in `frontend/`. In VS Code Prettier formats `.js` in `frontend/` on save (`prettier.requireConfig` leaves files outside `frontend/` alone); in vim use `make ui-format`.
 4. `make ui-build`, then `make ui-build-check` (the bundle is up to date).
@@ -153,10 +153,9 @@ frontend/
   tests/e2e/          a live FreeIPA in the dev container
   scripts/            test root build, bundle check, running in the container
   types/              type stubs for freeipa/* and open editor types
-plugin/ui/grouppolicy/
-  js/app.js           GENERATED (Vite): the only editor file, do not edit
-  chain.js, gpo.js    FreeIPA pages (as before, without ESM sources)
-  css/, img/          as before
+frontend/public/    chain.js, gpo.js (FreeIPA pages, AMD, written by hand) and img/ — copied into dist as they are
+frontend/src/styles/  the global sheets main.css, other.css, icons.css (go into js/app.css)
+frontend/dist/      GENERATED (Vite), committed, installed by the RPM: chain.js, gpo.js, img/, js/app.js, js/app.css
 ```
 
 All files in `frontend/` are ES modules (`import`/`export`); CommonJS and `.cjs` are not used. The bundle is UMD: under FreeIPA's RequireJS it registers as an AMD module and depends on `freeipa/ipa` and `freeipa/rpc`; `gpo.js` and `chain.js` take `translations` and `editorDialog` from `js/app`.

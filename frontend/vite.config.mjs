@@ -1,17 +1,15 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import * as backend from './dev/backend.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const pluginRoot = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy');
-const pluginUrl = '/ipa/ui/js/plugins/chain/';
+// The installable plugin directory (committed build output; the RPM and the installer take it from here).
+const outDir = path.join(root, 'dist');
+// Verbatim files of that directory: chain.js, gpo.js and img/ (referenced from the CSS as /img/...).
+const publicDir = path.join(root, 'public');
 
-const mime = { '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.js': 'application/javascript' };
-
-// Dev stand: mock FreeIPA JSON-RPC and the plugin's static files (css, img),
-// mirroring the URL layout of a real server.
+// Dev stand: mock FreeIPA JSON-RPC (the editor's own files come from Vite).
 function devStand() {
     return {
         name: 'gpui-dev-stand',
@@ -49,14 +47,6 @@ function devStand() {
                     backend.reset();
                     return send(200, '{"ok":true}');
                 }
-                if (url.pathname.startsWith(pluginUrl)) {
-                    const file = path.normalize(
-                        path.join(pluginRoot, decodeURIComponent(url.pathname.slice(pluginUrl.length)))
-                    );
-                    if (!file.startsWith(pluginRoot + path.sep) || !fs.existsSync(file))
-                        return send(404, 'Not found', 'text/plain');
-                    return send(200, fs.readFileSync(file), mime[path.extname(file)] || 'application/octet-stream');
-                }
                 next();
             });
         }
@@ -67,6 +57,7 @@ export default defineConfig(({ command }) =>
     command === 'serve'
         ? {
               root: path.join(root, 'dev'),
+              publicDir,
               plugins: [devStand()],
               resolve: {
                   alias: {
@@ -78,24 +69,27 @@ export default defineConfig(({ command }) =>
               server: { host: '127.0.0.1', port: 8765, fs: { allow: [root] } }
           }
         : {
-              // One UMD bundle, committed to plugin/ui/grouppolicy/js/app.js. Under
+              // The plugin directory, committed as frontend/dist (js/app.js is one UMD bundle). Under
               // FreeIPA's RequireJS it registers as an AMD module that depends on the
               // Web UI's own freeipa/* modules.
-              publicDir: false,
+              publicDir,
+              // app.css is served from <plugin>/js/ and the images from <plugin>/img/: /img/x in the CSS becomes ../img/x.
+              base: './',
               resolve: { alias: { '@gpui': path.join(root, 'src') } },
               build: {
-                  outDir: path.join(pluginRoot, 'js'),
+                  outDir,
                   emptyOutDir: true,
+                  assetsDir: '',
                   minify: false,
                   reportCompressedSize: false,
-                  // The styles of components written with CSS Modules (src/**/*.module.css) are emitted as js/app.css;
-                  // gpo.js loads it next to css/main.css.
+                  // All styles (the components' CSS Modules, then src/styles/*.css) are emitted as js/app.css, the
+                  // only stylesheet gpo.js loads.
                   lib: {
-                      cssFileName: 'app',
+                      cssFileName: 'js/app',
                       entry: path.join(root, 'src', 'app.js'),
                       name: 'gpui',
                       formats: ['umd'],
-                      fileName: () => 'app.js'
+                      fileName: () => 'js/app.js'
                   },
                   rollupOptions: {
                       external: [/^freeipa\//],

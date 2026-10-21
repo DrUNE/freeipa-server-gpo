@@ -8,4 +8,3 @@ export const alias = {
     'freeipa/ipa': path.join(root, 'dev', 'shims', 'ipa.js'),
     'freeipa/rpc': path.join(root, 'dev', 'shims', 'rpc.js')
 };
-export const pluginCss = path.resolve(root, '..', 'plugin', 'ui', 'grouppolicy', 'css');

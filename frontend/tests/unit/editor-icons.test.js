@@ -13,7 +13,9 @@ vi.mock('@gpui/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
 vi.mock('@gpui/components/templates/security/model.js', () => ({}));
 vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
 
-const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
+const styles = path.resolve(import.meta.dirname, '../../src/styles');
+// `url(/img/...)` in the CSS is a file of the public directory (the plugin's img/).
+const publicDir = path.resolve(import.meta.dirname, '../../public');
 const icons = iconsModule;
 const presentations = presentationsModule;
 const tree = treeModule;
@@ -43,15 +45,15 @@ const preferenceKinds = [
     'start_menu'
 ];
 const categories = ['system_settings', 'control_panel_settings', 'other_settings'];
-const css = fs.readFileSync(path.join(root, 'css/icons.css'), 'utf8');
+const css = fs.readFileSync(path.join(styles, 'icons.css'), 'utf8');
 function asset(className) {
     assert.match(className, /^gpo-icon gpo-icon-[a-z-]+$/);
     const name = className.split('gpo-icon-')[1];
     const rule = new RegExp('\\.gpo-icon\\.gpo-icon-' + name + ' \\{ background-image: url\\(([^)]+)\\); \\}');
     const match = css.match(rule);
     assert.ok(match, 'Missing stylesheet mapping: ' + name);
-    const filename = path.resolve(root, 'css', match[1]);
-    assert.equal(path.dirname(filename), path.join(root, 'img/svg/ico'));
+    const filename = path.join(publicDir, match[1]);
+    assert.equal(path.dirname(filename), path.join(publicDir, 'img/svg/ico'));
     assert.ok(fs.existsSync(filename), 'Missing icon: ' + filename);
     return fs.readFileSync(filename, 'utf8');
 }

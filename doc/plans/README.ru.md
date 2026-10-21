@@ -10,12 +10,12 @@
 
 ## 1. Архитектура фронтенда
 
-Каталог `plugin/ui/grouppolicy/` ставится в `/usr/share/ipa/ui/js/plugins/chain` и состоит из двух слоёв.
+Каталог `frontend/dist/` (собранный плагин; вручную написаны `frontend/public/chain.js` и `gpo.js`) ставится в `/usr/share/ipa/ui/js/plugins/chain` и состоит из двух слоёв.
 
 | Слой | Файлы | Технологии |
 |---|---|---|
 | Страницы в Web UI FreeIPA | `chain.js` (1194 строки), `gpo.js` (396) | AMD, jQuery-фасеты `IPA.facet`, `reg`, `phases`; зависят от модулей `freeipa/*` |
-| Редактор GPUI | исходники `frontend/src/` (около 20 тыс. строк), сборка `js/app.js`, `css/` (около 2,4 тыс. строк) | Vanilla JS, ES-модули, один UMD/AMD-бандл (Vite), самописный `ElementCreator`, EN/RU-локали |
+| Редактор GPUI | исходники `frontend/src/` (около 20 тыс. строк), сборка `js/app.js`, стили `frontend/src/styles/` (около 2,4 тыс. строк, собираются в `js/app.css`) | Vanilla JS, ES-модули, один UMD/AMD-бандл (Vite), самописный `ElementCreator`, EN/RU-локали |
 
 Редактор открывается из `gpo.js` в модальном окне и разбит на header, tree-view, workspace, footer и шаблоны:
 ADMX, Preferences (22 layout'а, targeting editor), Scripts, Security, Advanced Audit, All Policies.
@@ -27,7 +27,7 @@ ADMX, Preferences (22 layout'а, targeting editor), Scripts, Security, Advanced 
 - Слабые места: крупные файлы (`preferences-view-template.js` 1501 строка, `script-template.js` 2113, `chain.js` 1194, `main.css` 2430; Prettier переносит длинные строки, поэтому размеры отличаются от прежних);
   императивный рендер с ручной защитой от гонок (`renderRequestId`, `currentViewCleanup`); состояние в замыканиях.
 - Граница с бэкендом чистая, но формат ответов нигде не описан схемой: он выведен вручную (`editor-dto.js`).
-- Исходники редактора теперь ES-модули в `frontend/src/`; в `plugin/ui/grouppolicy/js/` лежит один собранный бандл `app.js` (коммитится).
+- Исходники редактора теперь ES-модули в `frontend/src/`; в `frontend/dist/` лежит собранный каталог плагина (коммитится): `js/app.js`, `js/app.css`, `chain.js`, `gpo.js`, `img/`.
 
 ## 2. Как ведётся разработка сейчас
 

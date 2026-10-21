@@ -3,9 +3,9 @@
 **English** | [Русский](./README.ru.md)
 
 ES-module sources in `src/`, built with **Vite** into one committed bundle:
-`../plugin/ui/grouppolicy/js/app.js` (UMD; registers as an AMD module under FreeIPA's RequireJS and
+`dist/js/app.js` (UMD; registers as an AMD module under FreeIPA's RequireJS and
 depends on its `freeipa/ipa` and `freeipa/rpc`). The RPM installs the committed bundle, so Node is
-not needed to build the package. `chain.js`, `gpo.js`, `css/` and `img/` live in `../plugin/ui/grouppolicy/` as before;
+not needed to build the package. The whole plugin directory is built here and committed as `dist/` (the RPM installs it): `public/` holds `chain.js`, `gpo.js` (written by hand, AMD) and `img/`, copied as they are; the global sheets `src/styles/{main,other,icons}.css` are bundled into `js/app.css` after the CSS Modules (`src/app.js` imports them last);
 `gpo.js` and `chain.js` take `translations` and `editorDialog` from the bundle (`js/app`).
 
 Imports inside `src/` (and from tests into `src/`) use the alias `@gpui/` (= `src/`) instead of relative `../` paths; it is configured in `vite.config.mjs`, `vitest.config.mjs`, `.storybook/shared.mjs` and `tsconfig.json`, and the test tree builder turns it back into relative AMD ids.
@@ -43,7 +43,7 @@ Workflow for a component:
 4. `npm test` runs the stories together with the unit and integration tests; `npm run build-storybook` builds a static site.
 
 Example: `src/components/confirmation-dialog.stories.js`. Stories use the same `freeipa/*` shims as the dev stand
-(`.storybook/shared.mjs`) and the plugin's `css/main.css`. Story files are not part of the bundle and are excluded from coverage.
+(`.storybook/shared.mjs`) and `src/styles/main.css`. Story files are not part of the bundle and are excluded from coverage.
 Components that need the real editor context (the whole tree, RPC) still belong in the integration tests; use stories first for
 self-contained pieces (dialogs, controls, tree, header, footer).
 
@@ -64,23 +64,22 @@ src/components/<Name>/
   header comment (`[data-editor-status]`, `[data-editor-status-action]`, ...). A parent that needs layout control uses an attribute
   selector in its own CSS (`.gp__admx-wrapper > [data-editor-status]`). Context from the editor shell is referenced as
   `:global(.gp__container)` in the module.
-- Colors, spacing and other values stay as they were in `css/main.css`; a story pins them with `getComputedStyle` so a migration
+- Colors, spacing and other values stay as they were in `main.css`; a story pins them with `getComputedStyle` so a migration
   cannot change the look unnoticed.
 - Old code builds UI with `ElementCreator`. To keep it working while it migrates, the old module path stays as an adapter that
   wraps the new elements with `ElementCreator.wrap(element)` (see `components/editor-status.js`); callers move to the new API as they
   are migrated.
 
-How the styles reach the page: `npm run build` emits the CSS Modules as `plugin/ui/grouppolicy/js/app.css` next to `app.js`; `gpo.js`
-loads it after `css/main.css` and `css/other.css`, and the installer manifest (`UI_PLUGIN_FILES`) lists it. Storybook and the dev stand
+How the styles reach the page: `npm run build` emits the CSS Modules and then `src/styles/*.css` as `dist/js/app.css` next to `app.js`; `gpo.js`
+loads that one stylesheet (`/img/...` URLs in the CSS become `../img/...`), and the installer manifest (`UI_PLUGIN_FILES`) lists it. Storybook and the dev stand
 get the same styles from Vite. For the browser tests `npm test` builds each `*.module.css` into an AMD module with `postcss-modules`
 (`scripts/build-test-root.mjs`); `scripts/read-amd.mjs` understands `import x from`, named imports and inline `export function`
 but not `export default`.
 
 Status: `EditorStatus` and the chrome of the editor's dialogs (`Dialog`, used by `editor-dialog.js`) are migrated. A dialog takes
 `width` and `fill` options instead of consumers overriding its classes, and exposes `[data-dialog]` and `[data-dialog-part="..."]`
-hooks (header, title, close, body, error, footer, cancel, apply) for the content layout of its five consumers. Not yet migrated: the
-hand-built modals in `script-template.js` (3) and `preferences-view-template.js` (2), which still use the global `.preference__modal*`
-rules; those rules stay in `css/main.css` until the modals move onto `Dialog`.
+hooks (header, title, close, body, error, footer, cancel, apply) for the content layout of its consumers; all the editor's modals are built on it now (the global `.preference__modal*`
+window rules are gone).
 
 Moving shared chrome is risky because many places depend on the same class names. A temporary regression harness helped: a Vitest setup
 file patched `chromium.launch` so that every dialog opened by the integration tests was recorded (size and computed style of the window,

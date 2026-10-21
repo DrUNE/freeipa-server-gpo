@@ -25,6 +25,9 @@ import { setLanguage } from '@gpui/locales/translations';
 import * as translationsModule from '@gpui/locales/translations';
 import * as API from '@gpui/util/API';
 import * as editorDialogModule from '@gpui/components/editor-dialog';
+// The global sheets go last: they come after the components' CSS Modules in js/app.css, and refine them at equal specificity.
+import '@gpui/styles/main.css';
+import '@gpui/styles/other.css';
 
 function createTreeViewState() {
     return {

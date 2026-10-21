@@ -1,7 +1,7 @@
 {
     "name": "freeipa-server-gpo-frontend",
     "private": true,
-    "description": "Sources of the GPUI editor. The build writes one UMD/AMD bundle, ../plugin/ui/grouppolicy/js/app.js, which is committed and installed by the RPM.",
+    "description": "Sources of the GPUI editor. The build writes plugin directory (UMD/AMD bundle js/app.js, js/app.css, chain.js, gpo.js, img/) into dist/, which is committed and installed by the RPM.",
     "type": "module",
     "engines": {
         "node": ">=20"

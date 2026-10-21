@@ -3,7 +3,7 @@
 **English** | [Русский](./README.ru.md)
 
 A standalone stand for developing the group policy web editor
-(`plugin/ui/grouppolicy/js`) without a FreeIPA server.
+(`frontend/src`) without a FreeIPA server.
 
 The stand runs on Vite: it serves the `frontend/src` sources directly (the page reloads on save), replaces
 `freeipa/ipa` and `freeipa/rpc` with ES shims from `shims/`, and answers the JSON-RPC `POST /ipa/session/json` from the

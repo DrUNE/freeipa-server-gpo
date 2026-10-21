@@ -71,6 +71,6 @@ cat <<MSG
 FreeIPA dev server is ready.
   Web UI:  https://$FQDN/ipa/ui/   (admin / \$IPA_ADMIN_PASSWORD)
   CA cert: .devcontainer/.state/ipa-ca.crt
-  UI edits in plugin/ui/grouppolicy/ are live: reload the browser page.
+  UI edits: run `npm --prefix frontend run build` (or `npm --prefix frontend run watch`), then reload the browser page.
   After Python plugin edits run: ipa-dev-reload
 MSG

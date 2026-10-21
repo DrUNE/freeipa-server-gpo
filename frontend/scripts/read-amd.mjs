@@ -56,7 +56,9 @@ function readAmd(filename) {
         }
         return '';
     });
-    body = body.replace(SIDE_EFFECT_IMPORT, (_, source) => {
+    body = body.replace(SIDE_EFFECT_IMPORT, (match, source) => {
+        // Global stylesheets (`import '@gpui/styles/main.css'`) are linked by the page that tests the module.
+        if (source.endsWith('.css') && !source.endsWith('.module.css')) return '';
         deps.push(amdId(source, filename));
         params.push('__side' + params.length);
         return '';

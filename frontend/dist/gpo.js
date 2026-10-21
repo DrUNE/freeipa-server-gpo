@@ -17,20 +17,12 @@ define([
     var t = translationsModule.t;
 
     (function loadCSS() {
-        var files = [
-            // Styles of the components written with CSS Modules come first: they are the base layer that the
-            // global sheets (and the pages that embed a component) refine at equal specificity.
-            'js/plugins/chain/js/app.css',
-            'js/plugins/chain/css/main.css',
-            'js/plugins/chain/css/other.css'
-        ];
-        files.forEach(function(href) {
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.type = 'text/css';
-            link.href = href;
-            document.head.appendChild(link);
-        });
+        // One stylesheet: the components' CSS Modules, then the global sheets (see src/app.js).
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'js/plugins/chain/js/app.css';
+        document.head.appendChild(link);
     })();
 
     var order_control_buttons = exp.order_control_buttons = function(order) {

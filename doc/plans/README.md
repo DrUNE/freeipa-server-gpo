@@ -10,12 +10,12 @@ What changed in the `dev-setup` branch and how to work now: [../DEV-SETUP.md](..
 
 ## 1. Frontend architecture
 
-The `plugin/ui/grouppolicy/` directory is installed into `/usr/share/ipa/ui/js/plugins/chain` and has two layers.
+The `frontend/dist/` directory (the built plugin; its hand-written parts are `frontend/public/chain.js` and `gpo.js`) is installed into `/usr/share/ipa/ui/js/plugins/chain` and has two layers.
 
 | Layer | Files | Technology |
 |---|---|---|
 | Pages in the FreeIPA Web UI | `chain.js` (1194 lines), `gpo.js` (396) | AMD, jQuery facets `IPA.facet`, `reg`, `phases`; depend on `freeipa/*` modules |
-| GPUI editor | sources in `frontend/src/` (about 20 thousand lines), built into `js/app.js`, `css/` (about 2.4 thousand lines) | Vanilla JS, ES modules, one UMD/AMD bundle (Vite), a home-grown `ElementCreator`, EN/RU locales |
+| GPUI editor | sources in `frontend/src/` (about 20 thousand lines), built into `js/app.js`, styles `frontend/src/styles/` (about 2.4 thousand lines, built into `js/app.css`) | Vanilla JS, ES modules, one UMD/AMD bundle (Vite), a home-grown `ElementCreator`, EN/RU locales |
 
 The editor is opened from `gpo.js` in a modal window and is split into header, tree-view, workspace, footer and templates:
 ADMX, Preferences (22 layouts, targeting editor), Scripts, Security, Advanced Audit, All Policies.
@@ -27,7 +27,7 @@ It talks to the server only through the typed JSON-RPC `gpo_editor_*` calls in `
 - Weak spots: large files (`preferences-view-template.js` 1501 lines, `script-template.js` 2113, `chain.js` 1194, `main.css` 2430; Prettier made lines wrap, which is why the sizes differ from the pre-formatting ones);
   imperative rendering with manual race protection (`renderRequestId`, `currentViewCleanup`); state kept in closures.
 - The boundary with the backend is clean, but the response format is not described by any schema: it was inferred by hand (`editor-dto.js`).
-- The editor sources are now ES modules in `frontend/src/`; `plugin/ui/grouppolicy/js/` holds one built bundle, `app.js` (committed).
+- The editor sources are now ES modules in `frontend/src/`; `frontend/dist/` holds the built plugin directory (committed): `js/app.js`, `js/app.css`, `chain.js`, `gpo.js`, `img/`.
 
 ## 2. How development works now
 

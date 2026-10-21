@@ -280,7 +280,7 @@ ipa-gpo-install [OPTIONS]
 в LDAP и подтверждает публикацию.
 
 Фронтенд редактора собирается из `frontend/` в один бандл
-`plugin/ui/grouppolicy/js/app.js` (см. [frontend/README.md](./frontend/README.md)).
+`frontend/dist/js/app.js` (см. [frontend/README.md](./frontend/README.md)).
 
 ## Команды управления
 

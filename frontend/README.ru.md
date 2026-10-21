@@ -3,9 +3,9 @@
 [English](./README.md) | **Русский**
 
 Исходники в виде ES-модулей лежат в `src/` и собираются **Vite** в один закоммиченный бандл:
-`../plugin/ui/grouppolicy/js/app.js` (UMD; под RequireJS FreeIPA регистрируется как AMD-модуль и
+`dist/js/app.js` (UMD; под RequireJS FreeIPA регистрируется как AMD-модуль и
 зависит от его `freeipa/ipa` и `freeipa/rpc`). RPM устанавливает закоммиченный бандл, поэтому Node для сборки
-пакета не нужен. `chain.js`, `gpo.js`, `css/` и `img/` по-прежнему лежат в `../plugin/ui/grouppolicy/`;
+пакета не нужен. Весь каталог плагина собирается здесь и коммитится как `dist/` (его ставит RPM): в `public/` лежат `chain.js`, `gpo.js` (вручную, AMD) и `img/`, они копируются как есть; глобальные стили `src/styles/{main,other,icons}.css` попадают в `js/app.css` после CSS Modules (`src/app.js` импортирует их последними);
 `gpo.js` и `chain.js` берут `translations` и `editorDialog` из бандла (`js/app`).
 
 Импорты внутри `src/` (и из тестов в `src/`) используют алиас `@gpui/` (= `src/`) вместо относительных путей `../`; он настроен в `vite.config.mjs`, `vitest.config.mjs`, `.storybook/shared.mjs` и `tsconfig.json`, а сборщик тестового дерева превращает его обратно в относительные AMD-id.
@@ -43,7 +43,7 @@ Story — это и документация, и тест: в `npm test` каж�
 4. `npm test` запускает stories вместе с unit- и integration-тестами; `npm run build-storybook` собирает статический сайт.
 
 Пример: `src/components/confirmation-dialog.stories.js`. Stories используют те же шимы `freeipa/*`, что и стенд
-(`.storybook/shared.mjs`), и `css/main.css` плагина. Файлы stories не входят в бандл и исключены из покрытия.
+(`.storybook/shared.mjs`), и `src/styles/main.css`. Файлы stories не входят в бандл и исключены из покрытия.
 Компоненты, которым нужен настоящий контекст редактора (всё дерево, RPC), по-прежнему проверяются integration-тестами; начинайте
 со stories для самодостаточных частей (диалоги, контролы, дерево, header, footer).
 
@@ -64,22 +64,21 @@ src/components/<Name>/
   в начале файла (`[data-editor-status]`, `[data-editor-status-action]`, ...). Родителю, которому нужно управлять раскладкой, достаточно
   селектора по атрибуту в собственном CSS (`.gp__admx-wrapper > [data-editor-status]`). Контекст оболочки редактора в модуле
   записывается как `:global(.gp__container)`.
-- Цвета, отступы и прочие значения остаются такими же, как были в `css/main.css`; story закрепляет их через `getComputedStyle`, чтобы
+- Цвета, отступы и прочие значения остаются такими же, как были в `main.css`; story закрепляет их через `getComputedStyle`, чтобы
   перенос не изменил внешний вид незаметно.
 - Старый код строит интерфейс через `ElementCreator`. Чтобы он работал во время переноса, прежний путь модуля остаётся адаптером,
   оборачивающим новые элементы через `ElementCreator.wrap(element)` (см. `components/editor-status.js`); вызывающие переходят на новый API по мере переноса.
 
-Как стили попадают на страницу: `npm run build` выдаёт CSS Modules как `plugin/ui/grouppolicy/js/app.css` рядом с `app.js`; `gpo.js`
-подключает его после `css/main.css` и `css/other.css`, а манифест установщика (`UI_PLUGIN_FILES`) его перечисляет. Storybook и стенд
+Как стили попадают на страницу: `npm run build` выдаёт CSS Modules, а затем `src/styles/*.css` как `dist/js/app.css` рядом с `app.js`; `gpo.js`
+подключает этот единственный файл (URL `/img/...` в CSS превращаются в `../img/...`), а манифест установщика (`UI_PLUGIN_FILES`) его перечисляет. Storybook и стенд
 получают те же стили от Vite. Для браузерных тестов `npm test` превращает каждый `*.module.css` в AMD-модуль через `postcss-modules`
 (`scripts/build-test-root.mjs`); `scripts/read-amd.mjs` понимает `import x from`, именованные импорты и `export function`,
 но не `export default`.
 
 Статус: перенесены `EditorStatus` и хром диалогов редактора (`Dialog`, его использует `editor-dialog.js`). Диалог принимает параметры
 `width` и `fill` вместо переопределения его классов потребителями и отдаёт «крючки» `[data-dialog]` и `[data-dialog-part="..."]`
-(header, title, close, body, error, footer, cancel, apply) для раскладки содержимого пятью потребителями. Не перенесены вручную
-собранные модалки в `script-template.js` (3) и `preferences-view-template.js` (2), которые по-прежнему используют глобальные правила
-`.preference__modal*`; эти правила остаются в `css/main.css`, пока модалки не перейдут на `Dialog`.
+(header, title, close, body, error, footer, cancel, apply) для раскладки содержимого потребителями; на нём теперь построены все модалки редактора (глобальных правил окон
+`.preference__modal*` больше нет).
 
 Перенос общего хрома рискован, потому что от одних и тех же имён классов зависит много мест. Помог временный регрессионный харнес:
 setup-файл Vitest подменял `chromium.launch` и записывал каждый диалог, который открывают интеграционные тесты (размеры и вычисленные

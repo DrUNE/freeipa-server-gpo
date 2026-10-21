@@ -16,7 +16,7 @@ bind() {
     echo "bound $target -> $source"
 }
 
-bind "$WORKSPACE/plugin/ui/grouppolicy" /usr/share/ipa/ui/js/plugins/chain
+bind "$WORKSPACE/frontend/dist" /usr/share/ipa/ui/js/plugins/chain
 for plugin in gpo chain gpmaster; do
     bind "$WORKSPACE/plugin/ipaserver/plugins/$plugin.py" "$SITELIB/ipaserver/plugins/$plugin.py"
 done
