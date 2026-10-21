@@ -8,7 +8,7 @@
     },
     "scripts": {
         "build": "vite build --logLevel warn",
-        "build:esm": "vite build --mode esm --logLevel warn",
+        "build:esm": "vite build --mode esm --logLevel warn && node scripts/copy-esm-types.mjs",
         "build:check": "node scripts/check-artifact.mjs",
         "watch": "vite build --watch --mode development --logLevel warn",
         "dev": "vite",

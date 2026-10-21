@@ -105,7 +105,7 @@ change; 72 snapshots had to stay identical. The harness is not in the repository
 
 ## Core without the DOM (`src/core/`)
 
-`src/core/` is the part of the editor that moves to freeipa-webui unchanged: the data model and rules (collections, DTO helpers, the targeting model, security and audit models, the dependency plan, the preference layouts). It may import only `@gpui/core/*` and `@gpui/locales/*` and may not use browser globals; ESLint and `tests/unit/core-boundary.test.js` enforce it. Rendering code (`components/`, `lib/`, `util/element-creator`) imports from it, never the other way round. `npm run build:esm` builds the editor as an ES module (`dist-esm/gpui.js` and `gpui.css`, not committed) for the host to import; `freeipa/ipa` and `freeipa/rpc` stay bare imports for the host to map.
+`src/core/` is the part of the editor that moves to freeipa-webui unchanged: the data model and rules (collections, DTO helpers, the targeting model, security and audit models, the dependency plan, the preference layouts). It may import only `@gpui/core/*` and `@gpui/locales/*` and may not use browser globals; ESLint and `tests/unit/core-boundary.test.js` enforce it. Rendering code (`components/`, `lib/`, `util/element-creator`) imports from it, never the other way round. `npm run build:esm` builds the editor as an ES module (`dist-esm/gpui.js` and `gpui.css`, not committed) for the host to import; `freeipa/ipa` and `freeipa/rpc` stay bare imports for the host to map; the declarations are written next to it (`gpui.d.ts`, `gpui-host.d.ts`), and what the host has to provide is in [doc/plans/WEBUI-ISLAND.md](../doc/plans/WEBUI-ISLAND.md).
 
 ## Dev stand (`dev/`)
 

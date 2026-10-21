@@ -5,7 +5,7 @@
 Сводка по состоянию на 2026-10-21. Детали и оценки лежат в планах:
 [FRONTEND-DX-PLAN.ru.md](FRONTEND-DX-PLAN.ru.md) (улучшение опыта разработки),
 [WEBUI-MIGRATION.ru.md](WEBUI-MIGRATION.ru.md) (управление GPO в `freeipa-webui`) и
-[COMPONENTS-PLAN.ru.md](COMPONENTS-PLAN.ru.md) (компоненты и Storybook).
+[COMPONENTS-PLAN.ru.md](COMPONENTS-PLAN.ru.md) (компоненты и Storybook); что хост предоставляет редактору-острову: [WEBUI-ISLAND.ru.md](WEBUI-ISLAND.ru.md).
 Описание серверной части: [../ARCHITECTURE.ru.md](../ARCHITECTURE.ru.md) ([English](../ARCHITECTURE.md)).
 Что изменилось в ветке `dev-setup` и как теперь работать: [../DEV-SETUP.ru.md](../DEV-SETUP.ru.md).
 

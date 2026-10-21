@@ -5,7 +5,7 @@
 Summary as of 2026-10-21. Details and estimates are in the plans:
 [FRONTEND-DX-PLAN.md](FRONTEND-DX-PLAN.md) (developer experience improvements),
 [WEBUI-MIGRATION.md](WEBUI-MIGRATION.md) (GPO management in `freeipa-webui`) and
-[COMPONENTS-PLAN.md](COMPONENTS-PLAN.md) (components and Storybook).
+[COMPONENTS-PLAN.md](COMPONENTS-PLAN.md) (components and Storybook); what a host provides for the editor island: [WEBUI-ISLAND.md](WEBUI-ISLAND.md).
 Server side: [../ARCHITECTURE.md](../ARCHITECTURE.md) ([Russian](../ARCHITECTURE.ru.md)).
 What changed in the `dev-setup` branch and how to work now: [../DEV-SETUP.md](../DEV-SETUP.md).
 
