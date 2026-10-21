@@ -59,6 +59,8 @@ export default defineConfig(({ command }) =>
         ? {
               root: path.join(root, 'dev'),
               publicDir,
+              // src/lib/dom.js marks every created element with data-source="src/File.js:line".
+              define: { __GPUI_DEV__: true },
               plugins: [devStand()],
               resolve: {
                   alias: {
@@ -76,6 +78,7 @@ export default defineConfig(({ command }) =>
               publicDir,
               // app.css is served from <plugin>/js/ and the images from <plugin>/img/: /img/x in the CSS becomes ../img/x.
               base: './',
+              define: { __GPUI_DEV__: false },
               resolve: { alias: { '@gpui': path.join(root, 'src') } },
               build: {
                   outDir,

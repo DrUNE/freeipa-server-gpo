@@ -15,5 +15,5 @@
             "freeipa/*": ["./types/freeipa/*"]
         }
     },
-    "include": ["types/**/*.d.ts", "src/**/*.js"]
+    "include": ["types/**/*.d.ts", "src/**/*.js", "src/**/*.ts"]
 }

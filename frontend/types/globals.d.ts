@@ -10,3 +10,6 @@ type GpuiCreator = ElementCreator;
 interface ParentNode {
     querySelector(selectors: string): GpuiElement;
 }
+
+// Defined by Vite for the dev stand and Storybook (true); see src/lib/dom.js.
+declare const __GPUI_DEV__: boolean | undefined;

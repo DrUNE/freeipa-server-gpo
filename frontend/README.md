@@ -58,6 +58,15 @@ src/components/<Name>/
   <Name>.stories.js    states + play tests
 ```
 
+TypeScript is optional and incremental: a `.ts` file sits next to the JavaScript ones (the pilot is `src/util/editor-dto.ts`). `tsc -p tsconfig.strict.json`
+(part of `npm run typecheck`) checks the `.ts` files strictly while the JavaScript keeps the lenient `tsconfig.json`; ESLint skips `.ts`. Import it
+without an extension (`@gpui/util/editor-dto`); the test tree turns it into a `.js` AMD module with Vite's `transformWithOxc`.
+
+Inside a component: state in local variables (a `view`/`ui` object in big templates), one `render` function that writes the state
+into the DOM (also called once at creation), handlers that change the state and call `render`. In the dev stand and in Storybook every
+element created by `h()` carries `data-source="src/path/File.js:line"` (the `__GPUI_DEV__` flag, absent from the build, the test tree
+and Vitest), so a node in DevTools leads to its source; elements of the old `ElementCreator` do not have it.
+
 - A component is a function that returns a plain DOM element. `h(tag, attrs, ...children)` builds it: strings become text nodes, never
   HTML (no `innerHTML`); `null`/`false` children are skipped, so `cond && h(...)` works. `cx()` joins class names.
 - Styles are private. Nobody outside selects the component by its class: public hooks are `data-*` attributes, listed in the file's
@@ -163,7 +172,7 @@ tests/integration/dialogs-visual` in the container and review the PNG diff befor
 Job `frontend` in `.forgejo/workflows/python-backend.yml` runs in `altlinux.space/actions/runner/containers:sisyphus` (the image
 the integration job uses). It installs `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, configures fontconfig, then runs lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (one retry for
-timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 367 tests run and none may be skipped**.
+timing-sensitive browser tests) and `scripts/assert-no-skips.mjs`: **all 373 tests run and none may be skipped**.
 
 fontconfig is told to ignore `/usr/share/fonts/type1`: otherwise it maps Arial to the Type 1 URW fonts, which Chromium cannot render
 (text width 0), and the layout assertions fail. The job's steps were verified by executing its `run:` scripts in that image.

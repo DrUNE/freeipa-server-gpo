@@ -58,6 +58,15 @@ src/components/<Name>/
   <Name>.stories.js    состояния и play-тесты
 ```
 
+TypeScript необязателен и вводится постепенно: файл `.ts` лежит рядом с JavaScript (пилот — `src/util/editor-dto.ts`). `tsc -p tsconfig.strict.json`
+(часть `npm run typecheck`) проверяет `.ts` строго, а JavaScript остаётся на нестрогом `tsconfig.json`; ESLint `.ts` пропускает. Импортировать
+без расширения (`@gpui/util/editor-dto`); тестовое дерево превращает его в AMD-модуль `.js` через `transformWithOxc` из Vite.
+
+Внутри компонента: состояние в локальных переменных (объект `view`/`ui` в крупных шаблонах), одна функция `render`, которая пишет
+состояние в DOM (её же вызывают один раз при создании), обработчики меняют состояние и вызывают `render`. В стенде и в Storybook
+каждый элемент, созданный через `h()`, получает `data-source="src/путь/Файл.js:строка"` (флаг `__GPUI_DEV__`; в сборке, тестовом дереве
+и Vitest его нет), так что узел в DevTools ведёт к исходнику; у элементов старого `ElementCreator` его нет.
+
 - Компонент — функция, возвращающая обычный DOM-элемент. Его строит `h(tag, attrs, ...children)`: строки становятся текстовыми узлами,
   а не HTML (никакого `innerHTML`); дочерние `null`/`false` пропускаются, поэтому работает `cond && h(...)`. `cx()` склеивает имена классов.
 - Стили приватны. Снаружи компонент по классу никто не выбирает: публичные «крючки» — атрибуты `data-*`, они перечислены в комментарии
@@ -162,7 +171,7 @@ integration tests/integration/dialogs-visual` и просмотреть разн
 Задача `frontend` в `.forgejo/workflows/python-backend.yml` выполняется в `altlinux.space/actions/runner/containers:sisyphus` (образ,
 который использует интеграционная задача). Она устанавливает `python3-module-admix sdmx-basealt sdmx-schemas admx-basealt freeipa-server-common chromium
 fonts-ttf-open-sans`, настраивает fontconfig, затем выполняет lint, `format:check`, typecheck, `build:check`, `npm test -- --coverage` (один повтор для
-браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 367 тестов, и ни один не может быть пропущен**.
+браузерных тестов, чувствительных к времени) и `scripts/assert-no-skips.mjs`: **выполняются все 373 тестов, и ни один не может быть пропущен**.
 
 fontconfig настроен игнорировать `/usr/share/fonts/type1`: иначе он сопоставляет Arial шрифтам Type 1 URW, которые Chromium не умеет
 отрисовывать (ширина текста 0), и проверки раскладки падают. Шаги задачи проверены выполнением её скриптов `run:` в этом образе.

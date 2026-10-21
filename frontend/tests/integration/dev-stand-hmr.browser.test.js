@@ -67,3 +67,29 @@ test(
         }
     }
 );
+
+test('in the dev stand elements built with h() name the file and line that created them', { skip }, async () => {
+    const server = await createServer({
+        root: path.join(root, 'dev'),
+        configFile: path.join(root, 'vite.config.mjs'),
+        logLevel: 'silent',
+        server: { port: 0, host: '127.0.0.1' }
+    });
+    await server.listen();
+    let browser;
+    try {
+        browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        page.setDefaultTimeout(10000);
+        // The failed open is shown by the EditorStatus component, which is built with h().
+        await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/ipa/ui/?scenario=error`);
+        const sources = await page
+            .locator('[data-editor-status] [data-source]')
+            .evaluateAll(nodes => nodes.map(node => node.getAttribute('data-source')));
+        assert.ok(sources.length > 0);
+        for (const source of sources) assert.match(source, /^src\/components\/EditorStatus\/EditorStatus\.js:\d+$/);
+    } finally {
+        if (browser) await browser.close();
+        await server.close();
+    }
+});

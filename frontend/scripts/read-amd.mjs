@@ -7,12 +7,13 @@
 // Declarations may be exported inline (`export function f`, `export const x`) or through one trailing
 // `export { ... }` list. Statements may span lines, as Prettier wraps long ones.
 import fs from 'node:fs';
+import { transformWithOxc } from 'vite';
 import path from 'node:path';
 
-const NAMESPACE_IMPORT = /^import\s+\*\s+as\s+(\w+)\s+from\s+'([^']+)';?[ \t]*$/gm;
-const DEFAULT_IMPORT = /^import\s+(\w+)\s+from\s+'([^']+)';?[ \t]*$/gm;
-const NAMED_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*'([^']+)';?[ \t]*$/gm;
-const SIDE_EFFECT_IMPORT = /^import\s+'([^']+)';?[ \t]*$/gm;
+const NAMESPACE_IMPORT = /^import\s+\*\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"];?[ \t]*$/gm;
+const DEFAULT_IMPORT = /^import\s+(\w+)\s+from\s+['"]([^'"]+)['"];?[ \t]*$/gm;
+const NAMED_IMPORT = /^import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"];?[ \t]*$/gm;
+const SIDE_EFFECT_IMPORT = /^import\s+['"]([^'"]+)['"];?[ \t]*$/gm;
 const INLINE_EXPORT = /^export\s+(?:async\s+)?(?:function\s*\*?|const|let|var|class)\s+(\w+)/gm;
 const EXPORT_LIST = /^export\s*\{([\s\S]*?)\};?[ \t]*$/m;
 
@@ -25,8 +26,16 @@ const amdId = (source, filename) => {
     return relative.startsWith('.') ? relative : './' + relative;
 };
 
-function readAmd(filename) {
-    let body = fs.readFileSync(filename, 'utf8');
+// A `.ts` source is reduced to plain JavaScript first (types, `import type`, annotations are dropped, by the same
+// transformer Vite uses); the module syntax is left as written, so the rest of this file reads it like any other source.
+async function plainSource(filename) {
+    const source = fs.readFileSync(filename, 'utf8');
+    if (!filename.endsWith('.ts')) return source;
+    return (await transformWithOxc(source, filename, { target: 'es2022' })).code;
+}
+
+async function readAmd(filename) {
+    let body = await plainSource(filename);
     const deps = [];
     const params = [];
 

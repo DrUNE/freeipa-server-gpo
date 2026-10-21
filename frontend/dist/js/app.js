@@ -3391,7 +3391,7 @@
 		return state;
 	}
 	//#endregion
-	//#region src/util/editor-dto.js
+	//#region src/util/editor-dto.ts
 	/** Pure helpers for preserving libadmix discriminated values in browser forms. */
 	function clone$2(value) {
 		if (value === void 0) return void 0;
@@ -3512,7 +3512,7 @@
 		if (draft.comment !== oldComment) {
 			const target = (policy.comment && policy.comment.source) === "locale" ? {
 				kind: "locale",
-				locale: policy.comment.locale
+				locale: policy.comment && policy.comment.locale
 			} : "embedded";
 			request.comment = draft.comment === "" ? {
 				action: "clear",
@@ -3526,7 +3526,7 @@
 		return request;
 	}
 	function hasOperations(request) {
-		return request && Object.keys(request).length > 0;
+		return Boolean(request) && Object.keys(request).length > 0;
 	}
 	function policyChoiceValue(choices, selectedIndex) {
 		const index = Number(selectedIndex);
@@ -3538,7 +3538,7 @@
 	}
 	function policyStateAction(policy, state) {
 		const hasStateActions = Boolean(policy && Object.prototype.hasOwnProperty.call(policy, "state_actions"));
-		const action = hasStateActions && policy.state_actions ? policy.state_actions[state] : null;
+		const action = policy && hasStateActions && policy.state_actions ? policy.state_actions[state] : null;
 		if (action && typeof action === "object") return {
 			available: Boolean(action.available),
 			mode: action.mode || null,
@@ -3733,11 +3733,6 @@
 	}
 	//#endregion
 	//#region src/lib/dom.js
-	/**
-	* Minimal DOM helpers for components written in the "component = function returning an element" style
-	* (see components/EditorStatus). Strings become text nodes, never HTML.
-	*/
-	/** @typedef {Node | string | null | undefined | false} Child */
 	/**
 	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
 	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.

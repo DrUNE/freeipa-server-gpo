@@ -6,6 +6,20 @@
 /** @typedef {Node | string | null | undefined | false} Child */
 
 /**
+ * Dev-only: where an element was created, as `src/path/File.js:line`, found in the call stack (the first frame outside
+ * this file). `__GPUI_DEV__` is defined as true by the dev stand and Storybook and is absent (so false) in the production
+ * build, in the test tree and in Vitest, where elements stay free of extra attributes.
+ */
+function callerSource() {
+    for (const frame of (new Error().stack || '').split('\n').slice(1)) {
+        if (frame.includes('/lib/dom.js')) continue;
+        const match = /\/(src\/[^?:)]+)(?:\?[^:)]*)?:(\d+):\d+/.exec(frame);
+        if (match) return match[1] + ':' + match[2];
+    }
+    return null;
+}
+
+/**
  * Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
  * so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
  * @template {keyof HTMLElementTagNameMap} K
@@ -16,6 +30,10 @@
  */
 export function h(tag, attrs = {}, ...children) {
     const element = document.createElement(tag);
+    if (typeof __GPUI_DEV__ !== 'undefined' && __GPUI_DEV__) {
+        const source = callerSource();
+        if (source) element.setAttribute('data-source', source);
+    }
     for (const [name, value] of Object.entries(attrs)) {
         if (value === false || value === null || value === undefined) continue;
         element.setAttribute(name, value === true ? '' : value);

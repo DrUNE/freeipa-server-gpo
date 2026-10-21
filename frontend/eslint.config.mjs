@@ -2,11 +2,16 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-    { ignores: ['node_modules/', '.test-root/'] },
+    // .ts files are checked by `tsc -p tsconfig.strict.json` (types, unused locals); ESLint has no TypeScript parser here.
+    { ignores: ['node_modules/', '.test-root/', '**/*.ts'] },
     js.configs.recommended,
     {
         files: ['src/**/*.js', 'dev/**/*.js'],
-        languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } },
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'module',
+            globals: { ...globals.browser, __GPUI_DEV__: 'readonly' }
+        },
         rules: {
             eqeqeq: ['error', 'always', { null: 'ignore' }],
             'no-unused-vars': ['error', { args: 'after-used', argsIgnorePattern: '^_', caughtErrors: 'none' }],

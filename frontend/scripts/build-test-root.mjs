@@ -38,12 +38,14 @@ async function cssModule(file) {
 for (const entry of fs.readdirSync(src, { recursive: true, withFileTypes: true })) {
     if (!entry.isFile()) continue;
     const file = path.join(entry.parentPath, entry.name);
-    const dest = path.join(out, 'js', path.relative(src, file));
+    // A TypeScript source becomes the same AMD module under its `.js` name.
+    const dest = path.join(out, 'js', path.relative(src, file).replace(/\.ts$/, '.js'));
     // Stories are ES-module-only files for Storybook, not part of the editor.
     if (entry.name.endsWith('.stories.js')) continue;
     let code;
     if (entry.name.endsWith('.module.css')) code = await cssModule(file);
-    else if (entry.name.endsWith('.js')) code = readAmd(file);
+    else if (entry.name.endsWith('.js') || (entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')))
+        code = await readAmd(file);
     else continue;
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(entry.name.endsWith('.css') ? dest + '.js' : dest, code);

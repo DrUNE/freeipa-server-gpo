@@ -1,0 +1,12 @@
+{
+    // The TypeScript sources are checked strictly; the JavaScript they import is only read for its types.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "strict": true,
+        "noImplicitAny": true,
+        "checkJs": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    },
+    "include": ["types/**/*.d.ts", "src/**/*.ts"]
+}
