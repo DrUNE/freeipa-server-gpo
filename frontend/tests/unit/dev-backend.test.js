@@ -37,7 +37,7 @@ test('the empty scenario empties the lists and leaves the rest of the answer', (
     const documents = call('gpo_editor_open', [['Dev GPO'], {}], 'empty');
     assert.deepEqual(documents.result.result.preference_documents, []);
     const files = call('gpo_editor_script_files', [['Dev GPO', 'computer', 'startup'], {}], 'empty');
-    assert.deepEqual(files.result.result.assets, []);
+    assert.deepEqual(files.result.result.scripts.assets, []);
 });
 
 test('the scenario never changes the fixtures themselves', () => {

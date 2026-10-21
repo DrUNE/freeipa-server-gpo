@@ -27,7 +27,15 @@ function gpoEnvelope(displayname) {
             guid: '{6AC1786C-016F-11D2-945F-00C04FB984F9}',
             distinguished_name: 'cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test'
         },
-        snapshot: { version: 7, machine_extensions: [], user_extensions: [] },
+        snapshot: {
+            identity: {
+                guid: '{6AC1786C-016F-11D2-945F-00C04FB984F9}',
+                distinguished_name: 'cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test'
+            },
+            version_number: 7,
+            machine_extension_names: '',
+            user_extension_names: ''
+        },
         template: { revision: 'dev-fixture', diagnostics: [] },
         security_catalog_status: null,
         locales: ['ru-RU', 'en-US'],
@@ -387,9 +395,11 @@ function scriptsFixture(scope, event) {
                     managed_asset_name: 'hello.sh'
                 }
             ],
-            snapshot: {}
+            snapshot: {},
+            diagnostics: []
         },
-        powershell: { editable: true, entries: [], snapshot: {} }
+        powershell: { editable: true, entries: [], snapshot: {}, diagnostics: [] },
+        upload_limit_bytes: 16 * 1024 * 1024
     };
 }
 
@@ -530,7 +540,7 @@ const methods = {
     },
 
     gpo_editor_preference_documents(displayname) {
-        return Object.assign(gpoEnvelope(displayname), { preference_documents: preferenceDocuments() });
+        return Object.assign(gpoEnvelope(displayname), { documents: preferenceDocuments() });
     },
 
     gpo_editor_preference_items(displayname, scope, kind) {
@@ -577,7 +587,8 @@ const methods = {
     },
 
     gpo_editor_script_files(displayname, scope, event) {
-        return Object.assign(gpoEnvelope(displayname), { assets: clone(scriptsFor(scope, event).assets) });
+        // The real command answers with the whole event view, like scripts_show.
+        return Object.assign(gpoEnvelope(displayname), { scripts: clone(scriptsFor(scope, event)) });
     },
 
     gpo_editor_script_entry_add(displayname, scope, event, options) {
@@ -691,7 +702,7 @@ const methods = {
     },
 
     gpo_editor_reconcile(displayname) {
-        return Object.assign(gpoEnvelope(displayname), { recovery: { kind: 'clean' } });
+        return Object.assign(gpoEnvelope(displayname), { recovery: { kind: 'clean', plan: null, conflict: null } });
     },
 
     gpo_editor_security_definitions_show(displayname) {
@@ -742,7 +753,7 @@ const methods = {
 /** The scenarios of the dev stand (`?scenario=` on the page): how the mock server behaves, to see the UI states. */
 const SCENARIOS = ['normal', 'error', 'slow', 'empty'];
 // The top-level lists of the `gpo_editor_*` answers that `empty` empties.
-const LISTS = ['items', 'assets', 'children', 'policies', 'preference_documents'];
+const LISTS = ['items', 'assets', 'children', 'policies', 'preference_documents', 'documents'];
 
 function emptied(result) {
     if (!result || typeof result !== 'object') return result;
