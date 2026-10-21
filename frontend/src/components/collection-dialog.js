@@ -73,7 +73,15 @@ function open(host, options) {
                         children: [
                             readOnly
                                 ? null
-                                : createElement('th', { attrs: { scope: 'col', 'aria-label': tr('reorder') } }),
+                                : createElement('th', {
+                                      attrs: { scope: 'col' },
+                                      children: [
+                                          createElement('span', {
+                                              className: 'gpo-editor-visually-hidden',
+                                              text: tr('reorder')
+                                          })
+                                      ]
+                                  }),
                             createElement('th', {
                                 attrs: { scope: 'col' },
                                 text: state.mode === 'key_value' ? tr('key') : tr('index')

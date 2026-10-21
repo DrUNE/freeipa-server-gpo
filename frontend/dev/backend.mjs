@@ -784,6 +784,10 @@ function emptied(result) {
     if (copy.advanced_audit && typeof copy.advanced_audit === 'object') {
         copy.advanced_audit = { ...copy.advanced_audit, rows: [], subcategory_catalog: [] };
     }
+    // The Security catalog has no definitions to show.
+    if (copy.security_catalog && typeof copy.security_catalog === 'object') {
+        copy.security_catalog = { ...copy.security_catalog, categories: [], policies: [] };
+    }
     if (copy.scripts && typeof copy.scripts === 'object') {
         copy.scripts = Object.fromEntries(
             Object.entries(copy.scripts).map(([key, value]) => [

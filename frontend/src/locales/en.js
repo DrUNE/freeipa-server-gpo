@@ -530,7 +530,8 @@ const preferences = {
 };
 const treeView = {
     loadingPolicies: 'Loading policies...',
-    unableToLoadPolicies: 'Unable to load policies.'
+    unableToLoadPolicies: 'Unable to load policies.',
+    unableToLoadSection: 'Unable to load the section.'
 };
 const header = {
     create: 'Create',

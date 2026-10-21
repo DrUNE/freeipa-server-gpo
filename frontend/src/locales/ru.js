@@ -532,7 +532,8 @@ const preferences = {
 };
 const treeView = {
     loadingPolicies: 'Loading policies...',
-    unableToLoadPolicies: 'Не удалось загрузить политики.'
+    unableToLoadPolicies: 'Не удалось загрузить политики.',
+    unableToLoadSection: 'Не удалось загрузить раздел'
 };
 const header = {
     create: 'Создать',

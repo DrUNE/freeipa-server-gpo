@@ -825,7 +825,8 @@
 	};
 	var treeView$1 = {
 		loadingPolicies: "Loading policies...",
-		unableToLoadPolicies: "Unable to load policies."
+		unableToLoadPolicies: "Unable to load policies.",
+		unableToLoadSection: "Unable to load the section."
 	};
 	var header$2 = {
 		create: "Create",
@@ -1475,7 +1476,8 @@
 	};
 	var treeView = {
 		loadingPolicies: "Loading policies...",
-		unableToLoadPolicies: "Не удалось загрузить политики."
+		unableToLoadPolicies: "Не удалось загрузить политики.",
+		unableToLoadSection: "Не удалось загрузить раздел"
 	};
 	var header$1 = {
 		create: "Создать",
@@ -1668,7 +1670,34 @@
 		return element;
 	}
 	//#endregion
-	//#region src/components/tree-view/tree-view-list.js
+	//#region src/lib/dom.js
+	/**
+	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
+	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
+	* @template {keyof HTMLElementTagNameMap} K
+	* @param {K} tag
+	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
+	* @param {...Child} children
+	* @returns {HTMLElementTagNameMap[K]}
+	*/
+	function h(tag, attrs = {}, ...children) {
+		const element = document.createElement(tag);
+		for (const [name, value] of Object.entries(attrs)) {
+			if (value === false || value === null || value === void 0) continue;
+			element.setAttribute(name, value === true ? "" : value);
+		}
+		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
+		return element;
+	}
+	/**
+	* Joins class names, skipping falsy values.
+	* @param {...(string | false | null | undefined)} names
+	*/
+	function cx(...names) {
+		return names.filter(Boolean).join(" ");
+	}
+	//#endregion
+	//#region src/components/TreeView/TreeView.js
 	var expansionRuns = /* @__PURE__ */ new WeakMap();
 	var selectionScrollRuns = /* @__PURE__ */ new WeakMap();
 	function scrollTreeItemIntoView(element) {
@@ -1844,25 +1873,23 @@
 		(items || []).forEach(function(item) {
 			if (item.showInTree === false && treeViewState) treeViewState.registerTreeNode(item, { parentItem: parentItem || null });
 		});
-		return createElement("ul", {
-			className: "tree-view__list",
-			attrs: {
-				role: parentItem ? "group" : "tree",
-				"aria-label": parentItem ? null : t("navigation.tree"),
-				title: parentItem ? null : t("navigation.keyboardHelp")
-			},
-			children: (items || []).filter(function(item) {
-				return item.showInTree !== false;
-			}).map(function(item) {
-				return renderTreeItem(item, treeViewState, parentItem || null);
-			})
-		});
+		return h("ul", {
+			class: "tree-view__list",
+			role: parentItem ? "group" : "tree",
+			"aria-label": parentItem ? null : t("navigation.tree"),
+			title: parentItem ? null : t("navigation.keyboardHelp")
+		}, ...(items || []).filter(function(item) {
+			return item.showInTree !== false;
+		}).map(function(item) {
+			return renderTreeItem(item, treeViewState, parentItem || null);
+		}));
 	}
 	function renderLoadError() {
-		return createElement("li", {
-			className: ["view", "tree-view__lazy-error"],
-			text: "Не удалось загрузить раздел"
-		});
+		return h("li", {
+			class: "view tree-view__lazy-error",
+			role: "treeitem",
+			"aria-disabled": "true"
+		}, t("treeView.unableToLoadSection"));
 	}
 	function ensureLazyChildren(item, listItem, treeViewState) {
 		if (!item || !item.lazy || item.loaded) return Promise.resolve(item && item.children || []);
@@ -1876,17 +1903,17 @@
 			syncSwitcher(listItem.querySelector(":scope > .tree-item > .icon-switcher"), item);
 			const oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(renderTreeList(item.children, treeViewState, item).getElement());
+			listItem.appendChild(renderTreeList(item.children, treeViewState, item));
 			setFolderOpenedState(listItem, item, item.opened);
 			return item.children;
 		}).catch(function(error) {
 			console.error("[tree-view] Failed to load children.", error);
 			const oldNested = listItem.querySelector(":scope > ul.tree-view__list");
 			if (oldNested) oldNested.remove();
-			listItem.appendChild(createElement("ul", {
-				className: "tree-view__list",
-				children: [renderLoadError()]
-			}).getElement());
+			listItem.appendChild(h("ul", {
+				class: "tree-view__list",
+				role: "group"
+			}, renderLoadError()));
 			setFolderOpenedState(listItem, item, item.opened);
 			throw error;
 		}).finally(function() {
@@ -1897,39 +1924,25 @@
 	}
 	function renderTreeItem(item, treeViewState, parentItem) {
 		const isFolder = item.type === "folder";
-		const classes = ["view", isFolder ? "folder" : "file"];
-		if (isFolder) classes.push(item.opened ? "opened" : "closed");
-		const treeItem = createElement("span", {
-			className: "tree-item",
-			attrs: {
-				role: "treeitem",
-				tabindex: parentItem ? "-1" : "0",
-				"aria-selected": "false",
-				"aria-label": item.title,
-				"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
-			},
-			children: [
-				isFolder ? createElement("span", {
-					className: ["icon-switcher", hasVisibleChildren(item) ? null : "icon-switcher--empty"],
-					attrs: { role: "button" }
-				}) : null,
-				isFolder ? createElement("span", {
-					className: "tree-view__status-spinner",
-					attrs: { "aria-hidden": "true" }
-				}) : null,
-				item.icon ? createElement("span", { className: ["icon", item.icon] }) : null,
-				createElement("span", {
-					className: "tree-item__title",
-					text: item.title
-				})
-			]
-		});
-		const listItem = createElement("li", {
-			className: classes,
-			children: [treeItem]
-		});
-		const listElement = listItem.getElement();
-		const switcher = isFolder ? treeItem.getElement().querySelector(".icon-switcher") : null;
+		const treeItem = h("span", {
+			class: "tree-item",
+			role: "treeitem",
+			tabindex: parentItem ? "-1" : "0",
+			"aria-selected": "false",
+			"aria-label": item.title,
+			"aria-expanded": isFolder && hasVisibleChildren(item) ? String(Boolean(item.opened)) : null
+		}, isFolder && h("span", {
+			class: cx("icon-switcher", !hasVisibleChildren(item) && "icon-switcher--empty"),
+			role: "button"
+		}), isFolder && h("span", {
+			class: "tree-view__status-spinner",
+			"aria-hidden": "true"
+		}), item.icon && h("span", { class: cx("icon", item.icon) }), h("span", { class: "tree-item__title" }, item.title));
+		const listElement = h("li", {
+			class: cx("view", isFolder ? "folder" : "file", isFolder && (item.opened ? "opened" : "closed")),
+			role: "none"
+		}, treeItem);
+		const switcher = isFolder ? treeItem.querySelector(".icon-switcher") : null;
 		syncSwitcher(switcher, item);
 		function toggleExpansion() {
 			if (!hasVisibleChildren(item)) return;
@@ -1954,14 +1967,14 @@
 				if (treeViewState.selectedItem && treeViewState.selectedItem.item === target) element.focus({ preventScroll: true });
 			});
 		}
-		treeItem.getElement()._gpoTreeItem = item;
-		treeItem.on("keydown", function(event) {
+		/** @type {any} */ treeItem._gpoTreeItem = item;
+		treeItem.addEventListener("keydown", function(event) {
 			if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
 			if (event.target.closest("button, input, textarea, select, a, [contenteditable]")) return;
-			const root = treeItem.getElement().closest("[role=\"tree\"]");
+			const root = treeItem.closest("[role=\"tree\"]");
 			if (!root) return;
 			const rows = visibleRows(root);
-			const index = rows.indexOf(treeItem.getElement());
+			const index = rows.indexOf(treeItem);
 			let next = null;
 			if (event.key === "ArrowUp") next = rows[Math.max(0, index - 1)];
 			else if (event.key === "ArrowDown") next = rows[Math.min(rows.length - 1, index + 1)];
@@ -1977,8 +1990,8 @@
 				else next = listElement.parentElement && listElement.parentElement.closest("li.view") && listElement.parentElement.closest("li.view").querySelector(":scope > .tree-item");
 			} else if (event.key === "Enter") {
 				if (treeViewState && treeViewState.selectedItem && treeViewState.selectedItem.item === item && isFolder) toggleExpansion();
-				else next = treeItem.getElement();
-			} else if (event.key === " " || event.key === "Spacebar") next = treeItem.getElement();
+				else next = treeItem;
+			} else if (event.key === " " || event.key === "Spacebar") next = treeItem;
 			else return;
 			event.preventDefault();
 			event.stopPropagation();
@@ -1991,15 +2004,15 @@
 			toggleExpansion();
 		});
 		if (treeViewState) treeViewState.registerTreeNode(item, {
-			treeItemElement: treeItem.getElement(),
+			treeItemElement: treeItem,
 			listItemElement: listElement,
 			parentItem: parentItem || null
 		});
 		if (isFolder && !item.lazy && hasVisibleChildren(item)) {
-			listItem.append(renderTreeList(item.children, treeViewState, item));
+			listElement.append(renderTreeList(item.children, treeViewState, item));
 			setFolderOpenedState(listElement, item, item.opened);
 		}
-		treeItem.on("click", function(event) {
+		treeItem.addEventListener("click", function(event) {
 			event.stopPropagation();
 			const clicked = event.currentTarget;
 			if (isFolder && event.target instanceof Element && event.target.closest(".icon-switcher")) {
@@ -2020,15 +2033,20 @@
 				openPath: true
 			});
 		});
-		return listItem;
+		return listElement;
 	}
-	function renderTreeViewList(data, workspace, treeViewState) {
+	function renderTreeViewList$1(data, workspace, treeViewState) {
 		const treeData = Array.isArray(data) ? data : [];
 		if (workspace && treeViewState) {
 			treeViewState.setWorkspace(workspace);
 			treeViewState.setTreeData(treeData);
 		}
 		return renderTreeList(treeData, treeViewState, null);
+	}
+	//#endregion
+	//#region src/components/tree-view/tree-view-list.js
+	function renderTreeViewList(data, workspace, treeViewState) {
+		return ElementCreator.wrap(renderTreeViewList$1(data, workspace, treeViewState));
 	}
 	//#endregion
 	//#region src/util/API.ts
@@ -3076,33 +3094,6 @@
 			document.removeEventListener("mouseup", stopResizing);
 			stopResizing();
 		};
-	}
-	//#endregion
-	//#region src/lib/dom.js
-	/**
-	* Creates an element with attributes and children. `null`, `undefined` and `false` children are skipped,
-	* so conditional parts can be written inline: `cond && h('p', {}, 'text')`.
-	* @template {keyof HTMLElementTagNameMap} K
-	* @param {K} tag
-	* @param {Record<string, string | boolean | null | undefined>} [attrs] `class` takes a string; a falsy value omits the attribute.
-	* @param {...Child} children
-	* @returns {HTMLElementTagNameMap[K]}
-	*/
-	function h(tag, attrs = {}, ...children) {
-		const element = document.createElement(tag);
-		for (const [name, value] of Object.entries(attrs)) {
-			if (value === false || value === null || value === void 0) continue;
-			element.setAttribute(name, value === true ? "" : value);
-		}
-		element.append(...children.filter((child) => child !== null && child !== void 0 && child !== false));
-		return element;
-	}
-	/**
-	* Joins class names, skipping falsy values.
-	* @param {...(string | false | null | undefined)} names
-	*/
-	function cx(...names) {
-		return names.filter(Boolean).join(" ");
 	}
 	//#endregion
 	//#region src/components/Breadcrumb/Breadcrumb.js
@@ -4468,10 +4459,13 @@
 					createElement("col")
 				] }),
 				createElement("thead", { children: [createElement("tr", { children: [
-					readOnly ? null : createElement("th", { attrs: {
-						scope: "col",
-						"aria-label": tr$6("reorder")
-					} }),
+					readOnly ? null : createElement("th", {
+						attrs: { scope: "col" },
+						children: [createElement("span", {
+							className: "gpo-editor-visually-hidden",
+							text: tr$6("reorder")
+						})]
+					}),
 					createElement("th", {
 						attrs: { scope: "col" },
 						text: state.mode === "key_value" ? tr$6("key") : tr$6("index")
@@ -5235,10 +5229,7 @@
 			inputElement.checked = Boolean(inputValue(renderedValue));
 			input = createElement("span", {
 				className: "gpo-editor-boolean",
-				children: [checkbox, createElement("label", { attrs: {
-					for: checkboxId,
-					"aria-label": parameter.label || parameter.id
-				} })]
+				children: [checkbox, createElement("label", { attrs: { for: checkboxId } })]
 			});
 		} else if (parameter.kind === "enum") {
 			input = createElement("select", {
@@ -5364,6 +5355,7 @@
 		const comment = createElement("textarea", {
 			attrs: {
 				name: "comment",
+				"aria-label": handlers.modalLayout ? null : t("common.comment"),
 				disabled: capabilities.edit_comments && !unknown ? null : "disabled"
 			},
 			text: policy.comment ? policy.comment.text : ""
@@ -14583,6 +14575,7 @@
 				if (!creating) {
 					nameInput = createElement("input", { attrs: {
 						type: "text",
+						"aria-label": pt("rename"),
 						value: originalName,
 						required: "required",
 						disabled: readonly ? "disabled" : null

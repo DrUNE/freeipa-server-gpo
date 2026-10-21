@@ -41,9 +41,9 @@ In the order of use: the first ones appear in the most screens and give the most
 | 2 | ✅ `DataTable` (columns, single and multiple selection, roving focus from `list-navigation.js`, empty and loading states) | `preference/view/items-table.js`, `script/assets-panel.js`, `script/entries-panel.js`, the catalog tables | `Table`, webui `TableLayout` | 3-4 |
 | 3 | ✅ `Field` + `FieldControl` by kind (`text`, `optional_text`, `integer`, `select`, `boolean`, `text_list`, read-only, error, hint) | `preference/view/field-control.js`, `admx/policy-contents.js` | `FormGroup`, `TextInput`, `FormSelect`, `Checkbox`, `HelperText` | 3-4 |
 | 4 | ✅ `Tabs` | `preference/view/field-tabs.js` | `Tabs`, webui `TabLayout` | 1 |
-| 5 | `TreeView` (expand, select, keyboard, lazy children) | `tree-view/*` | `TreeView` | 2-3 |
+| 5 | ✅ `TreeView` (expand, select, keyboard, lazy children) | `tree-view/*` | `TreeView` | 2-3 |
 | 6 | ✅ `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0.5 |
-| 7 | `CollectionEditor` (list and key/value list, inline editing, validation per row) | `collection-dialog.js`, `collection-control.js`; logic in `util/collection-value.ts` | a table with inline editing | 2-3 |
+| 7 | ◐ `CollectionEditor` (list and key/value list, inline editing, validation per row) | `collection-dialog.js`, `collection-control.js`; logic in `util/collection-value.ts` | a table with inline editing | 2-3 |
 | 8 | ✅ `ConfirmationDialog` on `Dialog` and `h()` | `confirmation-dialog.js` | webui `ConfirmationModal.tsx` | 0.5 |
 | 9 | `OrderableList` (up/down buttons, drag-and-drop with a keyboard alternative) | the order of scripts; later targeting and, in webui, chains | none in webui | 2 |
 
@@ -102,8 +102,8 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 | 1 | ✅ Storybook infrastructure: the fake RPC (the mock server of the stand, whose answers are checked against the reference answers), the scenarios, `Foundations/Tokens`, the accessibility addon | 2-3 |
 | 2 | ✅ Components 1-2 (`Toolbar`, `DataTable`) with stories | 4-6 |
 | 3 | ✅ Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
-| 4 | Components 3-8 with stories (done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`) | 9-12 |
-| 5 | Screen stories for Security, ADMX, the preference form, the tree | 3-4 |
+| 4 | Components 3-8 with stories (done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`, `TreeView`) | 9-12 |
+| 5 | Screen stories for Security, ADMX, the preference form (done), the tree | 3-4 |
 | 6 | Component 9 (`OrderableList`) when the targeting or the webui chains need it | 2 |
 | | **Total** | **22-29** |
 
@@ -119,7 +119,9 @@ is `.active`; they now have their own look.
 
 **Step 3 is done.** `Screens/Advanced Audit` (rows and filtering, slow, server error, nothing to list) and `Screens/Scripts` (the overview of a scope, the event page with its selection rules, the empty and the slow event page) render the real templates on the fake server through `.storybook/screen.js` (`mountScreen`: opens the policy, shows the loading state, shows the error the editor would show). The `empty` scenario of the mock server now also empties the Advanced Audit rows and the script entries. The accessibility checks of the screens found three more defects, fixed: an empty `<h2>` heading on the audit screen (it now falls back to the localized title), the execution-order select of the scripts page without an accessible name (new label `executionOrder`, EN/RU), and the active tab at 4.4:1 (uses `--gpui-accent-text`).
 
-**Step 4 is partly done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`.** `Field` (`createField`, layouts `checkbox|text|select|plain|mockup`) owns the label bound with `for`, the hint, the error (`[data-field-part="error"]`) and `aria-describedby`; `field-control.js` builds on it. `Tabs` (`createTabs`) renders real `button`s with `aria-controls`, panels and keyboard movement; `field-tabs.js` uses it. Stories: `Primitives/Field`, `Primitives/Tabs`. The accessibility checks found the last `#777` text colors (now `--gpui-muted`) and an unnamed tab list (new label `tabsLabel`). `Breadcrumb` (`createBreadcrumb`) and `ConfirmationDialog` (`open`, on `h()`) keep their old modules (`category-path.js`, `confirmation-dialog.js`) as adapters; the unit test of the confirmation dialog, which needed a fake DOM, became three stories (cancel, Escape and Tab, structured content). Remaining: `TreeView`, `CollectionEditor`.
+**Step 4 is partly done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`, `TreeView`.** `Field` (`createField`, layouts `checkbox|text|select|plain|mockup`) owns the label bound with `for`, the hint, the error (`[data-field-part="error"]`) and `aria-describedby`; `field-control.js` builds on it. `Tabs` (`createTabs`) renders real `button`s with `aria-controls`, panels and keyboard movement; `field-tabs.js` uses it. Stories: `Primitives/Field`, `Primitives/Tabs`. The accessibility checks found the last `#777` text colors (now `--gpui-muted`) and an unnamed tab list (new label `tabsLabel`). `Breadcrumb` (`createBreadcrumb`) and `ConfirmationDialog` (`open`, on `h()`) keep their old modules (`category-path.js`, `confirmation-dialog.js`) as adapters; the unit test of the confirmation dialog, which needed a fake DOM, became three stories (cancel, Escape and Tab, structured content). `TreeView` (`components/TreeView/`, the old `tree-view-list.js` is an adapter) is stateless-testable with a small tree state in the stories; its accessibility checks found real ARIA defects (list items without `role="none"`, a load-error group without `role="group"`), fixed, and a hard-coded Russian message moved to the locales. `CollectionEditor` has its specification as stories (`Primitives/CollectionEditor`: summary, adding a row, the empty list with the minimum, a duplicate key, discarding changes, read-only); the accessibility check found a table header without text (the reorder column), fixed. The 650-line `collection-dialog.js` itself is not split yet: it is one closure, to be taken apart under these stories.
+
+**Step 5 is done except the tree screen.** `Screens/Security`, `Screens/ADMX Policy` (11 stories) and `Screens/Preferences` (8 stories, the list, the form, read-only, validation) follow the pattern of step 3. Accessibility checks found three more defects, fixed: a `label` with `aria-label` on a boolean ADMX parameter, an unnamed comment field of the page layout, and an unnamed name field of the preference form. The `empty` scenario now also empties the security catalog.
 
 ## 7. What not to do
 
