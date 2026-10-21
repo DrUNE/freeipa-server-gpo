@@ -289,6 +289,7 @@
 		header: () => header$2,
 		menu: () => menu$1,
 		navigation: () => navigation$1,
+		orderableList: () => orderableList$1,
 		policies: () => policies$1,
 		policyChangedModal: () => policyChangedModal$1,
 		policySearch: () => policySearch$1,
@@ -828,6 +829,14 @@
 		unableToLoadPolicies: "Unable to load policies.",
 		unableToLoadSection: "Unable to load the section."
 	};
+	var orderableList$1 = {
+		handle: "Move {label}",
+		handleHelp: "Drag to reorder. On this handle, Ctrl+Up/Down moves the item.",
+		moveUp: "Move {label} up",
+		moveDown: "Move {label} down",
+		moved: "{label} moved to position {index} of {total}.",
+		empty: "No items"
+	};
 	var header$2 = {
 		create: "Create",
 		edit: "Edit",
@@ -940,6 +949,7 @@
 		header: () => header$1,
 		menu: () => menu,
 		navigation: () => navigation,
+		orderableList: () => orderableList,
 		policies: () => policies,
 		policyChangedModal: () => policyChangedModal,
 		policySearch: () => policySearch,
@@ -1478,6 +1488,14 @@
 		loadingPolicies: "Loading policies...",
 		unableToLoadPolicies: "Не удалось загрузить политики.",
 		unableToLoadSection: "Не удалось загрузить раздел"
+	};
+	var orderableList = {
+		handle: "Переместить: {label}",
+		handleHelp: "Перетащите для изменения порядка. На этой кнопке Ctrl+↑/↓ перемещает элемент.",
+		moveUp: "Переместить выше: {label}",
+		moveDown: "Переместить ниже: {label}",
+		moved: "{label}: позиция {index} из {total}.",
+		empty: "Нет элементов"
 	};
 	var header$1 = {
 		create: "Создать",
