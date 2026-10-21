@@ -25,6 +25,13 @@ import { t, getLanguage } from '@gpui/locales/translations';
 import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
 import { render } from '@gpui/components/templates/preference/targeting-editor';
 import {
+    syncFormBusy,
+    setNameError,
+    clearFormErrors,
+    markServerFieldError
+} from '@gpui/components/templates/preference/view/form-state';
+import { createTargetingModal } from '@gpui/components/templates/preference/view/targeting-modal';
+import {
     pt,
     tableColumns,
     actionLabel,
@@ -678,72 +685,14 @@ async function renderPreferencesTemplate(options) {
             };
             const filterSection = createElement('div', { className: 'preference__modal-filters' });
             filterSection.append(buildFilterEditor(response, formState, readonly));
-            let targettingModalElement = null;
-            let targettingHost = null;
-            const closeTargettingModal = function (accept) {
-                if (accept && !readonly && !formState.acceptFilterDraft()) return;
-                if (!accept) formState.cancelFilterDraft();
-                if (targettingModalElement) {
-                    targettingModalElement.classList.remove('active');
-                    targettingModalElement.inert = true;
-                    targettingHost.style.display = 'none';
-                }
-                form.getElement().classList.remove('gpo-editor-preference-form--dimmed');
-                form.getElement().inert = false;
-                if (targettingButton) targettingButton.getElement().focus();
-            };
-            const buildTargettingModal = function () {
-                if (targettingModalElement) return targettingHost;
-                const wrap = ElementCreator.wrap;
-                const closeX = wrap(createCloseButton(pt('close')));
-                closeX.on('click', function () {
-                    closeTargettingModal(false);
-                });
-                const cancelButton = wrap(createDialogButton('cancel', readonly ? pt('close') : pt('cancel')));
-                cancelButton.on('click', function () {
-                    closeTargettingModal(false);
-                });
-                const buttons = [cancelButton.getElement()];
-                if (!readonly) {
-                    const okButton = wrap(createDialogButton('apply', pt('targetingOk')));
-                    okButton.on('click', function () {
-                        closeTargettingModal(true);
-                    });
-                    buttons.push(okButton.getElement());
-                }
-                const body = createBody(null);
-                body.append(filterSection.getElement());
-                const shell = createDialogShell({
-                    titleId: 'gpo-editor-targeting-title',
-                    title: pt('targettingTitle'),
-                    body: body,
-                    closeButton: closeX.getElement(),
-                    buttons: buttons,
-                    width: 'min(700px, calc(100vw - 40px))',
-                    fill: true,
-                    className: ['targetting__modal', readonly ? 'gpo-editor-dialog--readonly' : null]
-                        .filter(Boolean)
-                        .join(' '),
-                    hostClassName: 'gpo-editor-targeting-host'
-                });
-                targettingHost = shell.host;
-                targettingModalElement = shell.dialog;
-                targettingModalElement.addEventListener('keydown', function (event) {
-                    if (
-                        event.defaultPrevented ||
-                        event.target.closest('[role="dialog"], [role="alertdialog"]') !== targettingModalElement
-                    )
-                        return;
-                    if (event.key === 'Escape' && !event.defaultPrevented) {
-                        event.preventDefault();
-                        closeTargettingModal(false);
-                    }
-                    trapTab(event, targettingModalElement);
-                });
-                targettingModalElement.inert = true;
-                targettingHost.style.display = 'none';
-                return targettingHost;
-            };
+            const targeting = createTargetingModal({
+                host,
+                filterSection,
+                readonly,
+                formState,
+                getForm: () => form.getElement(),
+                getOpener: () => targettingButton.getElement()
+            });
             const wrapElement = ElementCreator.wrap;
             const formBody = createBody(null);
             formBody.append(validationSlot.getElement());
@@ -801,19 +750,7 @@ async function renderPreferencesTemplate(options) {
                     click: function () {
                         if (formState.busy) return;
                         formState.beginFilterDraft();
-                        const modalHost = buildTargettingModal();
-                        if (!modalHost.parentNode) host.appendChild(modalHost);
-                        const modal = targettingModalElement;
-                        modalHost.style.display = '';
-                        modal.inert = false;
-                        modal.classList.add('active');
-                        form.getElement().classList.add('gpo-editor-preference-form--dimmed');
-                        form.getElement().inert = true;
-                        const first = modal.querySelector(
-                            '.gpo-editor-filter-add:not(:disabled), [role="treeitem"], .btn-cancel'
-                        );
-                        if (first) first.focus();
-                        else modal.focus();
+                        targeting.open();
                     }
                 }
             });
@@ -979,100 +916,6 @@ async function renderPreferencesTemplate(options) {
         setHeaderState();
         if (action !== 'cleanup' && action !== 'navigation') focusTable();
         return true;
-    }
-
-    function formInteractiveElements(state) {
-        const elements = [];
-        const roots = [state.formElement];
-        if (state.formElement.closest('[data-dialog-host]')) {
-            const targettingModal = state.formElement
-                .closest('[data-dialog-host]')
-                .parentNode.querySelector('.targetting__modal');
-            if (targettingModal) roots.push(targettingModal);
-        }
-        roots.forEach(function (root) {
-            ['input', 'select', 'textarea', 'button'].forEach(function (selector) {
-                Array.prototype.forEach.call(root.querySelectorAll(selector), function (element) {
-                    if (elements.indexOf(element) === -1) elements.push(element);
-                });
-            });
-        });
-        return elements;
-    }
-
-    function isRefreshSafeAction(state, element) {
-        return (
-            state.closeButtons.indexOf(element) !== -1 ||
-            Boolean(element.hasAttribute && element.hasAttribute('data-editor-status-action'))
-        );
-    }
-
-    function syncFormBusy(state) {
-        if (!state) return;
-        const busy = Boolean(state.saving || state.reconciling);
-        const elements = formInteractiveElements(state);
-        if (busy) {
-            elements.forEach(function (element) {
-                if (!state.busyDisabledStates.has(element)) {
-                    state.busyDisabledStates.set(element, Boolean(element.disabled));
-                }
-                element.disabled = true;
-            });
-        } else {
-            state.busyDisabledStates.forEach(function (disabled, element) {
-                element.disabled = disabled;
-            });
-            state.busyDisabledStates.clear();
-        }
-        const refreshLocked = Boolean(state.requiresRefresh);
-        state.formState.busy = busy || refreshLocked;
-        state.formElement.classList.toggle('gpo-editor-preference-form--busy', busy);
-        state.formElement.classList.toggle('gpo-editor-preference-form--refresh-required', refreshLocked);
-        if (busy) state.formElement.setAttribute('aria-busy', 'true');
-        else state.formElement.removeAttribute('aria-busy');
-        if (!busy && refreshLocked) {
-            formInteractiveElements(state).forEach(function (element) {
-                element.disabled = !isRefreshSafeAction(state, element);
-            });
-        }
-        (state.closeButtons || []).forEach(function (button) {
-            button.disabled = busy;
-        });
-        if (state.saveButton) {
-            state.saveButton.disabled = Boolean(busy || state.requiresRefresh || state.blockedDescriptors);
-        }
-    }
-
-    function setNameError(state, message) {
-        if (!state.nameField || !state.nameError || !state.nameInput) return;
-        state.nameField.classList.toggle('gpo-editor-field--error', Boolean(message));
-        state.nameError.textContent = message || '';
-        if (message) state.nameInput.setAttribute('aria-invalid', 'true');
-        else state.nameInput.removeAttribute('aria-invalid');
-    }
-
-    function clearFormErrors(state) {
-        state.controls.forEach(function (control) {
-            control.setError('');
-        });
-        setNameError(state, '');
-        state.formElement.classList.remove('gpo-editor-preference-form--invalid');
-        state.validationSlot.textContent = '';
-        state.errorSlot.innerHTML = '';
-    }
-
-    function markServerFieldError(state, error) {
-        if (!error || !error.field) return;
-        const field = String(error.field);
-        const message = error.message || pt('validationFixErrors');
-        if (field === 'name' || field.indexOf('name') !== -1) setNameError(state, message);
-        state.controlsById.forEach(function (controls, id) {
-            if (field === id || field.indexOf(id) !== -1) {
-                controls.forEach(function (control) {
-                    control.setError(message);
-                });
-            }
-        });
     }
 
     function renderFormError(state, error) {
