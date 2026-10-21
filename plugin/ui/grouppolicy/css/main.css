@@ -1684,20 +1684,6 @@
   padding: 0;
   box-sizing: border-box;
 }
-.gp__container .gpo-editor-scripts > .scripts__overlay {
-  z-index: 99;
-}
-.gp__container .gpo-editor-scripts .gpo-editor-scripts__event-dialog,
-.gp__container .gpo-editor-scripts .gpo-editor-scripts__explorer {
-  z-index: 100;
-}
-.gp__container .gpo-editor-scripts__event-dialog .scripts__overlay,
-.gp__container .gpo-editor-scripts__explorer .scripts__overlay {
-  z-index: 101;
-}
-.gp__container .gpo-editor-scripts .gpo-editor-scripts__form {
-  z-index: 102;
-}
 .gp__container .gpo-editor-scripts__event-table {
   table-layout: fixed;
 }
@@ -1713,14 +1699,6 @@
   outline: 2px solid #0088ce;
   outline-offset: -2px;
 }
-.gp__container .gpo-editor-scripts__event-dialog .preference__modal-wrapper {
-  width: min(600px, calc(100vw - 32px));
-}
-.gp__container .gpo-editor-scripts__explorer .preference__modal-wrapper {
-  width: min(620px, calc(100vw - 32px));
-}
-.gp__container .gpo-editor-scripts__event-dialog .preference__modal-content,
-.gp__container .gpo-editor-scripts__explorer .preference__modal-content,
 .gp__container .gpo-editor-scripts__event-dialog [data-dialog-part="body"],
 .gp__container .gpo-editor-scripts__explorer [data-dialog-part="body"] {
   display: flex;
@@ -1742,23 +1720,6 @@
 }
 .gp__container .gpo-editor-scripts .gpo-editor-scripts__file-input {
   display: none !important;
-}
-.gp__container .gpo-editor-scripts__event-dialog .preference__modal-header,
-.gp__container .gpo-editor-scripts__explorer .preference__modal-header {
-  height: auto;
-  min-height: 40px;
-}
-.gp__container .gpo-editor-scripts__event-dialog .preference__modal-header .title,
-.gp__container .gpo-editor-scripts__explorer .preference__modal-header .title {
-  padding: 10px 40px;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-.gp__container .gpo-editor-scripts__event-dialog .preference__modal-header .close,
-.gp__container .gpo-editor-scripts__explorer .preference__modal-header .close {
-  padding: 0;
-  border: 0;
-  background-color: transparent;
 }
 .gp__container .gpo-editor-scripts__explorer .gpo-editor-field {
   display: flex;
@@ -1971,7 +1932,7 @@
   max-height: calc(100vh - 48px);
   overflow-y: auto;
 }
-.gp__container .gpo-editor-scripts__form .preference__modal-wrapper,
+.gp__container .gpo-editor-scripts__form [data-dialog-part="wrapper"],
 .gp__container .gpo-editor-scripts__picker [data-dialog-part="wrapper"] {
   width: min(500px, calc(100vw - 32px));
 }
@@ -1980,7 +1941,7 @@
   min-height: 130px;
   overflow-y: auto;
 }
-.gp__container .gpo-editor-scripts__form .preference__modal-content,
+.gp__container .gpo-editor-scripts__form [data-dialog-part="body"],
 .gp__container .gpo-editor-scripts__picker [data-dialog-part="body"] {
   display: grid;
   gap: 12px;

@@ -84,14 +84,6 @@ function renderScriptEventEditor(options) {
     [createButton, editButton, deleteButton].forEach(function (control, index) {
         if (control) control.textContent = st(['add', 'edit', 'remove'][index]);
     });
-    var overlay = create('div', {
-        className: 'scripts__overlay',
-        events: {
-            click: function () {
-                requestCloseForm();
-            }
-        }
-    });
     var modalBody = create('div', { className: 'scripts__modal-content' });
     var uploadInput = create('input', {
         className: 'gpo-editor-scripts__file-input',
@@ -120,7 +112,7 @@ function renderScriptEventEditor(options) {
                 text: eventLabel(event)
             })
         );
-    root.append(modalBody).append(overlay).append(uploadInput).append(replaceInput);
+    root.append(modalBody).append(uploadInput).append(replaceInput);
 
     function ownsHeader() {
         return Boolean(headerControls && headerControls.getAttribute('data-script-owner') === headerOwner);
@@ -379,11 +371,11 @@ function renderScriptEventEditor(options) {
         if (state.busy && !force) return false;
         closePicker();
         if (state.form) {
-            state.form.remove();
+            state.formHost.remove();
             state.form = null;
+            state.formHost = null;
         }
         state.formState = null;
-        overlay.getElement().classList.remove('active');
         if (current()) {
             if (state.formFocus && state.formFocus.isConnected) state.formFocus.focus();
             else if (navigations.entries) navigations.entries.focusSelected();
@@ -625,74 +617,51 @@ function renderScriptEventEditor(options) {
         sourceSelect.on('change', syncSource);
         commandInput.on('input', markDirty);
         parametersInput.on('input', markDirty);
-        var form = create('div', {
-            className: ['preference__modal', 'active', 'gpo-editor-scripts__form'],
-            attrs: { role: 'dialog', 'aria-modal': 'true' },
-            events: {
-                keydown: function (event) {
-                    if (
-                        event.defaultPrevented ||
-                        event.target.closest('[role="dialog"], [role="alertdialog"]') !== form.getElement()
-                    )
-                        return;
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        requestCloseForm();
-                    }
-                    editorDialog.trapTab(event, form.getElement());
-                }
-            },
-            children: [
-                create('div', {
-                    className: 'preference__modal-wrapper',
-                    children: [
-                        create('div', {
-                            className: 'preference__modal-header',
-                            children: [
-                                create('div', {
-                                    className: 'title',
-                                    text: st(isEdit ? 'editTitle' : 'addTitle')
-                                }),
-                                create('button', {
-                                    className: 'close',
-                                    attrs: {
-                                        type: 'button',
-                                        'aria-label': st('close')
-                                    },
-                                    events: { click: requestCloseForm }
-                                })
-                            ]
-                        }),
-                        create('div', {
-                            className: 'preference__modal-content',
-                            children: modern
-                                ? [assetRow, field(st('argumentsLabel'), parametersInput), formError]
-                                : [
-                                      field(st('sourceLabel'), sourceSelect),
-                                      assetRow,
-                                      commandRow,
-                                      field(st('argumentsLabel'), parametersInput),
-                                      formError
-                                  ]
-                        }),
-                        create('div', {
-                            className: 'preference__modal-footer',
-                            children: [
-                                button(t('header.cancel'), requestCloseForm, false, 'btn-cancel'),
-                                button(
-                                    t('header.apply'),
-                                    function () {
-                                        void submit();
-                                    },
-                                    false,
-                                    'btn-ok'
-                                )
-                            ]
-                        })
-                    ]
-                })
-            ]
+        var formBody = wrap(createBody(null));
+        (modern
+            ? [assetRow, field(st('argumentsLabel'), parametersInput), formError]
+            : [
+                  field(st('sourceLabel'), sourceSelect),
+                  assetRow,
+                  commandRow,
+                  field(st('argumentsLabel'), parametersInput),
+                  formError
+              ]
+        ).forEach(function (child) {
+            formBody.append(child);
+        });
+        var formCancel = wrap(createDialogButton('cancel', t('header.cancel')));
+        formCancel.on('click', requestCloseForm);
+        var formApply = wrap(createDialogButton('apply', t('header.apply')));
+        formApply.on('click', function () {
+            void submit();
+        });
+        var formClose = wrap(createCloseButton(st('close')));
+        formClose.on('click', requestCloseForm);
+        var shell = createDialogShell({
+            titleId: 'gpo-editor-scripts-form-title',
+            title: st(isEdit ? 'editTitle' : 'addTitle'),
+            body: formBody.getElement(),
+            closeButton: formClose.getElement(),
+            buttons: [formCancel.getElement(), formApply.getElement()],
+            className: 'gpo-editor-scripts__form'
+        });
+        var form = wrap(shell.dialog);
+        shell.host.addEventListener('click', function (event) {
+            if (event.target === shell.host) requestCloseForm();
+        });
+        form.on('keydown', function (event) {
+            if (
+                event.defaultPrevented ||
+                event.target.closest('[role="dialog"], [role="alertdialog"]') !== shell.dialog
+            )
+                return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                requestCloseForm();
+            }
+            editorDialog.trapTab(event, shell.dialog);
         });
         async function submit() {
             if (state.busy) return false;
@@ -752,15 +721,15 @@ function renderScriptEventEditor(options) {
             if (ok) closeForm(true);
             return ok;
         }
-        rootElement.appendChild(form.getElement());
-        state.form = form.getElement();
+        rootElement.appendChild(shell.host);
+        state.formHost = shell.host;
+        state.form = shell.dialog;
         state.formState = {
             dirty: function () {
                 return JSON.stringify(values()) !== initialValues;
             },
             submit: submit
         };
-        overlay.getElement().classList.add('active');
         syncSource();
         setHeaderState();
         (modern ? commandInput : sourceSelect).getElement().focus();
@@ -1815,90 +1784,51 @@ function renderScriptsTemplate(options) {
         if (!current() || state.modal) return;
         var event = state.selectedEvent;
         var previousFocus = document.activeElement;
-        var overlay = create('div', {
-            className: ['scripts__overlay', 'active', 'gpo-editor-scripts__dialog-overlay'],
-            events: {
-                click: function () {
-                    closeModal();
-                }
-            }
-        });
         var host = create('div', { className: 'gpo-editor-scripts__detail-host' });
         var title = mode === 'assets' ? st('folderForEvent').replace('{event}', eventLabel(event)) : eventLabel(event);
-        var content = create('div', {
-            className: 'preference__modal-content',
-            children: [host]
+        var detailBody = createBody(null);
+        detailBody.append(host.getElement());
+        var closeAction = wrap(createDialogButton('cancel', st('closeDialog')));
+        closeAction.on('click', function () {
+            closeModal();
         });
-        var dialog = create('div', {
-            className: [
-                'preference__modal',
-                'active',
-                mode === 'assets' ? 'gpo-editor-scripts__explorer' : 'gpo-editor-scripts__event-dialog'
-            ],
-            attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-            events: {
-                keydown: function (keyEvent) {
-                    if (
-                        keyEvent.defaultPrevented ||
-                        keyEvent.target.closest('[role="dialog"], [role="alertdialog"]') !== dialog.getElement()
-                    )
-                        return;
-                    if (keyEvent.key === 'Escape') {
-                        keyEvent.preventDefault();
-                        keyEvent.stopPropagation();
-                        closeModal();
-                    }
-                    editorDialog.trapTab(keyEvent, dialog.getElement());
-                }
-            },
-            children: [
-                create('div', {
-                    className: 'preference__modal-wrapper',
-                    children: [
-                        create('div', {
-                            className: 'preference__modal-header',
-                            children: [
-                                create('div', {
-                                    className: 'title',
-                                    text: title
-                                }),
-                                create('button', {
-                                    className: 'close',
-                                    attrs: { type: 'button', 'aria-label': st('close') },
-                                    events: {
-                                        click: function () {
-                                            closeModal();
-                                        }
-                                    }
-                                })
-                            ]
-                        }),
-                        content,
-                        create('div', {
-                            className: 'preference__modal-footer',
-                            children: [
-                                button(
-                                    st('closeDialog'),
-                                    function () {
-                                        closeModal();
-                                    },
-                                    false,
-                                    'btn-cancel'
-                                )
-                            ]
-                        })
-                    ]
-                })
-            ]
+        var closeX = wrap(createCloseButton(st('close')));
+        closeX.on('click', function () {
+            closeModal();
         });
-        rootElement.appendChild(overlay.getElement());
-        rootElement.appendChild(dialog.getElement());
+        var shell = createDialogShell({
+            titleId: 'gpo-editor-scripts-modal-title',
+            title: title,
+            body: detailBody,
+            closeButton: closeX.getElement(),
+            buttons: [closeAction.getElement()],
+            width: mode === 'assets' ? 'min(620px, calc(100vw - 32px))' : 'min(600px, calc(100vw - 32px))',
+            className: mode === 'assets' ? 'gpo-editor-scripts__explorer' : 'gpo-editor-scripts__event-dialog'
+        });
+        var dialog = wrap(shell.dialog);
+        shell.host.addEventListener('click', function (clickEvent) {
+            if (clickEvent.target === shell.host) closeModal();
+        });
+        dialog.on('keydown', function (keyEvent) {
+            if (
+                keyEvent.defaultPrevented ||
+                keyEvent.target.closest('[role="dialog"], [role="alertdialog"]') !== shell.dialog
+            )
+                return;
+            if (keyEvent.key === 'Escape') {
+                keyEvent.preventDefault();
+                keyEvent.stopPropagation();
+                closeModal();
+            }
+            editorDialog.trapTab(keyEvent, shell.dialog);
+        });
+        rootElement.appendChild(shell.host);
         state.modal = {
             mode: mode,
             event: event,
             detail: null,
             dialog: dialog.getElement(),
-            overlay: overlay.getElement(),
+            overlay: shell.host,
             previousFocus: previousFocus
         };
         updateHeader();
