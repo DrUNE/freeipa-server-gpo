@@ -478,9 +478,9 @@ class TestActivatePlugins:
 
 
 def test_ui_plugin_manifest_matches_all_runtime_source_assets():
-    ui_root = ROOT / "plugin" / "ui" / "grouppolicy"
+    ui_root = ROOT / "frontend" / "dist"
     expected = {"chain.js", "gpo.js"}
-    for directory in ("css", "img", "js"):
+    for directory in ("img", "js"):
         expected.update(
             str(path.relative_to(ui_root))
             for path in (ui_root / directory).rglob("*")

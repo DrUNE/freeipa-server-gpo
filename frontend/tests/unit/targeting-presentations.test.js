@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as presentation from '@gpui/components/templates/preference/targeting-presentations';
 
-const presentation = presentationModule;
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }

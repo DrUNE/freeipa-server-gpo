@@ -1,12 +1,7 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../tree-view/tree-view';
-import * as __dep2 from '../divider/divider';
-import * as __dep3 from '../workspace/workspace';
-
-var { createElement } = __dep0;
-var { renderTreeView } = __dep1;
-var { renderDivider } = __dep2;
-var { renderWorkspace } = __dep3;
+import { createElement } from '@gpui/util/element-creator';
+import { renderTreeView } from '@gpui/components/tree-view/tree-view';
+import { renderDivider } from '@gpui/components/divider/divider';
+import { renderWorkspace } from '@gpui/components/workspace/workspace';
 
 function renderMain(container, treeViewState) {
     const workspace = renderWorkspace();

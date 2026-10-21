@@ -1,7 +1,7 @@
 {
     "name": "freeipa-server-gpo-frontend",
     "private": true,
-    "description": "Sources of the GPUI editor. The build writes one UMD/AMD bundle, ../plugin/ui/grouppolicy/js/app.js, which is committed and installed by the RPM.",
+    "description": "Sources of the GPUI editor. The build writes plugin directory (UMD/AMD bundle js/app.js, js/app.css, chain.js, gpo.js, img/) into dist/, which is committed and installed by the RPM.",
     "type": "module",
     "engines": {
         "node": ">=20"
@@ -9,24 +9,34 @@
     "scripts": {
         "build": "vite build --logLevel warn",
         "build:check": "node scripts/check-artifact.mjs",
-        "watch": "vite build --watch --logLevel warn",
+        "watch": "vite build --watch --mode development --logLevel warn",
         "dev": "vite",
-        "lint": "eslint src dev scripts tests *.mjs",
-        "typecheck": "tsc -p . --pretty false",
-        "test": "node scripts/build-test-root.mjs && vitest run --project unit --project integration",
+        "lint": "eslint src dev scripts tests .storybook *.mjs",
+        "types:rpc": "node scripts/generate-rpc-types.mjs && prettier --write types/rpc.d.ts",
+        "typecheck": "tsc -p . --pretty false && tsc -p tsconfig.strict.json --pretty false",
+        "test": "node scripts/build-test-root.mjs && vitest run --project unit --project integration --project stories",
         "test:ipa": "bash scripts/ipa-up.sh && REQUIRE_IPA=1 vitest run --project e2e && bash scripts/ipa-native.sh",
         "test:watch": "node scripts/build-test-root.mjs && vitest --project unit",
-        "format": "prettier --write src dev scripts tests '*.mjs' tsconfig.json package.json .prettierrc.json",
-        "format:check": "prettier --check src dev scripts tests '*.mjs' tsconfig.json package.json .prettierrc.json"
+        "format": "prettier --write src dev scripts tests .storybook '*.mjs' tsconfig.json tsconfig.strict.json package.json .prettierrc.json",
+        "format:check": "prettier --check src dev scripts tests .storybook '*.mjs' tsconfig.json tsconfig.strict.json package.json .prettierrc.json",
+        "storybook": "storybook dev -p 6006 --no-open",
+        "build-storybook": "storybook build -o storybook-static"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@storybook/addon-vitest": "^10.6.3",
+        "@storybook/html-vite": "^10.6.3",
+        "@vitest/browser": "^5.0.5",
+        "@vitest/browser-playwright": "^5.0.5",
         "@vitest/coverage-v8": "^5.0.5",
         "eslint": "^10.13.0",
         "globals": "^17.13.0",
         "playwright": "^1.50.0",
+        "postcss": "^8.5.31",
+        "postcss-modules": "^9.0.1",
         "prettier": "^3.9.10",
         "requirejs": "^2.3.7",
+        "storybook": "^10.6.3",
         "typescript": "^7.0.2",
         "vite": "^8.3.4",
         "vitest": "^5.0.5"

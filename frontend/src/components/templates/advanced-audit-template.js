@@ -1,84 +1,24 @@
-import * as elementCreator from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as auditModel from './advanced-audit/model';
-import * as dialogs from './security/dialog';
-import * as headerActions from './security/header-actions';
-import * as searchModel from './all-policies/model';
-import * as listNavigation from '../list-navigation';
-
-('use strict');
-
-var createElement = elementCreator.createElement;
-var t = translations.t;
-
-function tr(key, fallback) {
-    var value = t(key);
-    return value && value !== key ? value : fallback;
-}
-
-function configured(row) {
-    return row.configured !== false && row.kind !== 'preserved';
-}
-
-function label(row) {
-    if (row.kind === 'subcategory') return row.display_name || row.guid;
-    if (row.kind === 'option') return row.display_name || row.machine_name || row.option;
-    if (row.kind === 'global_sacl')
-        return row.object_kind === 'registry'
-            ? tr('security.advancedAudit.registrySacl', 'Registry global SACL')
-            : tr('security.advancedAudit.fileSacl', 'File global SACL');
-    return tr('security.advancedAudit.preserved', 'Preserved source row');
-}
-
-function summary(row) {
-    if (!configured(row)) return tr('security.notConfigured', 'Not configured');
-    if (row.kind === 'subcategory') {
-        var setting = row.setting || {};
-        if (setting.kind === 'system') return systemSettingLabel(setting.value);
-        var enabled = [];
-        if (setting.none) enabled.push(tr('security.advancedAudit.none', 'No auditing'));
-        if (setting.include_success) enabled.push(tr('security.advancedAudit.includeSuccess', 'Include success'));
-        if (setting.exclude_success) enabled.push(tr('security.advancedAudit.excludeSuccess', 'Exclude success'));
-        if (setting.include_failure) enabled.push(tr('security.advancedAudit.includeFailure', 'Include failure'));
-        if (setting.exclude_failure) enabled.push(tr('security.advancedAudit.excludeFailure', 'Exclude failure'));
-        return enabled.join(', ');
-    }
-    if (row.kind === 'option')
-        return row.enabled ? tr('security.enabled', 'Enabled') : tr('security.disabled', 'Disabled');
-    if (row.kind === 'global_sacl')
-        return row.sddl
-            ? tr('security.permissionsDefined', 'Permissions defined')
-            : tr('security.notConfigured', 'Not configured');
-    return tr('security.advancedAudit.unknownPreserved', 'Unknown row preserved');
-}
-
-function systemSettingLabel(value) {
-    var labels = {
-        unchanged: tr('security.advancedAudit.unchanged', 'Leave unchanged'),
-        success: tr('security.advancedAudit.success', 'Success'),
-        failure: tr('security.advancedAudit.failure', 'Failure'),
-        success_and_failure: tr('security.advancedAudit.successAndFailure', 'Success and failure'),
-        none: tr('security.advancedAudit.none', 'No auditing')
-    };
-    return labels[value] || String(value || '');
-}
-
-function emptyRequest() {
-    return {
-        set_subcategories: [],
-        clear_subcategories: [],
-        set_options: [],
-        clear_options: [],
-        set_global_sacls: [],
-        clear_global_sacls: []
-    };
-}
+import { createElement } from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import { t } from '@gpui/locales/translations';
+import { renderError } from '@gpui/components/editor-status';
+import { familyById, state } from '@gpui/components/templates/advanced-audit/model';
+import { tabs, open } from '@gpui/components/templates/security/dialog';
+import { bind } from '@gpui/components/templates/security/header-actions';
+import { auditIdentity } from '@gpui/components/templates/all-policies/model';
+import * as listNavigation from '@gpui/components/list-navigation';
+import {
+    configured,
+    label,
+    summary,
+    systemSettingLabel,
+    emptyRequest,
+    tr
+} from '@gpui/components/templates/advanced-audit/presentation';
 
 async function renderAdvancedAuditTemplate(options) {
-    var config = options || {};
-    var item = config.item || {};
+    const config = options || {};
+    const item = config.item || {};
     if (item.advancedAuditError)
         return createElement('div', {
             className: 'gpo-security-error',
@@ -87,30 +27,30 @@ async function renderAdvancedAuditTemplate(options) {
                 'Advanced Audit is temporarily unavailable. Other security settings remain available.'
             )
         });
-    var response = item.advancedAuditResponse || (await API.advancedAuditShow());
+    let response = item.advancedAuditResponse || (await API.advancedAuditShow());
     if (typeof config.isCurrent === 'function' && !config.isCurrent()) return null;
-    var family = auditModel.familyById(response, item.advancedAuditFamilyId);
-    var externalHost = config.dialogHost;
-    var disposed = false;
-    var root = externalHost ? {} : createElement('div', { className: ['gp__preference', 'gpo-security-workbench'] });
-    var activeDialog = null;
-    var dirty = function () {
+    let family = familyById(response, item.advancedAuditFamilyId);
+    const externalHost = config.dialogHost;
+    let disposed = false;
+    const root = externalHost ? {} : createElement('div', { className: ['gp__preference', 'gpo-security-workbench'] });
+    let activeDialog = null;
+    let dirty = function () {
         return false;
     };
-    var applyCurrent = null;
-    var selection = null;
-    var selectedId = null,
+    let applyCurrent = null;
+    let selection = null;
+    let selectedId = null,
         navigation;
-    var modalHost = externalHost || createElement('div');
-    var errorSlot, body, search, actions;
+    const modalHost = externalHost || createElement('div');
+    let errorSlot, body, search, actions, listState;
     if (!externalHost) {
-        var data = createElement('div', {
+        const data = createElement('div', {
             className: 'gpo-security-workbench__panel',
             attrs: { 'data-advanced-audit-view': item.advancedAuditFamilyId || '' }
         });
         errorSlot = createElement('div', { className: 'gpo-editor-preferences__error' });
         body = createElement('tbody');
-        var table = createElement('table', {
+        const table = createElement('table', {
             className: ['preference__table', 'gpo-catalog-table', 'gpo-security-table'],
             children: [
                 createElement('thead', {
@@ -126,7 +66,7 @@ async function renderAdvancedAuditTemplate(options) {
                 body
             ]
         });
-        var listState = item.auditListState || (item.auditListState = { query: '' });
+        listState = item.auditListState || (item.auditListState = { query: '' });
         search = createElement('input', {
             attrs: {
                 type: 'search',
@@ -136,7 +76,7 @@ async function renderAdvancedAuditTemplate(options) {
                 'data-policy-filter': ''
             }
         });
-        var toolbar = createElement('div', {
+        const toolbar = createElement('div', {
             className: 'gpo-security-workbench__toolbar',
             children: [
                 config.hideHeading
@@ -148,7 +88,7 @@ async function renderAdvancedAuditTemplate(options) {
                 search
             ]
         });
-        actions = headerActions.bind(config.header, toolbar, {
+        actions = bind(config.header, toolbar, {
             edit: function () {
                 if (selection) edit(selection.row);
             }
@@ -196,7 +136,7 @@ async function renderAdvancedAuditTemplate(options) {
     function edit(row) {
         if (activeDialog || disposed || (typeof config.isCurrent === 'function' && !config.isCurrent())) return null;
         if (!row.editable || row.kind === 'preserved') {
-            activeDialog = dialogs.open(modalHost, {
+            activeDialog = open(modalHost, {
                 title: label(row),
                 readOnly: true,
                 content: createElement('div', {
@@ -225,23 +165,25 @@ async function renderAdvancedAuditTemplate(options) {
             syncActions();
             return activeDialog;
         }
-        var isConfigured = configured(row);
-        var define = createElement('input', { attrs: { type: 'checkbox', checked: isConfigured ? 'checked' : null } });
-        var fields = createElement('div', { className: 'gpo-editor-advanced-audit__fields' });
-        var machineName = createElement('input', {
+        const isConfigured = configured(row);
+        const define = createElement('input', {
+            attrs: { type: 'checkbox', checked: isConfigured ? 'checked' : null }
+        });
+        const fields = createElement('div', { className: 'gpo-editor-advanced-audit__fields' });
+        const machineName = createElement('input', {
             attrs: {
                 type: 'text',
-                value: row.machine_name || auditModel.state(response).suggested_machine_name || '',
+                value: row.machine_name || state(response).suggested_machine_name || '',
                 'data-advanced-audit-machine': ''
             }
         });
-        var controls = [machineName.getElement()];
+        const controls = [machineName.getElement()];
         // Machine name is source-file metadata, not a policy target. Keep
         // an existing value; the native API allows it to be empty for new rows.
-        var requestForRow;
+        let requestForRow, descriptor;
         if (row.kind === 'subcategory') {
-            var setting = row.setting || { kind: 'system', value: 'unchanged' };
-            var system = setting.kind !== 'user';
+            const setting = row.setting || { kind: 'system', value: 'unchanged' };
+            const system = setting.kind !== 'user';
             fields.append(
                 createElement('div', {
                     className: 'gpo-editor-security-record-identity',
@@ -258,7 +200,7 @@ async function renderAdvancedAuditTemplate(options) {
                 })
             );
             if (system) {
-                var mode = createElement('select', {
+                const mode = createElement('select', {
                     attrs: { 'data-advanced-audit-setting': '' },
                     children: ['unchanged', 'success', 'failure', 'success_and_failure', 'none'].map(function (value) {
                         return createElement('option', {
@@ -282,10 +224,10 @@ async function renderAdvancedAuditTemplate(options) {
                     return { kind: 'system', value: mode.getElement().value };
                 };
             } else {
-                var flags = ['include_success', 'exclude_success', 'include_failure', 'exclude_failure', 'none'];
-                var flagInputs = {};
+                const flags = ['include_success', 'exclude_success', 'include_failure', 'exclude_failure', 'none'];
+                const flagInputs = {};
                 flags.forEach(function (flag) {
-                    var input = createElement('input', {
+                    const input = createElement('input', {
                         attrs: {
                             type: 'checkbox',
                             checked: setting[flag] ? 'checked' : null,
@@ -307,7 +249,7 @@ async function renderAdvancedAuditTemplate(options) {
                     );
                 });
                 requestForRow = function () {
-                    var result = { kind: 'user' };
+                    const result = { kind: 'user' };
                     flags.forEach(function (flag) {
                         result[flag] = flagInputs[flag].checked;
                     });
@@ -315,7 +257,7 @@ async function renderAdvancedAuditTemplate(options) {
                 };
             }
         } else if (row.kind === 'global_sacl') {
-            var descriptor = createElement('textarea', {
+            descriptor = createElement('textarea', {
                 attrs: {
                     rows: '5',
                     spellcheck: 'false',
@@ -348,7 +290,7 @@ async function renderAdvancedAuditTemplate(options) {
                 return descriptor.getElement().value;
             };
         } else {
-            var enabled = createElement('input', {
+            const enabled = createElement('input', {
                 attrs: { type: 'checkbox', checked: row.enabled ? 'checked' : null, 'data-advanced-audit-enabled': '' }
             });
             controls.push(enabled.getElement());
@@ -374,16 +316,16 @@ async function renderAdvancedAuditTemplate(options) {
         }
         define.on('change', sync);
         sync();
-        var validation = createElement('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
+        const validation = createElement('div', { className: 'gpo-security-error', attrs: { role: 'alert' } });
         function draftValue() {
             return JSON.stringify([define.getElement().checked, machineName.getElement().value, requestForRow()]);
         }
-        var baseline = draftValue();
+        const baseline = draftValue();
         dirty = function () {
             return baseline !== draftValue();
         };
         applyCurrent = async function () {
-            var request = emptyRequest();
+            const request = emptyRequest();
             if (!define.getElement().checked) {
                 if (row.kind === 'subcategory')
                     request.clear_subcategories.push({
@@ -400,7 +342,7 @@ async function renderAdvancedAuditTemplate(options) {
                     setting: requestForRow()
                 });
             } else if (row.kind === 'global_sacl') {
-                var sddl = requestForRow();
+                const sddl = requestForRow();
                 if (!sddl.trim() || /[\r\n\0]/.test(sddl)) {
                     validation.getElement().textContent = tr(
                         'security.validationDescriptor',
@@ -424,17 +366,17 @@ async function renderAdvancedAuditTemplate(options) {
             try {
                 response = await API.advancedAuditUpdate(request);
                 if (!item.searchReturnTo) item.advancedAuditResponse = response;
-                family = auditModel.familyById(response, item.advancedAuditFamilyId);
+                family = familyById(response, item.advancedAuditFamilyId);
                 renderRows();
                 if (config.onSaved) config.onSaved(response);
                 return true;
             } catch (error) {
                 validation.getElement().innerHTML = '';
-                validation.append(editorStatus.renderError(error));
+                validation.append(renderError(error));
                 return false;
             }
         };
-        var settingsPanel = createElement('div', {
+        const settingsPanel = createElement('div', {
             children: [
                 createElement('label', {
                     className: ['field', 'field__checkbox', 'gpo-security-policy-editor__define'],
@@ -447,7 +389,7 @@ async function renderAdvancedAuditTemplate(options) {
                 validation
             ]
         });
-        var explanation =
+        const explanation =
             row.explain_text ||
             row.description ||
             (row.kind === 'global_sacl'
@@ -456,16 +398,16 @@ async function renderAdvancedAuditTemplate(options) {
                       'Supply the complete SACL in SDDL format. Applying replaces the global audit descriptor for this object type.'
                   )
                 : tr('security.noExplanation', 'No explanation is available for this setting.'));
-        var explanationPanel = createElement('div', {
+        const explanationPanel = createElement('div', {
             className: 'gpo-security-explanation',
             children: [createElement('h3', { text: label(row) }), createElement('p', { text: explanation })]
         });
-        activeDialog = dialogs.open(modalHost, {
+        activeDialog = open(modalHost, {
             title: label(row),
             content: createElement('div', {
                 className: 'gpo-security-policy-editor',
                 attrs: { 'data-advanced-audit-form': '' },
-                children: [dialogs.tabs(settingsPanel, explanationPanel)]
+                children: [tabs(settingsPanel, explanationPanel)]
             }),
             isDirty: dirty,
             onApply: applyCurrent,
@@ -482,7 +424,7 @@ async function renderAdvancedAuditTemplate(options) {
 
     function renderRows() {
         if (externalHost || disposed) return;
-        var heldFocus = body.getElement().contains(document.activeElement);
+        const heldFocus = body.getElement().contains(document.activeElement);
         selection = null;
         syncActions();
         body.getElement().innerHTML = '';
@@ -495,8 +437,8 @@ async function renderAdvancedAuditTemplate(options) {
                 return label(a).localeCompare(label(b));
             })
             .forEach(function (row, index) {
-                var id = searchModel.auditIdentity(row) + ':' + index;
-                var tableRow = createElement('tr', {
+                const id = auditIdentity(row) + ':' + index;
+                const tableRow = createElement('tr', {
                     attrs: {
                         tabindex: '-1',
                         'aria-selected': 'false',
@@ -559,7 +501,7 @@ async function renderAdvancedAuditTemplate(options) {
     };
     root.applyChanges = async function () {
         if (!applyCurrent) return true;
-        var saved = await applyCurrent();
+        const saved = await applyCurrent();
         if (saved) close();
         return saved;
     };
@@ -569,13 +511,13 @@ async function renderAdvancedAuditTemplate(options) {
     };
     root.openPolicyDialog = function () {
         if (!item.advancedAuditTarget) return null;
-        var matches = ((family && family.rows) || []).filter(function (row) {
-            return searchModel.auditIdentity(row) === item.advancedAuditTarget;
+        const matches = ((family && family.rows) || []).filter(function (row) {
+            return auditIdentity(row) === item.advancedAuditTarget;
         });
-        var row = matches[item.advancedAuditOccurrence || 0];
+        const row = matches[item.advancedAuditOccurrence || 0];
         if (row) return edit(row);
-        var error = new Error(t('policySearch.targetUnavailable'));
-        if (errorSlot) errorSlot.append(editorStatus.renderError(error));
+        const error = new Error(t('policySearch.targetUnavailable'));
+        if (errorSlot) errorSlot.append(renderError(error));
         else throw error;
         return null;
     };
@@ -592,9 +534,9 @@ async function renderAdvancedAuditTemplate(options) {
 }
 
 async function openAdvancedAuditDialog(host, options) {
-    var editor = await renderAdvancedAuditTemplate(Object.assign({}, options, { dialogHost: host }));
+    const editor = await renderAdvancedAuditTemplate(Object.assign({}, options, { dialogHost: host }));
     if (!editor) return null;
-    var dialog = editor.openPolicyDialog();
+    const dialog = editor.openPolicyDialog();
     if (!dialog) {
         editor.cleanup();
         return null;

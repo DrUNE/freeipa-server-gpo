@@ -3,7 +3,7 @@
 **English** | [Русский](./README.ru.md)
 
 A standalone stand for developing the group policy web editor
-(`plugin/ui/grouppolicy/js`) without a FreeIPA server.
+(`frontend/src`) without a FreeIPA server.
 
 The stand runs on Vite: it serves the `frontend/src` sources directly (the page reloads on save), replaces
 `freeipa/ipa` and `freeipa/rpc` with ES shims from `shims/`, and answers the JSON-RPC `POST /ipa/session/json` from the
@@ -18,8 +18,8 @@ make ui-dev           # http://127.0.0.1:8765/ipa/ui/
 
 Port and host: `npx --prefix frontend vite --port 9000 --host 0.0.0.0` (from the repository root: `cd frontend && npx vite ...`).
 
-URL parameters: `?gpo=Name&lang=ru`. The **Reset fixtures** button resets the
-state of the mock backend. No build is needed: edit the files in `frontend/src/`.
+URL parameters: `?gpo=Name&lang=ru&scenario=error`. Scenarios of the mock server (also the **Scenario** selector in the top bar): `normal`; `error` — every `gpo_editor_*` call fails like an unavailable server (`ServerUnavailable`); `slow` — every answer is delayed by 1.5 s (loading states); `empty` — the lists (items, files, children, policies, preference documents, script entries) come back empty. A change in `src/` restarts the editor in the same page (HMR: the browser tab is not reloaded, styles apply without a restart). The **Reset fixtures** button resets the
+state of the mock backend. A change in `src/` restarts the editor in the same page (HMR: the tab is not reloaded, styles apply without a restart). No build is needed: edit the files in `frontend/src/`.
 
 ## UI tests
 
@@ -35,8 +35,9 @@ Described in `../README.md` (section Tests): `npm test` (unit and integration te
   policy `NotFound`, so that error states in the UI can be checked.
 
 It does not cover `chain.js` and `gpo.js` (the chain and GPO lists, the editor
-launch modal): they depend on the FreeIPA Web UI framework and are checked only on a
-live server.
+launch modal): they depend on the FreeIPA Web UI framework and are not rendered in the stand. Their actions and
+registration are covered by unit tests with doubles of `freeipa/*` (`tests/unit/chain-actions.test.js`,
+`gpo-page.test.js`); the pages themselves are checked on a live server.
 
 ## How to extend
 

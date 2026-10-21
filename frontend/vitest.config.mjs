@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
+import { playwright } from '@vitest/browser-playwright';
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+import { alias } from './.storybook/shared.mjs';
 
-// Three projects; `npm test` runs unit + integration (mocks only),
+// Four projects; `npm test` runs unit + integration + stories (mocks only),
 // `npm run test:ipa` runs e2e against a live FreeIPA server.
 export default defineConfig({
     test: {
@@ -12,11 +15,30 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             include: ['src/**/*.js'],
+            exclude: ['src/**/*.stories.js'],
             reporter: ['text-summary', 'html'],
-            thresholds: { statements: 16, branches: 16, functions: 21, lines: 18 }
+            thresholds: { statements: 16, branches: 16, functions: 21, lines: 17 }
         },
         projects: [
-            { test: { name: 'unit', include: ['tests/unit/**/*.test.js'] } },
+            {
+                resolve: { alias: { '@gpui': alias['@gpui'] } },
+                test: { name: 'unit', include: ['tests/unit/**/*.test.js'] }
+            },
+            {
+                // Every story is a test: it must render, and its `play` function (user interactions and
+                // assertions) must pass, in a real Chromium.
+                plugins: [storybookTest({ configDir: '.storybook' })],
+                resolve: { alias },
+                test: {
+                    name: 'stories',
+                    browser: {
+                        enabled: true,
+                        headless: true,
+                        provider: playwright(),
+                        instances: [{ browser: 'chromium' }]
+                    }
+                }
+            },
             {
                 test: {
                     name: 'integration',

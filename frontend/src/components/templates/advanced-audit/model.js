@@ -1,15 +1,13 @@
-import * as translations from '../../../locales/translations';
+import { t } from '@gpui/locales/translations';
 
-('use strict');
-
-var OPTION_LABELS = {
+const OPTION_LABELS = {
     crash_on_audit_fail: 'Audit: Shut down system immediately if unable to log security audits',
     full_privilege_auditing: 'Audit: Audit the use of Backup and Restore privilege',
     audit_base_objects: 'Audit: Audit the access of global system objects',
     audit_base_directories: 'Audit: Audit the access of global directory service objects'
 };
 function tr(key, fallback) {
-    var value = translations && translations.t('security.advancedAudit.' + key);
+    const value = t('security.advancedAudit.' + key);
     return value && value !== 'security.advancedAudit.' + key ? value : fallback;
 }
 
@@ -34,12 +32,12 @@ function localizedSubcategory(row) {
 }
 
 function subcategories(response) {
-    var rows = configuredRows(response)
+    const rows = configuredRows(response)
         .filter(function (row) {
             return row.kind === 'subcategory';
         })
         .map(localizedSubcategory);
-    var systemGuids = new Set(
+    const systemGuids = new Set(
         rows
             .filter(function (row) {
                 return row.target && row.target.kind === 'system';
@@ -67,7 +65,7 @@ function subcategories(response) {
 }
 
 function options(response) {
-    var rows = configuredRows(response)
+    const rows = configuredRows(response)
         .filter(function (row) {
             return row.kind === 'option';
         })
@@ -78,7 +76,7 @@ function options(response) {
                     : row.display_name || row.machine_name || row.option
             });
         });
-    var byOption = new Set(
+    const byOption = new Set(
         rows.map(function (row) {
             return row.option;
         })
@@ -99,10 +97,10 @@ function options(response) {
 }
 
 function globalSacls(response) {
-    var rows = configuredRows(response).filter(function (row) {
+    const rows = configuredRows(response).filter(function (row) {
         return row.kind === 'global_sacl';
     });
-    var kinds = new Set(
+    const kinds = new Set(
         rows.map(function (row) {
             return row.object_kind;
         })

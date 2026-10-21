@@ -1,21 +1,19 @@
-import * as elements from '../../../util/element-creator';
-import * as translations from '../../../locales/translations';
-import * as editorDialog from '../../editor-dialog';
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
+import * as editorDialog from '@gpui/components/editor-dialog';
 
-('use strict');
-var create = elements.createElement;
-var sequence = 0;
+let sequence = 0;
 function tr(key, fallback) {
-    var value = translations.t('security.' + key);
+    const value = t('security.' + key);
     return value && value !== 'security.' + key ? value : fallback;
 }
 function tabs(settings, explanation) {
-    var id = 'security-tabs-' + ++sequence;
-    var panels = [settings, explanation];
-    var buttons = [];
+    const id = 'security-tabs-' + ++sequence;
+    const panels = [settings, explanation];
+    const buttons = [];
     function select(index, focus) {
         panels.forEach(function (panel, position) {
-            var active = position === index;
+            const active = position === index;
             panel.getElement().hidden = !active;
             panel.getElement().classList.toggle('active', active);
             buttons[position].getElement().classList.toggle('active', active);
@@ -24,12 +22,12 @@ function tabs(settings, explanation) {
         });
         if (focus) buttons[index].getElement().focus();
     }
-    var bar = create('div', {
+    const bar = createElement('div', {
         className: 'tab-buttons',
         attrs: { role: 'tablist', 'aria-label': tr('properties', 'Properties') }
     });
     [tr('settingTab', 'Security Policy Setting'), tr('explanationTab', 'Explanation')].forEach(function (label, index) {
-        var button = create('button', {
+        const button = createElement('button', {
             id: id + '-tab-' + index,
             className: 'preference__tab-button',
             attrs: { type: 'button', role: 'tab', 'aria-controls': id + '-panel-' + index },
@@ -39,7 +37,7 @@ function tabs(settings, explanation) {
             select(index);
         });
         button.on('keydown', function (event) {
-            var next;
+            let next;
             if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = 1 - index;
             else if (event.key === 'Home') next = 0;
             else if (event.key === 'End') next = 1;
@@ -50,7 +48,7 @@ function tabs(settings, explanation) {
         });
         buttons.push(button);
         bar.append(button);
-        var panel = panels[index].getElement();
+        const panel = panels[index].getElement();
         panel.id = id + '-panel-' + index;
         panel.setAttribute('role', 'tabpanel');
         panel.setAttribute('aria-labelledby', id + '-tab-' + index);
@@ -58,7 +56,7 @@ function tabs(settings, explanation) {
         panel.classList.add('tab-content');
     });
     select(0);
-    return create('div', {
+    return createElement('div', {
         className: ['preference__modal-tabs', 'gpo-security-tabs'],
         children: [bar, settings, explanation]
     });

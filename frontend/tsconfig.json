@@ -11,8 +11,9 @@
         "skipLibCheck": true,
         "lib": ["ES2022", "DOM"],
         "paths": {
+            "@gpui/*": ["./src/*"],
             "freeipa/*": ["./types/freeipa/*"]
         }
     },
-    "include": ["types/**/*.d.ts", "src/**/*.js"]
+    "include": ["types/**/*.d.ts", "src/**/*.js", "src/**/*.ts"]
 }

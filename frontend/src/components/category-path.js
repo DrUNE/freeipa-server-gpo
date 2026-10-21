@@ -1,24 +1,21 @@
-import * as elements from '../util/element-creator';
-import * as translations from '../locales/translations';
-
-('use strict');
-var create = elements.createElement;
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 
 function render(segments, onNavigate) {
-    var parts = (segments || []).filter(function (segment) {
+    const parts = (segments || []).filter(function (segment) {
         return segment && segment.title;
     });
-    var list = create('ol', { className: 'gpo-category-path__list' });
-    var focused = Math.max(0, parts.length - 1);
+    const list = createElement('ol', { className: 'gpo-category-path__list' });
+    let focused = Math.max(0, parts.length - 1);
     function syncFocus() {
-        var buttons = list.getElement().querySelectorAll('button');
+        const buttons = list.getElement().querySelectorAll('button');
         Array.from(buttons).forEach(function (button, index) {
             button.tabIndex = index === focused ? 0 : -1;
         });
     }
     parts.forEach(function (segment, index) {
-        var last = index === parts.length - 1;
-        var label = create(segment.item && onNavigate ? 'button' : 'span', {
+        const last = index === parts.length - 1;
+        const label = createElement(segment.item && onNavigate ? 'button' : 'span', {
             className: 'gpo-category-path__segment',
             attrs: {
                 type: segment.item && onNavigate ? 'button' : null,
@@ -37,10 +34,10 @@ function render(segments, onNavigate) {
             });
         }
         list.append(
-            create('li', {
+            createElement('li', {
                 children: [
                     index
-                        ? create('span', {
+                        ? createElement('span', {
                               className: 'gpo-category-path__separator',
                               attrs: { 'aria-hidden': 'true' },
                               text: ' / '
@@ -53,10 +50,10 @@ function render(segments, onNavigate) {
     });
     list.on('keydown', function (event) {
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-        var buttons = Array.from(list.getElement().querySelectorAll('button'));
-        var index = buttons.indexOf(event.target);
+        const buttons = Array.from(list.getElement().querySelectorAll('button'));
+        const index = buttons.indexOf(event.target);
         if (index < 0) return;
-        var next =
+        const next =
             event.key === 'ArrowLeft'
                 ? index - 1
                 : event.key === 'ArrowRight'
@@ -73,11 +70,11 @@ function render(segments, onNavigate) {
         buttons[focused].focus({ preventScroll: true });
     });
     syncFocus();
-    return create('nav', {
+    return createElement('nav', {
         className: 'gpo-category-path',
         attrs: {
             'data-category-path': '',
-            'aria-label': translations.t('navigation.path')
+            'aria-label': t('navigation.path')
         },
         children: [list]
     });
@@ -85,14 +82,14 @@ function render(segments, onNavigate) {
 
 function attachFilter(header, view) {
     if (!header || !view) return;
-    var input = Array.from(view.querySelectorAll('[data-policy-filter]')).find(function (candidate) {
-        var owner = candidate.closest('[role="dialog"]');
+    const input = Array.from(view.querySelectorAll('[data-policy-filter]')).find(function (candidate) {
+        const owner = candidate.closest('[role="dialog"]');
         // The entire editor lives in FreeIPA's outer dialog. Exclude
         // only dialogs nested inside this view, not that outer shell.
         return !owner || !view.contains(owner);
     });
     if (!input) return;
-    var toolbar = input.parentElement;
+    const toolbar = input.parentElement;
     input.classList.add('gpo-category-path__filter');
     header.appendChild(input);
     if (toolbar && toolbar.classList.contains('gpo-security-workbench__toolbar') && !toolbar.children.length)

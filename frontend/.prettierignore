@@ -5,3 +5,4 @@ package-lock.json
 test-results.json
 *.html
 *.md
+src/styles/

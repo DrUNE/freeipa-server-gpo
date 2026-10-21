@@ -1,17 +1,14 @@
-import * as elements from '../../../util/element-creator';
+import { createElement } from '@gpui/util/element-creator';
 
-('use strict');
-
-var create = elements.createElement;
-var nextInputId = 1;
-var TYPES = {
+let nextInputId = 1;
+const TYPES = {
     ipv4: { count: 4, length: 3, max: 255, separator: '.', characters: /^\d*$/, inserted: /^[\d.]*$/ },
     mac: { count: 6, length: 2, separator: ':', characters: /^[a-f\d]*$/i, inserted: /^[a-f\d:-]*$/i },
     version: { count: 4, length: 5, max: 65535, separator: '.', characters: /^\d*$/, inserted: /^[\d.]*$/ },
     guid: { inserted: /^[a-f\d{}-]*$/i },
     ipv6: { inserted: /^[a-f\d:.]*$/i }
 };
-var WORDS = {
+const WORDS = {
     en: {
         ipv4: 'IPv4 address',
         ipv6: 'IPv6 address',
@@ -48,9 +45,9 @@ function validSegment(value, type) {
 
 /** A partial value is useful while editing; completeness belongs to the operand validator. */
 function splitSegments(value, name) {
-    var type = TYPES[name];
+    const type = TYPES[name];
     if (value === '') return [''];
-    var parts;
+    let parts;
     if (name === 'mac' && /^[a-f\d]+$/i.test(value) && value.length > 2) {
         if (value.length > 12 || value.length % 2) return null;
         parts = value.match(/.{2}/g);
@@ -67,7 +64,7 @@ function splitSegments(value, name) {
 }
 
 function joinSegments(inputs, separator) {
-    var parts = inputs.map(function (input) {
+    const parts = inputs.map(function (input) {
         return input.value;
     });
     while (parts.length && parts[parts.length - 1] === '') parts.pop();
@@ -76,7 +73,7 @@ function joinSegments(inputs, separator) {
 
 /** Accept a GUID prefix or a complete GUID, without extracting hex from arbitrary text. */
 function guidValue(value) {
-    var body = value,
+    let body = value,
         opening = false,
         closing = false;
     if (body.charAt(0) === '{') {
@@ -88,33 +85,33 @@ function guidValue(value) {
         body = body.slice(0, -1);
     }
     if (!/^[a-f\d-]*$/i.test(body) || body.length > 36 || (closing && !opening)) return null;
-    for (var i = 0; i < body.length; i++) {
+    for (let i = 0; i < body.length; i++) {
         if (body.charAt(i) === '-' && [8, 13, 18, 23].indexOf(i) === -1) return null;
     }
-    var hex = body.replace(/-/g, '');
+    const hex = body.replace(/-/g, '');
     if (hex.length > 32 || (closing && hex.length !== 32)) return null;
-    var parts = [],
-        offset = 0;
+    const parts = [];
+    let offset = 0;
     [8, 4, 4, 4, 12].forEach(function (length) {
         if (offset < hex.length) parts.push(hex.slice(offset, offset + length));
         offset += length;
     });
-    var formatted = parts.join('-');
+    let formatted = parts.join('-');
     if (hex.length === 32) return '{' + formatted.toUpperCase() + '}';
     if (body.charAt(body.length - 1) === '-' && [8, 12, 16, 20].indexOf(hex.length) !== -1) formatted += '-';
     return (opening ? '{' : '') + formatted;
 }
 
 function replaceSelection(input, text) {
-    var start = input.selectionStart === null ? input.value.length : input.selectionStart;
-    var end = input.selectionEnd === null ? start : input.selectionEnd;
+    const start = input.selectionStart === null ? input.value.length : input.selectionStart;
+    const end = input.selectionEnd === null ? start : input.selectionEnd;
     return input.value.slice(0, start) + text + input.value.slice(end);
 }
 
 function insertedText(before, after) {
-    var start = 0;
+    let start = 0;
     while (start < before.length && start < after.length && before.charAt(start) === after.charAt(start)) start++;
-    var endBefore = before.length,
+    let endBefore = before.length,
         endAfter = after.length;
     while (endBefore > start && endAfter > start && before.charAt(endBefore - 1) === after.charAt(endAfter - 1)) {
         endBefore--;
@@ -133,22 +130,22 @@ function focusEnd(input) {
  * readValue() returns the exact initial text until an accepted edit emits onChange(text).
  */
 function render(options) {
-    var name = options.type;
-    var type = TYPES[name];
+    const name = options.type;
+    const type = TYPES[name];
     if (!type) throw new Error('Unsupported targeting input type: ' + name);
-    var words = WORDS[options.language === 'ru' ? 'ru' : 'en'];
-    var label = options.label || words[name];
-    var disabled = Boolean(options.disabled);
-    var original = options.value === null || options.value === undefined ? '' : String(options.value);
-    var current = original;
-    var inputs = [];
-    var element = create('div', {
+    const words = WORDS[options.language === 'ru' ? 'ru' : 'en'];
+    const label = options.label || words[name];
+    const disabled = Boolean(options.disabled);
+    const original = options.value === null || options.value === undefined ? '' : String(options.value);
+    let current = original;
+    const inputs = [];
+    const element = createElement('div', {
         className: ['gpo-targeting-typed-input', 'gpo-targeting-typed-input--' + name],
         attrs: { role: 'group', 'aria-label': label, 'aria-disabled': disabled ? 'true' : null }
     });
-    var singleType = name === 'guid' || name === 'ipv6';
-    var parts = singleType ? null : splitSegments(original, name);
-    var fallback =
+    const singleType = name === 'guid' || name === 'ipv6';
+    const parts = singleType ? null : splitSegments(original, name);
+    const fallback =
         name === 'guid'
             ? guidValue(original) === null
             : name === 'ipv6'
@@ -162,7 +159,7 @@ function render(options) {
     }
 
     function inputElement(className, inputLabel, size) {
-        var input = create('input', {
+        const input = createElement('input', {
             className: className,
             attrs: {
                 id: 'gpo-targeting-typed-input-' + nextInputId++,
@@ -182,18 +179,18 @@ function render(options) {
     }
 
     function bindSingle(input, isFallback) {
-        var accepted = original;
+        let accepted = original;
         input.value = original;
         function normalized(candidate) {
             if (name === 'guid') return guidValue(candidate);
             if (name === 'ipv6') return type.inserted.test(candidate) ? candidate : null;
-            var parsed = splitSegments(candidate, name);
+            const parsed = splitSegments(candidate, name);
             if (!parsed) return null;
             while (parsed.length && parsed[parsed.length - 1] === '') parsed.pop();
             return parsed.join(type.separator);
         }
         function accept(candidate, paste) {
-            var formatted = normalized(candidate);
+            let formatted = normalized(candidate);
             if (formatted === null) {
                 // A legacy value can be corrected incrementally, retaining the remaining text.
                 // Newly pasted or wholly replaced invalid text is never silently shortened.
@@ -206,15 +203,15 @@ function render(options) {
                     return false;
                 formatted = candidate;
             }
-            var caret = input.selectionStart;
-            var atEnd = caret === input.value.length;
-            var hexBefore =
+            const caret = input.selectionStart;
+            const atEnd = caret === input.value.length;
+            const hexBefore =
                 name === 'guid' && caret !== null ? (input.value.slice(0, caret).match(/[a-f\d]/gi) || []).length : 0;
             input.value = formatted;
             accepted = formatted;
             if (atEnd || paste) input.setSelectionRange(formatted.length, formatted.length);
             else if (name === 'guid' && caret !== null) {
-                var position = 0,
+                let position = 0,
                     seen = 0;
                 while (position < formatted.length && seen < hexBefore) {
                     if (/[a-f\d]/i.test(formatted.charAt(position))) seen++;
@@ -227,27 +224,27 @@ function render(options) {
         }
         function deleteGuid(inputType) {
             if (name !== 'guid' || guidValue(input.value) === null) return false;
-            var start = input.selectionStart,
+            const start = input.selectionStart,
                 end = input.selectionEnd;
             if (start === null || end === null) return false;
-            var hex = input.value.replace(/[{}-]/g, '');
+            const hex = input.value.replace(/[{}-]/g, '');
             if (!hex.length) {
                 accept('', false);
                 input.setSelectionRange(0, 0);
                 return true;
             }
-            var before = (input.value.slice(0, start).match(/[a-f\d]/gi) || []).length;
-            var after = (input.value.slice(0, end).match(/[a-f\d]/gi) || []).length;
-            var backward = /Backward$/.test(inputType);
+            let before = (input.value.slice(0, start).match(/[a-f\d]/gi) || []).length;
+            let after = (input.value.slice(0, end).match(/[a-f\d]/gi) || []).length;
+            const backward = /Backward$/.test(inputType);
             if (before === after) {
                 if (backward) before--;
                 else after++;
             }
             if (before < 0 || after > hex.length) return true;
-            var remaining = hex.slice(0, before) + hex.slice(after);
-            var candidate = remaining && input.value.charAt(0) === '{' ? '{' + remaining : remaining;
+            const remaining = hex.slice(0, before) + hex.slice(after);
+            const candidate = remaining && input.value.charAt(0) === '{' ? '{' + remaining : remaining;
             accept(candidate, false);
-            var position = 0,
+            let position = 0,
                 seen = 0;
             while (position < input.value.length && seen < before) {
                 if (/[a-f\d]/i.test(input.value.charAt(position))) seen++;
@@ -266,7 +263,7 @@ function render(options) {
                 return;
             }
             if (event.data === null || event.data === undefined) return;
-            var candidate = replaceSelection(input, event.data);
+            const candidate = replaceSelection(input, event.data);
             if (!type.inserted.test(event.data) || (!isFallback && normalized(candidate) === null))
                 event.preventDefault();
         });
@@ -277,11 +274,11 @@ function render(options) {
         input.addEventListener('paste', function (event) {
             event.preventDefault();
             if (disabled || !event.clipboardData) return;
-            var text = event.clipboardData.getData('text/plain');
+            const text = event.clipboardData.getData('text/plain');
             if (!type.inserted.test(text)) return;
             // A complete value replaces the operand even if the caret is inside an old value.
-            var whole = normalized(text);
-            var complete =
+            const whole = normalized(text);
+            const complete =
                 name === 'guid'
                     ? whole && /^\{[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}\}$/i.test(whole)
                     : name === 'ipv6'
@@ -292,7 +289,7 @@ function render(options) {
     }
 
     if (fallback || singleType) {
-        var single = inputElement(
+        const single = inputElement(
             fallback
                 ? 'gpo-targeting-typed-input__fallback'
                 : ['gpo-targeting-typed-input__segment', 'gpo-targeting-typed-input__full'],
@@ -301,17 +298,17 @@ function render(options) {
         );
         bindSingle(single, fallback);
     } else {
-        var segmentName = name === 'ipv4' ? words.octet : name === 'mac' ? words.byte : words.component;
-        for (var index = 0; index < type.count; index++) {
+        const segmentName = name === 'ipv4' ? words.octet : name === 'mac' ? words.byte : words.component;
+        for (let index = 0; index < type.count; index++) {
             if (index)
                 element.append(
-                    create('span', {
+                    createElement('span', {
                         className: 'gpo-targeting-typed-input__separator',
                         attrs: { 'aria-hidden': 'true' },
                         text: type.separator
                     })
                 );
-            var segment = inputElement(
+            const segment = inputElement(
                 'gpo-targeting-typed-input__segment',
                 label + ', ' + segmentName + ' ' + (index + 1) + ' ' + words.of + ' ' + type.count,
                 type.length
@@ -371,23 +368,23 @@ function render(options) {
         input.addEventListener('paste', function (event) {
             event.preventDefault();
             if (disabled || !event.clipboardData) return;
-            var text = event.clipboardData.getData('text/plain');
-            var distributed =
+            const text = event.clipboardData.getData('text/plain');
+            const distributed =
                 text.indexOf(type.separator) !== -1 ||
                 (name === 'mac' && (text.indexOf('-') !== -1 || text.length > type.length));
             if (!distributed) {
-                var local = replaceSelection(input, text);
+                const local = replaceSelection(input, text);
                 if (!validSegment(local, type)) return;
                 input.value = local;
                 focusEnd(input);
                 commit();
                 return;
             }
-            var pasted = splitSegments(text, name);
+            const pasted = splitSegments(text, name);
             if (!pasted) return;
-            var start = pasted.length === type.count ? 0 : index;
+            const start = pasted.length === type.count ? 0 : index;
             if (start + pasted.length > type.count) return;
-            for (var i = start; i < type.count; i++) inputs[i].value = pasted[i - start] || '';
+            for (let i = start; i < type.count; i++) inputs[i].value = pasted[i - start] || '';
             commit();
             focusEnd(inputs[Math.min(start + pasted.length - 1, type.count - 1)]);
         });

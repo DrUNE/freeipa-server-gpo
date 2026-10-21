@@ -1,0 +1,39 @@
+{
+  "method": "gpo_editor_advanced_audit_show",
+  "args": [
+    "Dev GPO"
+  ],
+  "options": {},
+  "result": {
+    "gpo": {
+      "displayname": "Dev GPO",
+      "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+      "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+        "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+      },
+      "version_number": 7,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [
+      "ru-RU"
+    ],
+    "diagnostics": [],
+    "pending_publication": null,
+    "advanced_audit": {
+      "rows": [],
+      "subcategory_catalog": [
+        {
+          "guid": "0cce9210-69ae-11d9-bed3-505054503030",
+          "display_name": "Account Logon"
+        }
+      ]
+    }
+  }
+}

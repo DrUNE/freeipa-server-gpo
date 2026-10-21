@@ -8,7 +8,7 @@ let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Optional browser runner. */
 }
 const root = path.resolve(import.meta.dirname, '../../.test-root');
@@ -60,7 +60,7 @@ async function fixture(run) {
                 file.endsWith('.css') ? 'text/css' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/javascript'
             );
             res.end(fs.readFileSync(file));
-        } catch (_) {
+        } catch {
             res.statusCode = 404;
             res.end('Missing');
         }
@@ -437,8 +437,8 @@ test(
                 actual.parentNode.append(reference);
                 const failures = [];
                 for (const selector of [
-                    '.preference__modal-header',
-                    '.preference__modal-footer',
+                    '[data-dialog-part="header"]',
+                    '[data-dialog-part="footer"]',
                     '.btn-cancel',
                     '.btn-ok',
                     '.preference__table th'

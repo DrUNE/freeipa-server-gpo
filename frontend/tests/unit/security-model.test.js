@@ -2,9 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
 import fs from 'node:fs';
-import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-const root = path.resolve(import.meta.dirname, '../../src/components/templates');
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 const model = await load('security/model.js');
 const values = await load('security/value-editor.js', {
@@ -13,8 +11,8 @@ const values = await load('security/value-editor.js', {
 const template = await load('security-template.js', {
     '../../util/element-creator': { createElement: undefined },
     '../../locales/translations': { t: key => key },
-    './security/model': model,
-    './security/value-editor': values
+    '@gpui/components/security/model': model,
+    '@gpui/components/security/value-editor': values
 });
 const workbench = await load('security/workbench.js', {
     '../../../util/element-creator': { createElement: undefined },
@@ -200,11 +198,11 @@ test(
         };
         const audit = await load('advanced-audit/model.js');
         const tree = await load('../tree-view/tree-view-list-data.js', {
-            '../editor-icons': await load('../editor-icons.js'),
+            '@gpui/editor-icons': await load('../editor-icons.js'),
             '../../locales/translations': { t: key => key },
             '../../util/API': api,
-            '../templates/security/model': model,
-            '../templates/advanced-audit/model': audit
+            '@gpui/templates/security/model': model,
+            '@gpui/templates/advanced-audit/model': audit
         });
         const computer = tree.buildTreeViewList({})[0].children[0];
         const policies = computer.children.find(node => node.title === 'policies.title');

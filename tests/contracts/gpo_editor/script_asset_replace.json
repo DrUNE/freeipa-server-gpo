@@ -1,0 +1,92 @@
+{
+  "method": "gpo_editor_script_asset_replace",
+  "args": [
+    "Dev GPO",
+    "computer",
+    "startup"
+  ],
+  "options": {
+    "request": {
+      "name": "startup.cmd",
+      "revision": "asset-r1",
+      "content_base64": "ZWNobyBzYWZlCg=="
+    }
+  },
+  "result": {
+    "gpo": {
+      "displayname": "Test GPO",
+      "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+      "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{E361BAA9-67B3-4828-84C1-6A74AADB9D06}",
+        "distinguished_name": "cn={E361BAA9-67B3-4828-84C1-6A74AADB9D06},cn=Policies,cn=System,dc=example,dc=test"
+      },
+      "version_number": 0,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [],
+    "diagnostics": [],
+    "pending_publication": null,
+    "scripts": {
+      "scope": "computer",
+      "event": "startup",
+      "classic": {
+        "snapshot": null,
+        "editable": true,
+        "entries": [
+          {
+            "identity": "classic-startup-0",
+            "command_line": "startup.cmd",
+            "parameters": "/quiet",
+            "managed_asset_name": null,
+            "kind": "managed_asset"
+          }
+        ],
+        "diagnostics": [
+          {
+            "message": "<gpo-path> <server-path>/x",
+            "code": "invalid_line"
+          }
+        ]
+      },
+      "powershell": {
+        "snapshot": null,
+        "editable": true,
+        "entries": [
+          {
+            "identity": "powershell-startup-0",
+            "command_line": "\\\\server\\share\\external.ps1",
+            "parameters": "",
+            "managed_asset_name": null,
+            "kind": "external"
+          }
+        ],
+        "diagnostics": []
+      },
+      "execution_order": "unspecified",
+      "assets": [
+        {
+          "name": "startup.cmd",
+          "byte_size": 3,
+          "revision": "asset-r1",
+          "references": [
+            {
+              "event": "startup",
+              "executable_group": "classic",
+              "index": 0
+            }
+          ]
+        }
+      ],
+      "upload_limit_bytes": 16777216
+    },
+    "publication": {
+      "changed": true
+    }
+  }
+}

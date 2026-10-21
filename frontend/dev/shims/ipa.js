@@ -1,7 +1,7 @@
 /**
  * Development shim for the FreeIPA `freeipa/ipa` module.
  *
- * Only the surface used by plugin/ui/grouppolicy/js is provided.
+ * Only the surface used by frontend/src is provided.
  */
 function toast(message, type) {
     var host = document.getElementById('dev-notify');

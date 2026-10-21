@@ -11,10 +11,14 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+# ...but not the committed plugin directory built by frontend/ (the RPM installs it without Node)
+!frontend/dist/
 downloads/
 eggs/
 .eggs/
 lib/
+# ...but not the frontend's source directory src/lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/

@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as collectionModule from '../../src/util/collection-value.js';
-import * as enLocale from '../../src/locales/en.js';
-import * as ruLocale from '../../src/locales/ru.js';
-import fs from 'node:fs';
-import path from 'node:path';
-
-const root = path.resolve(import.meta.dirname, '../../src');
+import * as collection from '@gpui/util/collection-value';
+import * as enLocale from '@gpui/locales/en';
+import * as ruLocale from '@gpui/locales/ru';
 
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
@@ -37,8 +33,6 @@ function keyValueParameter(collection = {}, extra = {}) {
         collection: { mode: 'key_value', ...collection }
     };
 }
-
-const collection = collectionModule;
 
 test('ordinary and explicit collections keep distinct typed values without delimiter encoding', () => {
     const ordinary = collection.session(listParameter(), textList(['a=b', 'C:\\Scripts\\one:two.cmd']));

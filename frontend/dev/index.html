@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <title>GPUI dev harness</title>
-<link rel="stylesheet" href="/ipa/ui/js/plugins/chain/css/main.css">
-<link rel="stylesheet" href="/ipa/ui/js/plugins/chain/css/other.css">
 <style>
     html, body { margin: 0; height: 100%; font: 12px Arial, sans-serif; background: #f4f4f4; }
     .dev-bar { display: flex; gap: 12px; align-items: center; padding: 6px 12px; background: #1f2a44; color: #fff; font: 13px/1.4 system-ui, sans-serif; }
@@ -30,6 +28,12 @@
     <label>Lang
         <select id="dev-lang"><option value="en">en</option><option value="ru">ru</option></select>
     </label>
+    <label title="How the mock server behaves: error = every gpo_editor_* call fails, slow = 1.5 s delay, empty = empty lists">Scenario
+        <select id="dev-scenario">
+            <option value="normal">normal</option><option value="error">error</option>
+            <option value="slow">slow</option><option value="empty">empty</option>
+        </select>
+    </label>
     <button id="dev-reload" type="button">Reload editor</button>
     <button id="dev-reset" type="button" title="Drop in-memory fixture state on the server">Reset fixtures</button>
     <span class="spacer"></span>
@@ -54,6 +58,10 @@ import * as app from '@gpui/app.js';
 
     document.getElementById('dev-gpo').value = gpoName;
     document.getElementById('dev-lang').value = lang === 'ru' ? 'ru' : 'en';
+    var scenario = params.get('scenario') || 'normal';
+    document.getElementById('dev-scenario').value = scenario;
+    // The mock server reads the scenario from the request address (see vite.config.mjs).
+    window.DEV_RPC_ENDPOINT = '/ipa/session/json?scenario=' + encodeURIComponent(scenario);
     document.getElementById('gpo-shell-title').textContent = 'GPUI | ' + gpoName;
 
     // app.init() derives the UI language from navigator.language.
@@ -66,17 +74,31 @@ import * as app from '@gpui/app.js';
         var next = new URLSearchParams();
         next.set('gpo', document.getElementById('dev-gpo').value || 'Dev GPO');
         next.set('lang', document.getElementById('dev-lang').value);
+        next.set('scenario', document.getElementById('dev-scenario').value);
         location.search = next.toString();
     }
     document.getElementById('dev-reload').addEventListener('click', navigate);
     document.getElementById('dev-lang').addEventListener('change', navigate);
+    document.getElementById('dev-scenario').addEventListener('change', navigate);
     document.getElementById('dev-gpo').addEventListener('keydown', function(event) { if (event.key === 'Enter') navigate(); });
     document.getElementById('dev-reset').addEventListener('click', function() {
         fetch('/__dev/reset', { method: 'POST' }).then(navigate);
     });
 
-    window.gpui = app;
-    app.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
+    function start(module) {
+        window.gpui = module;
+        // A re-imported module has its own registry of running editors, so the previous one is stopped here.
+        if (window.__editor) window.__editor.cleanup();
+        window.__editor = module.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
+    }
+    start(app);
+    // Hot update: a change in any module under src/ re-imports app.js (Vite bubbles it up to this boundary) and starts
+    // the editor again in the same page; CSS changes are applied without even that.
+    if (import.meta.hot) {
+        import.meta.hot.accept('@gpui/app.js', function(next) {
+            if (next) start(next);
+        });
+    }
 })();
 </script>
 </body>

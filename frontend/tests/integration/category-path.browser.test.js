@@ -10,7 +10,7 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
@@ -114,7 +114,7 @@ async function withPage(run) {
                       : 'application/javascript'
             );
             response.end(fs.readFileSync(filename));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }

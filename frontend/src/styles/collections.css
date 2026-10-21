@@ -1,0 +1,118 @@
+/* Collection layout uses the Preferences table, fields and modal buttons. */
+.gp__admx--collections { min-width: 0; }
+.gp__admx-options--collection { min-width: 0; }
+.gpo-collection-control { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; }
+.gp__container .gpo-collection-control > .button { color: inherit; border: 1px solid var(--gpui-border); min-width: 80px; height: 25px; padding: 0 10px; cursor: pointer; flex-shrink: 0; }
+.gp__container .gpo-collection-control > .button:disabled { cursor: default; opacity: .55; }
+.gpo-collection-control__summary { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.gpo-collection-control__dialog-host { display: contents; }
+.gpo-collection-control__count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gpo-collection-control__preview { color: var(--gpui-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gpo-collection-control__preview:empty { display: none; }
+.gpo-collection-dialog [data-dialog-part="body"] { min-height: 0; overflow: hidden; display: flex; }
+.gpo-collection-editor { width: 100%; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.gpo-collection-editor__toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.gpo-collection-editor__toolbar input { margin-left: auto; min-width: 0; width: 180px; border: 1px solid var(--gpui-border); border-radius: var(--gpui-radius); font: inherit; padding: 5px; height: 25px; box-sizing: border-box; }
+.gpo-collection-editor__toolbar input[hidden] { display: none; }
+.gpo-collection-editor__toolbar:has(> input[hidden]:only-child) { display: none; }
+.gpo-collection-editor__table-scroll { overflow: auto; border: 1px solid var(--gpui-border); min-height: 0; max-height: min(360px, calc(100vh - 240px)); }
+.gpo-collection-table { table-layout: fixed; }
+.gp__preference .gpo-collection-table th, .gp__preference .gpo-collection-table td { padding: 4px 8px; max-width: none; }
+.gp__preference .gpo-collection-table tbody td { vertical-align: middle; }
+.gpo-collection-table thead { position: sticky; top: 0; background: var(--gpui-white); z-index: 1; }
+.gpo-collection-table__handle-column { width: 28px; }
+.gpo-collection-table__index-column { width: 40px; }
+.gpo-collection-table__key-column { width: 34%; }
+.gpo-collection-table tbody { user-select: none; -webkit-user-select: none; }
+.gpo-collection-table__index { color: var(--gpui-muted); }
+.gp__preference .gpo-collection-table .gpo-collection-table__handle-cell { padding: 4px 0; }
+.gpo-collection-table__handle { appearance: none; border: 0; background: none; padding: 0; width: 100%; height: 24px; font: inherit; font-size: 20px; color: inherit; cursor: grab; }
+.gpo-collection-row--dragging { opacity: .55; }
+.gpo-collection-row--dragging .gpo-collection-table__handle { cursor: grabbing; }
+.gpo-collection-row--before td { box-shadow: inset 0 2px var(--gpui-accent); }
+.gpo-collection-row--after td { box-shadow: inset 0 -2px var(--gpui-accent); }
+.gpo-collection-cell__text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 24px; line-height: 24px; }
+.gp__preference .gpo-collection-dialog .field__element { width: auto; min-width: 0; }
+.gp__container .gpo-collection-cell textarea, .gp__container .gpo-collection-cell input[type=text] { box-sizing: border-box; max-height: 128px; min-height: 28px; display: block; font: inherit; line-height: 1.4; user-select: text; -webkit-user-select: text; }
+.gp__container .gpo-collection-cell textarea { overflow: auto; }
+.gp__container .gpo-collection-cell input[type=text] { height: 28px; }
+.gpo-collection-cell__error { display: block; white-space: normal; margin-top: 3px; }
+.gpo-collection-editor__validation:empty { display: none; }
+.gpo-collection-editor__validation, .gpo-collection-cell__error { color: var(--gpui-danger); }
+.gpo-collection-editor__count { color: var(--gpui-muted); flex-shrink: 0; }
+.gp__preference .gpo-collection-table__empty td { white-space: normal; text-align: center; color: var(--gpui-muted); padding: 24px 8px; cursor: default; }
+.gpo-collection-editor__live { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 760px) {
+  .gpo-collection-editor { padding: 16px; }
+  .gpo-collection-editor__toolbar { flex-wrap: wrap; }
+  .gpo-collection-editor__toolbar input { flex: 1; }
+  .gpo-collection-control__preview { display: none; }
+}
+
+/* Catalogs share Preferences metrics; editable collection tables stay separate. */
+.gp__container .gpo-editor-scripts {
+  box-sizing: border-box;
+}
+.gp__container .gp__preference .gpo-catalog-table {
+  width: 100%;
+  align-self: start;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  color: var(--gpui-text);
+}
+.gp__container .gp__preference .gpo-catalog-table thead {
+  background: var(--gpui-white);
+}
+.gp__container .gp__preference .gpo-catalog-table th,
+.gp__container .gp__preference .gpo-catalog-table td {
+  box-sizing: border-box;
+  padding: 4px 20px;
+  max-width: none;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-top: 0;
+  border-bottom: 0;
+}
+.gp__container .gp__preference .gpo-catalog-table th {
+  height: 28px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--gpui-muted);
+}
+.gp__container .gp__preference .gpo-catalog-table th:not(:last-child) {
+  border-right: 1px solid var(--gpui-border);
+}
+.gp__container .gp__preference .gpo-catalog-table td {
+  height: 32px;
+  line-height: 24px;
+}
+.gp__container .gp__preference .gpo-catalog-table thead tr {
+  cursor: default;
+}
+.gp__container .gp__preference .gpo-catalog-table tbody tr,
+.gp__container .gp__preference .gpo-catalog-table tbody td {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.gp__container .gp__preference .gpo-catalog-table tbody tr.active {
+  background: var(--gpui-surface);
+}
+.gp__container .gp__preference .gpo-catalog-table tbody tr:focus-visible {
+  outline: 2px solid var(--gpui-accent);
+  outline-offset: -2px;
+}
+.gp__container .gp__preference .gpo-catalog-table .gpo-editor-scripts__empty-row td,
+.gp__container .gp__preference .gpo-catalog-table .gpo-security-table__empty {
+  height: auto;
+  padding: 24px 20px !important;
+  color: var(--gpui-muted);
+  text-align: center;
+  white-space: normal;
+  cursor: default;
+}

@@ -1,17 +1,16 @@
-import * as translations from '../../../locales/translations';
-import * as securityModel from '../security/model';
-import * as auditModel from '../advanced-audit/model';
-import * as editorIcons from '../../editor-icons';
-
-('use strict');
+import { getLanguage, t } from '@gpui/locales/translations';
+import { collectionElement, buildSecurityModel } from '@gpui/components/templates/security/model';
+import * as securityModel from '@gpui/components/templates/security/model';
+import { families } from '@gpui/components/templates/advanced-audit/model';
+import { scriptEvent, preference } from '@gpui/components/editor-icons';
 
 function text(key, fallback) {
-    var value = translations && translations.t(key);
+    const value = t(key);
     return value && value !== key ? value : fallback;
 }
 
 function language() {
-    return translations && typeof translations.getLanguage === 'function' ? translations.getLanguage() : undefined;
+    return getLanguage();
 }
 
 function pathLabels(path) {
@@ -27,7 +26,7 @@ function identity(kind, scope, parts) {
 }
 
 function row(kind, scope, parts, title, path, properties) {
-    var categoryPath = [text(scope === 'computer' ? 'policies.machine' : 'policies.user', scope)];
+    let categoryPath = [text(scope === 'computer' ? 'policies.machine' : 'policies.user', scope)];
     if (kind !== 'preferences') categoryPath.push(text('policies.title', 'Policies'));
     if (kind === 'security' || kind === 'advanced_audit')
         categoryPath.push(text('policies.windowsSettings', 'System Settings'));
@@ -56,7 +55,7 @@ function admxRows(result, scope) {
     if (!result || !Array.isArray(result.policies)) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
-    var policies = result.policies;
+    const policies = result.policies;
     return policies.map(function (policy) {
         return row(
             'admx',
@@ -83,21 +82,21 @@ function securityRows(response, scope) {
     ) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
-    var model = securityModel.buildSecurityModel(response);
-    var categories = new Map();
-    var catalog = (response && response.security_catalog) || {};
+    const model = buildSecurityModel(response);
+    const categories = new Map();
+    const catalog = (response && response.security_catalog) || {};
     (catalog.categories || []).forEach(function (category) {
         categories.set(securityModel.identity(category.namespace, category.id), category);
     });
     function categoryPath(policy) {
-        var path = [];
-        var current = reference(policy.definition.category);
-        var visited = new Set();
+        const path = [];
+        let current = reference(policy.definition.category);
+        const visited = new Set();
         while (current) {
-            var key = securityModel.identity(current.namespace, current.id);
+            const key = securityModel.identity(current.namespace, current.id);
             if (visited.has(key)) break;
             visited.add(key);
-            var category = categories.get(key);
+            const category = categories.get(key);
             if (!category) break;
             path.unshift(category.display_name || category.id);
             current = reference(category.parent);
@@ -105,8 +104,8 @@ function securityRows(response, scope) {
         return [text('security.title', 'Security Settings')].concat(path);
     }
     return Array.from(model.policies.values()).map(function (policy) {
-        var collection = securityModel.collectionElement(policy);
-        var properties = {
+        const collection = collectionElement(policy);
+        const properties = {
             securityPolicy: { namespace: policy.namespace, policy_id: policy.policyId },
             openPolicyDialog: !collection
         };
@@ -123,9 +122,9 @@ function securityRows(response, scope) {
 }
 
 function auditIdentity(value) {
-    var item = value || {};
+    const item = value || {};
     if (item.kind === 'subcategory') {
-        var target = item.target || { kind: 'system' };
+        const target = item.target || { kind: 'system' };
         return JSON.stringify([
             item.kind,
             String(item.guid || '')
@@ -160,17 +159,17 @@ function auditRows(response, scope) {
     ) {
         throw new TypeError(text('policySearch.invalidIndex', 'Invalid policy index'));
     }
-    var rows = [];
-    var duplicates = new Map();
-    auditModel.families(response).forEach(function (family) {
+    const rows = [];
+    const duplicates = new Map();
+    families(response).forEach(function (family) {
         family.rows.forEach(function (item) {
-            var key = auditIdentity(item);
-            var parts = [family.id, key];
-            var occurrenceKey = JSON.stringify(parts);
-            var occurrence = duplicates.get(occurrenceKey) || 0;
+            const key = auditIdentity(item);
+            const parts = [family.id, key];
+            const occurrenceKey = JSON.stringify(parts);
+            const occurrence = duplicates.get(occurrenceKey) || 0;
             duplicates.set(occurrenceKey, occurrence + 1);
             if (occurrence) parts.push(occurrence);
-            var path = [
+            const path = [
                 text('security.title', 'Security Settings'),
                 text('security.advancedAudit.title', 'Advanced Audit Policy Configuration'),
                 family.label
@@ -193,8 +192,8 @@ function auditRows(response, scope) {
 }
 
 function scriptRows(scope) {
-    var events = scope === 'computer' ? ['startup', 'shutdown'] : scope === 'user' ? ['logon', 'logoff'] : [];
-    var labels = {
+    const events = scope === 'computer' ? ['startup', 'shutdown'] : scope === 'user' ? ['logon', 'logoff'] : [];
+    const labels = {
         startup: 'startupScripts',
         shutdown: 'shutdownScripts',
         logon: 'logonScript',
@@ -210,13 +209,13 @@ function scriptRows(scope) {
                 text('policies.windowsSettings', 'System Settings'),
                 text(scope === 'computer' ? 'policies.scriptsComputer' : 'policies.scriptsUser', 'Scripts')
             ],
-            { scriptEvent: event, icon: editorIcons.scriptEvent(event), openPolicyDialog: true }
+            { scriptEvent: event, icon: scriptEvent(event), openPolicyDialog: true }
         );
     });
 }
 
 function preferenceCategory(document) {
-    var id = document.category_id || 'other_settings';
+    const id = document.category_id || 'other_settings';
     if (id === 'system_settings') return text('preferences.windowsSettings', 'System Settings');
     if (id === 'control_panel_settings') return text('preferences.controlPanelSettings', 'Component Settings');
     if (id === 'other_settings') return text('preferences.otherSettings', 'Other settings');
@@ -237,7 +236,7 @@ function preferenceRows(documents, scope) {
                 [text('preferences.title', 'Preferences'), preferenceCategory(document)],
                 {
                     preferenceKind: document.kind,
-                    icon: editorIcons.preference(document.kind),
+                    icon: preference(document.kind),
                     document: JSON.parse(JSON.stringify(document)),
                     readOnly: !document.editable || document.applicable === false
                 }
@@ -254,7 +253,7 @@ function normalized(value) {
 }
 
 function matches(item, query) {
-    var needle = normalized(query);
+    const needle = normalized(query);
     if (!needle) return true;
     return (
         normalized([(item && item.title) || ''].concat(pathLabels(item && item.path)).join(' ')).indexOf(needle) !== -1
@@ -262,7 +261,7 @@ function matches(item, query) {
 }
 
 function sortRows(rows) {
-    var locale = language();
+    const locale = language();
     return (Array.isArray(rows) ? rows : []).slice().sort(function (left, right) {
         return (
             String(left.title).localeCompare(String(right.title), locale) ||

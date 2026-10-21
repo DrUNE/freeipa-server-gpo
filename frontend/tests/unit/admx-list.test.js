@@ -1,21 +1,10 @@
 import assert from 'node:assert/strict';
-import { test, vi } from 'vitest';
-import * as dtoModule from '../../src/util/editor-dto.js';
-import * as enModule from '../../src/locales/en.js';
-import * as ruModule from '../../src/locales/ru.js';
-import * as translationsModule from '../../src/locales/translations.js';
-import * as statusModule from '../../src/components/editor-status.js';
-
-vi.mock('../../src/util/element-creator.js', () => ({ createElement: (tag, options) => ({ tag, ...options }) }));
-
-import fs from 'node:fs';
-import path from 'node:path';
-
-const dto = dtoModule;
-const en = enModule;
-const ru = ruModule;
-const translations = translationsModule;
-const status = statusModule;
+import { test } from 'vitest';
+import * as dto from '@gpui/util/editor-dto';
+import * as en from '@gpui/locales/en';
+import * as ru from '@gpui/locales/ru';
+import * as translations from '@gpui/locales/translations';
+import * as status from '@gpui/components/EditorStatus/EditorStatus';
 
 function policy(state, values) {
     return {

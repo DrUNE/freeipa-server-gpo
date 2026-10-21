@@ -1,19 +1,17 @@
-import * as dto from '../../../../util/editor-dto';
-import * as elementCreator from '../../../../util/element-creator';
-import * as commonModule from './common';
-import * as fieldControlModule from './field-control';
-
-var createElement = elementCreator.createElement;
-var pt = commonModule.pt;
-var nextControlId = fieldControlModule.nextControlId;
-var hiddenFieldControl = fieldControlModule.hiddenFieldControl;
-var mockupFieldControl = fieldControlModule.mockupFieldControl;
-var fieldControl = fieldControlModule.fieldControl;
+import { clone } from '@gpui/util/editor-dto';
+import { createElement } from '@gpui/util/element-creator';
+import { pt } from '@gpui/components/templates/preference/view/common';
+import {
+    nextControlId,
+    hiddenFieldControl,
+    mockupFieldControl,
+    fieldControl
+} from '@gpui/components/templates/preference/view/field-control';
 
 function buildPlaceholderCheckbox(entry) {
-    var label = (entry && entry.label) || (entry && entry.labelKey ? pt(entry.labelKey) : '');
-    var controlId = nextControlId();
-    var checkbox = createElement('input', {
+    const label = (entry && entry.label) || (entry && entry.labelKey ? pt(entry.labelKey) : '');
+    const controlId = nextControlId();
+    const checkbox = createElement('input', {
         attrs: {
             id: controlId,
             type: 'checkbox',
@@ -57,23 +55,23 @@ function isBasicTabField(field) {
 }
 
 function orderedTabEntries(fields, layoutEntries, predicate) {
-    var layout = Array.isArray(layoutEntries) ? layoutEntries : [];
-    var belongs =
+    const layout = Array.isArray(layoutEntries) ? layoutEntries : [];
+    const belongs =
         typeof predicate === 'function'
             ? predicate
             : function () {
                   return true;
               };
-    var result = [];
-    var placed = {};
+    const result = [];
+    const placed = {};
     layout.forEach(function (entry) {
-        var item = dto.clone(entry || {});
+        const item = clone(entry || {});
         if (!item.field) {
             if (item.line) result.push({ line: true });
             if (item.placeholder) result.push(item);
             return;
         }
-        var field = fields.find(function (candidate) {
+        const field = fields.find(function (candidate) {
             return candidate.id === item.field;
         });
         if (!field || !belongs(field)) return;
@@ -88,21 +86,21 @@ function orderedTabEntries(fields, layoutEntries, predicate) {
 }
 
 function buildFieldTabs(fields, options) {
-    var opts = options || {};
-    var layout = opts.layout || null;
-    var fieldsById = new Map();
+    const opts = options || {};
+    const layout = opts.layout || null;
+    const fieldsById = new Map();
     fields.forEach(function (field) {
         fieldsById.set(field.id, field);
     });
-    var basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
-    var generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
-    var fieldOptions = {};
+    const basicEntries = orderedTabEntries(fields, layout ? layout.basic : null, isBasicTabField);
+    const generalEntries = orderedTabEntries(fields, layout ? layout.general : null, isGeneralTabField);
+    const fieldOptions = {};
     basicEntries.concat(generalEntries).forEach(function (entry) {
         if (entry && entry.field && !fieldOptions[entry.field]) fieldOptions[entry.field] = entry;
     });
 
     fields.forEach(function (field) {
-        var control;
+        let control;
         if (field.hidden) {
             control = hiddenFieldControl(field);
         } else if (layout) {
@@ -119,17 +117,17 @@ function buildFieldTabs(fields, options) {
         return entries.some(function (entry) {
             if (entry.placeholder) return true;
             if (!entry.field) return false;
-            var field = fieldsById.get(entry.field);
+            const field = fieldsById.get(entry.field);
             return Boolean(field && !field.hidden);
         });
     }
 
-    var basicHasFields = renderable(basicEntries);
-    var generalHasFields = renderable(generalEntries);
+    const basicHasFields = renderable(basicEntries);
+    const generalHasFields = renderable(generalEntries);
     if (!basicHasFields && !generalHasFields) return null;
 
     function buildContent(entries) {
-        var content = createElement('div', { className: 'tab-content' });
+        const content = createElement('div', { className: 'tab-content' });
         entries.forEach(function (entry) {
             if (entry.line) {
                 content.append(createElement('div', { className: 'field__line' }));
@@ -147,16 +145,16 @@ function buildFieldTabs(fields, options) {
         return content;
     }
 
-    var basicContent = buildContent(basicEntries);
-    var generalContent = buildContent(generalEntries);
+    const basicContent = buildContent(basicEntries);
+    const generalContent = buildContent(generalEntries);
     basicContent.getElement().id = 'tab-basic';
     generalContent.getElement().id = 'tab-general';
-    var activeTab = basicHasFields ? 'tab-basic' : 'tab-general';
+    const activeTab = basicHasFields ? 'tab-basic' : 'tab-general';
     if (activeTab === 'tab-basic') basicContent.getElement().classList.add('active');
     else generalContent.getElement().classList.add('active');
 
-    var tabs = createElement('div', { className: 'preference__modal-tabs' });
-    var buttons = createElement('div', { className: 'tab-buttons' });
+    const tabs = createElement('div', { className: 'preference__modal-tabs' });
+    const buttons = createElement('div', { className: 'tab-buttons' });
     [
         { id: 'tab-basic', enabled: basicHasFields, label: pt('tabBasic') },
         { id: 'tab-general', enabled: generalHasFields, label: pt('tabGeneral') }
@@ -179,7 +177,7 @@ function buildFieldTabs(fields, options) {
     tabs.append(basicContent);
     tabs.append(generalContent);
 
-    var filtersTab = opts.layout
+    const filtersTab = opts.layout
         ? opts.layout.filters === 'basic'
             ? 'tab-basic'
             : opts.layout.filters === 'general'

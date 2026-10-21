@@ -1,25 +1,29 @@
-import * as elements from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as searchModel from './all-policies/model';
-import * as headerActions from './security/header-actions';
-import * as securityTemplate from './security-template';
-import * as securityModel from './security/model';
-import * as auditTemplate from './advanced-audit-template';
-import * as admxTemplate from './admx-template';
-import * as scriptTemplate from './script-template';
-import * as preferencesTemplate from './preference/preferences-view-template';
-import * as listNavigation from '../list-navigation';
+import { createElement } from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import { t } from '@gpui/locales/translations';
+import { renderError } from '@gpui/components/editor-status';
+import {
+    auditRows,
+    preferenceRows,
+    admxRows,
+    scriptRows,
+    matches,
+    sortRows,
+    securityRows
+} from '@gpui/components/templates/all-policies/model';
+import { bind } from '@gpui/components/templates/security/header-actions';
+import { openSecurityDialog } from '@gpui/components/templates/security-template';
+import { buildSecurityModel } from '@gpui/components/templates/security/model';
+import { openAdvancedAuditDialog } from '@gpui/components/templates/advanced-audit-template';
+import { openAdmxDialog } from '@gpui/components/templates/admx-template';
+import { openScriptsDialog } from '@gpui/components/templates/script-template';
+import { openPreferencesDialog } from '@gpui/components/templates/preference/preferences-view-template';
+import * as listNavigation from '@gpui/components/list-navigation';
 
-('use strict');
-
-var create = elements.createElement;
-var t = translations.t;
-var PAGE_SIZE = 100;
+const PAGE_SIZE = 100;
 
 function format(key, values) {
-    var result = t('policySearch.' + key);
+    let result = t('policySearch.' + key);
     Object.keys(values || {}).forEach(function (name) {
         result = result.replace('{' + name + '}', String(values[name]));
     });
@@ -29,7 +33,7 @@ function format(key, values) {
 function checkedRows(name, response, scope) {
     if (name === 'admx') {
         if (!response || !Array.isArray(response.policies)) throw new Error(t('policySearch.invalidIndex'));
-        return searchModel.admxRows(response, scope);
+        return admxRows(response, scope);
     }
     if (name === 'security') {
         if (
@@ -40,7 +44,7 @@ function checkedRows(name, response, scope) {
         ) {
             throw new Error(t('policySearch.invalidIndex'));
         }
-        return searchModel.securityRows(response, scope);
+        return securityRows(response, scope);
     }
     if (name === 'audit') {
         if (
@@ -51,23 +55,23 @@ function checkedRows(name, response, scope) {
         ) {
             throw new Error(t('policySearch.invalidIndex'));
         }
-        return searchModel.auditRows(response, scope);
+        return auditRows(response, scope);
     }
     return [];
 }
 
 function updateCachedSource(item, name, response) {
-    var sources = item.policySearchSources;
+    const sources = item.policySearchSources;
     if (!sources || !sources[name]) return;
     // Replace the source, so an older in-flight read cannot overwrite a save.
     sources[name] = { status: 'ready', response: response, rows: checkedRows(name, response, item.scope) };
 }
 
 function renderAllPoliciesTemplate(options) {
-    var config = options || {};
-    var item = config.item || {};
-    var scope = item.scope === 'user' ? 'user' : 'computer';
-    var state =
+    const config = options || {};
+    const item = config.item || {};
+    const scope = item.scope === 'user' ? 'user' : 'computer';
+    const state =
         item.policySearchState ||
         (item.policySearchState = {
             query: '',
@@ -75,18 +79,18 @@ function renderAllPoliciesTemplate(options) {
             selected: null,
             scrollTop: 0
         });
-    var sources = item.policySearchSources || (item.policySearchSources = {});
-    var disposed = false;
-    var activeDialog = null,
+    const sources = item.policySearchSources || (item.policySearchSources = {});
+    let disposed = false;
+    let activeDialog = null,
         activeEditor = null,
         opening = false;
-    var root = create('div', {
+    const root = createElement('div', {
         className: ['gp__preference', 'gpo-security-workbench', 'gpo-policy-search'],
         attrs: { 'data-all-policies-scope': scope }
     });
-    var panel = create('div', { className: 'gpo-security-workbench__panel' });
-    var toolbar = create('div', { className: 'gpo-security-workbench__toolbar' });
-    var query = create('input', {
+    const panel = createElement('div', { className: 'gpo-security-workbench__panel' });
+    const toolbar = createElement('div', { className: 'gpo-security-workbench__toolbar' });
+    const query = createElement('input', {
         attrs: {
             type: 'search',
             value: state.query || '',
@@ -95,18 +99,18 @@ function renderAllPoliciesTemplate(options) {
             'aria-label': t('policySearch.' + (scope === 'user' ? 'userPlaceholder' : 'computerPlaceholder'))
         }
     });
-    var status = create('div', { className: 'gpo-policy-search__status', attrs: { role: 'status' } });
-    var errors = create('div', { className: 'gpo-policy-search__errors' });
-    var body = create('tbody');
-    var table = create('table', {
+    const status = createElement('div', { className: 'gpo-policy-search__status', attrs: { role: 'status' } });
+    const errors = createElement('div', { className: 'gpo-policy-search__errors' });
+    const body = createElement('tbody');
+    const table = createElement('table', {
         className: ['preference__table', 'gpo-catalog-table', 'gpo-security-table', 'gpo-policy-search__table'],
         children: [
-            create('thead', {
+            createElement('thead', {
                 children: [
-                    create('tr', {
+                    createElement('tr', {
                         children: [
-                            create('th', { text: t('policySearch.name') }),
-                            create('th', { text: t('policySearch.path') })
+                            createElement('th', { text: t('policySearch.name') }),
+                            createElement('th', { text: t('policySearch.path') })
                         ]
                     })
                 ]
@@ -114,19 +118,22 @@ function renderAllPoliciesTemplate(options) {
             body
         ]
     });
-    var previous = create('button', {
+    const previous = createElement('button', {
         className: 'button',
         attrs: { type: 'button', 'data-policy-page-previous': '' },
         text: t('policySearch.previous')
     });
-    var next = create('button', {
+    const next = createElement('button', {
         className: 'button',
         attrs: { type: 'button', 'data-policy-page-next': '' },
         text: t('policySearch.next')
     });
-    var pageText = create('span', { attrs: { 'data-policy-page': '' } });
-    var paging = create('div', { className: 'gpo-policy-search__paging', children: [previous, pageText, next] });
-    if (!config.hideHeading) toolbar.append(create('h2', { text: t('policies.allPolicies') }));
+    const pageText = createElement('span', { attrs: { 'data-policy-page': '' } });
+    const paging = createElement('div', {
+        className: 'gpo-policy-search__paging',
+        children: [previous, pageText, next]
+    });
+    if (!config.hideHeading) toolbar.append(createElement('h2', { text: t('policies.allPolicies') }));
     toolbar.append(query);
     panel.append(toolbar);
     panel.append(errors);
@@ -135,8 +142,8 @@ function renderAllPoliciesTemplate(options) {
     panel.append(paging);
     root.append(panel);
 
-    var selection = null;
-    var actions = headerActions.bind(config.header, toolbar, {
+    let selection = null;
+    const actions = bind(config.header, toolbar, {
         edit: function () {
             if (selection) open(selection);
         }
@@ -147,7 +154,7 @@ function renderAllPoliciesTemplate(options) {
     function syncActions() {
         actions.update(selection && { edit: true }, opening || Boolean(activeDialog));
     }
-    var navigation = listNavigation.bind(table.getElement(), {
+    const navigation = listNavigation.bind(table.getElement(), {
         rows: function () {
             return Array.from(body.getElement().querySelectorAll('[data-policy-result-id]'));
         },
@@ -171,24 +178,24 @@ function renderAllPoliciesTemplate(options) {
         opening = true;
         syncActions();
         try {
-            var kind = row.target.template;
-            var audit = kind === 'advanced_audit',
+            const kind = row.target.template;
+            const audit = kind === 'advanced_audit',
                 security = kind === 'security';
-            var sourceName = audit ? 'audit' : kind;
-            var modalModel = security ? securityModel.buildSecurityModel(sources.security.response) : null;
-            var openDialog = audit
-                ? auditTemplate.openAdvancedAuditDialog
+            const sourceName = audit ? 'audit' : kind;
+            const modalModel = security ? buildSecurityModel(sources.security.response) : null;
+            const openDialog = audit
+                ? openAdvancedAuditDialog
                 : security
-                  ? securityTemplate.openSecurityDialog
+                  ? openSecurityDialog
                   : kind === 'admx'
-                    ? admxTemplate.openAdmxDialog
+                    ? openAdmxDialog
                     : kind === 'scripts'
-                      ? scriptTemplate.openScriptsDialog
+                      ? openScriptsDialog
                       : kind === 'preferences'
-                        ? preferencesTemplate.openPreferencesDialog
+                        ? openPreferencesDialog
                         : null;
             if (!openDialog) throw new Error(t('policySearch.targetUnavailable'));
-            var opened = await openDialog(root, {
+            const opened = await openDialog(root, {
                 item: Object.assign(
                     {},
                     row.target,
@@ -204,13 +211,13 @@ function renderAllPoliciesTemplate(options) {
                     return (selection && selection.element) || query.getElement();
                 },
                 onSaved: function (response) {
-                    var scrollTop = panel.getElement().scrollTop;
+                    const scrollTop = panel.getElement().scrollTop;
                     if (audit || security) {
                         sources[sourceName].response = response;
                         sources[sourceName].rows = checkedRows(sourceName, response, scope);
                     } else if (kind === 'admx') {
-                        var savedPolicy = response.policy || response;
-                        var indexed = sources.admx.response.policies.find(function (policy) {
+                        const savedPolicy = response.policy || response;
+                        const indexed = sources.admx.response.policies.find(function (policy) {
                             return policy.id === row.target.policyId;
                         });
                         if (indexed && savedPolicy.label) indexed.label = savedPolicy.label;
@@ -237,7 +244,7 @@ function renderAllPoliciesTemplate(options) {
         } catch (problem) {
             if (current()) {
                 errors.getElement().replaceChildren();
-                errors.append(editorStatus.renderError(problem));
+                errors.append(renderError(problem));
             }
         } finally {
             opening = false;
@@ -246,49 +253,49 @@ function renderAllPoliciesTemplate(options) {
     }
     function showRows() {
         if (!current()) return;
-        var heldFocus = table.getElement().contains(document.activeElement);
-        var allRows = [];
-        var incomplete = [],
+        const heldFocus = table.getElement().contains(document.activeElement);
+        const allRows = [];
+        const incomplete = [],
             pending = [];
         ['admx', 'security', 'audit', 'scripts', 'preferences'].forEach(function (name) {
-            var source = sources[name];
+            const source = sources[name];
             if (!source) return;
             if (source.status === 'error') incomplete.push({ name: name, error: source.error });
             else if (source.status === 'loading') pending.push(name);
             else if (source.status === 'ready') allRows.push.apply(allRows, source.rows);
         });
-        var rows = searchModel.sortRows(allRows).filter(function (row) {
-            return searchModel.matches(row, state.query);
+        const rows = sortRows(allRows).filter(function (row) {
+            return matches(row, state.query);
         });
-        var pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
         state.page = Math.max(0, Math.min(Number(state.page) || 0, pages - 1));
         body.getElement().replaceChildren();
         selection = null;
         rows.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE).forEach(function (row) {
-            var path = row.path.join(' / ');
-            var node = create('tr', {
+            const path = row.path.join(' / ');
+            const node = createElement('tr', {
                 attrs: {
                     tabindex: '-1',
                     'aria-selected': 'false',
                     'data-policy-result-id': row.id
                 },
                 children: [
-                    create('td', {
+                    createElement('td', {
                         attrs: { title: row.title },
                         children: [
-                            create('span', {
+                            createElement('span', {
                                 className: 'gpo-catalog-name',
                                 children: [
-                                    create('span', {
+                                    createElement('span', {
                                         className: ['icon', row.target.icon],
                                         attrs: { 'aria-hidden': 'true' }
                                     }),
-                                    create('span', { text: row.title })
+                                    createElement('span', { text: row.title })
                                 ]
                             })
                         ]
                     }),
-                    create('td', { text: path, attrs: { title: path } })
+                    createElement('td', { text: path, attrs: { title: path } })
                 ]
             });
             function select() {
@@ -322,15 +329,15 @@ function renderAllPoliciesTemplate(options) {
         errors.getElement().replaceChildren();
         if (incomplete.length) {
             errors.append(
-                create('p', {
+                createElement('p', {
                     className: 'gpo-security-workbench__notice',
                     text: t('policySearch.incomplete')
                 })
             );
             incomplete.forEach(function (failure) {
-                errors.append(editorStatus.renderError(failure.error));
+                errors.append(renderError(failure.error));
             });
-            var retry = create('button', {
+            const retry = createElement('button', {
                 className: ['button', 'active'],
                 attrs: { type: 'button', 'data-policy-retry': '' },
                 text: t('policySearch.retry')
@@ -348,9 +355,9 @@ function renderAllPoliciesTemplate(options) {
             : format('count', { matched: rows.length, total: allRows.length });
         if (!rows.length && !pending.length && !incomplete.length) {
             body.append(
-                create('tr', {
+                createElement('tr', {
                     children: [
-                        create('td', {
+                        createElement('td', {
                             className: 'gpo-security-table__empty',
                             attrs: { colspan: '2' },
                             text: t('policySearch.noMatches')
@@ -371,7 +378,7 @@ function renderAllPoliciesTemplate(options) {
     }
     function fetch(name, request) {
         if (!sources[name]) {
-            var source = { status: 'loading', rows: [], error: null };
+            const source = { status: 'loading', rows: [], error: null };
             sources[name] = source;
             source.promise = Promise.resolve()
                 .then(request)
@@ -394,12 +401,9 @@ function renderAllPoliciesTemplate(options) {
         }
     }
     function loadSources() {
-        if (!sources.scripts) setStatic('scripts', searchModel.scriptRows(scope));
+        if (!sources.scripts) setStatic('scripts', scriptRows(scope));
         if (!sources.preferences)
-            setStatic(
-                'preferences',
-                item.includePreferences ? searchModel.preferenceRows(item.preferenceDocuments, scope) : []
-            );
+            setStatic('preferences', item.includePreferences ? preferenceRows(item.preferenceDocuments, scope) : []);
         fetch('admx', function () {
             return API.policyIndex(scope);
         });
@@ -442,7 +446,7 @@ function renderAllPoliciesTemplate(options) {
     };
     root.applyChanges = async function () {
         if (!activeEditor) return true;
-        var saved = await activeEditor.applyChanges();
+        const saved = await activeEditor.applyChanges();
         if (saved && activeDialog) activeDialog.close();
         return saved;
     };

@@ -1,17 +1,14 @@
-import * as elementCreator from '../../util/element-creator';
-import * as translations from '../../locales/translations';
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 
-('use strict');
-
-var createElement = elementCreator.createElement;
-var expansionRuns = new WeakMap();
-var selectionScrollRuns = new WeakMap();
+const expansionRuns = new WeakMap();
+const selectionScrollRuns = new WeakMap();
 
 function scrollTreeItemIntoView(element) {
-    var pane = element && element.closest('.tree-view');
+    const pane = element && element.closest('.tree-view');
     if (!pane || !element.isConnected) return;
-    var view = element.ownerDocument.defaultView;
-    var run = {};
+    const view = element.ownerDocument.defaultView;
+    const run = {};
     selectionScrollRuns.set(pane, run);
 
     function reveal() {
@@ -22,23 +19,23 @@ function scrollTreeItemIntoView(element) {
             !element.getClientRects().length
         )
             return;
-        var bounds = element.getBoundingClientRect();
-        var viewport = pane.getBoundingClientRect();
-        var top = viewport.top + pane.clientTop;
-        var left = viewport.left + pane.clientLeft;
-        var bottom = top + pane.clientHeight;
-        var right = left + pane.clientWidth;
+        const bounds = element.getBoundingClientRect();
+        const viewport = pane.getBoundingClientRect();
+        const top = viewport.top + pane.clientTop;
+        const left = viewport.left + pane.clientLeft;
+        const bottom = top + pane.clientHeight;
+        const right = left + pane.clientWidth;
         if (!pane.clientHeight || !pane.clientWidth || !bounds.height) return;
-        var inset = 4;
+        const inset = 4;
         if (bounds.top - inset < top) pane.scrollTop += bounds.top - inset - top;
         else if (bounds.bottom + inset > bottom) pane.scrollTop += bounds.bottom + inset - bottom;
 
         // A flex row fills its group. Reveal its actual label, not that
         // group's potentially much wider descendants. Long labels cannot
         // fit entirely; retain their icon and beginning without jumping.
-        var title = element.querySelector('.tree-item__title') || element;
-        var labelRight = title.getBoundingClientRect().right + inset;
-        var rowLeft = bounds.left - inset;
+        const title = element.querySelector('.tree-item__title') || element;
+        let labelRight = title.getBoundingClientRect().right + inset;
+        const rowLeft = bounds.left - inset;
         if (labelRight - rowLeft > pane.clientWidth) {
             labelRight = rowLeft + Math.min(80, pane.clientWidth);
         }
@@ -49,9 +46,9 @@ function scrollTreeItemIntoView(element) {
     view.requestAnimationFrame(function () {
         if (selectionScrollRuns.get(pane) !== run) return;
         reveal();
-        var animations = [],
+        let animations = [],
             fallbackDuration = 0;
-        var ancestor = element.parentElement;
+        let ancestor = element.parentElement;
         while (ancestor && ancestor !== pane) {
             if (ancestor.classList.contains('is-expanding')) {
                 if (typeof ancestor.getAnimations === 'function') {
@@ -87,11 +84,11 @@ function finishExpansion(element, run) {
 }
 
 function watchExpansion(element, run, duration) {
-    var view = element.ownerDocument.defaultView;
+    const view = element.ownerDocument.defaultView;
     view.requestAnimationFrame(function () {
         if (expansionRuns.get(element) !== run) return;
         if (typeof element.getAnimations === 'function') {
-            var animations = element.getAnimations().filter(function (animation) {
+            const animations = element.getAnimations().filter(function (animation) {
                 return animation.transitionProperty === 'grid-template-rows';
             });
             Promise.all(
@@ -112,13 +109,13 @@ function watchExpansion(element, run, duration) {
 }
 
 function expansionDuration(element) {
-    var view = element.ownerDocument.defaultView;
+    const view = element.ownerDocument.defaultView;
     if (view.matchMedia('(prefers-reduced-motion: reduce)').matches) return 0;
-    var style = view.getComputedStyle(element);
+    const style = view.getComputedStyle(element);
     function milliseconds(value) {
         return parseFloat(value) * (value.trim().endsWith('ms') ? 1 : 1000) || 0;
     }
-    var delays = style.transitionDelay.split(',').map(milliseconds);
+    const delays = style.transitionDelay.split(',').map(milliseconds);
     return Math.max.apply(
         null,
         style.transitionDuration.split(',').map(function (value, index) {
@@ -129,7 +126,7 @@ function expansionDuration(element) {
 
 function visibleRows(root) {
     return Array.from(root.querySelectorAll('.tree-item')).filter(function (row) {
-        var current = row.parentElement;
+        let current = row.parentElement;
         while (current && current !== root) {
             if (current.matches('ul.tree-view__list') && current.style.display === 'none') return false;
             current = current.parentElement;
@@ -140,11 +137,11 @@ function visibleRows(root) {
 
 function syncTreeTabStop(root, previousFocus) {
     if (!root) return;
-    var rows = visibleRows(root),
-        chosen = root.querySelector('.tree-item.active');
+    const rows = visibleRows(root);
+    let chosen = root.querySelector('.tree-item.active');
     while (chosen && rows.indexOf(chosen) === -1) {
-        var group = chosen.parentElement.parentElement;
-        var parent = group && group.closest('li.view');
+        const group = chosen.parentElement.parentElement;
+        const parent = group && group.closest('li.view');
         chosen = parent && parent.querySelector(':scope > .tree-item');
     }
     chosen = chosen || rows[0];
@@ -152,7 +149,7 @@ function syncTreeTabStop(root, previousFocus) {
     Array.from(root.querySelectorAll('.tree-item')).forEach(function (row) {
         row.tabIndex = row === chosen ? 0 : -1;
     });
-    var focus = previousFocus || root.ownerDocument.activeElement;
+    const focus = previousFocus || root.ownerDocument.activeElement;
     if (
         chosen &&
         root.contains(focus) &&
@@ -166,15 +163,12 @@ function syncTreeTabStop(root, previousFocus) {
 
 function syncSwitcher(switcher, item) {
     if (!switcher) return;
-    var expandable = hasVisibleChildren(item);
+    const expandable = hasVisibleChildren(item);
     switcher.classList.toggle('icon-switcher--empty', !expandable);
     switcher.setAttribute('tabindex', '-1');
     switcher.setAttribute('aria-hidden', String(!expandable));
     switcher.setAttribute('aria-expanded', String(Boolean(item.opened)));
-    switcher.setAttribute(
-        'aria-label',
-        translations.t(item.opened ? 'tree.collapse' : 'tree.expand') + ': ' + item.title
-    );
+    switcher.setAttribute('aria-label', t(item.opened ? 'tree.collapse' : 'tree.expand') + ': ' + item.title);
 }
 
 function hasVisibleChildren(item) {
@@ -203,17 +197,17 @@ function setTreeItemActive(treeItemElement, container) {
 
 function setFolderOpenedState(listItemElement, item, opened) {
     if (!item || item.type !== 'folder') return Boolean(item && item.opened);
-    var shouldOpen = Boolean(opened);
+    const shouldOpen = Boolean(opened);
     item.opened = shouldOpen;
     if (!listItemElement) return shouldOpen;
-    var nested = listItemElement.querySelector(':scope > ul.tree-view__list');
-    var changed = listItemElement.classList.contains(shouldOpen ? 'closed' : 'opened');
-    var duration =
+    const nested = listItemElement.querySelector(':scope > ul.tree-view__list');
+    const changed = listItemElement.classList.contains(shouldOpen ? 'closed' : 'opened');
+    const duration =
         shouldOpen && changed && listItemElement.isConnected && nested ? expansionDuration(listItemElement) : 0;
     // Lazy loading may replace children without changing expansion. Keep
     // any in-flight transition clipped until its original completion.
-    var continuing = shouldOpen && !changed && expansionRuns.has(listItemElement);
-    var run = continuing ? expansionRuns.get(listItemElement) : {};
+    const continuing = shouldOpen && !changed && expansionRuns.has(listItemElement);
+    const run = continuing ? expansionRuns.get(listItemElement) : {};
     if (!continuing) {
         expansionRuns.set(listItemElement, run);
         listItemElement.classList.toggle('is-expanding', duration > 0);
@@ -228,13 +222,13 @@ function setFolderOpenedState(listItemElement, item, opened) {
     listItemElement.classList.toggle('opened', shouldOpen);
     listItemElement.classList.toggle('closed', !shouldOpen);
     syncSwitcher(listItemElement.querySelector(':scope > .tree-item > .icon-switcher'), item);
-    var treeItem = listItemElement.querySelector(':scope > .tree-item');
+    const treeItem = listItemElement.querySelector(':scope > .tree-item');
     if (treeItem && hasVisibleChildren(item)) treeItem.setAttribute('aria-expanded', String(shouldOpen));
     else if (treeItem) treeItem.removeAttribute('aria-expanded');
-    var root = listItemElement.closest('[role="tree"]');
+    const root = listItemElement.closest('[role="tree"]');
     // Hiding a focused descendant can make the browser blur it immediately.
     // Capture it before changing display so the visible ancestor gets focus.
-    var previousFocus = root && root.ownerDocument.activeElement;
+    const previousFocus = root && root.ownerDocument.activeElement;
     if (nested) nested.style.display = shouldOpen ? '' : 'none';
     syncTreeTabStop(root, previousFocus);
     if (duration > 0) watchExpansion(listItemElement, run, duration);
@@ -251,8 +245,8 @@ function renderTreeList(items, treeViewState, parentItem) {
         className: 'tree-view__list',
         attrs: {
             role: parentItem ? 'group' : 'tree',
-            'aria-label': parentItem ? null : translations.t('navigation.tree'),
-            title: parentItem ? null : translations.t('navigation.keyboardHelp')
+            'aria-label': parentItem ? null : t('navigation.tree'),
+            title: parentItem ? null : t('navigation.keyboardHelp')
         },
         children: (items || [])
             .filter(function (item) {
@@ -283,9 +277,9 @@ function ensureLazyChildren(item, listItem, treeViewState) {
         .then(function (children) {
             item.children = Array.isArray(children) ? children : [];
             item.loaded = true;
-            var switcher = listItem.querySelector(':scope > .tree-item > .icon-switcher');
+            const switcher = listItem.querySelector(':scope > .tree-item > .icon-switcher');
             syncSwitcher(switcher, item);
-            var oldNested = listItem.querySelector(':scope > ul.tree-view__list');
+            const oldNested = listItem.querySelector(':scope > ul.tree-view__list');
             if (oldNested) oldNested.remove();
             listItem.appendChild(renderTreeList(item.children, treeViewState, item).getElement());
             setFolderOpenedState(listItem, item, item.opened);
@@ -293,7 +287,7 @@ function ensureLazyChildren(item, listItem, treeViewState) {
         })
         .catch(function (error) {
             console.error('[tree-view] Failed to load children.', error);
-            var oldNested = listItem.querySelector(':scope > ul.tree-view__list');
+            const oldNested = listItem.querySelector(':scope > ul.tree-view__list');
             if (oldNested) oldNested.remove();
             listItem.appendChild(
                 createElement('ul', {
@@ -312,11 +306,11 @@ function ensureLazyChildren(item, listItem, treeViewState) {
 }
 
 function renderTreeItem(item, treeViewState, parentItem) {
-    var isFolder = item.type === 'folder';
-    var classes = ['view', isFolder ? 'folder' : 'file'];
+    const isFolder = item.type === 'folder';
+    const classes = ['view', isFolder ? 'folder' : 'file'];
     if (isFolder) classes.push(item.opened ? 'opened' : 'closed');
 
-    var treeItem = createElement('span', {
+    const treeItem = createElement('span', {
         className: 'tree-item',
         attrs: {
             role: 'treeitem',
@@ -342,9 +336,9 @@ function renderTreeItem(item, treeViewState, parentItem) {
             createElement('span', { className: 'tree-item__title', text: item.title })
         ]
     });
-    var listItem = createElement('li', { className: classes, children: [treeItem] });
-    var listElement = listItem.getElement();
-    var switcher = isFolder ? treeItem.getElement().querySelector('.icon-switcher') : null;
+    const listItem = createElement('li', { className: classes, children: [treeItem] });
+    const listElement = listItem.getElement();
+    const switcher = isFolder ? treeItem.getElement().querySelector('.icon-switcher') : null;
     syncSwitcher(switcher, item);
 
     function toggleExpansion() {
@@ -360,9 +354,9 @@ function renderTreeItem(item, treeViewState, parentItem) {
             element.focus({ preventScroll: true });
             return;
         }
-        var target = element._gpoTreeItem;
+        const target = element._gpoTreeItem;
         if (!target) return;
-        var result = treeViewState.navigateToNode(target, { treeItemElement: element, openPath: true });
+        const result = treeViewState.navigateToNode(target, { treeItemElement: element, openPath: true });
         Promise.resolve(result).then(function (selected) {
             if (selected === false || treeViewState.pendingNavigation || !element.isConnected) return;
             if (treeViewState.selectedItem && treeViewState.selectedItem.item === target) {
@@ -374,11 +368,11 @@ function renderTreeItem(item, treeViewState, parentItem) {
     treeItem.on('keydown', function (event) {
         if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
         if (event.target.closest('button, input, textarea, select, a, [contenteditable]')) return;
-        var root = treeItem.getElement().closest('[role="tree"]');
+        const root = treeItem.getElement().closest('[role="tree"]');
         if (!root) return;
-        var rows = visibleRows(root);
-        var index = rows.indexOf(treeItem.getElement()),
-            next = null;
+        const rows = visibleRows(root);
+        const index = rows.indexOf(treeItem.getElement());
+        let next = null;
         if (event.key === 'ArrowUp') next = rows[Math.max(0, index - 1)];
         else if (event.key === 'ArrowDown') next = rows[Math.min(rows.length - 1, index + 1)];
         else if (event.key === 'Home') next = rows[0];
@@ -429,8 +423,8 @@ function renderTreeItem(item, treeViewState, parentItem) {
 
     treeItem.on('click', function (event) {
         event.stopPropagation();
-        var clicked = event.currentTarget;
-        var clickedSwitcher = isFolder && event.target instanceof Element && event.target.closest('.icon-switcher');
+        const clicked = event.currentTarget;
+        const clickedSwitcher = isFolder && event.target instanceof Element && event.target.closest('.icon-switcher');
         if (clickedSwitcher) {
             toggleExpansion();
             return;
@@ -455,7 +449,7 @@ function renderTreeItem(item, treeViewState, parentItem) {
 }
 
 function renderTreeViewList(data, workspace, treeViewState) {
-    var treeData = Array.isArray(data) ? data : [];
+    const treeData = Array.isArray(data) ? data : [];
     if (workspace && treeViewState) {
         treeViewState.setWorkspace(workspace);
         treeViewState.setTreeData(treeData);

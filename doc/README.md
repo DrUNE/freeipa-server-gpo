@@ -13,7 +13,8 @@ Every document exists in English and in Russian (the English file has the base n
 | [../frontend/dev/README.md](../frontend/dev/README.md) ([ru](../frontend/dev/README.ru.md)) | Standalone dev stand for the editor |
 | [plans/README.md](plans/README.md) ([ru](plans/README.ru.md)) | Frontend: architecture, current workflow, links to the plans |
 | [plans/FRONTEND-DX-PLAN.md](plans/FRONTEND-DX-PLAN.md) ([ru](plans/FRONTEND-DX-PLAN.ru.md)) | Plan to improve frontend developer experience, with status |
-| [plans/WEBUI-MIGRATION.md](plans/WEBUI-MIGRATION.md) ([ru](plans/WEBUI-MIGRATION.ru.md)) | Proposal: GPO management in freeipa-webui, estimates and decisions |
+| [plans/WEBUI-MIGRATION.md](plans/WEBUI-MIGRATION.md) ([ru](plans/WEBUI-MIGRATION.ru.md)) | Proposal: GPO management in freeipa-webui, migration stages, estimates and decisions |
+| [plans/COMPONENTS-PLAN.md](plans/COMPONENTS-PLAN.md) ([ru](plans/COMPONENTS-PLAN.ru.md)) | Plan: components that mirror PatternFly and Storybook stories as their specification |
 
 Files under `plans/` are proposals (with a status of what is already done), not descriptions of the current system.
 User-facing docs: [README.md](../README.md), [README.ru.md](../README.ru.md), man pages `ipa-gpo-install.8` (English: `doc/ipa-gpo-install.8`, Russian: `doc/ru/ipa-gpo-install.8`).

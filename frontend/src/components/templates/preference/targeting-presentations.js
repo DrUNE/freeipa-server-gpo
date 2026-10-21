@@ -6,12 +6,10 @@
  * Sources: MS-GPPREF 2.2.1.22 and Appendix A, plus the GPMC targeting help.
  */
 
-'use strict';
-
 function pair(en, ru) {
     return [en, ru];
 }
-var kinds = {
+const kinds = {
     battery: pair('Battery', 'Наличие батареи'),
     computer: pair('Computer name', 'Имя компьютера'),
     cpu: pair('CPU speed', 'Скорость ЦП'),
@@ -45,7 +43,7 @@ var kinds = {
 
 // Only specific operands belong here. bool/not/hidden are toolbar or
 // preserved metadata, never ordinary inputs in the lower operand pane.
-var fields = {
+const fields = {
     battery: {},
     computer: {
         type: pair('Name type', 'Тип имени'),
@@ -200,10 +198,10 @@ var fields = {
 function option(key, en, ru) {
     return { key: key, label: pair(en, ru) };
 }
-var any = function () {
+const any = function () {
     return option('NE', 'Any', 'Любой');
 };
-var enumerations = {
+const enumerations = {
     computer: { type: [option('NETBIOS', 'NetBIOS name', 'NetBIOS-имя'), option('DNS', 'DNS name', 'DNS-имя')] },
     date: {
         period: [
@@ -383,7 +381,7 @@ var enumerations = {
     }
 };
 
-var numbers = {
+const numbers = {
     cpu: { speedMHz: { min: 0, max: 65535, step: 1 } },
     date: {
         day: { min: 1, max: 31, step: 1 },
@@ -393,7 +391,7 @@ var numbers = {
     disk: { freeSpace: { min: 0, max: 255, step: 1 } },
     ram: { totalMB: { min: 0, max: 65535, step: 1 } }
 };
-var notes = {
+const notes = {
     battery: pair(
         'Matches when the computer is running on battery power.',
         'Условие выполняется, когда компьютер работает от батареи.'
@@ -432,28 +430,28 @@ function lookup(table, kind, id) {
     return own(table, kind) && own(table[kind], operand(id)) ? table[kind][operand(id)] : null;
 }
 
-const __export_supportedKinds = Object.freeze(Object.keys(kinds));
-const __export_kindLabel = function (kind, fallback, language) {
+const supportedKinds = Object.freeze(Object.keys(kinds));
+const kindLabel = function (kind, fallback, language) {
     return own(kinds, kind) ? localized(kinds[kind], language) : fallback || String(kind || '');
 };
-const __export_fieldLabel = function (kind, id, fallback, language) {
-    var label = lookup(fields, kind, id);
+const fieldLabel = function (kind, id, fallback, language) {
+    const label = lookup(fields, kind, id);
     return label ? localized(label, language) : fallback || String(id || '');
 };
-const __export_choices = function (kind, id, language) {
-    var values = lookup(enumerations, kind, id);
+const choices = function (kind, id, language) {
+    const values = lookup(enumerations, kind, id);
     return values
         ? values.map(function (value) {
               return { key: value.key, label: localized(value.label, language) };
           })
         : null;
 };
-const __export_numeric = function (kind, id) {
-    var value = lookup(numbers, kind, id);
+const numeric = function (kind, id) {
+    const value = lookup(numbers, kind, id);
     return value ? { min: value.min, max: value.max, step: value.step } : null;
 };
-const __export_isTextarea = function (kind, id) {
-    var key = operand(id);
+const isTextarea = function (kind, id) {
+    const key = operand(id);
     return (
         (kind === 'wmi' && key === 'query') ||
         (kind === 'ldap' && key === 'searchFilter') ||
@@ -461,16 +459,8 @@ const __export_isTextarea = function (kind, id) {
         (kind === 'registry' && key === 'valueData')
     );
 };
-const __export_note = function (kind, language) {
+const note = function (kind, language) {
     return own(notes, kind) ? localized(notes[kind], language) : '';
 };
 
-export {
-    __export_supportedKinds as supportedKinds,
-    __export_kindLabel as kindLabel,
-    __export_fieldLabel as fieldLabel,
-    __export_choices as choices,
-    __export_numeric as numeric,
-    __export_isTextarea as isTextarea,
-    __export_note as note
-};
+export { supportedKinds, kindLabel, fieldLabel, choices, numeric, isTextarea, note };

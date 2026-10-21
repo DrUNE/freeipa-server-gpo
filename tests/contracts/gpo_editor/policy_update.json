@@ -1,0 +1,90 @@
+{
+  "method": "gpo_editor_policy_update",
+  "args": [
+    "Dev GPO",
+    "computer",
+    "alt-install"
+  ],
+  "options": {
+    "request": {
+      "state": "enabled"
+    },
+    "locales": [
+      "en-US"
+    ]
+  },
+  "result": {
+    "gpo": {
+      "displayname": "Dev GPO",
+      "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+      "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+    },
+    "snapshot": {
+      "identity": {
+        "guid": "{6AC1786C-016F-11D2-945F-00C04FB984F9}",
+        "distinguished_name": "cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test"
+      },
+      "version_number": 7,
+      "machine_extension_names": "",
+      "user_extension_names": ""
+    },
+    "template": null,
+    "security_catalog_status": null,
+    "locales": [
+      "ru-RU"
+    ],
+    "diagnostics": [],
+    "pending_publication": null,
+    "policy": {
+      "scope": "computer",
+      "policy_id": "alt-install",
+      "state": "not_configured",
+      "comment": null,
+      "capabilities": {
+        "enable": true,
+        "disable": true,
+        "clear": true,
+        "inspect_parameters": true,
+        "edit_parameters": true,
+        "edit_comments": true
+      },
+      "state_actions": {
+        "enabled": {
+          "available": true,
+          "mode": "dynamic_list_values",
+          "requires_parameters": true
+        },
+        "disabled": {
+          "available": true,
+          "mode": "clear_list_values",
+          "requires_parameters": false
+        },
+        "not_configured": {
+          "available": true,
+          "mode": "remove_owned_records",
+          "requires_parameters": false
+        }
+      },
+      "supported_on": "ALT systems\nGroup Policy client",
+      "explain_text": "Fixture policy served by frontend/dev/backend.mjs.\n\nEdit the fixture to change this text.",
+      "label": "Install packages",
+      "parameters": [
+        {
+          "id": "InstallPackagesList",
+          "label": "Packages",
+          "kind": "list",
+          "editable": true,
+          "collection": null,
+          "value": null,
+          "default_value": null,
+          "choices": []
+        }
+      ],
+      "representability": null,
+      "unknown_raw_values": false
+    },
+    "publication": {
+      "changed": true
+    }
+  }
+}

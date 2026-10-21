@@ -2,7 +2,7 @@
  * In-memory fixture backend for the GPUI editor.
  *
  * Implements the `gpo_editor_*` JSON-RPC methods that
- * plugin/ui/grouppolicy/js/util/API.js calls, with the response shapes of
+ * frontend/src/util/API.js calls, with the response shapes of
  * plugin/ipaserver/plugins/gpo.py.  State lives in process memory; restart the
  * server or POST /__dev/reset to start over.
  */
@@ -27,7 +27,15 @@ function gpoEnvelope(displayname) {
             guid: '{6AC1786C-016F-11D2-945F-00C04FB984F9}',
             distinguished_name: 'cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test'
         },
-        snapshot: { version: 7, machine_extensions: [], user_extensions: [] },
+        snapshot: {
+            identity: {
+                guid: '{6AC1786C-016F-11D2-945F-00C04FB984F9}',
+                distinguished_name: 'cn={6AC1786C-016F-11D2-945F-00C04FB984F9},cn=Policies,cn=System,dc=ipa,dc=test'
+            },
+            version_number: 7,
+            machine_extension_names: '',
+            user_extension_names: ''
+        },
         template: { revision: 'dev-fixture', diagnostics: [] },
         security_catalog_status: null,
         locales: ['ru-RU', 'en-US'],
@@ -358,7 +366,7 @@ function preferenceDetail(kind, identity) {
             { kind: 'collection', label: 'Collection', supports_children: true, fields: commonFilterFields() },
             { kind: 'file', label: 'File match', supports_children: false, fields: fileFilterFields('') }
         ],
-        parent_candidates: [{ identity: null, label: 'Root', depth: 0 }]
+        parent_candidates: [{ identity: null, label: 'Root', parent_identity: null, depth: 0 }]
     };
 }
 
@@ -387,9 +395,11 @@ function scriptsFixture(scope, event) {
                     managed_asset_name: 'hello.sh'
                 }
             ],
-            snapshot: {}
+            snapshot: {},
+            diagnostics: []
         },
-        powershell: { editable: true, entries: [], snapshot: {} }
+        powershell: { editable: true, entries: [], snapshot: {}, diagnostics: [] },
+        upload_limit_bytes: 16 * 1024 * 1024
     };
 }
 
@@ -455,6 +465,15 @@ function policyFor(scope, id) {
     return state.policies[key];
 }
 
+/** The policy as the server answers with it, including the fields the editor does not read but the contract has. */
+function publicPolicy(scope, policyId) {
+    const policy = clone(policyFor(scope, policyId));
+    policy.representability = policy.representability || { enabled: true };
+    policy.unknown_raw_values = policy.state === 'unknown_raw_values';
+    for (const parameter of policy.parameters || []) parameter.choices = parameter.choices || [];
+    return policy;
+}
+
 function itemsFor(scope, kind) {
     const key = scope + ':' + kind;
     if (!state.preferenceItems[key]) {
@@ -478,7 +497,9 @@ function scriptsFor(scope, event) {
 function securityResult() {
     return {
         security_catalog: securityCatalog(),
-        security_snapshot: { policies: Object.values(state.securitySnapshots), diagnostics: [] }
+        security_snapshot: { policies: Object.values(state.securitySnapshots), diagnostics: [] },
+        // The target's service inventory is supplied by the operator; the server does not infer it.
+        security_service_catalog: []
     };
 }
 
@@ -502,7 +523,7 @@ const methods = {
     },
 
     gpo_editor_policy_show(displayname, scope, policyId) {
-        return Object.assign(gpoEnvelope(displayname), { policy: clone(policyFor(scope, policyId)) });
+        return Object.assign(gpoEnvelope(displayname), { policy: publicPolicy(scope, policyId) });
     },
 
     gpo_editor_policy_update(displayname, scope, policyId, options) {
@@ -526,11 +547,14 @@ const methods = {
             policy.comment =
                 request.comment.action === 'clear' ? null : { source: 'embedded', text: request.comment.text || '' };
         }
-        return Object.assign(gpoEnvelope(displayname), { policy: clone(policy), publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), {
+            policy: publicPolicy(scope, policyId),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_documents(displayname) {
-        return Object.assign(gpoEnvelope(displayname), { preference_documents: preferenceDocuments() });
+        return Object.assign(gpoEnvelope(displayname), { documents: preferenceDocuments() });
     },
 
     gpo_editor_preference_items(displayname, scope, kind) {
@@ -552,7 +576,11 @@ const methods = {
         const label = (labelField && labelField.value && labelField.value.value) || 'New ' + kind + ' item';
         const item = { identity: [kind, 'opaque-' + Date.now()], label, has_filters: false };
         items.push(item);
-        return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
+        // Like the real command, answer with the detail of the item that was written.
+        return Object.assign(gpoEnvelope(displayname), preferenceDetail(kind, item.identity), {
+            item: clone(item),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_update(displayname, scope, kind, options) {
@@ -560,7 +588,10 @@ const methods = {
         const items = itemsFor(scope, kind);
         const item =
             items.find(entry => JSON.stringify(entry.identity) === JSON.stringify(request.identity)) || items[0];
-        return Object.assign(gpoEnvelope(displayname), { item: clone(item), publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), preferenceDetail(kind, item.identity), {
+            item: clone(item),
+            publication: { changed: true }
+        });
     },
 
     gpo_editor_preference_delete(displayname, scope, kind, options) {
@@ -569,7 +600,7 @@ const methods = {
         state.preferenceItems[key] = itemsFor(scope, kind).filter(
             entry => JSON.stringify(entry.identity) !== JSON.stringify(identity)
         );
-        return Object.assign(gpoEnvelope(displayname), { publication: { changed: true } });
+        return Object.assign(gpoEnvelope(displayname), { deleted_identity: identity, publication: { changed: true } });
     },
 
     gpo_editor_scripts_show(displayname, scope, event) {
@@ -577,7 +608,8 @@ const methods = {
     },
 
     gpo_editor_script_files(displayname, scope, event) {
-        return Object.assign(gpoEnvelope(displayname), { assets: clone(scriptsFor(scope, event).assets) });
+        // The real command answers with the whole event view, like scripts_show.
+        return Object.assign(gpoEnvelope(displayname), { scripts: clone(scriptsFor(scope, event)) });
     },
 
     gpo_editor_script_entry_add(displayname, scope, event, options) {
@@ -691,7 +723,7 @@ const methods = {
     },
 
     gpo_editor_reconcile(displayname) {
-        return Object.assign(gpoEnvelope(displayname), { recovery: { kind: 'clean' } });
+        return Object.assign(gpoEnvelope(displayname), { recovery: { kind: 'clean', plan: null, conflict: null } });
     },
 
     gpo_editor_security_definitions_show(displayname) {
@@ -714,7 +746,7 @@ const methods = {
             }
             state.securitySnapshots[update.policy_id] = before;
         }
-        return Object.assign(gpoEnvelope(displayname), securityResult());
+        return Object.assign(gpoEnvelope(displayname), securityResult(), { publication: { changed: true } });
     },
 
     gpo_editor_advanced_audit_show(displayname) {
@@ -733,13 +765,34 @@ const methods = {
     gpo_editor_advanced_audit_update(displayname, options) {
         const request = options.request || options || {};
         if (Array.isArray(request.rows)) state.auditRows = clone(request.rows);
-        return methods.gpo_editor_advanced_audit_show(displayname);
+        return Object.assign(methods.gpo_editor_advanced_audit_show(displayname), { publication: { changed: true } });
     }
 };
 
 /* ---------------------------------------------------------------- dispatch */
 
-function dispatch(body) {
+/** The scenarios of the dev stand (`?scenario=` on the page): how the mock server behaves, to see the UI states. */
+const SCENARIOS = ['normal', 'error', 'slow', 'empty'];
+// The top-level lists of the `gpo_editor_*` answers that `empty` empties.
+const LISTS = ['items', 'assets', 'children', 'policies', 'preference_documents', 'documents'];
+
+function emptied(result) {
+    if (!result || typeof result !== 'object') return result;
+    const copy = { ...result };
+    for (const key of LISTS) if (Array.isArray(copy[key])) copy[key] = [];
+    if (copy.scripts && typeof copy.scripts === 'object') {
+        copy.scripts = Object.fromEntries(
+            Object.entries(copy.scripts).map(([key, value]) => [key, Array.isArray(value) ? [] : value])
+        );
+    }
+    return copy;
+}
+
+/**
+ * Answers one JSON-RPC request. `scenario` changes the answer: `error` fails every `gpo_editor_*` call like an
+ * unavailable server, `empty` returns the lists empty, `slow` is delayed by the stand (see the dev server plugin).
+ */
+function dispatch(body, scenario) {
     const method = body && body.method;
     const params = Array.isArray(body && body.params) ? body.params : [[], {}];
     const args = Array.isArray(params[0]) ? params[0] : [];
@@ -758,8 +811,21 @@ function dispatch(body) {
             id: body && body.id
         };
     }
+    if (scenario === 'error' && String(method).startsWith('gpo_editor_')) {
+        return {
+            result: null,
+            error: {
+                code: 4301,
+                name: 'ServerUnavailable',
+                message: 'Dev scenario "error": the server does not answer',
+                data: { category: 'unavailable' }
+            },
+            id: body.id
+        };
+    }
     try {
-        const result = handler(...args, options);
+        let result = handler(...args, options);
+        if (scenario === 'empty') result = emptied(result);
         return { result: { result, value: args[0] || null, summary: null }, error: null, id: body.id };
     } catch (error) {
         const data = {};
@@ -774,4 +840,4 @@ function dispatch(body) {
     }
 }
 
-export { dispatch, reset, methods, RpcError };
+export { dispatch, reset, methods, RpcError, SCENARIOS };

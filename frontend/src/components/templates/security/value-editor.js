@@ -1,11 +1,8 @@
-import * as elementCreator from '../../../util/element-creator';
-import * as translations from '../../../locales/translations';
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
 
-('use strict');
-
-var createElement = elementCreator.createElement;
 function tr(key, fallback) {
-    var value = translations && translations.t('security.' + key);
+    const value = t('security.' + key);
     return value && value !== 'security.' + key ? value : fallback;
 }
 
@@ -19,10 +16,10 @@ function same(left, right) {
 
 function defaultTyped(definition) {
     if (definition && definition.initial) return clone(definition.initial);
-    var kind = (definition && definition.value_type) || 'string';
+    const kind = (definition && definition.value_type) || 'string';
     if (kind === 'boolean') return { kind: kind, value: false };
     if (kind === 'integer') {
-        var ranges =
+        const ranges =
             definition.input_ranges && definition.input_ranges.length
                 ? definition.input_ranges
                 : definition.ranges || [];
@@ -47,11 +44,11 @@ function optionLabel(option) {
 }
 
 function inputFor(definition, control, value, disabled) {
-    var current = value || defaultTyped(definition);
-    var kind = definition.value_type;
-    var input;
-    var readers;
-    var writers;
+    const current = value || defaultTyped(definition);
+    const kind = definition.value_type;
+    let input;
+    let readers;
+    let writers;
     if (kind === 'boolean') {
         input = createElement('select', {
             children: [
@@ -89,10 +86,10 @@ function inputFor(definition, control, value, disabled) {
             return { kind: 'enum', value: input.getElement().value };
         };
     } else if (kind === 'flags') {
-        var checks = [];
+        const checks = [];
         input = createElement('div', { className: 'gpo-editor-security-flags' });
         (definition.options || []).forEach(function (option) {
-            var checkbox = createElement('input', { attrs: { type: 'checkbox' } });
+            const checkbox = createElement('input', { attrs: { type: 'checkbox' } });
             checks.push({ option: option, checkbox: checkbox });
             input.append(
                 createElement('label', {
@@ -114,7 +111,7 @@ function inputFor(definition, control, value, disabled) {
             };
         };
         writers = function (next) {
-            var selected = new Set(payload(next, []) || []);
+            const selected = new Set(payload(next, []) || []);
             checks.forEach(function (item) {
                 item.checkbox.getElement().checked = selected.has(item.option.id);
             });
@@ -160,7 +157,7 @@ function inputFor(definition, control, value, disabled) {
             input.getElement().value = String(payload(next, ''));
         };
         readers = function () {
-            var raw = input.getElement().value;
+            const raw = input.getElement().value;
             return {
                 kind: kind,
                 value: kind === 'integer' ? (raw === '' ? NaN : Number(raw)) : raw
@@ -172,7 +169,7 @@ function inputFor(definition, control, value, disabled) {
     input.getElement().setAttribute('data-security-value-kind', kind);
 
     function setDisabled(value) {
-        var inputs = input.securityInputs || [input.getElement()];
+        const inputs = input.securityInputs || [input.getElement()];
         inputs.forEach(function (element) {
             element.disabled = Boolean(value);
         });
@@ -184,7 +181,7 @@ function inputFor(definition, control, value, disabled) {
         write: writers,
         setDisabled: setDisabled,
         focus: function () {
-            var target = (input.securityInputs || [input.getElement()])[0];
+            const target = (input.securityInputs || [input.getElement()])[0];
             if (target && target.focus) target.focus();
         }
     };
@@ -196,7 +193,7 @@ function validationError(definition, typed) {
     }
     if (typed.kind === 'integer') {
         if (!Number.isSafeInteger(typed.value)) return tr('validationInteger', 'Enter a whole number.');
-        var ranges =
+        const ranges =
             definition.input_ranges && definition.input_ranges.length
                 ? definition.input_ranges
                 : definition.ranges || [];
@@ -209,12 +206,12 @@ function validationError(definition, typed) {
             return tr('validationRange', 'Enter a value in the allowed range.');
     }
     if ((typed.kind === 'enum' || typed.kind === 'flags') && definition.options) {
-        var allowed = new Set(
+        const allowed = new Set(
             definition.options.map(function (option) {
                 return option.id;
             })
         );
-        var values = typed.kind === 'flags' ? typed.value : [typed.value];
+        const values = typed.kind === 'flags' ? typed.value : [typed.value];
         if (
             values.some(function (value) {
                 return !allowed.has(value);
@@ -236,14 +233,14 @@ function validationError(definition, typed) {
 }
 
 function fieldDefinition(collection, fieldId) {
-    var field = (collection.fields || []).find(function (item) {
+    const field = (collection.fields || []).find(function (item) {
         return item.id === fieldId;
     });
     return (field && field.element) || null;
 }
 
 function newRow(collection) {
-    var row = {};
+    const row = {};
     (collection.fields || []).forEach(function (field) {
         row[field.id] = field.element.initial
             ? { state: 'set', value: clone(field.element.initial) }
@@ -253,23 +250,23 @@ function newRow(collection) {
 }
 
 function rowKey(collection, row) {
-    var state = row && row[collection.unique_by];
+    const state = row && row[collection.unique_by];
     return state && state.state === 'set' ? state.value : null;
 }
 
 function rowActions(collection, baseline, draft) {
     if (!collection.unique_by) return [];
-    var previous = new Map();
-    var current = new Map();
+    const previous = new Map();
+    const current = new Map();
     (baseline || []).forEach(function (row) {
-        var key = rowKey(collection, row);
+        const key = rowKey(collection, row);
         if (key) previous.set(JSON.stringify(key), row);
     });
     (draft || []).forEach(function (row) {
-        var key = rowKey(collection, row);
+        const key = rowKey(collection, row);
         if (key) current.set(JSON.stringify(key), row);
     });
-    var actions = [];
+    const actions = [];
     previous.forEach(function (row, encoded) {
         if (!current.has(encoded)) {
             actions.push({ action: 'delete', key: rowKey(collection, row) });

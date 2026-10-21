@@ -1,27 +1,25 @@
-import * as shortcuts from './shortcuts';
-import * as folders from './folders';
-import * as applications from './applications';
-import * as controlPanel from './control-panel';
-import * as dataSources from './data-sources';
-import * as devices from './devices';
-import * as drives from './drives';
-import * as environmentVariables from './environment-variables';
-import * as files from './files';
-import * as folderOptions from './folder-options';
-import * as iniFiles from './ini-files';
-import * as internetSettings from './internet-settings';
-import * as localUsersAndGroups from './local-users-and-groups';
-import * as networkOptions from './network-options';
-import * as networkShares from './network-shares';
-import * as powerOptions from './power-options';
-import * as printers from './printers';
-import * as regionalOptions from './regional-options';
-import * as registry from './registry';
-import * as scheduledTasks from './scheduled-tasks';
-import * as services from './services';
-import * as startMenu from './start-menu';
-
-('use strict');
+import * as shortcuts from '@gpui/components/templates/preference/layouts/shortcuts';
+import * as folders from '@gpui/components/templates/preference/layouts/folders';
+import * as applications from '@gpui/components/templates/preference/layouts/applications';
+import * as controlPanel from '@gpui/components/templates/preference/layouts/control-panel';
+import * as dataSources from '@gpui/components/templates/preference/layouts/data-sources';
+import * as devices from '@gpui/components/templates/preference/layouts/devices';
+import * as drives from '@gpui/components/templates/preference/layouts/drives';
+import * as environmentVariables from '@gpui/components/templates/preference/layouts/environment-variables';
+import * as files from '@gpui/components/templates/preference/layouts/files';
+import * as folderOptions from '@gpui/components/templates/preference/layouts/folder-options';
+import * as iniFiles from '@gpui/components/templates/preference/layouts/ini-files';
+import * as internetSettings from '@gpui/components/templates/preference/layouts/internet-settings';
+import * as localUsersAndGroups from '@gpui/components/templates/preference/layouts/local-users-and-groups';
+import * as networkOptions from '@gpui/components/templates/preference/layouts/network-options';
+import * as networkShares from '@gpui/components/templates/preference/layouts/network-shares';
+import * as powerOptions from '@gpui/components/templates/preference/layouts/power-options';
+import * as printers from '@gpui/components/templates/preference/layouts/printers';
+import * as regionalOptions from '@gpui/components/templates/preference/layouts/regional-options';
+import * as registry from '@gpui/components/templates/preference/layouts/registry';
+import * as scheduledTasks from '@gpui/components/templates/preference/layouts/scheduled-tasks';
+import * as services from '@gpui/components/templates/preference/layouts/services';
+import * as startMenu from '@gpui/components/templates/preference/layouts/start-menu';
 
 export {
     shortcuts,

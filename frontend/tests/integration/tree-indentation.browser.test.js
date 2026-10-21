@@ -5,11 +5,11 @@ import { test } from 'vitest';
 let chromium;
 try {
     chromium = (await import('playwright')).chromium;
-} catch (_) {
+} catch {
     /* Browser dependencies are optional in unit-only environments. */
 }
 
-const cssRoot = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy/css');
+const cssRoot = path.resolve(import.meta.dirname, '../../src/styles');
 
 test(
     'folder and leaf icons keep the same indentation at each tree depth',

@@ -1,6 +1,4 @@
-import * as __dep0 from '../../util/element-creator';
-
-var { createElement } = __dep0;
+import { createElement } from '@gpui/util/element-creator';
 
 function renderWorkspace() {
     const element = createElement('div', {

@@ -1,12 +1,8 @@
-import * as translations from '../../locales/translations';
-import * as API from '../../util/API';
-import * as securityModel from '../templates/security/model';
-import * as auditModel from '../templates/advanced-audit/model';
-import * as editorIcons from '../editor-icons';
-
-('use strict');
-
-var t = translations.t;
+import { t, getLanguage } from '@gpui/locales/translations';
+import * as API from '@gpui/util/API';
+import { navigationNodes } from '@gpui/components/templates/security/model';
+import { navigationNode } from '@gpui/components/templates/advanced-audit/model';
+import { preferencesRoot, preference, scripts, preferenceCategory } from '@gpui/components/editor-icons';
 
 function payloadList(result, key) {
     if (Array.isArray(result)) return result;
@@ -14,7 +10,7 @@ function payloadList(result, key) {
 }
 
 function policyChildren(scope, result) {
-    var language = typeof translations.getLanguage === 'function' ? translations.getLanguage() : undefined;
+    const language = typeof getLanguage === 'function' ? getLanguage() : undefined;
     return payloadList(result, 'children')
         .map(function (node) {
             return policyNode(scope, node);
@@ -78,7 +74,7 @@ function preferenceNode(document) {
     return {
         title: document.label || document.kind,
         type: 'file',
-        icon: editorIcons.preference(document.kind),
+        icon: preference(document.kind),
         template: 'preferences',
         scope: document.scope,
         preferenceKind: document.kind,
@@ -88,11 +84,11 @@ function preferenceNode(document) {
 }
 
 function scriptsNode(scope) {
-    var isComputer = scope === 'computer';
+    const isComputer = scope === 'computer';
     return {
         title: t(isComputer ? 'policies.scriptsComputer' : 'policies.scriptsUser'),
         type: 'file',
-        icon: editorIcons.scripts(),
+        icon: scripts(),
         template: 'scripts',
         scope: scope
     };
@@ -100,7 +96,7 @@ function scriptsNode(scope) {
 
 function windowsPolicySettingsNode(scope) {
     /** @type {any[]} */
-    var children = [scriptsNode(scope)];
+    const children = [scriptsNode(scope)];
     if (scope === 'computer') children.push(securityNode());
     return {
         title: t('policies.windowsSettings'),
@@ -132,8 +128,8 @@ function securityNode() {
                     }
                 )
             ]).then(function (/** @type {any[]} */ responses) {
-                var nodes = securityModel.navigationNodes(responses[0]);
-                if (responses[1].value) nodes.push(auditModel.navigationNode(responses[1].value));
+                const nodes = navigationNodes(responses[0]);
+                if (responses[1].value) nodes.push(navigationNode(responses[1].value));
                 else
                     nodes.push({
                         title: t('security.auditUnavailable'),
@@ -165,14 +161,14 @@ function preferenceOrder(value) {
 }
 
 function preferenceCategories(scope, documents) {
-    var categories = new Map();
+    const categories = new Map();
     documents
         .filter(function (document) {
             return document.scope === scope;
         })
         .forEach(function (document) {
-            var id = document.category_id || 'other_settings';
-            var category = categories.get(id);
+            const id = document.category_id || 'other_settings';
+            let category = categories.get(id);
             if (!category) {
                 category = {
                     id: id,
@@ -192,15 +188,15 @@ function preferenceCategories(scope, documents) {
         })
         .map(function (category) {
             category.documents.sort(function (left, right) {
-                var leftOrder = preferenceOrder(left.display_order);
-                var rightOrder = preferenceOrder(right.display_order);
+                const leftOrder = preferenceOrder(left.display_order);
+                const rightOrder = preferenceOrder(right.display_order);
                 return leftOrder - rightOrder || (left.label || left.kind).localeCompare(right.label || right.kind);
             });
             return {
                 title: preferenceCategoryTitle(category),
                 type: 'folder',
                 opened: false,
-                icon: editorIcons.preferenceCategory(category.id),
+                icon: preferenceCategory(category.id),
                 scope: scope,
                 preferenceCategoryId: category.id,
                 children: category.documents.map(preferenceNode)
@@ -209,9 +205,10 @@ function preferenceCategories(scope, documents) {
 }
 
 function scopeNode(scope, documents) {
-    var isComputer = scope === 'computer';
-    var preferenceChildren = preferenceCategories(scope, documents);
-    var children = [
+    const isComputer = scope === 'computer';
+    const preferenceChildren = preferenceCategories(scope, documents);
+    /** @type {any[]} */
+    const children = [
         {
             title: t('policies.allPolicies'),
             type: 'folder',
@@ -240,7 +237,7 @@ function scopeNode(scope, documents) {
             title: t('preferences.title'),
             type: 'folder',
             opened: false,
-            icon: editorIcons.preferencesRoot(),
+            icon: preferencesRoot(),
             scope: scope,
             children: preferenceChildren,
             help: t('preferences.description')
@@ -257,9 +254,9 @@ function scopeNode(scope, documents) {
 }
 
 function buildTreeViewList(openResult) {
-    var result = openResult || {};
-    var documents = payloadList(result, 'preference_documents');
-    var gpo = result.gpo || {};
+    const result = openResult || {};
+    const documents = payloadList(result, 'preference_documents');
+    const gpo = result.gpo || {};
     return [
         {
             title: gpo.displayname || API.getDisplayName() || t('policies.localGroupPolicy'),

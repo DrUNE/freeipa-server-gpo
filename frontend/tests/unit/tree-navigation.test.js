@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
-import * as editorIcons from '../../src/components/editor-icons.js';
-import * as enLocale from '../../src/locales/en.js';
-import * as ruLocale from '../../src/locales/ru.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as editorIcons from '@gpui/components/editor-icons';
+import * as enLocale from '@gpui/locales/en';
+import * as ruLocale from '@gpui/locales/ru';
 
 function locale(language) {
     return language === 'ru' ? ruLocale : enLocale;
@@ -16,11 +14,11 @@ async function treeModule(options = {}) {
     const translations = options.translations || { t: key => key, getLanguage: undefined };
     if (options.language) translations.getLanguage = () => options.language;
     return loadModule('components/tree-view/tree-view-list-data.js', {
-        '../../locales/translations': translations,
-        '../../util/API': { getDisplayName: () => 'Example GPO', ...options.api },
-        '../templates/security/model': options.securityModel || {},
-        '../templates/advanced-audit/model': options.auditModel || {},
-        '../editor-icons': editorIcons
+        '@gpui/locales/translations': translations,
+        '@gpui/util/API': { getDisplayName: () => 'Example GPO', ...options.api },
+        '@gpui/components/templates/security/model': options.securityModel || {},
+        '@gpui/components/templates/advanced-audit/model': options.auditModel || {},
+        '@gpui/components/editor-icons': editorIcons
     });
 }
 

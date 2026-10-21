@@ -1,6 +1,4 @@
-'use strict';
-
-const __export_basic = [
+const basic = [
     { field: 'properties.element' },
     { field: 'properties.action' },
     { line: true },
@@ -15,14 +13,14 @@ const __export_basic = [
     { field: 'properties.acctDisabled' },
     { field: 'properties.expires' }
 ];
-const __export_general = [
+const general = [
     { field: 'metadata.bypassErrors' },
     { field: 'metadata.userContext' },
     { field: 'metadata.removePolicy' },
     { field: 'metadata.desc', textarea: true }
 ];
-const __export_filters = 'general';
-const __export_dependencies = [
+const filters = 'general';
+const dependencies = [
     {
         field: 'properties.newName',
         enabledWhen: [
@@ -113,17 +111,11 @@ const __export_dependencies = [
         ]
     }
 ];
-const __export_columns = [
+const columns = [
     { source: 'name', labelKey: 'columnName' },
     { source: 'order', labelKey: 'columnOrder' },
     { source: 'field', field: 'properties.action', labelKey: 'columnAction', format: 'action' },
     { source: 'field', field: 'properties.userName', labelKey: 'columnUserName' }
 ];
 
-export {
-    __export_basic as basic,
-    __export_general as general,
-    __export_filters as filters,
-    __export_dependencies as dependencies,
-    __export_columns as columns
-};
+export { basic, general, filters, dependencies, columns };

@@ -1,10 +1,10 @@
-import * as dto from '../../../../util/editor-dto';
-import * as preferenceLayouts from '../layouts/index';
+import { valuePayload } from '@gpui/util/editor-dto';
+import * as preferenceLayouts from '@gpui/components/templates/preference/layouts/index';
 
-var PREFERENCE_LAYOUTS = preferenceLayouts;
+const PREFERENCE_LAYOUTS = preferenceLayouts;
 
 function dependencyRulesFor(kind) {
-    var layout = PREFERENCE_LAYOUTS[kind];
+    const layout = PREFERENCE_LAYOUTS[kind];
     return layout && Array.isArray(layout.dependencies) ? layout.dependencies : [];
 }
 
@@ -46,7 +46,7 @@ function conditionHolds(condition, readSource) {
     if (Object.prototype.hasOwnProperty.call(condition, 'nonEmpty')) {
         return Boolean(condition.nonEmpty) !== conditionValueIsEmpty(readSource(condition.source));
     }
-    var raw = readSource(condition.source);
+    const raw = readSource(condition.source);
     if (condition.in !== undefined) {
         return (Array.isArray(condition.in) ? condition.in : []).some(function (item) {
             return conditionCompare(item, raw);
@@ -67,35 +67,35 @@ function conditionHolds(condition, readSource) {
 }
 
 function ruleEnabled(rule, readSource) {
-    var conditions = Array.isArray(rule && rule.enabledWhen) ? rule.enabledWhen : [];
+    const conditions = Array.isArray(rule && rule.enabledWhen) ? rule.enabledWhen : [];
     return conditions.every(function (condition) {
         return conditionHolds(condition, readSource);
     });
 }
 
 function attachFieldDependencies(formElement, controlsById, rules) {
-    var disabledIds = new Set();
+    const disabledIds = new Set();
     function sourceValue(fieldId) {
-        var payload = null;
+        let payload = null;
         (controlsById.get(fieldId) || []).forEach(function (control) {
-            var current = control.read();
-            if (current !== undefined) payload = dto.valuePayload(current);
+            const current = control.read();
+            if (current !== undefined) payload = valuePayload(current);
         });
         return payload;
     }
     function sync() {
-        var passes = Math.min(rules.length + 1, 12);
-        for (var pass = 0; pass < passes; pass += 1) {
-            var changed = false;
-            var cache = new Map();
-            var nextDisabled = [];
-            var readSource = function (fieldId) {
+        const passes = Math.min(rules.length + 1, 12);
+        for (let pass = 0; pass < passes; pass += 1) {
+            let changed = false;
+            const cache = new Map();
+            const nextDisabled = [];
+            const readSource = function (fieldId) {
                 if (!cache.has(fieldId)) cache.set(fieldId, sourceValue(fieldId));
                 return cache.get(fieldId);
             };
             rules.forEach(function (rule) {
                 if (!rule || !rule.field) return;
-                var enabled = ruleEnabled(rule, readSource);
+                const enabled = ruleEnabled(rule, readSource);
                 if (!enabled) nextDisabled.push(rule.field);
                 (controlsById.get(rule.field) || []).forEach(function (control) {
                     if (control.setDynamicDisabled && control.setDynamicDisabled(!enabled)) {

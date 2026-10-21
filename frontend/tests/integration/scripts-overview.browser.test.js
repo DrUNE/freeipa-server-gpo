@@ -10,7 +10,7 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Browser dependencies are optional in unit-only environments. */
 }
 
@@ -112,7 +112,7 @@ test(
             try {
                 response.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : 'application/javascript');
                 response.end(fs.readFileSync(filename));
-            } catch (_) {
+            } catch {
                 response.statusCode = 404;
                 response.end('Missing');
             }
@@ -190,7 +190,7 @@ test(
                 .locator('.gpo-editor-scripts__entries .gpo-editor-scripts__toolbar')
                 .boundingBox();
             const showFilesBounds = await eventDialog.getByRole('button', { name: 'Show files…' }).boundingBox();
-            const eventFooterBounds = await eventDialog.locator('.preference__modal-footer').boundingBox();
+            const eventFooterBounds = await eventDialog.locator('[data-dialog-part="footer"]').boundingBox();
             assert.ok(eventBounds.width <= 660 && eventBounds.height <= 480);
             assert.ok(entryActionsBounds.x >= entryListBounds.x + entryListBounds.width - 2);
             assert.ok(Math.abs(entryActionsBounds.y - entryListBounds.y) <= 12);
@@ -244,7 +244,7 @@ test(
                 await explorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
                 ['shutdown.cmd', 'extra.cmd']
             );
-            await explorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await explorer.locator('[data-dialog-part="footer"] > .btn-cancel').click();
             await explorer.waitFor({ state: 'hidden' });
             await rows.filter({ hasText: 'Startup scripts' }).click();
             await page.getByRole('button', { name: 'Open scripts folder…' }).click();
@@ -317,7 +317,7 @@ test(
                 .locator('.gpo-editor-scripts__assets tbody tr')
                 .filter({ hasText: 'loose.cmd' })
                 .waitFor({ state: 'hidden' });
-            await startupExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await startupExplorer.locator('[data-dialog-part="footer"] > .btn-cancel').click();
             await startupExplorer.waitFor({ state: 'hidden' });
 
             await page.evaluate(() => render('user'));
@@ -336,7 +336,7 @@ test(
                 await userExplorer.locator('.gpo-editor-scripts__assets tbody tr td:nth-child(2)').allTextContents(),
                 ['user.cmd']
             );
-            await userExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await userExplorer.locator('[data-dialog-part="footer"] > .btn-cancel').click();
             await userExplorer.waitFor({ state: 'hidden' });
             await page
                 .locator('.gpo-editor-scripts__event-table tbody tr')
@@ -353,7 +353,7 @@ test(
             const fileListBounds = await emptyExplorer
                 .locator('.gpo-editor-scripts__assets .gpo-editor-scripts__list')
                 .boundingBox();
-            const explorerFooterBounds = await emptyExplorer.locator('.preference__modal-footer').boundingBox();
+            const explorerFooterBounds = await emptyExplorer.locator('[data-dialog-part="footer"]').boundingBox();
             assert.ok(explorerBounds.width <= 680 && explorerBounds.height <= 340);
             assert.ok(fileActionsBounds.y + fileActionsBounds.height <= fileListBounds.y + 3);
             assert.ok(explorerFooterBounds.y - (fileListBounds.y + fileListBounds.height) <= 26);
@@ -368,7 +368,7 @@ test(
                     .evaluate(el => getComputedStyle(el).borderStyle),
                 'solid'
             );
-            await emptyExplorer.locator('.preference__modal-footer > .btn-cancel').click();
+            await emptyExplorer.locator('[data-dialog-part="footer"] > .btn-cancel').click();
             await page.evaluate(() => {
                 setLanguage('ru');
                 render('computer');

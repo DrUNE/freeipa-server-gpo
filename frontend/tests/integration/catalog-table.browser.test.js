@@ -10,7 +10,7 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
@@ -95,7 +95,7 @@ async function withPage(run) {
                       : 'application/javascript'
             );
             response.end(fs.readFileSync(filename));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }
@@ -271,7 +271,7 @@ test(
                 await page.locator('.policy-changed__modal--discard .btn-yes').click();
                 await page
                     .locator(
-                        '.gpo-editor-scripts__event-dialog > .preference__modal-wrapper > .preference__modal-footer .btn-cancel'
+                        '.gpo-editor-scripts__event-dialog > [data-dialog-part="wrapper"] > [data-dialog-part="footer"] .btn-cancel'
                     )
                     .click();
                 await page.locator('.gpo-editor-scripts__folder-button').click();
@@ -282,7 +282,7 @@ test(
                 await capture(page, 'scripts-folder-' + language);
                 await page
                     .locator(
-                        '.gpo-editor-scripts__explorer > .preference__modal-wrapper > .preference__modal-footer .btn-cancel'
+                        '.gpo-editor-scripts__explorer > [data-dialog-part="wrapper"] > [data-dialog-part="footer"] .btn-cancel'
                     )
                     .click();
             }

@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as plannerModule from '../../src/components/templates/security/dependency-plan.js';
-import fs from 'node:fs';
-import path from 'node:path';
-
-const planner = plannerModule;
+import * as planner from '@gpui/components/templates/security/dependency-plan';
 
 const BASE = 'urn:altlinux:sdmx:policies:';
 const AGE = 'overwrite_events_older_than_the_retention_period';

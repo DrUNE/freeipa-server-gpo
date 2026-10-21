@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, test } from 'vitest';
 let chromium;
 try {
     chromium = (await import('playwright')).chromium;
-} catch (_) {
+} catch {
     /* Optional browser dependency in unit-only environments. */
 }
 
@@ -69,7 +69,7 @@ async function login(page) {
         throw new Error(
             loggedIn
                 ? 'Logged in, but the Group Policy menu was not added under Policy: check that chain.js loads and ' +
-                      'that "policy" exists in the menu (plugin/ui/grouppolicy/chain.js add_menu_items).'
+                      'that "policy" exists in the menu (frontend/public/chain.js add_menu_items).'
                 : `Could not log in to ${base} as ${username}: check IPA_ADMIN_USER and IPA_ADMIN_PASSWORD.`,
             { cause: error }
         );

@@ -1,9 +1,6 @@
-import * as __dep0 from '../../util/element-creator';
-import * as __dep1 from '../../locales/translations';
-import * as listNavigation from '../list-navigation';
-
-var { createElement } = __dep0;
-var { t } = __dep1;
+import { createElement } from '@gpui/util/element-creator';
+import { t } from '@gpui/locales/translations';
+import { bind } from '@gpui/components/list-navigation';
 
 function renderChildRow(item, onItemClick, onSelect) {
     const row = createElement('span', {
@@ -154,7 +151,7 @@ function renderFolderTemplate({
         children: [content, helpBlock]
     });
     filter();
-    navigation = listNavigation.bind(list.getElement(), {
+    navigation = bind(list.getElement(), {
         rows: () => Array.from(rowItems.keys()),
         selected: () => Array.from(rowItems.keys()).find(row => rowItems.get(row) === listState.selectedItem) || null,
         select: row => select(rowItems.get(row)),

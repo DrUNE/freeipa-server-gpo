@@ -1,248 +1,36 @@
-import * as elementCreator from '../../util/element-creator';
-import * as API from '../../util/API';
-import * as translations from '../../locales/translations';
-import * as editorStatus from '../editor-status';
-import * as securityModel from './security/model';
-import * as values from './security/value-editor';
-import * as dependencies from './security/dependency-plan';
-import * as workbench from './security/workbench';
-import * as dialogs from './security/dialog';
-import * as confirmationDialog from '../confirmation-dialog';
-
-('use strict');
-
-var createElement = elementCreator.createElement;
-
-function tr(key, fallback) {
-    var translated = translations.t(key);
-    return translated && translated !== key ? translated : fallback;
-}
-
-function stateFor(policy, element) {
-    if (policy.state.state === 'defined') {
-        return policy.state.elements && policy.state.elements[element.id]
-            ? values.clone(policy.state.elements[element.id])
-            : { state: 'unset' };
-    }
-    return element.initial ? { state: 'set', value: values.clone(element.initial) } : { state: 'unset' };
-}
-
-function initialDraft(policy) {
-    var elements = {};
-    (policy.definition.elements || []).forEach(function (element) {
-        elements[element.id] = stateFor(policy, element);
-    });
-    return {
-        defined: policy.state.state === 'defined',
-        elements: elements
-    };
-}
-
-function canCreateRow(collection, controls) {
-    var writable = new Set();
-    function visit(items, parentReadOnly) {
-        (items || []).forEach(function (control) {
-            var readOnly = parentReadOnly || control.read_only;
-            if (control.element_id && !readOnly) writable.add(control.element_id);
-            visit(control.children, readOnly);
-        });
-    }
-    visit(controls, false);
-    return (collection.fields || []).every(function (field) {
-        return !field.required || field.element.initial || writable.has(field.id);
-    });
-}
-
-function registerBinding(bindings, id, binding) {
-    if (!bindings.has(id)) bindings.set(id, []);
-    bindings.get(id).push(binding);
-}
-
-function syncBindings(bindings, id, source, state) {
-    (bindings.get(id) || []).forEach(function (binding) {
-        binding.update(state, binding === source);
-    });
-}
-
-function controlLabel(control, element, state) {
-    var label = control.label || element.id;
-    if (label === 'value') label = tr('security.value', 'Value');
-    if (!state || state.state !== 'set' || element.value_type !== 'integer') {
-        return label;
-    }
-    var match = (control.labels_when || []).find(function (item) {
-        return Number(item[0]) === state.value.value;
-    });
-    return match ? match[1] : label;
-}
-
-function rangeText(control, element) {
-    if (element.value_type !== 'integer' || control.show_range !== true) return null;
-    var ranges = element.input_ranges && element.input_ranges.length ? element.input_ranges : element.ranges || [];
-    return (
-        ranges
-            .map(function (range) {
-                return range.min === range.max ? String(range.min) : String(range.min) + '–' + String(range.max);
-            })
-            .join(', ') || null
-    );
-}
-
-function elementAction(element, before, after) {
-    if (values.same(before, after)) return null;
-    if (after.state === 'unset') {
-        return { element_id: element.id, action: 'unset' };
-    }
-    if (element.value_type === 'collection' && before.state === 'set') {
-        var rows = values.rowActions(element, before.value.value || [], after.value.value || []);
-        return rows.length ? { element_id: element.id, action: 'rows', rows: rows } : null;
-    }
-    return {
-        element_id: element.id,
-        action: 'set',
-        value: values.clone(after.value)
-    };
-}
-
-function updateRequest(model, policy, baseline, draft) {
-    var update = {
-        namespace: policy.namespace,
-        policy_id: policy.policyId,
-        elements: []
-    };
-    if (baseline.defined !== draft.defined) {
-        update.transition = draft.defined ? 'define' : 'undefine';
-    }
-    if (!draft.defined) {
-        return {
-            expected_semantic_revision: model.catalog.semantic_revision,
-            policies: [update]
-        };
-    }
-    (policy.definition.elements || []).forEach(function (element) {
-        var action = elementAction(
-            element,
-            baseline.elements[element.id] || { state: 'unset' },
-            draft.elements[element.id] || { state: 'unset' }
-        );
-        if (action) update.elements.push(action);
-    });
-    return {
-        expected_semantic_revision: model.catalog.semantic_revision,
-        policies: [update]
-    };
-}
-
-function validateDraft(policy, draft) {
-    if (!draft.defined) return null;
-    function validateState(element, state, label, required) {
-        if (state.state !== 'set')
-            return required ? label + ': ' + tr('security.validationRequired', 'A value is required.') : null;
-        var typeError = values.validationError(element, state.value);
-        if (typeError) return label + ': ' + typeError;
-        if (element.value_type !== 'collection') return null;
-        if (!Array.isArray(state.value.value)) {
-            return label + ': ' + tr('security.validationRows', 'Enter valid collection rows.');
-        }
-        if (!state.value.value.length)
-            return tr('security.validationRows', 'Add at least one item, or leave this policy not configured.');
-        var seen = new Set();
-        for (var row of state.value.value) {
-            if (
-                element.unique_by === 'group' &&
-                (element.fields || []).some(function (field) {
-                    return field.id === 'members';
-                }) &&
-                (!row.members || row.members.state !== 'set') &&
-                (!row.member_of || row.member_of.state !== 'set')
-            ) {
-                return tr(
-                    'security.validationGroupRelationship',
-                    'Define Members or Member of. An explicitly empty list is allowed.'
-                );
-            }
-            if (element.unique_by) {
-                var key = values.rowKey(element, row);
-                if (!key) return label + ': ' + tr('security.validationKey', 'Every row requires its unique key.');
-                var encoded = JSON.stringify(key);
-                if (seen.has(encoded))
-                    return (
-                        element.duplicate_message ||
-                        tr('security.validationDuplicate', 'Collection row keys must be unique.')
-                    );
-                seen.add(encoded);
-            }
-            for (var field of element.fields || []) {
-                var fieldError = validateState(
-                    field.element,
-                    (row && row[field.id]) || { state: 'unset' },
-                    field.display_name || field.id,
-                    field.required
-                );
-                if (fieldError) return fieldError;
-            }
-        }
-        return null;
-    }
-    for (var element of policy.definition.elements || []) {
-        var error = validateState(
-            element,
-            draft.elements[element.id] || { state: 'unset' },
-            element.id,
-            element.required
-        );
-        if (error) return error;
-    }
-    return null;
-}
-
-function renderPreserved(model) {
-    var root = createElement('div', {
-        className: ['gp__preference', 'gpo-editor-preferences'],
-        attrs: { 'data-security-preserved': '' }
-    });
-    root.append(
-        createElement('h2', {
-            text: tr('security.preservedTitle', 'Preserved and diagnostic records')
-        })
-    );
-    if ((model.diagnostics || []).length) root.append(editorStatus.renderDiagnostics(model.diagnostics));
-    var list = createElement('dl', { className: 'gpo-editor-security-preserved' });
-    (model.preserved || []).forEach(function (record) {
-        list.append(
-            createElement('dt', {
-                text: record.section + ' — ' + record.identity
-            })
-        );
-        list.append(
-            createElement('dd', {
-                children: [
-                    createElement('p', {
-                        text: record.damaged
-                            ? tr('security.damaged', 'Damaged record')
-                            : tr('security.preservedReadOnly', 'This setting is preserved and is read-only.')
-                    }),
-                    editorStatus.renderDiagnostics([{ message: record.reason }])
-                ]
-            })
-        );
-    });
-    root.append(list);
-    return root;
-}
+import { renderControl } from '@gpui/components/templates/security/controls';
+import { createElement } from '@gpui/util/element-creator';
+import * as API from '@gpui/util/API';
+import { renderError, renderDiagnostics } from '@gpui/components/editor-status';
+import { buildSecurityModel, writableElement } from '@gpui/components/templates/security/model';
+import * as securityModel from '@gpui/components/templates/security/model';
+import { defaultTyped, clone, newRow, same } from '@gpui/components/templates/security/value-editor';
+import * as dependencies from '@gpui/components/templates/security/dependency-plan';
+import { openPolicyDialog, render } from '@gpui/components/templates/security/workbench';
+import { tabs } from '@gpui/components/templates/security/dialog';
+import { open } from '@gpui/components/confirmation-dialog';
+import {
+    tr,
+    initialDraft,
+    controlLabel,
+    rangeText,
+    updateRequest,
+    validateDraft,
+    renderPreserved
+} from '@gpui/components/templates/security/policy-draft';
 
 async function renderPolicyEditor(options) {
-    var config = options || {};
-    var item = config.item || {};
-    var model = item.securityModel;
+    const config = options || {};
+    const item = config.item || {};
+    let model = item.securityModel;
     if (!model) {
-        model = securityModel.buildSecurityModel(await API.securityDefinitionsShow());
+        model = buildSecurityModel(await API.securityDefinitionsShow());
         if (typeof config.isCurrent === 'function' && !config.isCurrent()) return null;
         item.securityModel = model;
     }
     if (item.securityPreserved) return renderPreserved(model);
 
-    var policy = securityModel.policy(model, item.securityPolicy);
+    let policy = securityModel.policy(model, item.securityPolicy);
     if (!policy) {
         return createElement('div', {
             className: 'gpo-editor-preferences__error',
@@ -250,33 +38,32 @@ async function renderPolicyEditor(options) {
         });
     }
 
-    var root = createElement('div', {
+    const root = createElement('div', {
         className: 'gpo-security-policy-editor',
         attrs: {
             'data-security-policy': policy.policyId,
             'data-security-namespace': policy.namespace
         }
     });
-    var baseline = initialDraft(policy);
-    var draft = values.clone(baseline);
-    var rowElement = config.collectionElement;
-    var rowWritable =
-        !rowElement || (Boolean(rowElement.unique_by) && securityModel.writableElement(policy, rowElement.id));
-    var editedRow = null;
+    let baseline = initialDraft(policy);
+    let draft = clone(baseline);
+    const rowElement = config.collectionElement;
+    const rowWritable = !rowElement || (Boolean(rowElement.unique_by) && writableElement(policy, rowElement.id));
+    let editedRow = null;
     if (rowElement) {
-        var rowState = draft.elements[rowElement.id];
-        var rowValues = rowState && rowState.state === 'set' ? rowState.value.value : [];
+        const rowState = draft.elements[rowElement.id];
+        const rowValues = rowState && rowState.state === 'set' ? rowState.value.value : [];
         draft.defined = true;
         draft.elements[rowElement.id] = { state: 'set', value: { kind: 'collection', value: rowValues } };
         if (config.rowIndex !== undefined && config.rowIndex !== null) editedRow = rowValues[config.rowIndex];
         else {
-            editedRow = values.clone(config.initialRow || values.newRow(rowElement));
+            editedRow = clone(config.initialRow || newRow(rowElement));
             rowValues.push(editedRow);
         }
         (rowElement.fields || []).forEach(function (field) {
             if (
                 rowWritable &&
-                securityModel.writableElement(policy, field.id) &&
+                writableElement(policy, field.id) &&
                 field.required &&
                 (!editedRow[field.id] || editedRow[field.id].state !== 'set')
             ) {
@@ -285,236 +72,18 @@ async function renderPolicyEditor(options) {
                     value:
                         field.element.value_type === 'enum' && !field.element.initial
                             ? { kind: 'enum', value: '' }
-                            : values.defaultTyped(field.element)
+                            : defaultTyped(field.element)
                 };
             }
         });
     }
-    var saving = false;
-    var pendingConfirmation = null;
-    var errorSlot;
-    var rootBindings = new Map();
+    let saving = false;
+    let pendingConfirmation = null;
+    let errorSlot;
+    let rootBindings = new Map();
 
     function isDirty() {
-        return !values.same(baseline, draft);
-    }
-
-    function scalarControl(control, element, context) {
-        var state = context.getState(element.id);
-        var writable = context.writable && !control.read_only;
-        var required = element.required === true;
-        var configured = createElement('input', { attrs: { type: 'checkbox' } });
-        var labelText = createElement('span', {
-            text: controlLabel(control, element, state)
-        });
-        configured.getElement().checked = state.state === 'set' || required;
-        configured.getElement().disabled = !writable;
-        var editor = values.inputFor(
-            element,
-            control,
-            state.state === 'set' ? state.value : values.defaultTyped(element),
-            !writable || (!required && state.state !== 'set')
-        );
-        editor.root.getElement().setAttribute('aria-label', controlLabel(control, element, state));
-        var binding = {
-            update: function (next, source) {
-                configured.getElement().checked = next.state === 'set' || required;
-                configured.getElement().disabled = !writable;
-                labelText.getElement().textContent = controlLabel(control, element, next);
-                if (!source) editor.write(next.state === 'set' ? next.value : values.defaultTyped(element));
-                editor.setDisabled(!writable || (!required && next.state !== 'set'));
-            }
-        };
-        registerBinding(context.bindings, element.id, binding);
-        function changed() {
-            var next = configured.getElement().checked ? { state: 'set', value: editor.read() } : { state: 'unset' };
-            context.setState(element.id, next);
-            syncBindings(context.bindings, element.id, binding, next);
-        }
-        configured.on('change', changed);
-        editor.root.getElement().addEventListener('input', changed);
-        editor.root.getElement().addEventListener('change', changed);
-        return createElement('div', {
-            className: ['gpo-editor-field', !writable ? 'gpo-editor-field--readonly' : null],
-            attrs: { 'data-security-element': element.id },
-            children: [
-                createElement('label', {
-                    className: ['field', 'field__checkbox'],
-                    children: [required ? null : configured, labelText]
-                }),
-                createElement('div', {
-                    className: 'field__element',
-                    children: [editor.root]
-                }),
-                control.integer_suffix
-                    ? createElement('span', {
-                          className: 'gpo-editor-security-suffix',
-                          text: control.integer_suffix
-                      })
-                    : null,
-                rangeText(control, element)
-                    ? createElement('span', {
-                          className: 'gpo-editor-security-range',
-                          text: rangeText(control, element)
-                      })
-                    : null
-            ]
-        });
-    }
-
-    function collectionControl(control, element, context) {
-        var container = createElement('div', {
-            className: 'gpo-editor-security-collection',
-            attrs: { 'data-security-element': element.id }
-        });
-        var writable = context.writable && !control.read_only && Boolean(element.unique_by);
-        var state = context.getState(element.id);
-        var configured = createElement('input', { attrs: { type: 'checkbox' } });
-        configured.getElement().checked = state.state === 'set';
-        configured.getElement().disabled = !writable;
-        var rows = state.state === 'set' ? values.clone(state.value.value || []) : [];
-        var rowsHost = createElement('div', { className: 'gpo-editor-security-collection__rows' });
-        var add = createElement('button', {
-            className: 'button',
-            attrs: { type: 'button' },
-            text: tr('security.addRow', 'Add row')
-        });
-        var binding = {
-            update: function (next, source) {
-                configured.getElement().checked = next.state === 'set';
-                if (!source) {
-                    rows = next.state === 'set' ? values.clone(next.value.value || []) : [];
-                    renderRows();
-                }
-                add.getElement().disabled =
-                    !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
-            }
-        };
-        registerBinding(context.bindings, element.id, binding);
-
-        function sync() {
-            var next = configured.getElement().checked
-                ? { state: 'set', value: { kind: 'collection', value: values.clone(rows) } }
-                : { state: 'unset' };
-            context.setState(element.id, next);
-            syncBindings(context.bindings, element.id, binding, next);
-        }
-
-        function renderRows() {
-            rowsHost.getElement().innerHTML = '';
-            rows.forEach(function (row, rowIndex) {
-                var rowRoot = createElement('div', {
-                    className: 'gpo-editor-security-collection__row'
-                });
-                var fields = (element.fields || []).map(function (field) {
-                    return Object.assign({}, field.element, { id: field.id });
-                });
-                var rowContext = {
-                    writable: writable && configured.getElement().checked,
-                    bindings: new Map(),
-                    getState: function (id) {
-                        return row[id] || { state: 'unset' };
-                    },
-                    setState: function (id, next) {
-                        row[id] = next;
-                        sync();
-                    }
-                };
-                (control.children || []).forEach(function (child) {
-                    rowRoot.append(renderControl(child, fields, rowContext));
-                });
-                rowRoot.append(
-                    createElement('button', {
-                        className: 'button',
-                        attrs: { type: 'button', disabled: rowContext.writable ? null : 'disabled' },
-                        text: tr('security.removeRow', 'Remove row'),
-                        events: {
-                            click: function () {
-                                rows.splice(rowIndex, 1);
-                                sync();
-                                renderRows();
-                            }
-                        }
-                    })
-                );
-                rowsHost.append(rowRoot);
-            });
-        }
-
-        configured.on('change', function () {
-            if (configured.getElement().checked && !rows.length) rows = [];
-            sync();
-            renderRows();
-        });
-        add.getElement().disabled =
-            !writable || !configured.getElement().checked || !canCreateRow(element, control.children);
-        add.on('click', function () {
-            if (add.getElement().disabled) return;
-            rows.push(values.newRow(element));
-            sync();
-            renderRows();
-        });
-        container.append(
-            createElement('label', {
-                className: ['field', 'field__checkbox'],
-                children: [
-                    configured,
-                    createElement('span', {
-                        text: control.label || element.id
-                    })
-                ]
-            })
-        );
-        if (!element.unique_by)
-            container.append(
-                createElement('div', {
-                    className: ['gpo-editor-preference-notice', 'gpo-editor-preference-notice--warning'],
-                    text: tr('security.readOnlyCollection', 'This collection has no stable row key and is read-only.')
-                })
-            );
-        container.append(rowsHost);
-        container.append(add);
-        renderRows();
-        return container;
-    }
-
-    function renderControl(control, elements, context) {
-        if (control.kind === 'text') {
-            return createElement('p', { text: control.text || control.label || '' });
-        }
-        if (control.kind === 'group') {
-            var childContext = Object.assign({}, context, {
-                writable: context.writable && !control.read_only
-            });
-            return createElement('fieldset', {
-                className: 'gpo-editor-security-group',
-                children: [
-                    control.label
-                        ? createElement('legend', {
-                              text: control.label
-                          })
-                        : null
-                ].concat(
-                    (control.children || []).map(function (child) {
-                        return renderControl(child, elements, childContext);
-                    })
-                )
-            });
-        }
-        var element = (elements || []).find(function (item) {
-            return item.id === control.element_id;
-        });
-        if (!element)
-            return createElement('div', {
-                className: ['gpo-editor-preference-notice', 'gpo-editor-preference-notice--warning'],
-                text:
-                    tr('security.unresolvedElement', 'This setting cannot be displayed:') +
-                    ' ' +
-                    (control.element_id || '')
-            });
-        return element.value_type === 'collection'
-            ? collectionControl(control, element, context)
-            : scalarControl(control, element, context);
+        return !same(baseline, draft);
     }
 
     function proposedUnit(policyId) {
@@ -542,22 +111,22 @@ async function renderPolicyEditor(options) {
 
     function proposedValue(change) {
         if (!change.draft.defined) return tr('security.dependency.notConfigured', 'Not configured');
-        var parts = (change.policy.definition.elements || [])
+        const parts = (change.policy.definition.elements || [])
             .filter(function (element) {
                 return change.draft.elements[element.id] && change.draft.elements[element.id].state === 'set';
             })
             .map(function (element) {
-                var typed = change.draft.elements[element.id].value;
+                const typed = change.draft.elements[element.id].value;
                 if (typed.kind === 'boolean')
                     return typed.value ? tr('security.enabled', 'Enabled') : tr('security.disabled', 'Disabled');
                 if (typed.kind === 'enum') {
-                    var option = (element.options || []).find(function (item) {
+                    const option = (element.options || []).find(function (item) {
                         return item.id === typed.value;
                     });
                     return option ? option.display_name || option.id : typed.value;
                 }
                 if (typed.kind === 'integer') {
-                    var unit = proposedUnit(change.policy.policyId);
+                    const unit = proposedUnit(change.policy.policyId);
                     return String(typed.value) + (unit ? ' ' + unit : '');
                 }
                 return String(typed.value);
@@ -567,13 +136,13 @@ async function renderPolicyEditor(options) {
 
     function confirmDependencies(changes) {
         return new Promise(function (resolve) {
-            var host = root.getElement().closest('.gpo-security-dialog-host');
+            const host = root.getElement().closest('.gpo-security-dialog-host');
             if (!host) {
                 resolve(false);
                 return;
             }
-            var modal = /** @type {HTMLElement | null} */ (root.getElement().closest('.gpo-security-dialog'));
-            var table = createElement('table', {
+            const modal = /** @type {HTMLElement | null} */ (root.getElement().closest('.gpo-security-dialog'));
+            const table = createElement('table', {
                 className: ['preference__table', 'gpo-security-table'],
                 children: [
                     createElement('thead', {
@@ -600,7 +169,7 @@ async function renderPolicyEditor(options) {
                     })
                 ]
             });
-            var content = createElement('div', {
+            const content = createElement('div', {
                 children: [
                     createElement('p', {
                         text: tr(
@@ -620,7 +189,7 @@ async function renderPolicyEditor(options) {
                 resolve(confirmed);
             }
             pendingConfirmation = {
-                dialog: confirmationDialog.open(host, {
+                dialog: open(host, {
                     title: tr('security.dependency.title', 'Related policy settings'),
                     content: content,
                     confirmLabel: tr('security.dependency.apply', 'Apply changes'),
@@ -646,7 +215,7 @@ async function renderPolicyEditor(options) {
 
     async function save() {
         if (saving || !isDirty()) return true;
-        var error = validateDraft(policy, draft);
+        const error = validateDraft(policy, draft);
         if (error) {
             errorSlot.getElement().textContent = error;
             errorSlot.getElement().focus();
@@ -654,10 +223,10 @@ async function renderPolicyEditor(options) {
         }
         saving = true;
         try {
-            var plan = dependencies.plan(model, policy, draft);
-            var changes = (plan && plan.changes) || [];
-            for (var change of changes) {
-                var dependentError = validateDraft(change.policy, change.draft);
+            const plan = dependencies.plan(model, policy, draft);
+            const changes = (plan && plan.changes) || [];
+            for (const change of changes) {
+                const dependentError = validateDraft(change.policy, change.draft);
                 if (dependentError) {
                     errorSlot.getElement().textContent = dependentError;
                     errorSlot.getElement().focus();
@@ -665,29 +234,29 @@ async function renderPolicyEditor(options) {
                 }
             }
             if (changes.length && !(await confirmDependencies(changes))) return false;
-            var request = updateRequest(model, policy, baseline, draft);
+            const request = updateRequest(model, policy, baseline, draft);
             changes.forEach(function (change) {
-                var previous = initialDraft(change.policy);
+                const previous = initialDraft(change.policy);
                 request.policies.push(updateRequest(model, change.policy, previous, change.draft).policies[0]);
             });
-            var response = await API.securityDefinitionsUpdate(request);
-            var refreshed = securityModel.buildSecurityModel(response);
+            const response = await API.securityDefinitionsUpdate(request);
+            const refreshed = buildSecurityModel(response);
             Object.keys(refreshed).forEach(function (key) {
                 model[key] = refreshed[key];
             });
             policy = securityModel.policy(model, item.securityPolicy);
             baseline = initialDraft(policy);
-            draft = values.clone(baseline);
+            draft = clone(baseline);
             if (config.onSaved) config.onSaved(response);
             return true;
         } catch (failure) {
             errorSlot.getElement().innerHTML = '';
-            errorSlot.append(editorStatus.renderError(failure));
-            var diagnostics =
+            errorSlot.append(renderError(failure));
+            const diagnostics =
                 failure && failure.details && Array.isArray(failure.details.diagnostics)
                     ? failure.details.diagnostics
                     : [];
-            if (diagnostics.length) errorSlot.append(editorStatus.renderDiagnostics(diagnostics));
+            if (diagnostics.length) errorSlot.append(renderDiagnostics(diagnostics));
             return false;
         } finally {
             saving = false;
@@ -709,9 +278,9 @@ async function renderPolicyEditor(options) {
                 })
             );
         });
-        if (policy.diagnostics.length) root.append(editorStatus.renderDiagnostics(policy.diagnostics));
+        if (policy.diagnostics.length) root.append(renderDiagnostics(policy.diagnostics));
         root.append(errorSlot);
-        var defined = createElement('input', { attrs: { type: 'checkbox', 'data-security-define': '' } });
+        const defined = createElement('input', { attrs: { type: 'checkbox', 'data-security-define': '' } });
         defined.getElement().checked = draft.defined;
         defined.on('change', function () {
             draft.defined = defined.getElement().checked;
@@ -719,14 +288,14 @@ async function renderPolicyEditor(options) {
                 (policy.definition.elements || []).forEach(function (element) {
                     if (
                         element.required &&
-                        securityModel.writableElement(policy, element.id) &&
+                        writableElement(policy, element.id) &&
                         draft.elements[element.id].state !== 'set'
                     ) {
-                        draft.elements[element.id] = { state: 'set', value: values.defaultTyped(element) };
+                        draft.elements[element.id] = { state: 'set', value: defaultTyped(element) };
                     }
                 });
             renderContent();
-            var currentDefine = root.getElement().querySelector('[data-security-define]');
+            const currentDefine = root.getElement().querySelector('[data-security-define]');
             if (currentDefine) currentDefine.focus();
         });
         if (!rowElement)
@@ -741,10 +310,10 @@ async function renderPolicyEditor(options) {
                     ]
                 })
             );
-        var displayedControls = policy.controls;
-        var displayedElements = policy.definition.elements;
+        let displayedControls = policy.controls;
+        let displayedElements = policy.definition.elements;
         if (rowElement) {
-            var collectionControlDefinition;
+            let collectionControlDefinition;
             function findCollection(controls) {
                 (controls || []).forEach(function (control) {
                     if (control.element_id === rowElement.id) collectionControlDefinition = control;
@@ -761,7 +330,7 @@ async function renderPolicyEditor(options) {
                     return { element_id: field.id, label: field.display_name || field.id };
                 });
         }
-        var controls = createElement('div', {
+        const controls = createElement('div', {
             className: 'gpo-editor-security-controls',
             children: displayedControls.map(function (control) {
                 return renderControl(control, displayedElements, {
@@ -777,14 +346,14 @@ async function renderPolicyEditor(options) {
             })
         });
         root.append(controls);
-        var explanation = [
+        const explanation = [
             policy.definition.explain_text,
             policy.definition.allowed_values,
             policy.definition.default_text
         ].filter(Boolean);
-        var settingsPanel = createElement('div');
+        const settingsPanel = createElement('div');
         while (root.getElement().firstChild) settingsPanel.getElement().appendChild(root.getElement().firstChild);
-        var explanationPanel = createElement('div', {
+        const explanationPanel = createElement('div', {
             className: 'gpo-security-explanation',
             children: [createElement('h3', { text: policy.definition.display_name || policy.policyId })].concat(
                 (explanation.length
@@ -795,7 +364,7 @@ async function renderPolicyEditor(options) {
                 })
             )
         });
-        root.append(dialogs.tabs(settingsPanel, explanationPanel));
+        root.append(tabs(settingsPanel, explanationPanel));
     }
 
     renderContent();
@@ -803,7 +372,7 @@ async function renderPolicyEditor(options) {
     root.readOnly = Boolean(rowElement && !rowWritable);
     root.applyChanges = save;
     root.cancelChanges = function () {
-        draft = values.clone(baseline);
+        draft = clone(baseline);
         renderContent();
         return true;
     };
@@ -813,13 +382,13 @@ async function renderPolicyEditor(options) {
     return root;
 }
 
-const __export_renderSecurityTemplate = function (options) {
-    return workbench.render(options, renderPolicyEditor);
+const renderSecurityTemplate = function (options) {
+    return render(options, renderPolicyEditor);
 };
-const __export_openSecurityDialog = function (host, options) {
-    return workbench.openPolicyDialog(host, options, renderPolicyEditor);
+const openSecurityDialog = function (host, options) {
+    return openPolicyDialog(host, options, renderPolicyEditor);
 };
-const __export__test = {
+const _test = {
     initialDraft: initialDraft,
     updateRequest: updateRequest,
     validateDraft: validateDraft,
@@ -827,8 +396,4 @@ const __export__test = {
     rangeText: rangeText
 };
 
-export {
-    __export_renderSecurityTemplate as renderSecurityTemplate,
-    __export_openSecurityDialog as openSecurityDialog,
-    __export__test as _test
-};
+export { renderSecurityTemplate, openSecurityDialog, _test };

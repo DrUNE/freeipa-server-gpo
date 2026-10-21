@@ -33,5 +33,5 @@ podman exec "$CONTAINER" bash -c 'mount -o remount,size=2g /dev/shm 2>/dev/null 
 echo "== unit + integration inside $CONTAINER (admix $admix)"
 podman exec -e FORCE_COLOR=0 "$CONTAINER" bash -c "cd $WORKSPACE/frontend \
     && node scripts/build-test-root.mjs >/dev/null \
-    && npx vitest run --project unit --project integration --reporter=default --reporter=json --outputFile.json=test-results.json \
+    && npx vitest run --project unit --project integration --project stories --reporter=default --reporter=json --outputFile.json=test-results.json \
     && node scripts/assert-no-skips.mjs"

@@ -1,16 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import * as presentationModule from '../../src/components/templates/preference/targeting-presentations.js';
-import * as operandEditorModule from '../../src/components/templates/preference/targeting-operand-editor.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as presentation from '@gpui/components/templates/preference/targeting-presentations';
+import * as operandEditor from '@gpui/components/templates/preference/targeting-operand-editor';
 import { spawnSync } from 'node:child_process';
 
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
-const presentation = presentationModule;
-const operandEditor = operandEditorModule;
 
 const probe = spawnSync(process.env.PYTHON || 'python3', ['-c', 'from admix import _native; print(_native.__file__)'], {
     encoding: 'utf8'

@@ -1,0 +1,11 @@
+/* The preference dialogs live inside the shared `.gpo-editor-preferences__modal-host`, which draws the single backdrop. */
+.gpo-editor-preference-host,
+.gpo-editor-targeting-host {
+  background: transparent;
+  /* Below the discard question (.policy-changed__modal--discard, 1100) that the form opens in the same host. */
+  z-index: 100;
+}
+/* The form under the targeting modal is dimmed like the window under a discard question, only darker. */
+.gp__preference .gpo-editor-preference-form--dimmed {
+  filter: brightness(0.5);
+}

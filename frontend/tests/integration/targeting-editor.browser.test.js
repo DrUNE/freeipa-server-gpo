@@ -11,7 +11,7 @@ let requireJs;
 try {
     chromium = (await import('playwright')).chromium;
     requireJs = fileURLToPath(import.meta.resolve('requirejs/require.js'));
-} catch (_) {
+} catch {
     /* Optional browser dependencies. */
 }
 
@@ -95,7 +95,7 @@ async function fixture(run) {
                       : 'application/javascript'
             );
             response.end(fs.readFileSync(filename));
-        } catch (_) {
+        } catch {
             response.statusCode = 404;
             response.end('Missing');
         }
@@ -161,7 +161,7 @@ async function openTargeting(page) {
     await form.locator('.preference__tab-button[data-tab="tab-general"]').click();
     await form.locator('.preference__tab-targetting-btn').click();
     await targeting(page).waitFor();
-    await targeting(page).locator('.preference__modal-footer > button').last().hover();
+    await targeting(page).locator('[data-dialog-part="footer"] > button').last().hover();
 }
 async function addFile(page, value) {
     await targeting(page).locator('.gpo-editor-filter-add').click();
@@ -356,7 +356,7 @@ test(
             await openParent(page);
             await openTargeting(page);
             const modal = targeting(page);
-            await modal.locator('.preference__modal-footer .btn-ok').focus();
+            await modal.locator('[data-dialog-part="footer"] .btn-ok').focus();
             await page.keyboard.press('Tab');
             assert.equal(
                 await page.evaluate(() => document.activeElement.closest('.targetting__modal.active') !== null),
@@ -506,9 +506,9 @@ test(
                 assert.equal(await combine.isEnabled(), true);
                 await rows(page).nth(1).click();
                 assert.equal(await combine.inputValue(), 'or');
-                await modal.locator('.preference__modal-footer .btn-ok').click();
+                await modal.locator('[data-dialog-part="footer"] .btn-ok').click();
                 assert.equal(await page.evaluate(() => view.hasUnsavedChanges()), false);
-                await parentForm(page).locator('.preference__modal-footer .btn-ok').click();
+                await parentForm(page).locator('[data-dialog-part="footer"] .btn-ok').click();
                 await parentForm(page).waitFor({ state: 'hidden' });
                 assert.equal(await writeCount(page), 0);
             }
@@ -748,7 +748,9 @@ test(
                 assert.equal(await modal.getAttribute('role'), 'dialog');
                 assert.equal(await modal.getAttribute('aria-modal'), 'true');
                 assert.equal(
-                    await modal.getAttribute('aria-label'),
+                    await modal.evaluate(
+                        element => document.getElementById(element.getAttribute('aria-labelledby')).textContent
+                    ),
                     scenario.language === 'ru' ? 'Редактор нацеливания' : 'Targeting Editor'
                 );
                 const geometry = await modal.evaluate(element => {
@@ -765,11 +767,11 @@ test(
                     };
                     const tree = element.querySelector('.gpo-editor-filters__tree');
                     return {
-                        wrapper: rect('.preference__modal-wrapper'),
+                        wrapper: rect('[data-dialog-part="wrapper"]'),
                         toolbar: rect('.gpo-editor-filters__toolbar'),
                         tree: rect('.gpo-editor-filters__tree'),
                         fields: rect('.gpo-editor-filters__fields'),
-                        footer: rect('.preference__modal-footer'),
+                        footer: rect('[data-dialog-part="footer"]'),
                         scrollable: tree.scrollHeight > tree.clientHeight
                     };
                 });
@@ -796,7 +798,7 @@ test(
                 await modal.locator('.gpo-editor-filters__tree').evaluate(tree => {
                     tree.scrollTop = tree.scrollHeight;
                 });
-                const footerAfter = await modal.locator('.preference__modal-footer').boundingBox();
+                const footerAfter = await modal.locator('[data-dialog-part="footer"]').boundingBox();
                 assert.ok(Math.abs(footerAfter.y - geometry.footer.top) <= 1);
                 const toolbarNames =
                     scenario.language === 'ru'
@@ -834,7 +836,7 @@ test(
             assert.equal(await pathInput(page).isDisabled(), true);
             assert.equal(await targeting(page).locator('[draggable="true"]').count(), 0);
             await targeting(page)
-                .locator('.preference__modal-footer')
+                .locator('[data-dialog-part="footer"]')
                 .getByRole('button', { name: 'Close', exact: true })
                 .click();
             assert.equal(await writeCount(page), 0);

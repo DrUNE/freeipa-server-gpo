@@ -2,22 +2,20 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, vi } from 'vitest';
-import * as iconsModule from '../../src/components/editor-icons.js';
-import * as presentationsModule from '../../src/components/templates/preference/targeting-presentations.js';
-import * as treeModule from '../../src/components/tree-view/tree-view-list-data.js';
-import * as modelModule from '../../src/components/templates/all-policies/model.js';
+import * as icons from '@gpui/components/editor-icons';
+import * as presentations from '@gpui/components/templates/preference/targeting-presentations';
+import * as tree from '@gpui/components/tree-view/tree-view-list-data';
+import * as model from '@gpui/components/templates/all-policies/model';
 
 // The tree and the all-policies model are checked in isolation from translations, RPC and the other models.
-vi.mock('../../src/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
-vi.mock('../../src/util/API.js', () => ({ getDisplayName: () => 'Example GPO' }));
-vi.mock('../../src/components/templates/security/model.js', () => ({}));
-vi.mock('../../src/components/templates/advanced-audit/model.js', () => ({}));
+vi.mock('@gpui/locales/translations.js', () => ({ t: key => key, getLanguage: () => 'en' }));
+vi.mock('@gpui/util/API', () => ({ getDisplayName: () => 'Example GPO' }));
+vi.mock('@gpui/components/templates/security/model.js', () => ({}));
+vi.mock('@gpui/components/templates/advanced-audit/model.js', () => ({}));
 
-const root = path.resolve(import.meta.dirname, '../../../plugin/ui/grouppolicy');
-const icons = iconsModule;
-const presentations = presentationsModule;
-const tree = treeModule;
-const model = modelModule;
+const styles = path.resolve(import.meta.dirname, '../../src/styles');
+// `url(/img/...)` in the CSS is a file of the public directory (the plugin's img/).
+const publicDir = path.resolve(import.meta.dirname, '../../public');
 const preferenceKinds = [
     'applications',
     'control_panel',
@@ -43,15 +41,15 @@ const preferenceKinds = [
     'start_menu'
 ];
 const categories = ['system_settings', 'control_panel_settings', 'other_settings'];
-const css = fs.readFileSync(path.join(root, 'css/icons.css'), 'utf8');
+const css = fs.readFileSync(path.join(styles, 'icons.css'), 'utf8');
 function asset(className) {
     assert.match(className, /^gpo-icon gpo-icon-[a-z-]+$/);
     const name = className.split('gpo-icon-')[1];
     const rule = new RegExp('\\.gpo-icon\\.gpo-icon-' + name + ' \\{ background-image: url\\(([^)]+)\\); \\}');
     const match = css.match(rule);
     assert.ok(match, 'Missing stylesheet mapping: ' + name);
-    const filename = path.resolve(root, 'css', match[1]);
-    assert.equal(path.dirname(filename), path.join(root, 'img/svg/ico'));
+    const filename = path.join(publicDir, match[1]);
+    assert.equal(path.dirname(filename), path.join(publicDir, 'img/svg/ico'));
     assert.ok(fs.existsSync(filename), 'Missing icon: ' + filename);
     return fs.readFileSync(filename, 'utf8');
 }
@@ -63,6 +61,7 @@ test('all 22 native preference families and all 29 targeting kinds have explicit
     assert.equal(new Set([...icons.targetingKinds].map(icons.targeting)).size, 29);
     // An ES module namespace is immutable by definition; the exported lists must be frozen too.
     assert.throws(() => {
+        // eslint-disable-next-line no-import-assign -- the assignment is what is under test
         icons.preferenceKinds = [];
     }, TypeError);
     assert.ok(Object.isFrozen(icons.preferenceKinds) && Object.isFrozen(icons.targetingKinds));

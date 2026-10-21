@@ -1,12 +1,12 @@
-const __export_navigation = {
+const navigation = {
     path: 'Текущее расположение',
     tree: 'Навигация по политикам',
     catalog: 'Каталог политик',
     keyboardHelp:
         'Стрелки переключают выделение; Enter открывает редактор; Delete удаляет элемент, если это разрешено. F6 переключает дерево и каталог.'
 };
-const __export_tree = { expand: 'Раскрыть категорию', collapse: 'Свернуть категорию' };
-const __export_editorStatus = {
+const tree = { expand: 'Раскрыть категорию', collapse: 'Свернуть категорию' };
+const editorStatus = {
     errors: {
         authorization: 'Недостаточно прав для работы с этой групповой политикой.',
         validation: 'Проверьте значения отмеченных полей.',
@@ -33,7 +33,7 @@ const __export_editorStatus = {
     technicalDetails: 'Технические сведения',
     pending: 'Предыдущая публикация политики не завершена.'
 };
-const __export_security = {
+const security = {
     dependency: {
         title: 'Связанные параметры политик',
         intro: 'Для сохранения этой политики необходимо также применить следующие связанные параметры.',
@@ -205,7 +205,7 @@ const __export_security = {
     auditUnavailable: 'Расширенный аудит временно недоступен. Остальные параметры безопасности доступны.',
     validationGroupRelationship: 'Задайте «Участники» или «Членство в группах». Допускается явно пустой список.'
 };
-const __export_common = {
+const common = {
     help: 'Помощь:',
     description: 'Описание:',
     options: 'Опции:',
@@ -213,12 +213,12 @@ const __export_common = {
     edit: 'Редактировать',
     save: 'Сохранить'
 };
-const __export_menu = {
+const menu = {
     groupPolicy: 'Групповые политики',
     chains: 'Цепочки',
     groupPolicyObjects: 'Объекты групповых политик'
 };
-const __export_chain = {
+const chain = {
     enable: 'Включить',
     disable: 'Отключить',
     moveUp: 'Переместить вверх',
@@ -275,7 +275,7 @@ const __export_chain = {
         gplinkDoc: 'Выберите объекты групповых политик для связывания с этой цепочкой'
     }
 };
-const __export_gpo = {
+const gpo = {
     title: 'Объекты групповых политик',
     titleSingular: 'Объект групповой политики',
     addTitle: 'Добавить объект групповой политики',
@@ -301,7 +301,7 @@ const __export_gpo = {
     addToChainTitle: 'Добавить объекты групповых политик в цепочку',
     removeFromChainTitle: 'Удалить объекты групповых политик из цепочки'
 };
-const __export_collections = {
+const collections = {
     edit: 'Изменить…',
     view: 'Просмотреть…',
     editLabel: 'Изменить: {label}',
@@ -342,7 +342,7 @@ const __export_collections = {
         invalidValue: 'В коллекции есть неподдерживаемое значение.'
     }
 };
-const __export_policySearch = {
+const policySearch = {
     description: 'Поиск политик и параметров настройки по имени без раскрытия категорий.',
     categoryPlaceholder: 'Поиск в этой категории',
     computerPlaceholder: 'Поиск политик компьютера',
@@ -362,7 +362,7 @@ const __export_policySearch = {
     invalidIndex: 'Некорректный ответ каталога политик. Обновите список или повторите попытку.',
     targetUnavailable: 'Этот параметр больше недоступен. Обновите список.'
 };
-const __export_policies = {
+const policies = {
     parametersTab: 'Параметры',
     allPolicies: 'Все политики',
     title: 'Политики',
@@ -392,7 +392,7 @@ const __export_policies = {
     unsupportedSource: 'Политика содержит неподдерживаемые исходные значения и доступна только для чтения.',
     supportedOn: 'Поддерживается на:'
 };
-const __export_preferences = {
+const preferences = {
     title: 'Настройки',
     description: 'Политики настроек.',
     windowsSettings: 'Конфигурация системы',
@@ -529,11 +529,11 @@ const __export_preferences = {
         actionDelete: 'Удалить'
     }
 };
-const __export_treeView = {
+const treeView = {
     loadingPolicies: 'Loading policies...',
     unableToLoadPolicies: 'Не удалось загрузить политики.'
 };
-const __export_header = {
+const header = {
     create: 'Создать',
     edit: 'Изменить',
     delete: 'Удалить',
@@ -541,7 +541,7 @@ const __export_header = {
     cancel: 'Отмена',
     information: 'Сведения'
 };
-const __export_systemSettings = {
+const systemSettings = {
     systemSettings: 'Настройки Системы',
     scripts: 'Скрипты',
     startupScript: 'Сценарий запуска',
@@ -626,32 +626,32 @@ const __export_systemSettings = {
     nameRequired: 'Введите имя скрипта.',
     ok: 'Ок'
 };
-const __export_policyChangedModal = {
+const policyChangedModal = {
     title: 'Состояние настроек',
     message: 'Настройки политики были изменены, хотите сохранить их?',
     no: 'Нет',
     yes: 'Да'
 };
-const __export_confirmModal = {
+const confirmModal = {
     title: 'Подтверждение'
 };
 
 export {
-    __export_navigation as navigation,
-    __export_tree as tree,
-    __export_editorStatus as editorStatus,
-    __export_security as security,
-    __export_common as common,
-    __export_menu as menu,
-    __export_chain as chain,
-    __export_gpo as gpo,
-    __export_collections as collections,
-    __export_policySearch as policySearch,
-    __export_policies as policies,
-    __export_preferences as preferences,
-    __export_treeView as treeView,
-    __export_header as header,
-    __export_systemSettings as systemSettings,
-    __export_policyChangedModal as policyChangedModal,
-    __export_confirmModal as confirmModal
+    navigation,
+    tree,
+    editorStatus,
+    security,
+    common,
+    menu,
+    chain,
+    gpo,
+    collections,
+    policySearch,
+    policies,
+    preferences,
+    treeView,
+    header,
+    systemSettings,
+    policyChangedModal,
+    confirmModal
 };

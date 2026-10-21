@@ -1,38 +1,40 @@
-import * as elements from '../util/element-creator';
-import * as collections from '../util/collection-value';
-import * as translations from '../locales/translations';
-import * as collectionDialog from './collection-dialog';
+import { createElement } from '@gpui/util/element-creator';
+import { empty } from '@gpui/util/collection-value';
+import * as collections from '@gpui/util/collection-value';
+import { t } from '@gpui/locales/translations';
+import { open } from '@gpui/components/collection-dialog';
 
-('use strict');
-var create = elements.createElement;
 function tr(key, values) {
-    var text = translations.t('collections.' + key);
+    let text = t('collections.' + key);
     Object.keys(values || {}).forEach(function (name) {
         text = text.replace('{' + name + '}', values[name]);
     });
     return text;
 }
 function createControl(parameter, initial, editable) {
-    var value = initial ? JSON.parse(JSON.stringify(initial)) : collections.empty(parameter, initial);
-    var canEdit = Boolean(editable);
-    var modal = null;
-    var button = create('button', {
+    let value = initial ? JSON.parse(JSON.stringify(initial)) : empty(parameter, initial);
+    let canEdit = Boolean(editable);
+    let modal = null;
+    const button = createElement('button', {
         className: ['button', 'gpo-collection-control__button'],
         attrs: { type: 'button' }
     });
-    var count = create('span', { className: 'gpo-collection-control__count' });
-    var preview = create('span', { className: 'gpo-collection-control__preview', attrs: { 'aria-hidden': 'true' } });
-    var host = create('div', { className: 'gpo-collection-control__dialog-host' });
-    var root = create('div', {
+    const count = createElement('span', { className: 'gpo-collection-control__count' });
+    const preview = createElement('span', {
+        className: 'gpo-collection-control__preview',
+        attrs: { 'aria-hidden': 'true' }
+    });
+    const host = createElement('div', { className: 'gpo-collection-control__dialog-host' });
+    const root = createElement('div', {
         className: 'gpo-collection-control',
         children: [
-            create('div', { className: 'gpo-collection-control__summary', children: [count, preview] }),
+            createElement('div', { className: 'gpo-collection-control__summary', children: [count, preview] }),
             button,
             host
         ]
     });
     function refresh() {
-        var summary = collections.summary(parameter, value);
+        const summary = collections.summary(parameter, value);
         button.getElement().textContent = tr('edit');
         button.getElement().setAttribute('aria-label', tr('editLabel', { label: parameter.label || parameter.id }));
         button.getElement().disabled = !canEdit;
@@ -48,7 +50,7 @@ function createControl(parameter, initial, editable) {
     }
     button.on('click', function () {
         if (modal || !canEdit) return;
-        modal = collectionDialog.open(host, {
+        modal = open(host, {
             parameter: parameter,
             value: value,
             readOnly: false,

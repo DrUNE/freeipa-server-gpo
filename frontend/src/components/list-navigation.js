@@ -1,29 +1,28 @@
-'use strict';
-var sequence = 0;
+let sequence = 0;
 
 // Anchor a bulk removal at its first original position, not at whichever
 // response happened to finish last. Only surviving, still-visible IDs count.
 function neighbor(beforeIds, removedIds, afterIds) {
-    var removed = new Set(removedIds || []);
-    var remaining = new Set(afterIds || []);
-    var anchor = (beforeIds || []).findIndex(function (id) {
+    const removed = new Set(removedIds || []);
+    const remaining = new Set(afterIds || []);
+    const anchor = (beforeIds || []).findIndex(function (id) {
         return removed.has(id);
     });
     if (anchor < 0) return null;
-    for (var previous = anchor - 1; previous >= 0; previous -= 1) {
+    for (let previous = anchor - 1; previous >= 0; previous -= 1) {
         if (!removed.has(beforeIds[previous]) && remaining.has(beforeIds[previous])) return beforeIds[previous];
     }
-    for (var next = anchor + 1; next < beforeIds.length; next += 1) {
+    for (let next = anchor + 1; next < beforeIds.length; next += 1) {
         if (!removed.has(beforeIds[next]) && remaining.has(beforeIds[next])) return beforeIds[next];
     }
     return null;
 }
 
 function bind(container, options) {
-    var disposed = false;
-    var observer;
-    var pointerSelecting = false;
-    var owner = String(++sequence);
+    let disposed = false;
+    let observer;
+    let pointerSelecting = false;
+    const owner = String(++sequence);
     container.setAttribute('data-list-navigation', owner);
     function rows() {
         return Array.from(options.rows() || []);
@@ -52,9 +51,9 @@ function bind(container, options) {
     }
     function sync() {
         if (disposed) return;
-        var current = rows();
-        var chosen = selected();
-        var entry = current.indexOf(chosen) !== -1 ? chosen : current[0];
+        const current = rows();
+        const chosen = selected();
+        const entry = current.indexOf(chosen) !== -1 ? chosen : current[0];
         container.tabIndex = current.length ? -1 : 0;
         current.forEach(function (row) {
             row.tabIndex = row === entry ? 0 : -1;
@@ -76,14 +75,14 @@ function bind(container, options) {
         if (!row) return;
         options.select(row, event);
         sync();
-        var current = rows();
-        var chosen = selected();
+        const current = rows();
+        const chosen = selected();
         focus(current.indexOf(chosen) !== -1 ? chosen : current[index] || null);
     }
     function focusSelected() {
         if (blocked()) return;
-        var current = rows();
-        var chosen = selected();
+        const current = rows();
+        const chosen = selected();
         if (current.indexOf(chosen) === -1) {
             if (current.length) {
                 selectAndFocus(current[0], null, 0);
@@ -97,14 +96,14 @@ function bind(container, options) {
         focus(chosen);
     }
     function pageSize(row) {
-        var scroller = container;
-        var view = container.ownerDocument && container.ownerDocument.defaultView;
+        let scroller = container;
+        const view = container.ownerDocument && container.ownerDocument.defaultView;
         while (scroller.parentElement && view && view.getComputedStyle) {
-            var style = view.getComputedStyle(scroller);
+            const style = view.getComputedStyle(scroller);
             if (/auto|scroll/.test(style.overflowY)) break;
             scroller = scroller.parentElement;
         }
-        var height = row && row.getBoundingClientRect ? row.getBoundingClientRect().height : 0;
+        const height = row && row.getBoundingClientRect ? row.getBoundingClientRect().height : 0;
         return height && scroller.clientHeight ? Math.max(1, Math.floor(scroller.clientHeight / height) - 1) : 10;
     }
     function onKey(event) {
@@ -118,12 +117,12 @@ function bind(container, options) {
             interactive(event.target)
         )
             return;
-        var current = rows();
+        const current = rows();
         if (!current.length) return;
-        var row = rowFor(event.target, current) || selected() || current[0];
-        var index = current.indexOf(row);
+        const row = rowFor(event.target, current) || selected() || current[0];
+        const index = current.indexOf(row);
         if (index < 0) return;
-        var next = index;
+        let next = index;
         if (event.key === 'ArrowUp') next -= 1;
         else if (event.key === 'ArrowDown') next += 1;
         else if (event.key === 'Home') next = 0;
@@ -157,13 +156,13 @@ function bind(container, options) {
         // Pointer focus precedes the owner's click handler. Let that
         // handler decide toggle/range selection instead of selecting twice.
         if (pointerSelecting || blocked() || interactive(event.target)) return;
-        var current = rows();
-        var row = rowFor(event.target, current);
+        const current = rows();
+        const row = rowFor(event.target, current);
         if (row && row !== selected()) selectAndFocus(row, event, current.indexOf(row));
     }
     function onPointerDown() {
         pointerSelecting = true;
-        var view = container.ownerDocument && container.ownerDocument.defaultView;
+        const view = container.ownerDocument && container.ownerDocument.defaultView;
         if (view && view.setTimeout)
             view.setTimeout(function () {
                 pointerSelecting = false;
@@ -172,7 +171,7 @@ function bind(container, options) {
     container.addEventListener('keydown', onKey);
     container.addEventListener('focusin', onFocus);
     container.addEventListener('pointerdown', onPointerDown);
-    var view = container.ownerDocument && container.ownerDocument.defaultView;
+    const view = container.ownerDocument && container.ownerDocument.defaultView;
     if (view && view.MutationObserver) {
         observer = new view.MutationObserver(sync);
         observer.observe(container, { childList: true, subtree: true });

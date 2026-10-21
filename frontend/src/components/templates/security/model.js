@@ -1,6 +1,4 @@
-import * as translations from '../../../locales/translations';
-
-('use strict');
+import { t } from '@gpui/locales/translations';
 
 function identity(namespace, id) {
     return String(namespace || '') + '\u0000' + String(id || '');
@@ -14,7 +12,7 @@ function reference(value) {
 }
 
 function inferredControl(element) {
-    var kind = element.value_type === 'string' ? 'text_box' : element.value_type;
+    const kind = element.value_type === 'string' ? 'text_box' : element.value_type;
     return {
         kind: kind,
         element_id: element.id,
@@ -33,15 +31,15 @@ function controlElement(policy, control) {
 }
 
 function buildSecurityModel(response) {
-    var result = response || {};
-    var catalog = result.security_catalog || {};
-    var snapshot = result.security_snapshot || {};
-    var states = new Map();
+    const result = response || {};
+    const catalog = result.security_catalog || {};
+    const snapshot = result.security_snapshot || {};
+    const states = new Map();
     (snapshot.policies || []).forEach(function (state) {
         states.set(identity(state.namespace, state.policy_id), state);
     });
 
-    var categories = new Map();
+    const categories = new Map();
     (catalog.categories || []).forEach(function (category) {
         categories.set(identity(category.namespace, category.id), {
             namespace: category.namespace,
@@ -53,11 +51,11 @@ function buildSecurityModel(response) {
         });
     });
 
-    var policies = new Map();
+    const policies = new Map();
     (catalog.policies || []).forEach(function (definition) {
-        var key = identity(definition.namespace, definition.policy_id);
-        var category = reference(definition.category);
-        var policy = {
+        const key = identity(definition.namespace, definition.policy_id);
+        const category = reference(definition.category);
+        const policy = {
             namespace: definition.namespace,
             policyId: definition.policy_id,
             definition: definition,
@@ -74,13 +72,13 @@ function buildSecurityModel(response) {
             })
         };
         policies.set(key, policy);
-        var owner = categories.get(identity(category.namespace, category.id));
+        const owner = categories.get(identity(category.namespace, category.id));
         if (owner) owner.policies.push(policy);
     });
 
-    var roots = [];
+    const roots = [];
     categories.forEach(function (category) {
-        var parent = category.parent && categories.get(identity(category.parent.namespace, category.parent.id));
+        const parent = category.parent && categories.get(identity(category.parent.namespace, category.parent.id));
         if (parent && parent !== category) parent.categories.push(category);
         else roots.push(category);
     });
@@ -107,7 +105,7 @@ function buildSecurityModel(response) {
 }
 
 function policyNode(model, policy) {
-    var collection = collectionElement(policy);
+    const collection = collectionElement(policy);
     return {
         title: policy.definition.display_name || policy.policyId,
         type: collection ? 'folder' : 'file',
@@ -126,16 +124,16 @@ function policyNode(model, policy) {
 }
 
 function collectionElement(policy) {
-    var elements = (policy && policy.definition.elements) || [];
+    const elements = (policy && policy.definition.elements) || [];
     return elements.length === 1 && elements[0].value_type === 'collection' ? elements[0] : null;
 }
 
 function writableElement(policy, id) {
-    var matched = false,
+    let matched = false,
         writable = false;
     function visit(controls, inherited) {
         (controls || []).forEach(function (control) {
-            var readOnly = inherited || control.read_only;
+            const readOnly = inherited || control.read_only;
             if (control.element_id === id) {
                 matched = true;
                 writable = writable || !readOnly;
@@ -148,18 +146,18 @@ function writableElement(policy, id) {
 }
 
 function categoryNodes(model, categories) {
-    var groups = new Map();
+    const groups = new Map();
     (categories || []).forEach(function (category) {
         // A catalog category is qualified by its SDMX namespace. Several
         // BaseALT definition files can nevertheless contribute to the
         // same folder. Keep third-party namespaces separate even when
         // their IDs and translated labels happen to be identical.
-        var namespace = String(category.namespace || '');
-        var key =
+        const namespace = String(category.namespace || '');
+        const key =
             namespace.indexOf('urn:altlinux:sdmx:policies:') === 0
                 ? 'basealt\u0000' + identity(category.id, category.label)
                 : 'qualified\u0000' + identity(namespace, category.id);
-        var group = groups.get(key);
+        let group = groups.get(key);
         if (!group) {
             group = { label: category.label, categories: [], policies: [] };
             groups.set(key, group);
@@ -175,7 +173,7 @@ function categoryNodes(model, categories) {
                 );
             });
             if (!group.categories.length && group.policies.length === 1 && collectionElement(group.policies[0])) {
-                var collectionNode = policyNode(model, group.policies[0]);
+                const collectionNode = policyNode(model, group.policies[0]);
                 collectionNode.title = group.label;
                 return collectionNode;
             }
@@ -200,11 +198,11 @@ function categoryNodes(model, categories) {
 }
 
 function navigationNodes(response) {
-    var model = buildSecurityModel(response);
-    var nodes = categoryNodes(model, model.categories);
+    const model = buildSecurityModel(response);
+    const nodes = categoryNodes(model, model.categories);
     if (model.preserved.length || model.diagnostics.length) {
         nodes.push({
-            title: translations ? translations.t('security.preservedTitle') : 'Preserved and diagnostic records',
+            title: t('security.preservedTitle'),
             type: 'file',
             icon: 'ico-file',
             template: 'security',

@@ -26,11 +26,6 @@ from .filesystem import (
 UI_PLUGIN_FILES = (
     'chain.js',
     'gpo.js',
-    'css/main.css',
-    'css/icons.css',
-    'css/other.css',
-    'img/arrow.svg',
-    'img/close.svg',
     'img/svg/arrow.svg',
     'img/svg/close.svg',
     'img/svg/ico/computer.svg',
@@ -92,6 +87,7 @@ UI_PLUGIN_FILES = (
     'img/svg/ico/system.svg',
     'img/svg/ico/terminal.svg',
     'img/svg/ico/users.svg',
+    'js/app.css',
     'js/app.js',
 )
 
