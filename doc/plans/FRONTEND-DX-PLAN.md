@@ -4,7 +4,7 @@
 
 **Date:** 2026-10-18
 **Scope:** `plugin/ui/grouppolicy/` (≈20 thousand lines of JS, 2.4 thousand lines of CSS), `frontend/`.
-**Status:** stages 1-4 are done, stages 5 and 6 are partly done, stage 7 has not started (each stage starts with its status).
+**Status:** stages 1-5 are done, stage 6 is partly done, stage 7 has not started (each stage starts with its status).
 **Principle:** improve the tooling around the existing code without rewriting the editor. The decision to change the framework is made after stage 6, based on measurements.
 
 ## 1. Starting point (checked against the repository)
@@ -73,14 +73,14 @@ Problem: the hand-written AMD wrappers block IDE navigation, automatic refactori
 
 ### Stage 5. Dev loop (2-3 days)
 
-**Status: ✅ partly done.**
+**Status: ✅ done** (the pages `chain.js` and `gpo.js` are covered by unit tests with doubles, not rendered in the stand).
 
 - A stand on **Vite** replaces the hand-written server: it serves `frontend/src` directly, `freeipa/*` resolve to ES shims, and `/ipa/session/json` is answered by the mock backend `dev/backend.mjs` (or the stand can be pointed at a live FreeIPA from the dev container). The page reloads on save.
 - **Partly done:** `chain.js` and `gpo.js` are now covered by unit tests with doubles of `freeipa/*` (`tests/unit/helpers/load-plugin.js`; 22 tests: the actions and their RPC commands, registration, the menu, the status formatter, saving with rename). Mutations of the pages break them. Rendering the pages in the stand is a different task: it needs a reimplementation of FreeIPA's facet and widget framework (`IPA.facet`, search facets, tables, jQuery widgets), so it is not planned.
 - **Done:** the `?scenario=normal|error|slow|empty` mode of the mock backend (a selector in the stand's top bar; `tests/unit/dev-backend.test.js`) for checking the error, loading and empty states.
-- **Remaining:** HMR instead of a full reload.
+- **Done:** HMR instead of a full reload: a change under `src/` re-imports `app.js` and restarts the editor in the same page (`dev/index.html`, `tests/integration/dev-stand-hmr.browser.test.js`); styles are applied without a restart. Listeners that the old instance put on `document`/`window` stay until the next page reload — acceptable for development.
 
-**Done when:** `make ui-dev` shows the editor and the Chains/GPO pages without FreeIPA, and saving a file updates the page.
+**Done when:** `make ui-dev` shows the editor without FreeIPA with the states `error`, `slow` and `empty`, saving a file updates the page without a reload, and `chain.js`/`gpo.js` have tests that need no FreeIPA.
 
 ### Stage 6. Code structure and styles (5-8 days, iteratively)
 
@@ -128,7 +128,7 @@ Stages 1-5: **11-18 days**, 1-6: 16-26 days. Stages 1 and 2 are safe and pay off
 
 - **Build in the RPM.** No network in hasher → commit the result and check that it is up to date in CI (stage 4).
 - **The built and source code diverge** in review → `git diff --exit-code` after the build.
-- **Regressions when splitting files** → snapshots and the existing 338 tests before refactoring starts.
+- **Regressions when splitting files** → snapshots and the existing 339 tests before refactoring starts.
 - **Formatting clutters the history** → a separate commit + `.git-blame-ignore-revs`.
 - **Compatibility with the FreeIPA UI:** `chain.js`/`gpo.js` depend on the version of `freeipa/*`; the stand's shims must be checked against the real modules (the live menu test already exists).
 
@@ -159,7 +159,7 @@ Cost: the job depends on three external sources being available, takes longer, a
 4. Where to store and how to update the image (the Forgejo registry; a rebuild trigger on changes to `package-lock.json`, the `Containerfile` or the `admix` version in the spec).
 5. A fully standalone variant: an image built from `.devcontainer/Containerfile` without the FreeIPA part, plus `chromium` and the Playwright browser; confirm that it reproduces the result of the dev container (309 tests, no skips).
 
-**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (338 tests, zero skips), and the job takes no longer than now.
+**Done when:** the `frontend` job passes on a runner without internet access (check: run with the network disabled), `assert-no-skips.mjs` is green (339 tests, zero skips), and the job takes no longer than now.
 
 ## 5. Relation to the freeipa-webui migration
 

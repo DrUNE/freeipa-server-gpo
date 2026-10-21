@@ -18,8 +18,8 @@ make ui-dev           # http://127.0.0.1:8765/ipa/ui/
 
 Port and host: `npx --prefix frontend vite --port 9000 --host 0.0.0.0` (from the repository root: `cd frontend && npx vite ...`).
 
-URL parameters: `?gpo=Name&lang=ru&scenario=error`. Scenarios of the mock server (also the **Scenario** selector in the top bar): `normal`; `error` — every `gpo_editor_*` call fails like an unavailable server (`ServerUnavailable`); `slow` — every answer is delayed by 1.5 s (loading states); `empty` — the lists (items, files, children, policies, preference documents, script entries) come back empty. The **Reset fixtures** button resets the
-state of the mock backend. No build is needed: edit the files in `frontend/src/`.
+URL parameters: `?gpo=Name&lang=ru&scenario=error`. Scenarios of the mock server (also the **Scenario** selector in the top bar): `normal`; `error` — every `gpo_editor_*` call fails like an unavailable server (`ServerUnavailable`); `slow` — every answer is delayed by 1.5 s (loading states); `empty` — the lists (items, files, children, policies, preference documents, script entries) come back empty. A change in `src/` restarts the editor in the same page (HMR: the browser tab is not reloaded, styles apply without a restart). The **Reset fixtures** button resets the
+state of the mock backend. A change in `src/` restarts the editor in the same page (HMR: the tab is not reloaded, styles apply without a restart). No build is needed: edit the files in `frontend/src/`.
 
 ## UI tests
 

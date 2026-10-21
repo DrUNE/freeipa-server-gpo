@@ -85,8 +85,18 @@ import * as app from '@gpui/app.js';
         fetch('/__dev/reset', { method: 'POST' }).then(navigate);
     });
 
-    window.gpui = app;
-    app.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
+    function start(module) {
+        window.gpui = module;
+        module.init({ containerId: 'gp__container', policyName: gpoName, path: '/' });
+    }
+    start(app);
+    // Hot update: a change in any module under src/ re-imports app.js (Vite bubbles it up to this boundary) and starts
+    // the editor again in the same page; CSS changes are applied without even that.
+    if (import.meta.hot) {
+        import.meta.hot.accept('@gpui/app.js', function(next) {
+            if (next) start(next);
+        });
+    }
 })();
 </script>
 </body>
