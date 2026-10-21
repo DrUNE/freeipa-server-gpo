@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import vm from 'node:vm';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { html } from './helpers/admx-page-html.js';
 let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
@@ -20,20 +20,14 @@ const root = path.resolve(import.meta.dirname, '../../.test-root');
  * ownership of the policy dialog, in a real Chromium (Playwright).
  *
  * Fixture: the page HTML (real app pieces over a fake util/API with ADMX categories and policies such as "Zulu root
- * policy" and "Mixed category", requests logged in window.requests) is not defined here but cut out of
- * admx-navigation.browser.test.js and evaluated with node:vm, so both files share one fixture and this one does not
+ * policy" and "Mixed category", requests logged in window.requests) is not defined here but provided by
+ * helpers/admx-page-html.js (cut out of admx-navigation.browser.test.js), so both files share one fixture and this one does not
  * register that file's tests. Its helpers selectAdmin(), category(), roots and state are used from page.evaluate.
  *
  * Helpers: fixture() serves the page and .test-root, runs a scenario, then requires no page errors and no 'update'
  * request; catalog/currentRow/currentTree are locators of the list, its active row and the tree's single Tab stop;
  * focused() tells whether a locator holds document focus.
  */
-// Reuse the actual-app mock fixture without registering its historical tests.
-const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
-const start = source.indexOf('const html = `');
-const end = source.indexOf('\nconst browserOptions', start);
-assert.ok(start >= 0 && end > start);
-const html = vm.runInNewContext(source.slice(start, end) + '\nhtml;');
 
 // Serves the shared page and .test-root, runs `run(page)`, then fails on page errors or a write ('update') request.
 async function fixture(run) {

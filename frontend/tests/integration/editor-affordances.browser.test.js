@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import vm from 'node:vm';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { html } from './helpers/admx-page-html.js';
 
 /*
  * Browser checks for small editor affordances: the category/All Policies search
@@ -33,11 +33,6 @@ try {
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const root = path.resolve(import.meta.dirname, '../../.test-root');
-const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
-const start = source.indexOf('const html = `');
-const end = source.indexOf('\nconst browserOptions', start);
-assert.ok(start >= 0 && end > start);
-const html = vm.runInNewContext(source.slice(start, end) + '\nhtml;');
 
 // Serves the shared admx-navigation page + .test-root, runs `run(page)`, then checks for page errors and read-only RPC traffic.
 async function fixture(run, reducedMotion = 'no-preference') {

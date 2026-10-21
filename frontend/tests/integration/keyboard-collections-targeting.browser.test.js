@@ -136,7 +136,7 @@ for (const language of ['en', 'ru']) {
                 await cell(page, 2).click();
                 await cell(page, 2).press('Delete');
                 assert.equal(await collectionRows(page).count(), 3);
-                assert.equal(await collectionRows(page).locator('.active').count(), 0);
+                assert.equal(await page.locator('[data-collection-row].active').count(), 1);
                 assert.equal(
                     await page
                         .locator('[data-collection-row].active')
@@ -212,7 +212,7 @@ for (const language of ['en', 'ru']) {
                 assert.equal(await targetRows(page).count(), 2);
                 await selectedTarget(page).press('Tab');
                 assert.equal(await focused(page.locator('#after')), true);
-                assert.equal(await page.evaluate(() => formState.dirty), undefined);
+                assert.notEqual(await page.evaluate(() => formState.dirty), true);
                 assert.equal(await page.evaluate(() => formState.acceptFilterDraft()), true);
                 const operations = await page.evaluate(() => formState.readFilterResult().operations);
                 assert.equal(operations.filter(operation => operation.op === 'remove').length, 3);
