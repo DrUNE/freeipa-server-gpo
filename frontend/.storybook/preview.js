@@ -17,6 +17,7 @@ function addGlobalSheets() {
 }
 
 export default {
+    tags: ['autodocs'],
     decorators: [
         (story, context) => {
             addGlobalSheets();

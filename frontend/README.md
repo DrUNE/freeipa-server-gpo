@@ -68,7 +68,7 @@ each source file of the sheet is named in a comment before its rules (`/* src/st
 
 Storybook gets server data from the fake `freeipa/rpc` (`.storybook/shims/rpc.js`), which calls the mock server of the dev stand in the page; `parameters: { rpc: { scenario } }` of a story or the Scenario switch of
 the toolbar picks its behaviour (`normal`, `error`, `slow`, `empty`). Every story is also an accessibility check (`@storybook/addon-a11y`,
-`a11y.test: 'error'`: a violation fails the story test). See `src/util/API.stories.js` and the Foundations/Tokens story.
+`a11y.test: 'error'`: a violation fails the story test). See `src/util/API.stories.js` and the Foundations/Tokens story. Every component has a Docs page (`@storybook/addon-docs`, `tags: ['autodocs']`): its description is `parameters.docs.description.component` of the story file, the same text as the comment at the top of the component.
 
 Inside a component: state in local variables (a `view`/`ui` object in big templates), one `render` function that writes the state
 into the DOM (also called once at creation), handlers that change the state and call `render`. In the dev stand and in Storybook every

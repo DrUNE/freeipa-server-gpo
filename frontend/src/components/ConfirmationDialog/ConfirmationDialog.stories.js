@@ -2,6 +2,14 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { open } from '@gpui/components/ConfirmationDialog/ConfirmationDialog';
 
 export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A yes/no question over a host element (an `alertdialog`). Focus goes to the safe answer, Escape answers no, Tab cycles between the two buttons and focus returns to where it was.'
+            }
+        }
+    },
     title: 'Dialogs/ConfirmationDialog',
     render: args => {
         const host = document.createElement('div');

@@ -17,7 +17,18 @@ function render({ scope = 'computer', event }) {
     );
 }
 
-export default { title: 'Screens/Scripts', render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The Scripts screen: the overview of a scope, the page of an event with its selection rules and files, on the data of the fake server.'
+            }
+        }
+    },
+    title: 'Screens/Scripts',
+    render
+};
 
 export const Overview = {
     play: async ({ canvasElement }) => {

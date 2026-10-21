@@ -22,6 +22,14 @@ function mount(toolbar) {
 }
 
 export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A group of action buttons (Add / Edit / Remove / Move, Upload / Download). Buttons are enabled and disabled with `setToolbarItem`, which keeps `disabled` and the global `.active` look together.'
+            }
+        }
+    },
     title: 'Primitives/Toolbar',
     args: { onAdd: fn(), onEdit: fn(), onRemove: fn() },
     render: args => mount(createToolbar({ label: 'Script entries', items: items(args) }))

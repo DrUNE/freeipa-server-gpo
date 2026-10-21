@@ -70,7 +70,19 @@ function render({ failLazy, onSelect }) {
     return host;
 }
 
-export default { title: 'Primitives/TreeView', args: { onSelect: fn() }, render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The policy navigation tree (a WAI-ARIA tree): folders expand, rows are selected, lazy folders load their children on first opening. Up, Down, Home and End move over the visible rows; Right and Left open, close and go to the parent.'
+            }
+        }
+    },
+    title: 'Primitives/TreeView',
+    args: { onSelect: fn() },
+    render
+};
 
 export const Default = {
     play: async ({ canvasElement }) => {

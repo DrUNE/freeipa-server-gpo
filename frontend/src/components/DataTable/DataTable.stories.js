@@ -44,7 +44,19 @@ function render({ rows = files, multiple = false, onActivate }) {
     return mount(table);
 }
 
-export default { title: 'Primitives/DataTable', args: { onActivate: fn() }, render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A table of records with a selection: markup, selection marks (`aria-selected`, `data-table-row`) and an empty row. What a click or a key does stays with the screen; keyboard movement is `list-navigation.js`. Used by the script entries, the files of an event and the catalog tables.'
+            }
+        }
+    },
+    title: 'Primitives/DataTable',
+    args: { onActivate: fn() },
+    render
+};
 
 export const Default = {
     play: async ({ canvasElement }) => {

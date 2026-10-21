@@ -23,6 +23,14 @@ function render({ onItemClick, help, categoryPath, hideHeading }) {
 }
 
 export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The catalog of a category: its folders and policies as a filterable listbox, with an optional help block.'
+            }
+        }
+    },
     title: 'Screens/Catalog',
     args: { onItemClick: fn(), categoryPath: 'Computer configuration / Administrative templates' },
     render

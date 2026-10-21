@@ -18,6 +18,14 @@ function mount(element) {
 const t = key => translations.t('editorStatus.' + key);
 
 export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'Status notices of the editor: an error with optional actions, a pending-publication notice, an "unsupported" notice and a block of technical diagnostics.'
+            }
+        }
+    },
     title: 'Editor/EditorStatus',
     args: { onRefresh: fn(), onReconcile: fn() }
 };

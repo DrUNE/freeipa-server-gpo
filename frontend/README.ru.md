@@ -69,7 +69,7 @@ Source maps: стенд и Storybook отдают их для скриптов (
 Данные сервера Storybook берёт из поддельного `freeipa/rpc` (`.storybook/shims/rpc.js`): он вызывает mock-сервер стенда прямо на странице;
 `parameters: { rpc: { scenario } }` истории или переключатель Scenario на панели задаёт его поведение (`normal`, `error`, `slow`, `empty`).
 Каждая история — ещё и проверка доступности (`@storybook/addon-a11y`, `a11y.test: 'error'`: нарушение роняет тест истории). Пример —
-`src/util/API.stories.js` и история Foundations/Tokens.
+`src/util/API.stories.js` и история Foundations/Tokens. У каждого компонента есть страница Docs (`@storybook/addon-docs`, `tags: ['autodocs']`): её описание — `parameters.docs.description.component` файла историй, тот же текст, что и комментарий в начале компонента.
 
 Внутри компонента: состояние в локальных переменных (объект `view`/`ui` в крупных шаблонах), одна функция `render`, которая пишет
 состояние в DOM (её же вызывают один раз при создании), обработчики меняют состояние и вызывают `render`. В стенде и в Storybook

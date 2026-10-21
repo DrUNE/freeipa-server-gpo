@@ -31,6 +31,14 @@ function render({ parameter, value, editable, onChange }) {
 }
 
 export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The editor of a list or key/value list parameter: a summary with an Edit button, and a dialog with a table with inline editing, Add and Remove, search, validation per row and reordering. OK is enabled only for a valid, changed collection; cancelling a changed one asks first.'
+            }
+        }
+    },
     title: 'Primitives/CollectionEditor',
     args: {
         parameter: list,

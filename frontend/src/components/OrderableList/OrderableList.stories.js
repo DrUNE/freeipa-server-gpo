@@ -15,7 +15,19 @@ function render({ items, disabled, onReorder }) {
     return host;
 }
 
-export default { title: 'Primitives/OrderableList', args: { items, disabled: false, onReorder: fn() }, render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A list whose order the user changes three ways with the same result: the Up and Down buttons of an item, Ctrl+Up/Down on its handle, and dragging the handle onto another item. The moved item keeps the focus and every move is announced.'
+            }
+        }
+    },
+    title: 'Primitives/OrderableList',
+    args: { items, disabled: false, onReorder: fn() },
+    render
+};
 
 const order = canvas =>
     within(canvas.getByRole('list', { name: 'Scripts' }))

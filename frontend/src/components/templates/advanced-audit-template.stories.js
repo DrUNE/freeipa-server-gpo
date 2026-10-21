@@ -15,7 +15,18 @@ function render() {
     );
 }
 
-export default { title: 'Screens/Advanced Audit', render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The Advanced Audit screen: the rows of an audit family with filtering, on the data of the fake server.'
+            }
+        }
+    },
+    title: 'Screens/Advanced Audit',
+    render
+};
 
 export const Rows = {
     play: async ({ canvasElement }) => {
