@@ -5,8 +5,19 @@ import * as ruModule from '@gpui/locales/ru';
 import * as translations from '@gpui/locales/translations';
 import * as model from '@gpui/components/templates/all-policies/model';
 
+/*
+ * Row projection and search for the All Policies view (components/templates/all-policies/model):
+ * admxRows, securityRows, auditRows, scriptRows and preferenceRows turn the backend payloads into
+ * flat searchable rows (id, title, path, target for the editor); matches() filters and sortRows()
+ * orders them.
+ *
+ * Pure data tests, no DOM. Inputs are hand-made DTOs; freeze() deep-freezes them so that any
+ * mutation by the model throws, and plain() snapshots a DTO to compare before/after. Language is
+ * switched with translations.setLanguage; locales gives the expected localized labels.
+ */
 const locales = { en: enModule, ru: ruModule };
 const plain = value => JSON.parse(JSON.stringify(value));
+// Deep-freezes a DTO so an accidental write by the code under test fails loudly.
 function freeze(value) {
     if (value && typeof value === 'object') {
         Object.values(value).forEach(freeze);
@@ -15,6 +26,7 @@ function freeze(value) {
     return value;
 }
 
+// The Administrative Templates index is complete (2001 rows incl. an unconfigured deep policy), independent per scope, and does not alias or mutate the catalog; guards against paging/dedup by label.
 test('AT index rows include every deep and unconfigured policy in both scopes without mutating the catalog', () => {
     translations.setLanguage('en');
     const result = freeze({
@@ -57,6 +69,7 @@ test('AT index rows include every deep and unconfigured policy in both scopes wi
     assert.deepEqual(result, before);
 });
 
+// Security rows are qualified by namespace (same policy id twice stays two rows), collections open their own editor, orphan policies are still listed, and the index exists for Computer only.
 test('Security index includes qualified duplicates, collections, orphan policies and category ancestry only for Computer', () => {
     translations.setLanguage('en');
     const element = { id: 'enabled', value_type: 'boolean' };
@@ -139,6 +152,7 @@ test('Security index includes qualified duplicates, collections, orphan policies
     assert.deepEqual(response, before);
 });
 
+// A category parent cycle in malformed data must not hang the path builder.
 test('Security path projection terminates for cyclic categories and still includes their policy', () => {
     const response = {
         security_catalog: {
@@ -163,6 +177,7 @@ test('Security path projection terminates for cyclic categories and still includ
     assert.equal(rows[0].path.length, 3);
 });
 
+// Every audit row family (system/user subcategories, options, SACLs, preserved rows) gets a unique, language-independent id and a read-only flag where it cannot be edited; the same GUID in another brace/case form shares one identity.
 test('Advanced Audit rows include all configured, unconfigured and preserved families with stable editor identities in EN/RU', () => {
     const firstGuid = '0cce9210-69ae-11d9-bed3-505054503030';
     const secondGuid = '0cce9211-69ae-11d9-bed3-505054503030';
@@ -250,6 +265,7 @@ test('Advanced Audit rows include all configured, unconfigured and preserved fam
     assert.deepEqual(response, before);
 });
 
+// Scripts rows exist only for the events valid in a scope and reuse the localized system-settings labels.
 test('Scripts index has exactly the applicable events per scope and reuses localized event labels', () => {
     for (const language of ['en', 'ru']) {
         translations.setLanguage(language);
@@ -278,6 +294,7 @@ test('Scripts index has exactly the applicable events per scope and reuses local
     assert.notEqual(model.scriptRows('computer')[0].id, model.scriptRows('user')[0].id);
 });
 
+// Preference rows keep scope, category label and read-only state, and carry a copy of the document rather than the source object.
 test('Optional Preferences rows retain scoped document identities, category labels and read-only metadata without sharing mutable DTOs', () => {
     const documents = freeze([
         {
@@ -323,6 +340,7 @@ test('Optional Preferences rows retain scoped document identities, category labe
     assert.deepEqual(documents, before);
 });
 
+// Matching ignores case, Unicode normalization form and surrounding spaces, covers title and path in both languages, and an empty query returns all rows.
 test('Search matches normalized displayed names and paths case-insensitively in both languages and clearing restores every row', () => {
     const rows = freeze([
         { id: 'en', title: 'Éclair policy', path: ['Administrative Templates', 'Deep category'] },
@@ -341,6 +359,7 @@ test('Search matches normalized displayed names and paths case-insensitively in 
     assert.deepEqual(rows, before);
 });
 
+// Sorting leaves the input untouched and orders by the UI language collation, then path, then id, so equal titles give a stable order.
 test('Search sorting copies the source and uses UI locale with path and identity tie-breakers', () => {
     translations.setLanguage('en');
     const rows = freeze([
@@ -367,6 +386,7 @@ test('Search sorting copies the source and uses UI locale with path and identity
     assert.deepEqual([...model.sortRows(mixed).map(row => row.title)], ['Альфа', 'Яблоко', 'Apple', 'Zulu']);
 });
 
+// A response missing its required parts is an error with the localized message, not an empty index that looks like 'no policies'; empty but well-formed input is fine.
 test('Malformed source payloads are errors rather than empty successful indexes', () => {
     for (const language of ['en', 'ru']) {
         translations.setLanguage(language);

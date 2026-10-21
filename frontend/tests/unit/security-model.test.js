@@ -3,6 +3,13 @@ import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
+/*
+ * Security templates: the policy model, summaries, drafts and validation behind the Security tree.
+ * Modules under components/templates are loaded with loadModule() and the element-creator and
+ * translations dependencies mocked (t returns the key). response() is a small fake catalog with
+ * two categories of the same id in different namespaces and one collection policy. The last test
+ * needs the real libadmix catalog and is skipped without SDMX (container-only).
+ */
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 const model = await load('security/model.js');
 const values = await load('security/value-editor.js', {
@@ -18,6 +25,7 @@ const workbench = await load('security/workbench.js', {
     '../../../util/element-creator': { createElement: undefined },
     '../../../locales/translations': { t: key => key }
 });
+// A defined policy with no values shows a dash, while explicit false and empty-list values are real settings and must be summarized.
 test('defined policies without settings use a dash and preserve explicit empty or false values', async () => {
     const policy = { definition: { elements: [] }, state: { state: 'defined', elements: {} } };
     assert.equal(workbench.policySummary(policy), '—');
@@ -29,6 +37,7 @@ test('defined policies without settings use a dash and preserve explicit empty o
     policy.state.elements.members = { state: 'set', value: { kind: 'principal_list', value: [] } };
     assert.equal(workbench.policySummary(policy), 'Disabled; Empty list');
 });
+// Fake backend response: two same-id categories to merge, two scalar policies, one collection policy.
 function response() {
     const ns = 'urn:altlinux:sdmx:policies:';
     return {
@@ -66,6 +75,7 @@ function response() {
         security_snapshot: { policies: [] }
     };
 }
+// Same-id categories merge and sort; scalar policies live only in the category table (hidden in the tree) and a collection policy becomes its own folder without children.
 test('merged sorted categories retain scalar policies only in category table and collapse collection folder', async () => {
     const nodes = model.navigationNodes(response());
     assert.equal(nodes.length, 2);
@@ -77,6 +87,7 @@ test('merged sorted categories retain scalar policies only in category table and
     assert.equal(nodes[1].children[1].title, 'Zulu');
     assert.ok(nodes[1].children.every(node => node.showInTree === false));
 });
+// A collection edit sends only deleted and added/changed keys, not the unchanged rows.
 test('collection edits project only changed and deleted row keys', async () => {
     const collection = { unique_by: 'key' };
     const row = value => ({ key: { state: 'set', value: { kind: 'string', value } } });
@@ -87,6 +98,7 @@ test('collection edits project only changed and deleted row keys', async () => {
     assert.equal(actions[1].action, 'upsert');
     assert.equal(actions[1].key.value, 'c');
 });
+// Restricted Groups needs Members or Member of, but an explicitly configured empty Members list counts as set.
 test('Restricted Groups requires an explicit relationship and allows configured empty members', async () => {
     const element = {
         id: 'groups',
@@ -108,6 +120,7 @@ test('Restricted Groups requires an explicit relationship and allows configured 
     row.members = { state: 'set', value: { kind: 'principal_list', value: [] } };
     assert.equal(template._test.validateDraft(policy, draft), null);
 });
+// Defining a policy from the undefined state sends the define transition and keeps an explicit false instead of dropping it as empty.
 test('undefined policy transition and explicit empty values remain distinct', async () => {
     const built = model.buildSecurityModel(response());
     const policy = [...built.policies.values()][0];
@@ -120,6 +133,7 @@ test('undefined policy transition and explicit empty values remain distinct', as
     assert.equal(request.policies[0].transition, 'define');
     assert.equal(request.policies[0].elements[0].value.value, false);
 });
+// Required identity-like values reject blank strings and an enum needs an explicit choice.
 test('required service identity and descriptor cannot be blank, and enum selection is explicit', async () => {
     for (const kind of ['service_name', 'sddl', 'principal', 'registry_key', 'file_path']) {
         assert.match(values.validationError({ value_type: kind }, { kind, value: '  ' }), /required/);
@@ -129,6 +143,7 @@ test('required service identity and descriptor cannot be blank, and enum selecti
         /Select/
     );
 });
+// A configured collection must hold at least one item.
 test('empty configured collection requires an item', async () => {
     const policy = {
         definition: { elements: [{ id: 'rows', value_type: 'collection', unique_by: 'key', fields: [] }] }
@@ -136,6 +151,7 @@ test('empty configured collection requires an item', async () => {
     const draft = { defined: true, elements: { rows: { state: 'set', value: { kind: 'collection', value: [] } } } };
     assert.match(template._test.validateDraft(policy, draft), /at least one item/);
 });
+// Tree expander logic: a folder with only hidden scalar children has none, lazy and item folders do.
 test('scalar-only folders have no empty tree expander but lazy and item folders do', async () => {
     const tree = await load('../tree-view/tree-view-list.js', {
         '../../util/element-creator': { createElement: undefined }
@@ -144,6 +160,7 @@ test('scalar-only folders have no empty tree expander but lazy and item folders 
     assert.equal(tree.hasVisibleChildren({ lazy: true, children: [] }), true);
     assert.equal(tree.hasVisibleChildren({ children: [{ type: 'folder' }] }), true);
 });
+// Advanced Audit exposes catalog rows and opaque global SACL rows as editable (no semantic ACL editor) and keeps the machine name from the server, not the localized label.
 test('Advanced Audit supports all catalog rows and opaque global SACL editing without relabeling machine metadata', async () => {
     const audit = await load('advanced-audit/model.js', {
         '../../../locales/translations': {
@@ -166,6 +183,8 @@ test('Advanced Audit supports all catalog rows and opaque global SACL editing wi
     assert.equal(option.display_name, 'Localized audit option');
     assert.equal(option.machine_name, 'DC1');
 });
+// Failure isolation: when the Advanced Audit RPC fails, the Security tree still shows the full real catalog
+// (181 scalar + 4 collection policies = 185), sorted; once the RPC works the audit folder appears.
 test(
     'installed 185-policy catalog remains complete and sorted when Advanced Audit RPC fails',
     { skip: !fs.existsSync('/usr/share/xml/sdmx/1.0/sdmx-1.0.xsd') },

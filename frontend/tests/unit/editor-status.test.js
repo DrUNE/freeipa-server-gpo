@@ -9,6 +9,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '../../src');
 
+/*
+ * Covers the user-facing error text of EditorStatus and the completeness of the Security locale keys.
+ * No DOM or fake API: the real en/ru locales and the translations module are used directly, and the language is
+ * switched with translations.setLanguage. The second test also reads the security template sources from src/.
+ */
+
+// A server error is shown as a category message plus, when the server diagnostic is a known one, a translated detail;
+// unknown diagnostics must not leak untranslated server text into the UI.
 test('error messages use the selected language and translate known server details', () => {
     for (const [language, locale] of [
         ['en', en],
@@ -45,6 +53,8 @@ test('error messages use the selected language and translate known server detail
     }
 });
 
+// Static check: both locales have the same key tree, and every tr('key', ...) call in the security templates resolves
+// to a real translation (a missing key makes t() return the key itself) in en and ru.
 test('Security and editor-status locale keys are complete in both languages', () => {
     function paths(value, prefix = '') {
         return Object.entries(value).flatMap(([key, child]) =>

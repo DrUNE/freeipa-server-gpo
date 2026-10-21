@@ -41,7 +41,18 @@ function render({ title = 'Edit setting', width, fill, lines = 3, error = '', co
 const part = (canvasElement, name) => canvasElement.querySelector(`[data-dialog-part="${name}"]`);
 const style = element => getComputedStyle(element);
 
-export default { title: 'Dialogs/Dialog chrome', render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    "The chrome of the editor's modal dialogs: the backdrop, the window, the header with the close button, the body with an error region and the footer. The behaviour (focus, keyboard, busy state, the discard question) is `editor-dialog.js`."
+            }
+        }
+    },
+    title: 'Dialogs/Dialog chrome',
+    render
+};
 
 export const Default = {
     play: async ({ canvasElement }) => {

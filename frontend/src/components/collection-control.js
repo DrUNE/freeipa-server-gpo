@@ -4,6 +4,15 @@ import * as collections from '@gpui/util/collection-value';
 import { t } from '@gpui/locales/translations';
 import { open } from '@gpui/components/collection-dialog';
 
+/*
+ * The field of a list or key/value parameter in a form: a summary ("Items: 3", the first values) and an Edit button that
+ * opens the collection dialog (`collection-dialog.js`, see CollectionEditor/).
+ *
+ * `createControl(parameter, value, editable)` returns `{ element, button, read, hasOpenDialog, hasUnsavedChanges,
+ * setEditable, destroy }`. The element fires `change` after the dialog is accepted; `read()` gives a copy of the current
+ * value; the value is held here, the dialog works on a copy and hands it back only on OK.
+ */
+
 function tr(key, values) {
     let text = t('collections.' + key);
     Object.keys(values || {}).forEach(function (name) {

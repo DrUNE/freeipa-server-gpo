@@ -4,6 +4,16 @@ import * as backend from '../../dev/backend.mjs';
 import { contracts, differences } from './helpers/contract.js';
 import { loadModule } from './helpers/load-module.js';
 
+/*
+ * Frontend side of the server contract: tests/contracts/gpo_editor/*.json hold one reference answer per gpo_editor_*
+ * command (the Python side checks the real commands against the same files).
+ * Helpers: contracts() lists the reference files; differences(actual, reference) compares JSON shapes only (field
+ * presence and types, not values). Two checks per contract: the dev stand mock (dev/backend.mjs, in-process) answers
+ * with that shape, and util/API.js, run against a fake `freeipa/rpc` that replays the reference answer, hands it to the
+ * editor unchanged. CALLS maps each contract to the API function that sends it.
+ */
+
+// The comparator itself is tested because every other check here trusts it; the same cases exist in the Python test.
 test('the shape comparison reports missing, extra and mistyped fields (the same cases as in the Python test)', () => {
     const reference = { a: 1, b: { c: 'x' }, d: [{ e: true }], any: null };
     assert.deepEqual(differences({ a: 2, b: { c: 'y' }, d: [{ e: false }, 5], any: [1] }, reference), []);
@@ -16,6 +26,7 @@ test('the shape comparison reports missing, extra and mistyped fields (the same 
     assert.deepEqual(differences({ a: 1, b: { c: '' }, d: [], any: null }, reference), []);
 });
 
+// A new command needs both a reference answer and an API function, otherwise it would go unchecked.
 test('every reference answer has an API call here, and every call a reference answer', () => {
     assert.deepEqual(
         contracts().map(contract => contract.name),
@@ -25,6 +36,7 @@ test('every reference answer has an API call here, and every call a reference an
 
 beforeEach(() => backend.reset());
 
+// Keeps the stand mock (and thus Storybook) from drifting away from the real server answers.
 for (const contract of contracts()) {
     test(`the mock server of the dev stand answers ${contract.method} with the contract shape`, () => {
         const reply = backend.dispatch({ method: contract.method, params: [contract.args, contract.options], id: 1 });
@@ -66,6 +78,7 @@ const CALLS = {
     scripts_show: api => api.scriptsShow('computer', 'startup')
 };
 
+// Each API function must send the right editor_* method and return the server answer without reshaping it.
 for (const contract of contracts()) {
     test(`util/API.js hands the ${contract.method} answer to the editor intact`, async () => {
         const sent = [];

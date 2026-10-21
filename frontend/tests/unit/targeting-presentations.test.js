@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as presentation from '@gpui/components/templates/preference/targeting-presentations';
 
+// Unit tests for the targeting presentation registry (labels, enum choices,
+// numeric limits, notes) used by the targeting form renderer. Pure data
+// lookups, no DOM and no fake API: everything is read straight from the module.
+// Helpers: plain() strips frozen/proxy wrappers for deepEqual, keys() lists the
+// native tokens of a choice list (the labels are localized, the tokens are not).
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -9,6 +14,8 @@ function keys(kind, id) {
     return plain(presentation.choices(kind, id, 'en')).map(value => value.key);
 }
 
+// Every visible operand per supported filter kind; this is the contract the
+// label-coverage test iterates, so a new kind or operand must be added here.
 const operandIds = {
     battery: [],
     computer: ['type', 'name'],
@@ -67,6 +74,8 @@ const operandIds = {
     collection: ['name']
 };
 
+// Missing translations would silently fall back to raw metadata names in the UI,
+// so each kind/operand must have an explicit en and ru label (ru must contain Cyrillic).
 test('every one of the 29 supported kinds and its visible operands has explicit English and Russian labels', () => {
     assert.equal(presentation.supportedKinds.length, 29);
     assert.deepEqual(plain(presentation.supportedKinds).sort(), Object.keys(operandIds).sort());
@@ -84,6 +93,8 @@ test('every one of the 29 supported kinds and its visible operands has explicit 
     }
 });
 
+// Locale normalization (ru-RU, ru_RU, RU) and the fallback chain: explicit label,
+// then server metadata, then the raw id. Same field id can mean different things per kind.
 test('locale matching, kind-specific meanings, unknown fields and metadata fallback remain predictable', () => {
     assert.equal(presentation.kindLabel('date', '', 'ru-RU'), 'Сопоставление дат');
     assert.equal(presentation.kindLabel('date', '', 'ru_RU'), 'Сопоставление дат');
@@ -103,6 +114,8 @@ test('locale matching, kind-specific meanings, unknown fields and metadata fallb
     assert.equal(presentation.fieldLabel('__proto__', 'toString', 'Unknown', 'en'), 'Unknown');
 });
 
+// UI labels are localized but the stored keys must stay the exact native tokens;
+// free-form language locale is supplied by the renderer, so choices() returns null there.
 test('computer and date choices are deliberate localized controls over exact native tokens', () => {
     assert.deepEqual(keys('computer', 'filter.type'), ['NETBIOS', 'DNS']);
     assert.deepEqual(keys('date', 'filter.period'), ['WEEKLY', 'MONTHLY', 'YEARLY']);
@@ -117,6 +130,8 @@ test('computer and date choices are deliberate localized controls over exact nat
     assert.equal(presentation.choices('language', 'filter.displayName', 'ru'), null);
 });
 
+// Pins the enum spellings written to the policy XML (odd casing like 'Vista', 'PPPoE'
+// included); changing one would break round-tripping of existing policies.
 test('all conditional matcher enum vocabularies retain the active native spellings', () => {
     assert.deepEqual(keys('file', 'type'), ['EXISTS', 'VERSION']);
     assert.deepEqual(keys('msi', 'type'), ['PRODUCT', 'PATCH', 'FILECOMPONENT']);
@@ -175,6 +190,8 @@ test('all conditional matcher enum vocabularies retain the active native spellin
     assert.equal(presentation.choices('proc_mode', 'filter.syncFore', 'en'), null);
 });
 
+// The OS lists only offer legacy tokens that native code accepts, with no invented
+// current-platform entries; every option needs a non-empty label.
 test('OS selectors do not invent current-platform tokens and preserve every active legacy token', () => {
     assert.deepEqual(keys('os', 'class'), ['NE', '9X', 'NT']);
     assert.deepEqual(keys('os', 'version'), [
@@ -243,6 +260,8 @@ test('OS selectors do not invent current-platform tokens and preserve every acti
     }
 });
 
+// Numeric inputs mirror the native field widths (e.g. 16-bit MHz/MB, 8-bit disk space)
+// and must not claim unit conversions the native side does not perform.
 test('numeric adapters reflect native widths, not speculative unit conversions', () => {
     assert.deepEqual(plain(presentation.numeric('cpu', 'filter.speedMHz')), { min: 0, max: 65535, step: 1 });
     assert.deepEqual(plain(presentation.numeric('ram', 'filter.totalMB')), { min: 0, max: 65535, step: 1 });
@@ -257,6 +276,8 @@ test('numeric adapters reflect native widths, not speculative unit conversions',
     assert.doesNotMatch(presentation.note('disk', 'en'), /percent|kilobyte|megabyte/i);
 });
 
+// Which fields get a textarea, and the explanatory notes for presence-only filters
+// (battery, pcmcia) that have no operands to show.
 test('query and multiline controls are explicit and notes explain presence-only filters', () => {
     for (const [kind, id] of [
         ['wmi', 'query'],
@@ -283,6 +304,8 @@ test('query and multiline controls are explicit and notes explain presence-only 
     assert.equal(presentation.note('__proto__', 'ru'), '');
 });
 
+// The registry is shared module state: callers get copies, so mutating a returned
+// choice list or range must not leak into later lookups.
 test('returned choices and constraints cannot mutate the shared presentation registry', () => {
     const choices = presentation.choices('computer', 'type', 'en');
     choices[0].key = 'UNSUPPORTED';

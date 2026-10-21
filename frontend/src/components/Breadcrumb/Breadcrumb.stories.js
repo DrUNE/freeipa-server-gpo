@@ -15,7 +15,19 @@ function render({ segments, onNavigate }) {
     return host;
 }
 
-export default { title: 'Primitives/Breadcrumb', args: { segments, onNavigate: fn() }, render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The path to the open node: every ancestor is a button, the last segment is the current page. The buttons are one Tab stop; Left, Right, Home and End move between them.'
+            }
+        }
+    },
+    title: 'Primitives/Breadcrumb',
+    args: { segments, onNavigate: fn() },
+    render
+};
 
 export const Default = {
     play: async ({ canvasElement, args }) => {

@@ -14,6 +14,22 @@ try {
     /* Optional only in environments without the browser dependencies. */
 }
 
+/*
+ * Keyboard and focus behaviour of the catalog lists (Preferences, Security collections, Scripts,
+ * SYSVOL file list, Advanced Audit, All Policies): roving tabindex, arrows/Home/End/PageUp/PageDown,
+ * Enter/F2/double-click activation, Delete with previous/next/empty focus targets, readonly mode,
+ * and Tab trapping in modals.
+ * Fixture: a tiny HTTP server serves an inline page, require.js and .test-root (AMD build of src/).
+ * util/API is replaced in-page by a fake that keeps preference rows, security rows, script views and
+ * assets in memory, logs every mutating call in window.calls and can be told to reject the next
+ * delete (failDelete), a given asset (failAsset) or to hold a script entry deletion open
+ * (holdEntryDeletion / resolveEntryDeletion). Write methods that must never run (updates) push to
+ * calls and throw, so "calls.length === 0" asserts "no unsafe write". window.render(kind, language,
+ * editable) mounts the real template for one catalog; window.confirm is stubbed (allowConfirm).
+ * Helpers: withPage() boots the server/browser and fails on any page error; selectedAndFocused()
+ * asserts exactly one active row that is also focused, aria-selected and the only tabindex=0;
+ * deleteConfirmation() answers the alert dialog; assertTabTrap() checks Tab/Shift+Tab wrap.
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const browserOptions = {
     skip:
@@ -104,6 +120,7 @@ require(['components/header/header','components/templates/preference/preferences
  render('preferences').then(()=>window.ready=true);
 });</script></body></html>`;
 
+// Starts a throwaway server and Chromium, runs the scenario, then asserts no uncaught page errors occurred.
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -149,6 +166,8 @@ async function withPage(run) {
     }
 }
 
+// The roving-tabindex invariant: the single active row is focused, aria-selected=true, tabIndex 0,
+// and no other row is tabbable (so Tab enters and leaves the list in one stop).
 async function selectedAndFocused(rows, identity, attribute) {
     const actual = await rows.evaluateAll(
         (elements, attribute) =>
@@ -166,6 +185,7 @@ async function selectedAndFocused(rows, identity, attribute) {
     assert.equal(await rows.evaluateAll(elements => elements.filter(row => row.tabIndex === 0).length), 1);
 }
 
+// Waits for the delete confirmation alertdialog and presses Yes (default) or No.
 async function deleteConfirmation(page, accept = true) {
     const dialog = page.getByRole('alertdialog');
     await dialog.waitFor();
@@ -173,7 +193,10 @@ async function deleteConfirmation(page, accept = true) {
     await dialog.waitFor({ state: 'hidden' });
 }
 
+// Both languages: the key handling must not depend on localized labels.
 for (const language of ['en', 'ru']) {
+    // Covers arrows/Home/End/PageUp/PageDown, that Ctrl+Delete and Delete inside a form field are not delete
+    // shortcuts, that Tab leaves the list, and Enter / double-click opening the item form without writes.
     test(
         'Preferences catalog has roving Tab, arrows, Enter and double-click in ' + language,
         browserOptions,
@@ -231,6 +254,7 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// After a delete focus goes to the previous row, else the next one, else the (now empty) table itself.
 test('Preferences Delete chooses previous, then next, then an empty focus target', browserOptions, async () => {
     await withPage(async page => {
         const rows = page.locator('[data-preference-identity]');
@@ -265,6 +289,8 @@ test('Preferences Delete chooses previous, then next, then an empty focus target
     });
 });
 
+// Declined confirm, rejected delete, readonly document and a list hidden behind an open item dialog must all
+// keep the selection and send nothing (the update API is a trap that throws).
 test(
     'Preferences cancelled, failed, readonly and busy deletes preserve selection and do not submit unsafe writes',
     browserOptions,
@@ -315,6 +341,8 @@ test(
     }
 );
 
+// Same focus-after-delete rule for the shared security collection; the modal Cancel and a rejected request
+// must keep Beta selected. The recorded keys show the failed attempt was still sent once.
 test(
     'Security collection Delete selects previous/next/empty and retains selection when removal is cancelled or fails',
     browserOptions,
@@ -361,6 +389,8 @@ test(
     }
 );
 
+// Scripts overview -> event dialog -> entry form -> file picker: roving arrows, F2 and Enter activate, Delete
+// in a text field is ignored, picking a file fills the form; no navigation and no writes happen.
 test(
     'Scripts overview, entries and picker support roving navigation and activation without navigation or typing writes',
     browserOptions,
@@ -399,6 +429,8 @@ test(
     }
 );
 
+// Entry deletion in the script event dialog: cancel/failure keep selection, successes move focus
+// previous -> next -> the empty list container.
 test(
     'Scripts entry deletion preserves cancelled/failed selection, then chooses previous/next/empty',
     browserOptions,
@@ -442,6 +474,8 @@ test(
     }
 );
 
+// Race: a slow classic-entry deletion completes after the user switched to the PowerShell tab; the late
+// response must not steal focus from the tab (focus moving into the stale table would be a regression).
 test(
     'A delayed Scripts removal does not move focus from the newly selected PowerShell tab into its table',
     browserOptions,
@@ -484,6 +518,7 @@ test(
     }
 );
 
+// A double-click on a row checkbox is two toggles only; it must not bubble into the row's download/edit action.
 test(
     'Double-clicking a SYSVOL selection checkbox does not download or open a file editor',
     browserOptions,
@@ -509,6 +544,8 @@ test(
     }
 );
 
+// Multi-select delete is sequential: b.cmd succeeds, c.cmd is rejected by the fake; focus anchors at the first
+// removed position (a.cmd), the failed file is not selected, and the list ends empty with focus on the container.
 test(
     'SYSVOL bulk deletion anchors at the first removed file and handles partial success without selecting a failed file',
     browserOptions,
@@ -573,6 +610,7 @@ test(
     }
 );
 
+// Readonly documents: Delete and Enter do nothing (no dialog, no form, no API calls) in both Scripts and security.
 test(
     'Readonly Scripts and security collections ignore Delete, and Scripts cannot edit readonly entries',
     browserOptions,
@@ -600,6 +638,8 @@ test(
     }
 );
 
+// Enter downloads the focused file with its revision; Delete on a file referenced by a script entry, or in a
+// readonly folder, is refused silently (no confirmation, no deleteAsset call).
 test(
     'SYSVOL Enter downloads the focused file while Delete protects referenced files and readonly folders',
     browserOptions,
@@ -638,6 +678,8 @@ test(
     }
 );
 
+// Tags every reachable control of the dialog, then checks Tab from the last wraps to the first and
+// Shift+Tab goes back, i.e. focus cannot escape to the background catalog.
 async function assertTabTrap(page, dialog) {
     const controls = await dialog.evaluate(element =>
         Array.from(element.querySelectorAll('button,input,select,textarea,summary,[tabindex="0"]'))
@@ -672,6 +714,8 @@ async function assertTabTrap(page, dialog) {
     );
 }
 
+// Modal focus management: each nested modal traps Tab, Escape closes only the top one and restores focus to
+// its opener; the security modal's first Tab from its root enters its own controls.
 test(
     'Scripts event, item form, file picker and shared security modal trap Tab in both directions',
     browserOptions,
@@ -732,6 +776,8 @@ test(
     }
 );
 
+// Audit and All Policies lists: roving selection, Enter/double-click open the right dialog and focus returns to
+// the row on close; the filter text survives, navigation is not triggered and Delete in the filter box is a no-op.
 test(
     'Audit and All Policies activation keep the catalog selected, use roving rows and ignore Delete in filters',
     browserOptions,

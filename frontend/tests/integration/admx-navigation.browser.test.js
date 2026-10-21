@@ -14,6 +14,25 @@ try {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
+/*
+ * Browser tests for navigation around Administrative Templates (AT) and the All Policies search:
+ * lazy category tree, hidden policy nodes opened from the content list, folder expand/select
+ * rules, the unsaved-changes guard, paged cross-source search, and the contextual Security /
+ * Advanced Audit / Scripts / Preferences editors opened from search results.
+ * Fixture: a tiny HTTP server serves an inline page, require.js and .test-root (AMD build of src/).
+ * The page boots the real app tree (app._test.createTreeViewState, tree-view-list, header,
+ * workspace) over a fake util/API defined in-page: a category/policy tree with a category that fails
+ * once (retry), a 1202-row policy index, 185 security definitions, a one-subcategory audit catalog and
+ * empty scripts. Every call is logged in window.requests; window.rejectUpdates makes writes fail;
+ * failSecurityIndex fails the security source; securitySnapshots/securityCollectionFixture/
+ * savedPolicies let writes persist so later reads see them. The "unsaved policy" confirmation is a
+ * plain #confirmation element wired to the state's Yes/No handlers. Tests drive the app through
+ * the exposed globals (state, roots, scopeRoots, templates, category(), selectAdmin()).
+ * Helpers: withPage() boots server+browser and fails on page errors; switcher() reads a tree
+ * node's expander (empty/visible); folderState()/expectFolder() compare model, DOM classes and
+ * display of the target folder (window.targetFolder/otherFolder); expectPolicy() asserts a hidden
+ * policy dialog is open with the right selection/parent and no tree entry for it.
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
@@ -153,6 +172,7 @@ const browserOptions = {
             : false
 };
 
+// Starts a throwaway server and Chromium, runs the scenario, then asserts no uncaught page errors occurred.
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -198,6 +218,7 @@ async function withPage(run) {
     }
 }
 
+// Reports whether a tree node's expander is marked empty and whether it is actually hidden by CSS.
 async function switcher(page, scope, categoryId = null) {
     return page.evaluate(
         ({ scope, categoryId }) => {
@@ -216,6 +237,7 @@ const contentTitles = page => page.locator('.workspace .gp__list-children__item_
 const activeTitle = page => page.locator('.tree-view .tree-item.active .tree-item__title').textContent();
 const catalogFilter = page => page.locator('.workspace > .gpo-category-path [data-policy-filter]');
 
+// Snapshot of one folder: model flags (opened/selected) next to the DOM view of the same state.
 async function folderState(page) {
     return page.evaluate(() => {
         const element = state.treeListItemElements.get(targetFolder);
@@ -231,6 +253,7 @@ async function folderState(page) {
     });
 }
 
+// Model and DOM must agree: opened/closed class, nested list display, and whether it is the selected item.
 async function expectFolder(page, opened, selected = true) {
     const actual = await folderState(page);
     assert.equal(actual.opened, opened);
@@ -240,10 +263,13 @@ async function expectFolder(page, opened, selected = true) {
     assert.equal(actual.nestedDisplay === 'none', !opened);
 }
 
+// Moves the real selection elsewhere so the target folder is merely expanded or merely styled active.
 async function selectOtherFolder(page) {
     await page.evaluate(() => state.navigateToNode(otherFolder, { openPath: true, openCurrentFolder: true }));
 }
 
+// A policy opened from the content list is a hidden node: its dialog is open, it is selected with the
+// right ancestry, but it is absent from the tree and its parent category stays the highlighted tree item.
 async function expectPolicy(page, scope, id, title, parentTitle) {
     await page.getByRole('dialog', { name: title, exact: true }).waitFor();
     await page.locator('.gpo-admx-dialog [data-field-id="value"] input').waitFor();
@@ -273,6 +299,9 @@ async function expectPolicy(page, scope, id, title, parentTitle) {
     );
 }
 
+// Category children load lazily; the expander is empty only for known policy-only/empty categories, and a
+// failed load stays retryable (loadingPromise reset, loaded false) so the second click succeeds. Policies never
+// appear as tree nodes.
 test(
     'Administrative Templates lazy loads category-only trees and refreshes empty expanders while failed loads remain retryable',
     browserOptions,
@@ -295,7 +324,7 @@ test(
                     ['empty', 'Empty category', [], true]
                 ]) {
                     assert.equal((await switcher(page, scope, id)).empty, false);
-                    await page.getByRole('button', { name: title, exact: true }).click();
+                    await page.getByRole('option', { name: title, exact: true }).click();
                     await page.waitForFunction(({ scope, id }) => state.selectedItem.item === category(scope, id), {
                         scope,
                         id
@@ -310,7 +339,7 @@ test(
                     );
                     await page.evaluate(scope => selectAdmin(scope), scope);
                 }
-                await page.getByRole('button', { name: 'Retry category', exact: true }).click();
+                await page.getByRole('option', { name: 'Retry category', exact: true }).click();
                 await page.locator('.tree-view__lazy-error').last().waitFor();
                 await page.waitForFunction(scope => {
                     const node = category(scope, 'retry');
@@ -322,12 +351,12 @@ test(
                 assert.equal((await switcher(page, scope, 'retry')).empty, false);
                 assert.equal(await page.evaluate(scope => Boolean(category(scope, 'retry').loaded), scope), false);
                 assert.equal(await page.evaluate(scope => retryAttempts[scope], scope), 1);
-                await page.getByRole('button', { name: 'Retry category', exact: true }).click();
+                await page.getByRole('option', { name: 'Retry category', exact: true }).click();
                 await page.waitForFunction(scope => {
                     const node = category(scope, 'retry');
                     return node.loaded && node.loadingPromise === null && state.selectedItem.item === node;
                 }, scope);
-                await page.getByRole('button', { name: 'Retry policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Retry policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(scope => retryAttempts[scope], scope), 2);
                 assert.equal((await switcher(page, scope, 'retry')).empty, true);
                 assert.equal(
@@ -345,6 +374,9 @@ test(
     }
 );
 
+// Policies open from the list by double-click or Enter (Space only selects). With a draft open, clicking the
+// parent category raises the unsaved-changes guard: Discard navigates without any update, Save sends exactly one
+// update. Last step: a hidden security node cannot be activated (returns null).
 for (const scope of ['computer', 'user']) {
     test(
         `Hidden ${scope} Administrative Templates policies open from content by double-click and keyboard and retain guarded parent navigation`,
@@ -354,7 +386,7 @@ for (const scope of ['computer', 'user']) {
                 await page.evaluate(scope => selectAdmin(scope), scope);
                 // A different active tree node makes ancestor activation observable.
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
-                await page.getByRole('button', { name: 'Zulu root policy', exact: true }).dblclick();
+                await page.getByRole('option', { name: 'Zulu root policy', exact: true }).dblclick();
                 await expectPolicy(page, scope, 'orphan', 'Zulu root policy', 'Administrative Templates');
                 assert.equal(await page.evaluate(() => state.parentItems.get(state.selectedItem.item).opened), true);
                 await page.locator('.workspace [data-field-id="value"] input').fill('discard this draft');
@@ -376,15 +408,15 @@ for (const scope of ['computer', 'user']) {
                 );
                 assert.equal(await page.evaluate(() => state.parentItems.get(state.selectedItem.item).opened), true);
                 await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
-                await page.getByRole('button', { name: 'Policy-only category', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Policy-only category', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
                 assert.equal(
                     await page.evaluate(() => requests.filter(request => request.method === 'update').length),
                     0
                 );
 
-                await page.getByRole('button', { name: 'Policy-only category', exact: true }).click();
-                const enterPolicy = page.getByRole('button', { name: 'alpha only policy', exact: true });
+                await page.getByRole('option', { name: 'Policy-only category', exact: true }).click();
+                const enterPolicy = page.getByRole('option', { name: 'alpha only policy', exact: true });
                 await enterPolicy.waitFor();
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
                 await enterPolicy.press('Enter');
@@ -395,7 +427,7 @@ for (const scope of ['computer', 'user']) {
                 );
                 await page.getByRole('alertdialog', { name: 'Unsaved policy' }).waitFor();
                 await page.getByRole('button', { name: 'Save changes', exact: true }).click();
-                await page.getByRole('button', { name: 'alpha only policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'alpha only policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
                 const updates = await page.evaluate(() => requests.filter(request => request.method === 'update'));
                 assert.equal(updates.length, 1);
@@ -406,9 +438,9 @@ for (const scope of ['computer', 'user']) {
                 ]);
 
                 await page.evaluate(scope => selectAdmin(scope), scope);
-                await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-                await page.getByRole('button', { name: 'Nested category', exact: true }).press('Enter');
-                const spacePolicy = page.getByRole('button', { name: 'Nested policy', exact: true });
+                await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+                await page.getByRole('option', { name: 'Nested category', exact: true }).press('Enter');
+                const spacePolicy = page.getByRole('option', { name: 'Nested policy', exact: true });
                 await spacePolicy.waitFor();
                 await page.evaluate(() => state.activateTreeItem(roots[0]));
                 await spacePolicy.press('Space');
@@ -421,7 +453,7 @@ for (const scope of ['computer', 'user']) {
                         .querySelector('.tree-item__title')
                         .click()
                 );
-                await page.getByRole('button', { name: 'Nested policy', exact: true }).waitFor();
+                await page.getByRole('option', { name: 'Nested policy', exact: true }).waitFor();
                 assert.equal(await page.evaluate(() => state.selectedItem.item.type), 'folder');
                 assert.equal(await page.evaluate(() => state.selectedItem.item.opened), true);
 
@@ -438,6 +470,8 @@ for (const scope of ['computer', 'user']) {
     );
 }
 
+// Same folder rules for AT and Preferences: clicking the title of the selected folder toggles it, clicking a
+// non-selected one only selects it (keeps expansion), and the arrow toggles without changing the selection.
 for (const area of ['Administrative Templates', 'Preferences']) {
     test(
         `${area} folder titles preserve expansion on selection, toggle only the actual selection, and arrows do not select`,
@@ -446,8 +480,8 @@ for (const area of ['Administrative Templates', 'Preferences']) {
             await withPage(async page => {
                 if (area === 'Administrative Templates') {
                     await page.evaluate(() => selectAdmin('computer'));
-                    await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-                    await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+                    await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+                    await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
                     await page.evaluate(() => {
                         window.targetFolder = category('computer', 'mixed');
                         window.otherFolder = templates.computer;
@@ -460,7 +494,7 @@ for (const area of ['Administrative Templates', 'Preferences']) {
                         );
                         await state.navigateToNode(targetFolder, { openPath: true, openCurrentFolder: true });
                     });
-                    await page.getByRole('button', { name: 'Registry preferences', exact: true }).waitFor();
+                    await page.getByRole('option', { name: 'Registry preferences', exact: true }).waitFor();
                 }
                 await page.evaluate(() =>
                     state.treeItemElements.get(targetFolder).setAttribute('data-test-folder', 'target')
@@ -498,14 +532,16 @@ for (const area of ['Administrative Templates', 'Preferences']) {
     );
 }
 
+// With a dirty hidden policy open: the title click is guarded (a view may refuse the discard, a failed save
+// keeps the draft), while the arrow only collapses/expands, never navigates, re-renders or shows the dialog.
 test(
     'Hidden policy parent selection remains guarded while its arrows preserve the dirty editor without navigating',
     browserOptions,
     async () => {
         await withPage(async page => {
             await page.evaluate(() => selectAdmin('computer'));
-            await page.getByRole('button', { name: 'Mixed category', exact: true }).click();
-            await page.getByRole('button', { name: 'alpha policy', exact: true }).dblclick();
+            await page.getByRole('option', { name: 'Mixed category', exact: true }).click();
+            await page.getByRole('option', { name: 'alpha policy', exact: true }).dblclick();
             await expectPolicy(page, 'computer', 'mixed-a', 'alpha policy', 'Mixed category');
             await page.evaluate(() => {
                 window.targetFolder = category('computer', 'mixed');
@@ -562,12 +598,15 @@ test(
             await title.evaluate(element => element.click());
             await dialog.waitFor();
             await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
-            await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
             await expectFolder(page, true);
         });
     }
 );
 
+// The search index covers all sources before paging (100 per page, 1202 AT + 185 security + audit + scripts +
+// preferences), is fetched once per scope, matches case-insensitively, and result dialogs keep the catalog
+// selected; a discard confirmation leaves query and selection intact. User scope has no security/audit sources.
 test(
     'All Policies searches the full scoped inventory before paging and edits AT in place with guarded discard',
     browserOptions,
@@ -663,6 +702,8 @@ test(
     }
 );
 
+// One failing source marks the list incomplete but healthy rows remain; Retry re-requests only the failed
+// source (policyIndex stays at 1, securityIndex 2).
 test(
     'All Policies reports failed sources as incomplete and retries without repeating healthy index requests',
     browserOptions,
@@ -705,6 +746,8 @@ test(
     }
 );
 
+// Russian labels are searchable (script events, security settings path) and the whole 185-entry security
+// source is searched before paging.
 test(
     'All Policies provides localized Russian search for individual script events and path labels',
     browserOptions,
@@ -733,6 +776,8 @@ test(
     }
 );
 
+// Security, audit and script results open their existing editors as dialogs over All Policies (no back-link,
+// no navigation, filter text retained) and nothing is written by merely opening them.
 test(
     'All Policies aliases open the existing Security, Advanced Audit and Scripts contextual editors',
     browserOptions,
@@ -777,6 +822,9 @@ test(
     }
 );
 
+// Security result edited in place: header Edit opens the selected row; No on the discard confirmation keeps the
+// draft; a rejected update shows an inline validation error and keeps it; Apply leaves page, scroll,
+// render id and index requests unchanged (no refetch) and restores focus to the replaced row.
 for (const language of ['en', 'ru']) {
     test(
         `All Policies security applies, cancels and retries in place while preserving paged context in ${language}`,
@@ -869,6 +917,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// Collection-type security result: read-only browse dialog, toolbar fits, a nested row editor traps Tab on its
+// close button, Escape closes only the top dialog, and nested Apply focuses the updated row (one update sent).
 test(
     'All Policies collection security results browse existing items in a dialog and keep nested focus in its row editor',
     browserOptions,
@@ -959,6 +1009,8 @@ test(
     }
 );
 
+// Audit option edited in place, same contract as the security test: unchanged paging context, only the audit
+// source's rows are replaced (security/AT references stay identical), and discard drops the draft.
 for (const language of ['en', 'ru']) {
     test(
         `All Policies Advanced Audit applies and cancels in place while preserving paged context in ${language}`,
@@ -1090,6 +1142,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// Readonly rows have no OK button; two identical preserved rows stay distinguishable by occurrence (the second
+// one shows its own descriptor); a stale dblclick after navigating away must not open a dialog.
 test(
     'All Policies Advanced Audit keeps readonly and duplicate preserved rows in place and cancels stale opens',
     browserOptions,
@@ -1173,6 +1227,8 @@ test(
     }
 );
 
+// Cache coherence: a save made from the tree replaces only that source in the All Policies cache (others keep
+// their identity, paging state survives), and a save from All Policies shows up when reopened from the tree.
 test(
     'Tree security and audit saves update only their cached All Policies source and All Policies audit saves update tree snapshots',
     browserOptions,
@@ -1277,6 +1333,8 @@ test(
     }
 );
 
+// The breadcrumb path follows the real hierarchy down to a hidden policy, but dialogs opened from All Policies
+// keep the 'All Policies' path.
 test(
     'Current clickable paths include normal policy ancestry while All Policies dialogs retain the catalog path',
     browserOptions,
@@ -1290,12 +1348,12 @@ test(
             await page.evaluate(() =>
                 state.navigateToNode(category('computer', 'mixed'), { openPath: true, openCurrentFolder: true })
             );
-            await page.getByRole('button', { name: 'Nested category', exact: true }).click();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).click();
             assert.equal(
                 await page.locator('.workspace [data-category-path]').textContent(),
                 'Example GPO / Computer / Policies / Administrative Templates / Mixed category / Nested category'
             );
-            await page.getByRole('button', { name: 'Nested policy', exact: true }).dblclick();
+            await page.getByRole('option', { name: 'Nested policy', exact: true }).dblclick();
             await page.locator('.gp__admx-settings').waitFor();
             assert.equal(
                 await page.locator('.workspace [data-category-path]').textContent(),

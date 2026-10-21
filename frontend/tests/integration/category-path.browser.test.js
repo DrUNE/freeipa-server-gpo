@@ -14,7 +14,21 @@ try {
     /* Browser dependencies are optional for unit-only environments. */
 }
 
+/*
+ * Covers the clickable category path (breadcrumb) above every catalog view, in a real Chromium (Playwright).
+ *
+ * Fixture: a tiny http server serves one page plus the .test-root AMD tree through requirejs and the global CSS.
+ * The page defines a fake `util/API` (children, policy show, indexes; any write is recorded as 'write' in
+ * window.requests) and builds the REAL app pieces: tree view state (app._test.createTreeViewState), header, workspace
+ * and tree list. reset(language) rebuilds them; openView(kind) navigates through the real state to a folder,
+ * preferences, scripts, security, audit, all-policies or administrative-template policy node. A confirmation block
+ * stands in for the unsaved-changes modal (#discard / #save / #stay).
+ *
+ * Helpers: withPage() runs a scenario and requires no page errors and no writes; pathMetrics() reads the computed
+ * look and position of the path element so views can be compared.
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
+// The page: stylesheets, the fake util/API, and reset()/openView() built on the real tree view state.
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif}.gp__container{height:100vh}#confirmation{display:none}#confirmation.active{display:block;position:fixed;z-index:2000;top:40px;left:450px;background:white}</style>
@@ -97,6 +111,7 @@ const browserOptions = {
             : false
 };
 
+// Serves the page and .test-root, runs `run(page)`, then fails on uncaught page errors or any write request.
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -143,6 +158,7 @@ async function withPage(run) {
     }
 }
 
+// Typography, colors, inset and width of the path bar; deepEqual between views proves one shared heading style.
 async function pathMetrics(page) {
     return page.locator('.workspace > .gpo-category-path').evaluate(element => {
         const style = getComputedStyle(element);
@@ -164,6 +180,9 @@ async function pathMetrics(page) {
     });
 }
 
+// Every catalog view (and the policy leaf of Administrative Templates) shows exactly one path with identical quiet
+// styling, titles equal to the real tree path and the current node marked; the policy dialog has no path of its own,
+// and clicking the current leaf reopens that policy.
 for (const language of ['en', 'ru']) {
     test(
         'The actual app shares a quiet clickable ' +
@@ -213,6 +232,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// A breadcrumb click while a policy dialog has an unsaved draft must go through the draft guard: the navigation stays
+// pending, "stay" keeps the draft, "discard" navigates and re-opens the collapsed ancestors in the tree.
 test(
     'Breadcrumb navigation uses the actual draft guard and reveals ancestors after discard',
     browserOptions,
@@ -268,6 +289,7 @@ test(
     }
 );
 
+// XSS guard: a node title with HTML is rendered as text in the label and the title attribute, never as elements.
 test('Catalog titles remain plaintext in clickable path labels and attributes', browserOptions, async () => {
     await withPage(async page => {
         const unsafe = '<img src=x onerror="window.titleExecuted=true"> & <b>name</b>';

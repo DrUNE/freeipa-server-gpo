@@ -533,6 +533,14 @@ const treeView = {
     unableToLoadPolicies: 'Unable to load policies.',
     unableToLoadSection: 'Unable to load the section.'
 };
+const orderableList = {
+    handle: 'Move {label}',
+    handleHelp: 'Drag to reorder. On this handle, Ctrl+Up/Down moves the item.',
+    moveUp: 'Move {label} up',
+    moveDown: 'Move {label} down',
+    moved: '{label} moved to position {index} of {total}.',
+    empty: 'No items'
+};
 const header = {
     create: 'Create',
     edit: 'Edit',
@@ -650,6 +658,7 @@ export {
     policies,
     preferences,
     treeView,
+    orderableList,
     header,
     systemSettings,
     policyChangedModal,

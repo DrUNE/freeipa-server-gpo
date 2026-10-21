@@ -32,7 +32,18 @@ function build(kind, field, options, readonly = false) {
     return control;
 }
 
-export default { title: 'Primitives/Field', args: { onChange: fn() } };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A form field: a label bound with `for`, the control, a hint and an error, tied together with `aria-describedby`. Layouts follow the control: text, select, checkbox, plain, and the two mockup layouts of preference forms.'
+            }
+        }
+    },
+    title: 'Primitives/Field',
+    args: { onChange: fn() }
+};
 
 export const Text = {
     render: () => mount(build('form', text('properties.fromPath', 'Source path', 'C:\\Windows'), { wrapText: true })),

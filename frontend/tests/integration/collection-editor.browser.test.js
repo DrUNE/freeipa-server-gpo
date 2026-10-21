@@ -11,6 +11,20 @@ try {
 } catch {
     /* Optional browser runner. */
 }
+/*
+ * Browser tests for the ADMX list / key-value collection editor (the "Edit..." button, the
+ * summary in the Options block and the modal table dialog).
+ * Fixture: a tiny HTTP server serves an inline page, require.js and .test-root (AMD build of src/).
+ * util/API is replaced by an in-page define() whose policyShow returns window.policy and whose
+ * policyUpdate records the request in window.requests (optionally held open via deferSave /
+ * finishSave) and applies it to the policy. window.show(mode, count, language, entries) rebuilds
+ * the policy (modes: list, numbered, kv) and renders the real admx-template into #workspace.
+ * Helpers: fixture() runs a scenario and appends dialog state to a failing assertion, then fails
+ * on any page error; rows/cell/input/values/dirty are locators over data-* hooks; dirty() reads
+ * the Apply button's .active class; pasteIntoEditor() pastes through the real clipboard;
+ * compactGeometry() and centeredRowGeometry() assert layout (summary/button alignment, ellipsis,
+ * vertical centering of row parts).
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
@@ -47,6 +61,7 @@ require(['util/element-creator','components/templates/admx-template','locales/tr
  show().then(()=>window.ready=true);
 });</script></body></html>`;
 
+// Starts a throwaway server and Chromium, runs the scenario and always cleans both up.
 async function fixture(run) {
     const server = http.createServer((req, res) => {
         if (req.url === '/') {
@@ -111,15 +126,19 @@ const cell = (page, index, field = 'value') =>
 const input = page => page.locator('[data-collection-input]');
 const values = page => page.locator('[data-collection-field=value] .gpo-collection-cell__text').allTextContents();
 const dirty = page => page.evaluate(() => document.querySelector('.admx__btn-apply').classList.contains('active'));
+// Opens the editor dialog of the default list policy ("Packages").
 async function openList(page) {
     await page.getByRole('button', { name: 'Edit Packages', exact: true }).click();
     await page.getByRole('dialog').waitFor();
 }
+// Real Ctrl+V into the focused cell editor, so the component's paste handler (not fill()) is exercised.
 async function pasteIntoEditor(page, text) {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.evaluate(value => navigator.clipboard.writeText(value), text);
     await input(page).press('Control+V');
 }
+// Checks the collapsed summary row: control spans the Options block, summary first, button 12px to its
+// right and vertically centered, count truncated with an ellipsis; no layout overflow at the given viewport width.
 async function compactGeometry(page, width) {
     const geometry = await page.locator('.gpo-collection-control').evaluate(control => {
         const options = control.closest('.gp__admx-options');
@@ -182,6 +201,8 @@ async function compactGeometry(page, width) {
     }
     return geometry;
 }
+// Checks that handle, index, key and input are vertically centered in a row (td vertical-align middle)
+// even when a cell grows, and that long keys are ellipsized rather than widening the table.
 async function centeredRowGeometry(page) {
     const geometry = await rows(page)
         .first()
@@ -236,6 +257,9 @@ async function centeredRowGeometry(page) {
     }
 }
 
+// Main list flow: single click only selects, double-click/F2 edits, Escape/Cancel discard drafts, Add appends,
+// only the handle (not the cell) drags, Ctrl+Arrow reorders, and nothing is sent to the server until Apply
+// (which locks the view while saving). Protects the "no early persistence" contract.
 test(
     'List editor implements selection, double-click, append/remove and handle-only reorder without early persistence',
     { skip },
@@ -336,6 +360,9 @@ test(
         })
 );
 
+// Key-value specifics: case-insensitive duplicate keys block OK, Cancel with a draft asks for confirmation
+// and makes the dialog inert meanwhile, Disabled/Not Configured disable the Edit button (even synthetic clicks
+// do nothing), and an unsaved draft survives state switches and is posted on Apply.
 test(
     'Key–Value editor validates cells, reuses discard confirmation and preserves drafts through policy state switches',
     { skip },
@@ -402,6 +429,10 @@ test(
         })
 );
 
+// 80 items: dialog height stays bounded, search filters the view yet Apply still posts all 80 entries (hidden ones
+// retained, drag handle disabled while filtered); the dialog must look like Preferences dialogs (computed styles
+// compared with a clone stripped of gpo-collection classes); EN/RU in a 380px viewport fit the screen and
+// localize the duplicate error; an empty list gives a compact dialog.
 test(
     'Large collections stay bounded, filtering retains hidden entries and EN/RU dialogs reuse Preferences styling',
     { skip },
@@ -491,6 +522,9 @@ test(
         })
 );
 
+// Single-line modes (kv keys, plain list values): the editor is <input type=text>, duplicates are exposed via
+// aria-invalid/aria-describedby, Shift+Enter and multiline paste never add rows or newlines, and the edited
+// value is what gets saved.
 test(
     'Registry names use native single-line inputs with duplicate ARIA and no rows from multiline paste',
     { skip },
@@ -555,6 +589,8 @@ test(
         })
 );
 
+// Multiline modes use a TEXTAREA: stored CRLF is shown as LF, Shift+Enter and paste keep text inside one row,
+// and an entry the user did not touch must be sent back byte-for-byte with its original CRLF.
 test(
     'Numbered list and Key–Value data keep multiline text in one row and preserve untouched CRLF',
     { skip },
@@ -615,6 +651,9 @@ test(
         })
 );
 
+// Layout regression over desktop (EN, 1280px) and narrow (RU, 380px) viewports and both kv/numbered modes:
+// summary geometry, textarea growth capped at 130px, centered row parts, dialog inside the viewport margins,
+// discard confirmation, and the Disabled state keeping the (disabled) localized button laid out.
 test(
     'Compact summaries fill Options and expanded data centers every table cell at desktop and narrow RU widths',
     { skip },

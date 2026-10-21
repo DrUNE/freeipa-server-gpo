@@ -11,6 +11,16 @@ import {
     setConfirming
 } from '@gpui/components/Dialog/Dialog';
 
+/*
+ * Behaviour of the editor's modal dialogs, on top of the `Dialog` window (components/Dialog): focus goes in and returns to
+ * where it was, Tab stays inside the window (`trapTab`), Escape and the close button ask first when the form is dirty
+ * (the discard question is a `ConfirmationDialog`), Apply and Cancel are disabled while a request is busy.
+ *
+ * `open(host, options)` takes the title, `content` (a node), `onApply`, `onClose`, `isDirty`, `canClose`, `readOnly`
+ * (Cancel only), the labels and the class names of the parts, and returns the dialog handle. The window itself, its parts and
+ * their `data-dialog-*` hooks are described in Dialog.js.
+ */
+
 let sequence = 0;
 
 function trapTab(event, modal) {

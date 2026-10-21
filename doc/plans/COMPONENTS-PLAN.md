@@ -45,7 +45,7 @@ In the order of use: the first ones appear in the most screens and give the most
 | 6 | ✅ `Breadcrumb` | `category-path.js` | `Breadcrumb` | 0.5 |
 | 7 | ◐ `CollectionEditor` (list and key/value list, inline editing, validation per row) | `components/CollectionEditor/` (`collection-dialog.js` is an adapter), `collection-control.js`; logic in `util/collection-value.ts` | a table with inline editing | 2-3 |
 | 8 | ✅ `ConfirmationDialog` on `Dialog` and `h()` | `confirmation-dialog.js` | webui `ConfirmationModal.tsx` | 0.5 |
-| 9 | `OrderableList` (up/down buttons, drag-and-drop with a keyboard alternative) | the order of scripts; later targeting and, in webui, chains | none in webui | 2 |
+| 9 | ✅ `OrderableList` (up/down buttons, drag-and-drop with a keyboard alternative) | the order of scripts; later targeting and, in webui, chains | none in webui | 2 |
 
 **Total: 15-20 days**, one component at a time, each with its stories, the existing tests and the screenshots. `ElementCreator`
 goes away as the callers move; removing it is not a separate task.
@@ -104,7 +104,7 @@ uses, with the same arguments and `play` functions; webui has no Storybook today
 | 3 | ✅ Screen stories for Advanced Audit and Scripts (the next migration pilots) | 2 |
 | 4 | Components 3-8 with stories (done: `Field`, `Tabs`, `Breadcrumb`, `ConfirmationDialog`, `TreeView`) | 9-12 |
 | 5 | ✅ Screen stories for Security, ADMX, the preference form, the catalog | 3-4 |
-| 6 | Component 9 (`OrderableList`) when the targeting or the webui chains need it | 2 |
+| 6 | ✅ Component 9 (`OrderableList`), as a self-contained primitive for the targeting and the webui chains | 2 |
 | | **Total** | **22-29** |
 
 Steps 1-3 can go in parallel with migration stage 0 (`frontend/src/core/`).
@@ -123,7 +123,9 @@ is `.active`; they now have their own look.
 
 **Step 5 is done.** `Screens/Security`, `Screens/ADMX Policy` (11 stories) and `Screens/Preferences` (8 stories, the list, the form, read-only, validation) follow the pattern of step 3. Accessibility checks found three more defects, fixed: a `label` with `aria-label` on a boolean ADMX parameter, an unnamed comment field of the page layout, and an unnamed name field of the preference form. The `empty` scenario now also empties the security catalog.
 
-**Known defect, not fixed (catalog).** `Screens/Catalog` (`folder-template.stories.js`) turns off the axe rule `aria-allowed-attr` for itself: a catalog row is `role="button"` with `aria-selected` (set by `list-navigation.js`), which ARIA does not allow. The right form is a `listbox` of `option`s; I tried it, and it broke 15 integration tests that find the rows as buttons (about 35 locators), so it is a separate step.
+**Catalog roles fixed.** A catalog row used to be `role="button"` with `aria-selected`, which ARIA does not allow (found by the accessibility check of `Screens/Catalog`). The catalog is now a `listbox` of `option`s (`li` is `role="none"`); the integration tests find its rows as options, and the story has no exception for the axe rule any more.
+
+**Step 6 is done as a primitive.** `OrderableList` (`createOrderableList`, `Primitives/OrderableList`, 7 stories) gives one result three ways: the Up and Down buttons of an item, Ctrl+Up/Down on its handle, and dragging the handle onto another item. The moved item keeps the focus and every move is announced in a polite live region; the labels are in the locales (`orderableList.*`, EN/RU). It is not yet used by the old screens: the scripts entries (toolbar buttons), the collection editor (its own handles) and the targeting tree keep their code, to move to it when they are reworked, and it is what the chain and GPMaster pages of webui will use.
 
 ## 7. What not to do
 

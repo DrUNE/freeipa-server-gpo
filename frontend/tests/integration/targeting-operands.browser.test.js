@@ -14,6 +14,20 @@ try {
 }
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
+/*
+ * Browser (Playwright/Chromium) integration test for the targeting operand editor
+ * (components/templates/preference/targeting-operand-editor) against the real AMD modules
+ * built into .test-root. Skipped when playwright/requirejs are not installed.
+ * Fixture: a tiny node http server serves the inline page below plus .test-root files;
+ * the page defines fields(kind), a synthetic field list per filter kind (common
+ * bool/not/hidden fields plus kind-specific operands), and a minimal fieldControl()
+ * (select/input/checkbox with an error span) standing in for the real dialog controls.
+ * Page globals used by the tests: mount(kind, {existing, language, scope, blocked, fields})
+ * renders the editor (existing=true skips initialize() as for a loaded node), reselect()
+ * rebuilds it from node.fields (simulates leaving and re-entering the row), payload(id)
+ * reads the current value envelope, accept() reads fields and validates, coverage() mounts
+ * every supported kind. Server-side effects are not involved: no RPC, no fake API.
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css"></head>
 <body><main id="content" style="padding:20px;width:700px"></main><script src="/require.js"></script><script>
@@ -70,6 +84,10 @@ require(['util/element-creator','util/editor-dto','components/templates/preferen
  mount('computer');window.ready=true;
 });</script></body></html>`;
 
+/*
+ * Starts the static server and a headless browser, runs the scenario and, importantly,
+ * fails the test on any uncaught page error even if all assertions passed.
+ */
 async function fixture(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -102,16 +120,22 @@ async function fixture(run) {
         await new Promise(resolve => server.close(resolve));
     }
 }
+// Locator helpers: the input/textarea or select of a field by operand id (without the `filter.` prefix).
 const input = (page, id) =>
     page.locator('[data-field-id="filter.' + id + '"] input,[data-field-id="filter.' + id + '"] textarea');
 const select = (page, id) => page.locator('[data-field-id="filter.' + id + '"] select');
 const payload = (page, id) => page.evaluate(id => window.payload(id), id);
+// Fills a segmented control (IPv4, MAC, version) by splitting the value across its cells.
 async function fillTyped(page, id, value) {
     const parts = value.split(/[.:-]/);
     const inputs = input(page, id);
     for (let index = 0; index < (await inputs.count()); index++) await inputs.nth(index).fill(parts[index] || '');
 }
 
+/*
+ * Every supported kind renders and validates without common metadata (combine/not/hidden/displayName
+ * are handled elsewhere), and re-rendering loaded nodes must not normalize their stored values.
+ */
 test(
     'All 29 targeting kinds deliberately render without common metadata or incidental normalization',
     { skip },
@@ -161,6 +185,10 @@ test(
         })
 );
 
+/*
+ * Date mode switching: incompatible fields are cleared per mode, drafts are restored when switching
+ * back, focus stays on the selector, and the annual leap-day calendar stores month/day without a year.
+ */
 test(
     'Date offers weekly/monthly/date, clears incompatible fields, restores mode drafts and supports an annual leap-day calendar',
     { skip },
@@ -216,6 +244,11 @@ test(
         })
 );
 
+/*
+ * Localized selectors for Computer/Language: a new Language node defaults to the UI locale (no 'unknown'
+ * option) and the user-language checkbox is disabled in the computer scope; a loaded broken locale and its
+ * displayName are preserved until the user picks a real one.
+ */
 test(
     'Computer and Language use deliberate localized selectors and preserve a broken loaded locale until replaced',
     { skip },
@@ -255,6 +288,10 @@ test(
         })
 );
 
+/*
+ * Conditional operands: only the operands active for the chosen type/subtype are rendered,
+ * and values typed under another mode are kept as drafts when returning to it.
+ */
 test(
     'File, Registry, MSI and Terminal expose only active operands while draft values survive reselection',
     { skip },
@@ -309,6 +346,10 @@ test(
         })
 );
 
+/*
+ * Name vs SID are mutually exclusive on save but drafts of both survive reselection; scope-restricted
+ * controls are disabled and a blocked (read-only) editor leaves the fields unchanged.
+ */
 test(
     'Name/SID mode clears the competing value without losing drafts, scope restrictions disable controls, and readonly prevents writes',
     { skip },
@@ -336,6 +377,10 @@ test(
         })
 );
 
+/*
+ * ip_range IPv6 mode reuses min/max as address/prefix; both IPv4 and IPv6 drafts survive toggling,
+ * valid forms (compressed, expanded, mapped) pass and malformed addresses or prefixes are rejected.
+ */
 test(
     'IPv6 switches to address/prefix operands, retains both mode drafts, and validates compressed/mapped addresses and prefix boundaries',
     { skip },
@@ -392,6 +437,11 @@ test(
         })
 );
 
+/*
+ * Typed controls must round-trip malformed imported values untouched (no silent normalization);
+ * GUIDs are validated and canonicalized only after the user edits them. Also covers the user-scope language
+ * checkboxes and clearing an externally set field error on edit.
+ */
 test(
     'Semantic controls preserve exact imported envelopes and validate only deliberately changed GUIDs',
     { skip },
@@ -446,6 +496,10 @@ test(
         })
 );
 
+/*
+ * Time keeps imported seconds/timezone until edited, then writes HH:MM:00; also checks the number,
+ * range, IP and MAC validators report the expected error codes.
+ */
 test(
     'Time preserves untouched seconds/timezone and adapts edited minutes, overnight ranges and range/numeric validation',
     { skip },

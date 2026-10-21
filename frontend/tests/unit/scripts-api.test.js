@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { loadModule } from './helpers/load-module.js';
 
+/*
+ * Covers the Scripts part of util/API.js: which RPC each call goes to and what it sends.
+ * util/API.js is loaded through loadModule with a fake `freeipa/rpc`: command(spec) pushes every spec into `specs`
+ * and succeeds at once with responseForSpec(spec), or with a default script asset when no function is given.
+ */
+
+// Loads API.js against the recording fake rpc; the caller inspects `specs` afterwards.
 async function loadApi(specs, responseForSpec) {
     const rpc = {
         command(spec) {
@@ -37,6 +44,8 @@ async function loadApi(specs, responseForSpec) {
     );
 }
 
+// The download answer carries its own gpo version (999); it must not leak into the cached editor envelope from open
+// (version 1), and open() afterwards must be served from cache without a new request.
 test('Script download uses the selected scoped asset and never mutates an editor envelope', async () => {
     const specs = [];
     const api = await loadApi(specs, spec =>
@@ -65,6 +74,8 @@ test('Script download uses the selected scoped asset and never mutates an editor
     assert.equal(specs.length, 2);
 });
 
+// Table of API function -> RPC name: guards against a wrong route, a lost policy/category/phase argument, retry
+// being enabled for writes, or the opaque request being altered on the way.
 test('Each Scripts editor action sends its request to the matching scoped RPC', async () => {
     const specs = [];
     const api = await loadApi(specs);

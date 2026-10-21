@@ -9,6 +9,17 @@ import { installToolbar } from '@gpui/components/CollectionEditor/toolbar';
 import { installKeyboard } from '@gpui/components/CollectionEditor/keyboard';
 import { tr } from '@gpui/components/CollectionEditor/translate';
 
+/*
+ * CollectionEditor: the modal editor of a list or key/value list parameter (the packages of a policy, the devices of
+ * security settings). A table with inline cell editing, Add and Remove, search, validation per row and drag-and-drop or
+ * Ctrl+Arrow reordering; OK is enabled only for a valid, changed collection, and cancelling a dirty one asks first.
+ *
+ * The folder is split by concern, around one shared context (`ctx`): context.js (state), view.js (markup), table.js (rows),
+ * cells.js (selection and inline edit), toolbar.js (Add, Remove, search), reorder.js, keyboard.js, validation.js,
+ * translate.js. The rules and the editing session are `util/collection-value.ts` and carry no DOM. Callers keep using
+ * `components/collection-dialog.js` (an adapter) and `collection-control.js` (the form field).
+ */
+
 /**
  * Modal editor of a list or key/value collection parameter. Assembles the focused modules around one shared context
  * (state in `context.js`, markup in `view.js`, behaviour in the `install*` modules) and opens it in an editor dialog.

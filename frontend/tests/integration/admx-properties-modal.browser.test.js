@@ -4,6 +4,19 @@ import http from 'node:http';
 import path from 'node:path';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
+
+/*
+ * Browser checks for the ADMX policy properties modal (openAdmxDialog, "AT modal").
+ *
+ * Fixture: inline page with an opener button and an unchanged "catalog" area, the
+ * real admx-template loaded from .test-root via RequireJS, and a fake `util/API`
+ * (policyShow/policyUpdate) over one in-memory policy built by makePolicy() in en
+ * or ru, with variants: normal, `disabled`, `unknown` (read-only raw value) and
+ * `locked` (Disabled state unavailable). Requests are logged in window.requests,
+ * onSaved responses in window.saved. Switches: deferShow/finishShow (hold the load),
+ * rejectShow, rejectUpdates (category string -> rejected write), `current` (host
+ * isCurrent flag). window.openFixture(language, kind) opens the dialog.
+ */
 let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
@@ -66,6 +79,7 @@ require(['util/element-creator','components/templates/admx-template','locales/tr
  window.ready=true;
 });</script></body></html>`;
 
+// Serves the page and .test-root, runs `run(page)`, fails on uncaught page errors.
 async function fixture(run) {
     const server = http.createServer((req, res) => {
         if (req.url === '/') {
@@ -106,6 +120,8 @@ async function fixture(run) {
     }
 }
 
+// Layout (tabs glued to the header, fixed modal/field widths), default values shown disabled until a state is chosen,
+// and exactly one typed update with defaults filled in for all parameters; focus returns to the opener.
 for (const language of ['en', 'ru']) {
     test('AT modal uses header-adjacent tabs, defaults and one typed update in ' + language, { skip }, async () =>
         fixture(async page => {
@@ -177,6 +193,8 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// A draft in a nested collection dialog counts as unsaved, a rejected write keeps all edits and shows the error,
+// "No" in the shared discard confirmation keeps the draft, and the retry sends the identical request.
 test('AT modal retains validation drafts, nests collection edits and reuses discard confirmation', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => openFixture());
@@ -221,6 +239,8 @@ test('AT modal retains validation drafts, nests collection edits and reuses disc
     })
 );
 
+// The modal opens in a loading state; cancelling or an isCurrent=false host drops late results, and a failed load
+// is retried via Refresh without touching the catalog.
 test(
     'AT modal opens before loading, ignores cancelled/stale results and retries without navigating',
     { skip },
@@ -268,6 +288,8 @@ test(
         })
 );
 
+// Unavailable state stays disabled; on storage_conflict Refresh asks to discard the draft (No keeps it, Yes reloads
+// server values); no write beyond the single rejected attempt happens.
 test(
     'AT capability restrictions and conflict refresh use the shared confirmation without accidental writes',
     { skip },
@@ -304,6 +326,7 @@ test(
         })
 );
 
+// Unknown raw values make the form read-only (Apply disabled, no discard prompt) and the modal fits a 390x500 viewport.
 test('AT unknown values remain read-only and modal controls fit a narrow viewport', { skip }, async () =>
     fixture(async page => {
         await page.setViewportSize({ width: 390, height: 500 });

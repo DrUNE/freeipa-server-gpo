@@ -21,7 +21,18 @@ function render() {
     );
 }
 
-export default { title: 'Screens/Security', render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The Security Settings screen: the policies of a category of the security catalog, with a filter, on the data of the fake server.'
+            }
+        }
+    },
+    title: 'Screens/Security',
+    render
+};
 
 export const Policies = {
     play: async ({ canvasElement }) => {

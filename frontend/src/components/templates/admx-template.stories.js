@@ -19,7 +19,18 @@ function render({ policyId = 'alt-repo', scope = 'computer', modalLayout = true 
     );
 }
 
-export default { title: 'Screens/ADMX Policy', render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'The screen of one ADMX policy: its state, parameters, comment and the explanation, on the data of the fake server.'
+            }
+        }
+    },
+    title: 'Screens/ADMX Policy',
+    render
+};
 
 async function ready(canvasElement) {
     await waitFor(() => expect(canvasElement.querySelector('[data-screen]')).toHaveAttribute('data-screen', 'ready'));

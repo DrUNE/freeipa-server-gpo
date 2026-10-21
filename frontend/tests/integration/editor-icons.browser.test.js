@@ -12,6 +12,14 @@ try {
 } catch {
     /* Optional browser dependencies. */
 }
+/*
+ * Browser check of the semantic icon catalog (components/editor-icons).
+ * Fixture: a tiny static HTTP server serves an inline page plus .test-root (the AMD build of src/)
+ * with require.js; the page renders every preference kind, targeting kind, category and script
+ * icon as a .gpo-icon sample next to its label (the same page can be dumped to a PNG via
+ * ICON_CATALOG_SCREENSHOT). The test then decodes each icon's background SVG on a 16x16 canvas
+ * and counts dark opaque pixels ("ink").
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
@@ -32,6 +40,9 @@ require(['components/editor-icons','components/templates/preference/targeting-pr
 });
 </script></body></html>`;
 
+// Guards against missing/404 SVG files, wrong icon size and empty (blank) images, and against icons
+// carrying their own text: the label is a separate element and the icon stays aria-hidden.
+// 63 = 22 preference families + 29 targeting kinds + 12 category/script samples.
 test('every semantic SVG loads at 16px without missing requests and keeps labels separate', { skip }, async () => {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {

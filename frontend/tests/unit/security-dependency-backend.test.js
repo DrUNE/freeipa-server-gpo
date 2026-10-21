@@ -5,6 +5,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
+/*
+ * End-to-end check that the dependency planner's output is accepted by the real libadmix.
+ * Container-only: it runs /usr/bin/python3 with the admix package against the installed (or
+ * SDMX_BASEALT_ROOT) policy definitions and is skipped when the SDMX schema is missing.
+ *
+ * Flow: Python dumps the real security catalog and snapshot; the JS side builds the model and,
+ * for each case (policy id, new value), makes the same update request the UI would (initial
+ * draft, planner changes appended as extra policies); a second Python run feeds every request
+ * to w.security.update_definitions in a fresh workspace and reports the error text or null.
+ * load() loads template modules with element-creator and translations mocked out.
+ */
 const catalogRoot = process.env.SDMX_BASEALT_ROOT || null;
 const definitions = catalogRoot ? path.join(catalogRoot, 'definitions') : '/usr/share/PolicyDefinitions';
 const schemas = catalogRoot ? path.join(catalogRoot, 'docs/schema') : '/usr/share/xml/sdmx/1.0';
@@ -12,6 +23,9 @@ const schema = path.join(schemas, 'sdmx-1.0.xsd');
 
 const load = (name, mocks) => loadModule('components/templates/' + name, mocks);
 
+// Every case (including boundary values such as 0 and 99999 and cross-dependent Kerberos ages) must
+// be accepted atomically: if the planner's proposals ever contradict libadmix validation, the UI
+// would build requests the backend rejects.
 test(
     'dependency proposals are accepted as one atomic libadmix update',
     {

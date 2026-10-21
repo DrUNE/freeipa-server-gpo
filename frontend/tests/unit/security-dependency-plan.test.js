@@ -2,12 +2,26 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import * as planner from '@gpui/components/templates/security/dependency-plan';
 
+/*
+ * Security dependency planner (components/templates/security/dependency-plan): when one policy of
+ * a related group is edited, plan(model, policy, draft) proposes consistent values for the others
+ * (password ages, Kerberos ticket/service/renew lifetimes, account lockout, event log retention)
+ * or returns null when no coherent proposal exists.
+ *
+ * Fixtures are in-memory models: catalog() builds a Map of policies from {name: [type, initial,
+ * ranges, inputRanges, enum options]} with optional existing values; password(), kerberos(),
+ * lockout() and eventLog() are the concrete groups. plan() wraps planner.plan and also asserts
+ * the draft and the catalog are not mutated and the edited policy is not among the proposals;
+ * target/byName/value pick the draft, proposed change and its value. The planner only trusts the
+ * known namespace and policy shapes, so several tests mutate the definitions on purpose.
+ */
 const BASE = 'urn:altlinux:sdmx:policies:';
 const AGE = 'overwrite_events_older_than_the_retention_period';
 const AS_NEEDED = 'overwrite_events_as_needed';
 const clone = value => JSON.parse(JSON.stringify(value));
 const state = (kind, value) => ({ state: 'set', value: { kind, value } });
 
+// Builds a model with one `value` element per policy; policies named in `existing` are defined with that value.
 function catalog(namespace, prefix, definitions, existing = {}) {
     const policies = new Map();
     for (const [name, [kind, initial, ranges = [], inputRanges = [], options = []]] of Object.entries(definitions)) {
@@ -38,6 +52,7 @@ function catalog(namespace, prefix, definitions, existing = {}) {
     return { policies };
 }
 
+// Returns the policy and a draft for it (initial value unless one is given).
 function target(model, name, defined, value) {
     const policy = [...model.policies.values()].find(item => item.policyId.endsWith('.' + name));
     const kind = policy.definition.elements[0].value_type;
@@ -51,6 +66,7 @@ function target(model, name, defined, value) {
     };
 }
 
+// Runs the planner and checks its purity contract (no mutation, no self-proposal).
 function plan(model, name, defined, value) {
     const { policy, draft } = target(model, name, defined, value);
     const beforeDraft = clone(draft);
@@ -77,6 +93,7 @@ function value(change) {
     return change && change.draft.elements.value.value.value;
 }
 
+// Password ages: 0..999 maximum, 0..998 minimum; the minimum must stay below the maximum.
 function password(existing = {}) {
     return catalog(
         BASE + 'account-password',
@@ -89,6 +106,7 @@ function password(existing = {}) {
     );
 }
 
+// Enabling either age proposes the other with its default and defined = true.
 test('password ages are proposed together from either first policy', () => {
     let result = plan(password(), 'maximum_password_age', true, 42);
     assert.equal(value(byName(result, 'minimum_password_age')), 30);
@@ -97,6 +115,7 @@ test('password ages are proposed together from either first policy', () => {
     assert.equal(value(byName(result, 'maximum_password_age')), 42);
 });
 
+// Proposals are clamped to both range boundaries; no valid companion value gives null instead of an out-of-range proposal.
 test('password-age proposals obey zero and both range boundaries', () => {
     assert.equal(value(byName(plan(password(), 'maximum_password_age', true, 0), 'minimum_password_age')), 30);
     assert.equal(value(byName(plan(password(), 'maximum_password_age', true, 1), 'minimum_password_age')), 0);
@@ -104,6 +123,7 @@ test('password-age proposals obey zero and both range boundaries', () => {
     assert.equal(plan(password({ minimum_password_age: 30 }), 'maximum_password_age', true, 0), null);
 });
 
+// On a conflict the existing companion is adjusted (max-1, min+1) and the value the user typed is never changed; undefining proposes undefining the companion.
 test('password-age conflict repairs the companion, never the chosen value', () => {
     assert.equal(
         value(
@@ -131,6 +151,7 @@ test('password-age conflict repairs the companion, never the chosen value', () =
     );
 });
 
+// Kerberos: ticket age, service age (0 or 10..99999) and renew age, with the service lifetime derived from the ticket age at a fixed 60x ratio.
 function kerberos(existing = {}) {
     return catalog(
         BASE + 'account-kerberos',
@@ -151,6 +172,7 @@ function kerberos(existing = {}) {
     );
 }
 
+// Starting from any one of the three policies yields a coherent proposal for the other two.
 test('Kerberos proposes a coherent triple from every starting policy', () => {
     let result = plan(kerberos(), 'max_ticket_age', true, 7);
     assert.equal(value(byName(result, 'max_service_age')), 420);
@@ -163,6 +185,7 @@ test('Kerberos proposes a coherent triple from every starting policy', () => {
     assert.equal(value(byName(result, 'max_service_age')), 600);
 });
 
+// The edited value stays fixed, derived values respect the limits, zero means the all-zero triple, and undefining proposes undefining the others.
 test('Kerberos preserves the edited value, handles limits, and proposes the zero triple', () => {
     let result = plan(
         kerberos({ max_ticket_age: 7, max_service_age: 600, max_renew_age: 7 }),
@@ -193,6 +216,7 @@ test('Kerberos preserves the edited value, handles limits, and proposes the zero
     assert.ok(result.changes.every(change => !change.draft.defined));
 });
 
+// The service lifetime input domain is zero or 10..99999; values outside it (and outside the other ranges) give no proposal.
 test('Kerberos service lifetime permits zero or 10–99999 without extending the catalog bounds', () => {
     const minimum = plan(kerberos(), 'max_service_age', true, 10);
     assert.equal(value(byName(minimum, 'max_ticket_age')), 7);
@@ -207,6 +231,7 @@ test('Kerberos service lifetime permits zero or 10–99999 without extending the
     }
 });
 
+// If the catalog's input domain differs from the one the planner knows, automatic proposals are switched off rather than guessing.
 test('a changed Kerberos service input domain disables automatic proposals', () => {
     const model = kerberos();
     model.policies.get(
@@ -216,6 +241,7 @@ test('a changed Kerberos service input domain disables automatic proposals', () 
     assert.equal(plan(model, 'max_service_age', true, 600), null);
 });
 
+// Lockout: bad count, reset counter, duration and the allow-administrator flag.
 function lockout(existing = {}) {
     return catalog(
         BASE + 'account-lockout',
@@ -230,6 +256,7 @@ function lockout(existing = {}) {
     );
 }
 
+// Activation proposes all three companions, including a defined boolean false.
 test('lockout activation proposes all three companions, including defined false', () => {
     let result = plan(lockout(), 'lockout_bad_count', true, 5);
     assert.equal(result.changes.length, 3);
@@ -241,6 +268,7 @@ test('lockout activation proposes all three companions, including defined false'
     assert.equal(value(byName(result, 'lockout_bad_count')), 5);
 });
 
+// The edited duration/reset value is kept; zero duration means indefinite and needs no proposal.
 test('lockout durations preserve the edited value and zero means indefinite', () => {
     assert.equal(
         value(
@@ -296,6 +324,7 @@ test('lockout durations preserve the edited value and zero means indefinite', ()
     );
 });
 
+// A zero bad count clears the companions; clearing a companion disables lockout; nothing to do when it is already off.
 test('disabling lockout clears companions; clearing one companion proposes disabling lockout', () => {
     const active = {
         lockout_bad_count: 5,
@@ -313,6 +342,7 @@ test('disabling lockout clears companions; clearing one companion proposes disab
     assert.equal(plan(lockout(), 'lockout_bad_count', true, 0), null);
 });
 
+// Event log: retention mode enum plus a retention days policy for one stream.
 function eventLog(stream, existing = {}) {
     const mode = stream + '_log_audit_log_retention_period';
     const days = stream + '_log_retention_days';
@@ -327,6 +357,7 @@ function eventLog(stream, existing = {}) {
     );
 }
 
+// Same behavior for all three streams: the mode and the days policy propose each other in both directions.
 for (const stream of ['security', 'application', 'system']) {
     test(stream + ' log retention proposes the other policy in both directions', () => {
         const mode = stream + '_log_audit_log_retention_period';
@@ -342,6 +373,7 @@ for (const stream of ['security', 'application', 'system']) {
     });
 }
 
+// Only the trusted namespace counts: a copy of the policy ids in another namespace must not be matched.
 test('dependency planning never matches an untrusted namespace with a copied policy ID', () => {
     const model = catalog('urn:other:password', 'account.password', {
         maximum_password_age: ['integer', 42, [[0, 999]]],
@@ -350,6 +382,7 @@ test('dependency planning never matches an untrusted namespace with a copied pol
     assert.equal(plan(model, 'maximum_password_age', true, 42), null);
 });
 
+// Any drift of the definition (type, range, input domain, requiredness, enum options) disables the proposals that were written for the old definition.
 test('changed type, range, input domain, requiredness, or enum options disable stale proposals', () => {
     let model = password();
     model.policies.get(

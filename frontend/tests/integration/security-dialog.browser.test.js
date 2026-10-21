@@ -14,7 +14,16 @@ try {
     /* Browser dependencies are optional for the unit-only runner. */
 }
 
+/*
+ * End-to-end check of the Security policy table and its edit dialog, in a real Chromium (Playwright).
+ *
+ * Fixture: a tiny http server serves one page plus the .test-root AMD tree through requirejs and the global CSS. The
+ * page defines a fake `util/API` that returns a fixed security catalog (two integer password policies and one policy
+ * without settings) and records every securityDefinitionsUpdate request in window.requests; show() renders the real
+ * security template. SECURITY_SCREENSHOT_DIR, when set, makes the test also save screenshots (debugging aid).
+ */
 const root = path.resolve(import.meta.dirname, '../../.test-root');
+// The page: stylesheets, the fake util/API with the catalog, and show() rendering the real security template.
 const html = `<!doctype html><html><head>
 <link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/other.css">
 <style>body{font:12px Arial,sans-serif;color:#363636}.gp__container{min-width:0;height:100vh}#reference{position:absolute;left:-2000px;top:0}</style>
@@ -41,6 +50,10 @@ window.show=async()=>{
 show().then(()=>window.ready=true);
 });</script></body></html>`;
 
+// One long scenario: the dialog must look like the Preferences dialog (computed styles compared with a clone stripped
+// of its gpo-security* classes), tabs work from the keyboard, Escape and Apply open a confirmation that makes the
+// dialog inert and keeps the draft, nothing is sent before confirmation, and the confirmed request defines both
+// edited policies. It ends with the same flow in Russian to check localized labels and buttons.
 test(
     'Security dialog reuses Preferences styling, retains draft and supports accessible tabs',
     {

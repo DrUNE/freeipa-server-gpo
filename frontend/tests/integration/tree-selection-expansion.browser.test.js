@@ -5,6 +5,22 @@ import path from 'node:path';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Browser checks for how tree selection and folder expansion interact with the
+ * main catalog (workspace), lazy folders and the unsaved-changes guard.
+ *
+ * Fixture: inline page with the real app tree-view state (createTreeViewState),
+ * tree-view-list and workspace; no RPC (util/API is a stub). Tree: Example GPO >
+ * Target category > Nested category > Nested leaf, Other category, and a lazy
+ * category whose loadChildren() hangs until the test calls window.resolveLazy /
+ * rejectLazy. Rows get data-test-node attributes; a #confirmation element plays
+ * the policy-changed modal (its button calls handlePolicyChangedNo). The page is
+ * ready once "Other category" is selected.
+ *
+ * Helpers: title()/arrow() locate a row's title or expand arrow; folderState()/
+ * expectFolder() assert the model flag, DOM class, aria-expanded, visibility and
+ * selection of a folder together.
+ */
 let chromium;
 let requireJs;
 try {
@@ -50,6 +66,7 @@ require(['app','components/tree-view/tree-view-list','components/workspace/works
  });
 </script></body></html>`;
 
+// Serves the page and .test-root, runs `run(page)`; page errors are appended to assertion failures and otherwise must be empty.
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -98,6 +115,7 @@ async function withPage(run) {
 const title = (page, name) => page.locator('[data-test-node="' + name + '"] > .tree-item__title');
 const arrow = (page, name) => page.locator('[data-test-node="' + name + '"] > .icon-switcher');
 
+// Reads model and DOM state of one fixture folder (opened, selected, active row, aria-expanded, list visibility).
 async function folderState(page, name) {
     return page.evaluate(name => {
         const item = { target, other, lazy, nested }[name];
@@ -114,6 +132,7 @@ async function folderState(page, name) {
     }, name);
 }
 
+// Asserts model and DOM agree on `opened`; the list-visibility check is skipped for a lazy folder that has not loaded.
 async function expectFolder(page, name, opened, selected) {
     const actual = await folderState(page, name);
     assert.equal(actual.opened, opened);
@@ -123,6 +142,8 @@ async function expectFolder(page, name, opened, selected) {
     if (name !== 'lazy' || (await page.evaluate(() => lazy.loaded))) assert.equal(actual.nestedVisible, opened);
 }
 
+// Clicking a selected title toggles it without re-rendering the catalog; arrows of other folders do not change the view,
+// filter text, or the render/navigation request counters.
 test(
     'tree selection preserves a collapsed catalog; repeated titles and other arrows retain the current view and filter',
     browserOptions,
@@ -130,7 +151,7 @@ test(
         await withPage(async page => {
             await title(page, 'Target category').click();
             await expectFolder(page, 'target', false, true);
-            await page.getByRole('button', { name: 'Nested category', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Nested category', exact: true }).waitFor();
             const search = page.locator('.workspace [data-policy-filter]');
             await search.fill('Nested');
             const before = await page.evaluate(() => {
@@ -156,6 +177,8 @@ test(
     }
 );
 
+// Arrow clicks are not navigation: they ignore the unsaved-changes guard and keep the draft, while selecting the
+// category title still raises the confirmation.
 test(
     'arrow expansion bypasses navigation guard without discarding a draft; a category selection remains guarded',
     browserOptions,
@@ -187,6 +210,7 @@ test(
     }
 );
 
+// Accessibility: arrows are focusable buttons toggled by Enter/Space, with localized labels that flip with state, and never select.
 for (const language of ['en', 'ru']) {
     test(
         `tree arrows are keyboard operable and announce expansion in ${language} without selecting`,
@@ -215,6 +239,7 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// Selecting a lazy category loads children once and shows them in the catalog, but the sidebar folder stays collapsed.
 test(
     'selecting a lazy category loads its main catalog while keeping its sidebar folder collapsed',
     browserOptions,
@@ -226,13 +251,14 @@ test(
             await page.evaluate(() =>
                 resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
             );
-            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Lazy child', exact: true }).waitFor();
             await expectFolder(page, 'lazy', false, true);
             assert.equal(await page.evaluate(() => lazyRequests), 1);
         });
     }
 );
 
+// Race: collapsing a lazy folder while it loads must stick after the load finishes and must not navigate.
 test(
     'a lazy arrow can be collapsed before loading completes, without selecting or reopening its folder',
     browserOptions,
@@ -258,6 +284,7 @@ test(
     }
 );
 
+// Race: an explicit navigation that requested opening is overridden by a later user collapse.
 test(
     'an explicit lazy navigation honors a later collapse instead of replaying its old open request',
     browserOptions,
@@ -272,12 +299,13 @@ test(
             await page.evaluate(() =>
                 resolveLazy([{ title: 'Lazy child', type: 'folder', icon: 'ico-folder', opened: false, children: [] }])
             );
-            await page.getByRole('button', { name: 'Lazy child', exact: true }).waitFor();
+            await page.getByRole('option', { name: 'Lazy child', exact: true }).waitFor();
             await expectFolder(page, 'lazy', false, true);
         });
     }
 );
 
+// A failed lazy load leaves the folder collapsed (despite an intervening toggle) and a later click retries the request.
 test(
     'a failed lazy arrow remains collapsed after an intervening toggle and remains retryable',
     browserOptions,
@@ -301,6 +329,7 @@ test(
     }
 );
 
+// navigateToNode with openPath expands every collapsed ancestor (including the root) and selects the leaf's own row.
 test(
     'normal navigation to a nested element reveals all ancestors and selects its actual tree row',
     browserOptions,

@@ -28,7 +28,19 @@ function render({ active, onChange, three = false }) {
     return host;
 }
 
-export default { title: 'Primitives/Tabs', args: { onChange: fn() }, render };
+export default {
+    parameters: {
+        docs: {
+            description: {
+                component:
+                    'A row of tab buttons over a set of panels, one shown. Left and Right move to the previous and the next tab, Home and End to the first and the last; only the shown tab is in the Tab order.'
+            }
+        }
+    },
+    title: 'Primitives/Tabs',
+    args: { onChange: fn() },
+    render
+};
 
 export const Default = {
     play: async ({ canvasElement }) => {

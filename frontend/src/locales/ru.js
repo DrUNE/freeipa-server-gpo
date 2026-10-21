@@ -535,6 +535,14 @@ const treeView = {
     unableToLoadPolicies: 'Не удалось загрузить политики.',
     unableToLoadSection: 'Не удалось загрузить раздел'
 };
+const orderableList = {
+    handle: 'Переместить: {label}',
+    handleHelp: 'Перетащите для изменения порядка. На этой кнопке Ctrl+↑/↓ перемещает элемент.',
+    moveUp: 'Переместить выше: {label}',
+    moveDown: 'Переместить ниже: {label}',
+    moved: '{label}: позиция {index} из {total}.',
+    empty: 'Нет элементов'
+};
 const header = {
     create: 'Создать',
     edit: 'Изменить',
@@ -653,6 +661,7 @@ export {
     policies,
     preferences,
     treeView,
+    orderableList,
     header,
     systemSettings,
     policyChangedModal,

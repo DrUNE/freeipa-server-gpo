@@ -2,9 +2,27 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import vm from 'node:vm';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { html } from './helpers/admx-page-html.js';
+
+/*
+ * Browser checks for small editor affordances: the category/All Policies search
+ * field living in the breadcrumb header, and the animated tree expansion.
+ *
+ * Fixture: the page HTML (fake API, state, selectAdmin(), scopeRoots, requests
+ * log) is NOT defined here; it is extracted by text from
+ * admx-navigation.browser.test.js (the `const html = ...` template) and evaluated
+ * in a vm context. Static files come from .test-root through a tiny HTTP server.
+ * fixture() wraps the app in a `.modal-gpui` dialog shell as in real FreeIPA,
+ * fails the test on any page error, and asserts that no mutating RPC
+ * (update/delete/create) was sent while only browsing.
+ *
+ * Helpers: expectCompactHeader() checks the filter sits inside the breadcrumb
+ * row (single input, 28px high, 20px right inset, no leftover toolbar);
+ * prepareMotionTree() mounts a standalone tree-view with a collapsed folder and
+ * exposes setMotionOpen()/motionState() to inspect grid-expansion animations.
+ */
 let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
@@ -15,12 +33,8 @@ try {
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const root = path.resolve(import.meta.dirname, '../../.test-root');
-const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
-const start = source.indexOf('const html = `');
-const end = source.indexOf('\nconst browserOptions', start);
-assert.ok(start >= 0 && end > start);
-const html = vm.runInNewContext(source.slice(start, end) + '\nhtml;');
 
+// Serves the shared admx-navigation page + .test-root, runs `run(page)`, then checks for page errors and read-only RPC traffic.
 async function fixture(run, reducedMotion = 'no-preference') {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -76,10 +90,12 @@ async function fixture(run, reducedMotion = 'no-preference') {
     }
 }
 
+// Short locators/predicates used across tests.
 const header = page => page.locator('.workspace > .gpo-category-path');
 const filter = page => header(page).locator('[data-policy-filter]');
 const focused = locator => locator.evaluate(element => element === document.activeElement);
 
+// Shared layout contract for the filter: one input in the breadcrumb row, beside (not under) the path, with fixed size and inset.
 async function expectCompactHeader(page, placeholder) {
     assert.equal(await page.locator('.workspace [data-policy-filter]').count(), 1);
     assert.equal(await filter(page).getAttribute('placeholder'), placeholder);
@@ -124,6 +140,8 @@ async function expectCompactHeader(page, placeholder) {
 }
 
 for (const language of ['en', 'ru']) {
+    // Category filter must keep selection, the same input node and focus while filtering, clear on Escape,
+    // and survive leaving and reopening the view (guards against rerenders that recreate the input).
     test(
         'Category search stays in the top-right breadcrumb, keeps selection/input and clears with Escape in ' +
             language,
@@ -138,7 +156,7 @@ for (const language of ['en', 'ru']) {
                     page,
                     await page.evaluate(() => require('locales/translations').t('policySearch.categoryPlaceholder'))
                 );
-                await page.getByRole('button', { name: 'Zulu root policy', exact: true }).click();
+                await page.getByRole('option', { name: 'Zulu root policy', exact: true }).click();
                 await page.evaluate(() => {
                     window.originalFilter = document.querySelector('.workspace [data-policy-filter]');
                 });
@@ -182,6 +200,8 @@ for (const language of ['en', 'ru']) {
             })
     );
 
+    // Async catalog load is delayed by hand (policyIndex stub); results arriving late must not replace the
+    // input or steal focus from a user who is already typing.
     test(
         'All Policies search retains its compact-header input and focus across async catalog/table rerenders in ' +
             language,
@@ -243,6 +263,7 @@ for (const language of ['en', 'ru']) {
     );
 }
 
+// In a 320px pane the filter must stay inside the breadcrumb bar without horizontal overflow.
 test('Compact header wraps search safely when the catalog pane becomes narrow', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => selectAdmin('computer'));
@@ -271,6 +292,7 @@ test('Compact header wraps search safely when the catalog pane becomes narrow', 
     })
 );
 
+// Builds an isolated tree-view with an initially open folder and a closed one to animate.
 async function prepareMotionTree(page) {
     await page.evaluate(() => {
         const tree = require('components/tree-view/tree-view-list');
@@ -321,6 +343,9 @@ async function prepareMotionTree(page) {
     });
 }
 
+// Expansion animation: initially open groups are never clipped, in-flight groups clip children (and ignore
+// pointer hits outside the crop), repeated/reversed toggles stay consistent, and the settled state restores
+// the focus-ring outsets (padding, ::before insets) that overflow:hidden would cut off.
 test(
     'Initial-open tree groups are stable while real expansion/reversal clips children and final-open outsets survive',
     { skip },
@@ -416,6 +441,7 @@ test(
         })
 );
 
+// With prefers-reduced-motion no transition is created, and collapsing a branch that holds focus moves focus to the branch (no lost keyboard position).
 test(
     'Reduced-motion expansion settles immediately and closing recovers the visible keyboard focus',
     { skip },

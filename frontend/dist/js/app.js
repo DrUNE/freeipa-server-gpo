@@ -289,6 +289,7 @@
 		header: () => header$2,
 		menu: () => menu$1,
 		navigation: () => navigation$1,
+		orderableList: () => orderableList$1,
 		policies: () => policies$1,
 		policyChangedModal: () => policyChangedModal$1,
 		policySearch: () => policySearch$1,
@@ -828,6 +829,14 @@
 		unableToLoadPolicies: "Unable to load policies.",
 		unableToLoadSection: "Unable to load the section."
 	};
+	var orderableList$1 = {
+		handle: "Move {label}",
+		handleHelp: "Drag to reorder. On this handle, Ctrl+Up/Down moves the item.",
+		moveUp: "Move {label} up",
+		moveDown: "Move {label} down",
+		moved: "{label} moved to position {index} of {total}.",
+		empty: "No items"
+	};
 	var header$2 = {
 		create: "Create",
 		edit: "Edit",
@@ -940,6 +949,7 @@
 		header: () => header$1,
 		menu: () => menu,
 		navigation: () => navigation,
+		orderableList: () => orderableList,
 		policies: () => policies,
 		policyChangedModal: () => policyChangedModal,
 		policySearch: () => policySearch,
@@ -1478,6 +1488,14 @@
 		loadingPolicies: "Loading policies...",
 		unableToLoadPolicies: "Не удалось загрузить политики.",
 		unableToLoadSection: "Не удалось загрузить раздел"
+	};
+	var orderableList = {
+		handle: "Переместить: {label}",
+		handleHelp: "Перетащите для изменения порядка. На этой кнопке Ctrl+↑/↓ перемещает элемент.",
+		moveUp: "Переместить выше: {label}",
+		moveDown: "Переместить ниже: {label}",
+		moved: "{label}: позиция {index} из {total}.",
+		empty: "Нет элементов"
 	};
 	var header$1 = {
 		create: "Создать",
@@ -5930,7 +5948,7 @@
 		const row = createElement("span", {
 			className: "workspace-list-item",
 			attrs: typeof onItemClick === "function" ? {
-				role: "button",
+				role: "option",
 				tabindex: "-1"
 			} : {},
 			children: [createElement("span", { className: ["icon", item.icon] }), createElement("span", {
@@ -5952,6 +5970,7 @@
 		}
 		return createElement("li", {
 			className: ["gp__list-children__item", item.type],
+			attrs: { role: "none" },
 			children: [row]
 		});
 	}
@@ -5978,7 +5997,13 @@
 			help,
 			isOpen: isHelpOpen
 		});
-		const list = createElement("ul", { className: "gp__list-children__list" });
+		const list = createElement("ul", {
+			className: "gp__list-children__list",
+			attrs: {
+				role: "listbox",
+				"aria-label": categoryPath || t("policySearch.categoryPlaceholder")
+			}
+		});
 		let rowItems = /* @__PURE__ */ new Map();
 		let navigation = null;
 		function select(item) {

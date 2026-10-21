@@ -5,6 +5,21 @@ import path from 'node:path';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Browser checks for "family" dialogs (Preferences list, Scripts event) opened from
+ * an All Policies search result, while the catalog behind them stays untouched.
+ *
+ * Fixture: inline page with a fake catalog (search input, selected row, result
+ * buttons), the real header, and a fake `util/API` backed by in-memory
+ * preferenceRows/scripts. API calls are logged into window.calls; onSaved and
+ * onClose callbacks fill window.saved / window.closeCount. Switches
+ * holdPreferences / holdScripts / holdWrite make the matching fake call hang until
+ * window.resolvePreferences/resolveScripts/resolveWrite is invoked, to test races.
+ * Native confirm() dialogs are auto-accepted.
+ *
+ * unchangedCatalog() is the shared postcondition: query text, selected row class
+ * and header markup are exactly as before the dialog was opened.
+ */
 let chromium;
 let requireJs;
 try {
@@ -112,6 +127,7 @@ require(['util/element-creator','components/templates/script-template','componen
 });
 </script></body></html>`;
 
+// Serves the page and .test-root, runs `run(page)` and fails on uncaught page errors (appended to assertion messages).
 async function withPage(run) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -158,12 +174,15 @@ async function withPage(run) {
     }
 }
 
+// The dialogs must be side-effect free for the host catalog: search text, selection and header are intact.
 async function unchangedCatalog(page) {
     assert.equal(await page.locator('#catalog-query').inputValue(), 'File');
     assert.equal(await page.locator('#catalog-row').getAttribute('class'), 'active');
     assert.equal(await page.evaluate(() => document.getElementById('header').innerHTML === headerBefore), true);
 }
 
+// Happy path: family toolbar is local (no breadcrumb), the parent goes inert under the item form, targeting editor nests,
+// save publishes once, and closing returns focus to the opener.
 test(
     'Preferences result opens a local family toolbar, reuses item/targeting editors, saves and returns without changing the catalog',
     browserOptions,
@@ -206,6 +225,7 @@ test(
     }
 );
 
+// Repeated creates and a delete keep the list in sync and each publication reaches onSaved (2 creates + 1 delete = 3).
 test('Preferences family supports repeated creates and removal using its local controls', browserOptions, async () => {
     await withPage(async page => {
         await page.locator('#open-preferences').click();
@@ -229,6 +249,8 @@ test('Preferences family supports repeated creates and removal using its local c
     });
 });
 
+// Closing the family with a dirty nested form must ask once; "No" keeps the draft, "Yes" tears down all nested
+// dialogs/hosts and never sends an update.
 test(
     'Preferences outer close shares discard confirmation and cleans nested forms without discarding on No',
     browserOptions,
@@ -256,6 +278,7 @@ test(
     }
 );
 
+// Race: the dialog is closed while the item list request is pending; the late response must not reopen anything.
 test(
     'closing a still-loading Preferences family does not resurrect it after its response arrives',
     browserOptions,
@@ -282,6 +305,8 @@ test(
     }
 );
 
+// The scripts dialog requests only its own event, nests a file explorer (parent inert), keeps the unsaved order choice
+// across it, and publishes an add of an existing asset immediately (no overview page, no other events loaded).
 test(
     'Scripts result loads only its event, opens a nested SYSVOL explorer and publishes existing entry operations immediately',
     browserOptions,
@@ -340,6 +365,7 @@ test(
     }
 );
 
+// Race: closing while the event load is pending must swallow the late response and give focus back to the opener.
 test('Scripts cleanup suppresses a late event load and restores the result focus', browserOptions, async () => {
     await withPage(async page => {
         await page.evaluate(() => {
@@ -358,6 +384,7 @@ test('Scripts cleanup suppresses a late event load and restores the result focus
     });
 });
 
+// While a write is in flight the dialog refuses to close (no confirmation either) and the submitted form stays visible.
 test(
     'busy script publication prevents closing its family dialog and keeps the submitted form',
     browserOptions,

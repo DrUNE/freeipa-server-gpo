@@ -4,6 +4,18 @@ import * as collection from '@gpui/util/collection-value';
 import * as enLocale from '@gpui/locales/en';
 import * as ruLocale from '@gpui/locales/ru';
 
+/*
+ * Collection value model (util/collection-value): the editing session behind list and key/value
+ * parameters of preference-like policies (Software Install packages, PKCS#11 providers and so
+ * on). A session wraps a typed value (text_list or key_value_list) with stable row ids, selection,
+ * add/edit/move/remove, a pending-editor buffer, dirty tracking, filtering and validation
+ * against the parameter's collection metadata.
+ *
+ * Pure data tests, no DOM. Helpers: plain() drops frozen/proxy state via JSON, textList() and
+ * keyValueList() build typed values, listParameter() and keyValueParameter() build parameter DTOs
+ * with collection metadata overrides (their `collection` argument shadows the imported module only
+ * inside those helpers). The last test checks the EN/RU locale tables for the collection strings.
+ */
 function plain(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -34,6 +46,7 @@ function keyValueParameter(collection = {}, extra = {}) {
     };
 }
 
+// Values stay typed (no delimiter encoding): '=' and ':' inside text must survive a round trip, and the mode follows the value kind when metadata is absent.
 test('ordinary and explicit collections keep distinct typed values without delimiter encoding', () => {
     const ordinary = collection.session(listParameter(), textList(['a=b', 'C:\\Scripts\\one:two.cmd']));
     assert.equal(ordinary.mode, 'list');
@@ -48,6 +61,7 @@ test('ordinary and explicit collections keep distinct typed values without delim
     assert.equal(collection.mode({ kind: 'list' }, keyValueList([])), 'key_value');
 });
 
+// Older parameters without collection metadata still behave as plain text lists with default constraints.
 test('missing collection metadata remains compatible with existing text-list callers', () => {
     const parameter = { id: 'OldList', kind: 'list' };
     assert.equal(collection.mode(parameter, textList(['old'])), 'list');
@@ -61,6 +75,7 @@ test('missing collection metadata remains compatible with existing text-list cal
     assert.deepEqual(plain(collection.session(parameter, null).read()), textList([]));
 });
 
+// Sessions deep-copy input and output; an edit in one dialog, the caller's source or a returned value must not leak into another.
 test('each session isolates the original, other sessions and returned typed pairs', () => {
     const parameter = keyValueParameter();
     const original = keyValueList([{ key: 'OpenSC', value: '/usr/lib/opensc.so' }]);
@@ -82,6 +97,7 @@ test('each session isolates the original, other sessions and returned typed pair
     assert.deepEqual(plain(first.read()), keyValueList([{ key: 'OpenSC', value: '/local/draft.so' }]));
 });
 
+// A reopened dialog starts from the current parent draft (clean), and cancelling it leaves that draft untouched.
 test('reopening clones the current parent draft rather than an older dialog baseline', () => {
     const parameter = listParameter();
     const initial = textList(['first']);
@@ -95,6 +111,7 @@ test('reopening clones the current parent draft rather than an older dialog base
     assert.deepEqual(initial, textList(['first']));
 });
 
+// Row ids stay fixed across edits and reordering while positions follow array order, so the UI can keep selection and focus.
 test('row identities are stable and list positions follow zero-based array order', () => {
     const session = collection.session(listParameter(), textList(['zero', 'one', 'two']));
     const originalIds = plain(session.rows.map(row => row.id));
@@ -116,6 +133,7 @@ test('row identities are stable and list positions follow zero-based array order
     assert.deepEqual(plain(session.read()), textList(['two', 'zero', 'edited one']));
 });
 
+// Add creates a blank unselected row with a fresh id (ids are never reused after removal); blank untouched rows are not part of the result.
 test('Add appends a blank row, clears selection and uses a new identity after deletion', () => {
     const session = collection.session(
         keyValueParameter(),
@@ -149,6 +167,7 @@ test('Add appends a blank row, clears selection and uses a new identity after de
     );
 });
 
+// Remove acts on the selected row only, ignores unknown selections and does not auto-select a neighbour.
 test('Remove deletes only the selected row and clears selection without selecting a neighbour', () => {
     const session = collection.session(listParameter(), textList(['a', 'b', 'c']));
     const ids = plain(session.rows.map(row => row.id));
@@ -164,6 +183,7 @@ test('Remove deletes only the selected row and clears selection without selectin
     assert.equal(session.removeSelected(), false);
 });
 
+// move() keeps ids and selection, clamps out-of-range targets, and returns false for no-ops and invalid arguments.
 test('reorder retains row identities and selection, and invalid or no-op moves change nothing', () => {
     const session = collection.session(listParameter(), textList(['a', 'b', 'c']));
     const ids = plain(session.rows.map(row => row.id));
@@ -182,6 +202,7 @@ test('reorder retains row identities and selection, and invalid or no-op moves c
     assert.equal(session.selectedId, ids[1]);
 });
 
+// The open editor's uncommitted text counts for read, validation (including duplicate keys) and dirty state, but is never written into the rows until committed.
 test('pending editor text is included in read, validation and dirty detection but never mutates rows', () => {
     const parameter = keyValueParameter();
     const session = collection.session(
@@ -226,6 +247,7 @@ test('pending editor text is included in read, validation and dirty detection bu
     );
 });
 
+// A just-added empty row is ignored, whereas pre-existing empty entries are real data; a row becomes data once it is filled.
 test('fresh blank rows are ignored while existing empty entries remain part of the collection', () => {
     const session = collection.session(listParameter(), textList(['']));
     const addedId = session.add();
@@ -255,6 +277,7 @@ test('fresh blank rows are ignored while existing empty entries remain part of t
     );
 });
 
+// A new key/value row with only a value is kept and reports a required-key error at its own row id.
 test('partially filled new key–value rows are retained and validated at the correct row identity', () => {
     const session = collection.session(keyValueParameter(), keyValueList([]));
     const id = session.add();
@@ -266,6 +289,7 @@ test('partially filled new key–value rows are retained and validated at the co
     assert.deepEqual(plain(session.errors()), []);
 });
 
+// Duplicate-key detection follows the declared case rule (ASCII only), not locale case folding.
 test('explicit keys are unique with domain-declared ASCII-case rules, not locale folding', () => {
     const insensitive = keyValueParameter({ key_case_sensitive: false });
     const casePair = keyValueList([
@@ -291,6 +315,7 @@ test('explicit keys are unique with domain-declared ASCII-case rules, not locale
     );
 });
 
+// With unicode_uppercase comparison, non-ASCII keys collide after uppercasing (including ß and SS), which a conservative check must report.
 test('declared Unicode uppercase comparison conservatively finds non-ASCII registry key collisions', () => {
     const entries = keyValueList([
         { key: 'Ключ', value: '1' },
@@ -316,6 +341,7 @@ test('declared Unicode uppercase comparison conservatively finds non-ASCII regis
     );
 });
 
+// Uniqueness applies only to lists that declare it (name-equals-data); numbered lists may repeat entries and hold empty or blank values.
 test('name-equals-data lists enforce declared uniqueness while numbered lists allow repeats and empty values', () => {
     const named = listParameter({ unique_keys: true, allow_empty_values: false });
     assert.deepEqual(plain(collection.validate(named, textList(['Package', 'package']))), [
@@ -353,6 +379,7 @@ test('name-equals-data lists enforce declared uniqueness while numbered lists al
     );
 });
 
+// min_items ignores untouched new rows, and the empty-value rule rejects blank input without trimming stored text.
 test('minimum size excludes untouched new rows and empty-value constraints do not trim stored content', () => {
     const parameter = listParameter({ min_items: 1, allow_empty_values: false });
     const session = collection.session(parameter, textList([]));
@@ -366,6 +393,7 @@ test('minimum size excludes untouched new rows and empty-value constraints do no
     assert.deepEqual(plain(session.read()), textList(['  firefox  ']));
 });
 
+// NUL characters and reserved registry key names (such as **Del. prefix, only where the entry acts as a key) get field-specific errors.
 test('NUL text and reserved or blank registry keys receive field-specific errors', () => {
     const errors = plain(
         collection.validate(
@@ -393,6 +421,7 @@ test('NUL text and reserved or blank registry keys receive field-specific errors
     assert.deepEqual(plain(collection.validate(listParameter({ unique_keys: false }), textList(['**plain-text']))), []);
 });
 
+// CR/LF are invalid in registry names but valid in data, and values with newlines must round trip unchanged.
 test('registry names reject CR and LF while collection data preserves permitted newlines', () => {
     for (const name of ['first\nsecond', 'first\rsecond', 'first\r\nsecond']) {
         assert.deepEqual(
@@ -416,6 +445,7 @@ test('registry names reject CR and LF while collection data preserves permitted 
     assert.deepEqual(plain(collection.session(numbered, entries).read()), entries);
 });
 
+// max_length is counted in Unicode code points, so emoji count as one and are not cut by UTF-16 surrogates; the key length is independent of the value limit.
 test('maximum length counts Unicode scalar values rather than UTF-16 code units', () => {
     const parameter = listParameter({}, { max_length: 2 });
     assert.deepEqual(plain(collection.validate(parameter, textList(['🦊🙂', 'яa']))), []);
@@ -434,6 +464,7 @@ test('maximum length counts Unicode scalar values rather than UTF-16 code units'
     assert.deepEqual(plain(collection.validate(listParameter({}, { max_length: null }), textList(['long value']))), []);
 });
 
+// Explicit key and value limits, with the utf16 length unit, count separately and accept values exactly at the boundary.
 test('declared key and value limits count UTF-16 units separately and accept exact emoji boundaries', () => {
     const rules = { max_key_length: 3, max_value_length: 5, length_unit: 'utf16' };
     const parameter = keyValueParameter(rules);
@@ -475,6 +506,7 @@ test('declared key and value limits count UTF-16 units separately and accept exa
     );
 });
 
+// The declared mode wins over the wire kind: a mismatching value is invalid, not silently reinterpreted; without metadata any kind is accepted.
 test('declared collection mode rejects a mismatched wire kind instead of inferring a different mode', () => {
     const parameter = listParameter();
     const mismatched = keyValueList([{ key: 'key', value: 'value' }]);
@@ -488,6 +520,7 @@ test('declared collection mode rejects a mismatched wire kind instead of inferri
     assert.deepEqual(plain(collection.validate({ kind: 'list' }, mismatched)), []);
 });
 
+// Malformed payloads give invalidValue errors by index and field and are neither normalized nor mutated.
 test('invalid values are rejected without normalizing malformed entries or mutating the input', () => {
     assert.deepEqual(plain(collection.validate(listParameter(), null)), [
         { index: null, field: null, code: 'invalidValue' }
@@ -505,6 +538,7 @@ test('invalid values are rejected without normalizing malformed entries or mutat
     assert.deepEqual(malformed, baseline);
 });
 
+// Summary shows at most three single-line previews (key names only for key/value) and never truncates or alters the stored values.
 test('summaries show at most three previews, use only KV keys and preserve original full values', () => {
     const longValue = 'x'.repeat(10000) + '\nfull final text';
     const ordinary = textList(['first\nline', 'second\tvalue', longValue, 'fourth']);
@@ -539,6 +573,7 @@ test('summaries show at most three previews, use only KV keys and preserve origi
     });
 });
 
+// Filtering only changes visibility: selection, dirty state, order and the saved value are unaffected.
 test('filtering searches keys and values but does not alter saved order or hidden entries', () => {
     const initial = keyValueList([
         { key: 'First', value: '/first.so' },
@@ -557,6 +592,7 @@ test('filtering searches keys and values but does not alter saved order or hidde
     assert.deepEqual(plain(session.visible('').map(row => row.id)), plain(session.rows.map(row => row.id)));
 });
 
+// Only value/key fields of existing rows can be edited (not ids, not key in a plain list), and an unknown selection never removes data.
 test('only valid editable fields can be committed and an unknown selection cannot remove data', () => {
     const ordinary = collection.session(listParameter(), textList(['one']));
     const id = ordinary.rows[0].id;
@@ -570,6 +606,7 @@ test('only valid editable fields can be committed and an unknown selection canno
     assert.deepEqual(plain(ordinary.read()), textList(['one']));
 });
 
+// EN and RU collection strings have the same keys and placeholders, none empty, and every validation code has a message.
 test('English and Russian collection strings cover every label and validation code with matching placeholders', () => {
     const en = enLocale.collections;
     const ru = ruLocale.collections;

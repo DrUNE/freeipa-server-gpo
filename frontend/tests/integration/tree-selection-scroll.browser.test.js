@@ -2,9 +2,26 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import vm from 'node:vm';
 import { test } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { html } from './helpers/admx-page-html.js';
+
+/*
+ * Browser checks for scrolling the tree pane to the selected row.
+ *
+ * Fixture: the page HTML (state, selectAdmin(), category(), templates, requests
+ * log) is extracted by text from admx-navigation.browser.test.js (the
+ * `const html = ...` template) and evaluated in a vm context. fixture() shrinks
+ * the tree to 280x180px (WxH), makes the document scrollable (min-height 2000px,
+ * scrolled to 120) and, unless options.originalTree, replaces the tree with 50
+ * synthetic nodes plus a four-level nested "Deep policy". A focused #scroll-focus
+ * input stands in for "focus must not move". TREE_SCROLL_ASSET lets a developer
+ * serve an alternative tree-view-list.js for comparison.
+ *
+ * Helpers: settled() waits for expand animations; visible() waits until the
+ * active row lies inside the pane; position() snapshots tree/page scroll,
+ * focus and selection.
+ */
 let chromium, requireJs;
 try {
     chromium = (await import('playwright')).chromium;
@@ -15,12 +32,8 @@ try {
 const skip =
     !chromium || !requireJs ? 'Install playwright and requirejs (npm install in frontend/) for browser checks.' : false;
 const root = path.resolve(import.meta.dirname, '../../.test-root');
-const source = fs.readFileSync(path.join(import.meta.dirname, 'admx-navigation.browser.test.js'), 'utf8');
-const start = source.indexOf('const html = `');
-const end = source.indexOf('\nconst browserOptions', start);
-assert.ok(start >= 0 && end > start);
-const html = vm.runInNewContext(source.slice(start, end) + '\nhtml;');
 
+// Serves the shared page + .test-root, prepares the scroll fixture, runs `run(page)`, then checks errors and read-only RPC traffic.
 async function fixture(run, options = {}) {
     const server = http.createServer((request, response) => {
         if (request.url === '/') {
@@ -116,11 +129,13 @@ async function fixture(run, options = {}) {
     }
 }
 
+// Waits until no folder is mid-expansion and two frames have passed, so scroll work scheduled after it has run.
 async function settled(page) {
     await page.waitForFunction(() => !document.querySelector('.tree-view .is-expanding'));
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
+// Waits until the active row is fully inside the pane (3px margin).
 async function visible(page) {
     await page.waitForFunction(() => {
         const pane = document.querySelector('.tree-view'),
@@ -136,6 +151,7 @@ async function visible(page) {
     });
 }
 
+// Snapshot of everything that must (or must not) change: pane scroll, page scroll, focused element id, selected title.
 async function position(page) {
     return page.evaluate(() => {
         const pane = document.querySelector('.tree-view');
@@ -149,9 +165,10 @@ async function position(page) {
     });
 }
 
+// Selecting a far row scrolls only the tree pane (never the page), keeps focus where it was, and scrolling back up works too.
 for (const index of [45, 46]) {
     test(
-        'Off-screen ' + (index % 2 ? 'category' : 'policy') + ' selection scrolls only the tree without taking focus',
+        'Off-screen ' + (index % 2 ? 'policy' : 'category') + ' selection scrolls only the tree without taking focus',
         { skip },
         async () =>
             fixture(async page => {
@@ -170,6 +187,7 @@ for (const index of [45, 46]) {
     );
 }
 
+// Re-selecting a visible row must not nudge either scroll offset.
 test('An already-visible selected row leaves both tree scroll offsets unchanged', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => state.navigateToNode(scrollNodes[46]));
@@ -181,6 +199,7 @@ test('An already-visible selected row leaves both tree scroll offsets unchanged'
     })
 );
 
+// A real click goes through the same reveal logic (the browser's own scroll-into-view is not relied on).
 test('Mouse selection uses the shared reveal path without a browser-assisted pre-scroll', { skip }, async () =>
     fixture(async page => {
         const before = await position(page);
@@ -196,6 +215,7 @@ test('Mouse selection uses the shared reveal path without a browser-assisted pre
     })
 );
 
+// Revealing a leaf under collapsed ancestors must wait for the (possibly animated) expansion and still end visible, without stealing focus.
 for (const reducedMotion of ['no-preference', 'reduce']) {
     test('Nested selection remains visible after ancestor expansion with motion=' + reducedMotion, { skip }, async () =>
         fixture(
@@ -211,6 +231,7 @@ for (const reducedMotion of ['no-preference', 'reduce']) {
     );
 }
 
+// Race: a reveal queued by an earlier expansion must not scroll away after the selection moved on.
 test('A superseded expansion callback cannot scroll away from a newer selection', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(async () => {
@@ -225,6 +246,7 @@ test('A superseded expansion callback cannot scroll away from a newer selection'
     })
 );
 
+// A row wider than the pane scrolls horizontally back to its icon/start, leaving the page position alone.
 test('An oversized label reveals its icon and beginning while preserving the document position', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(async () => {
@@ -251,6 +273,7 @@ test('An oversized label reveals its icon and beginning while preserving the doc
     })
 );
 
+// Keyboard End/Home selection follows the same reveal path without scrolling the document.
 test('Tree keyboard End/Home reveal their selection without scrolling the document', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(async () => {
@@ -269,6 +292,7 @@ test('Tree keyboard End/Home reveal their selection without scrolling the docume
     })
 );
 
+// A navigation vetoed by unsaved changes must not scroll; it scrolls only after the user confirms (handlePolicyChangedNo).
 test('A blocked dirty navigation does not scroll until it is confirmed', { skip }, async () =>
     fixture(async page => {
         await page.evaluate(() => state.navigateToNode(scrollNodes[0]));
@@ -290,6 +314,7 @@ test('A blocked dirty navigation does not scroll until it is confirmed', { skip 
     })
 );
 
+// Selecting a policy that has no tree row (only listed in the catalog) reveals its parent category instead.
 test('Hidden AT policy selection reveals its active parent category without adding a leaf', { skip }, async () =>
     fixture(
         async page => {
@@ -313,6 +338,7 @@ test('Hidden AT policy selection reveals its active parent category without addi
     )
 );
 
+// Opening a policy modal from All Policies search results must leave the tree selection and scroll untouched.
 test('Opening an All Policies modal does not move the existing tree selection or scroll', { skip }, async () =>
     fixture(
         async page => {
