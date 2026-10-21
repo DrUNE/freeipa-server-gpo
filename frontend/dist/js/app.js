@@ -4210,8 +4210,526 @@
 		};
 	}
 	//#endregion
-	//#region src/components/list-navigation.js
+	//#region src/components/CollectionEditor/context.js
 	var sequence$4 = 0;
+	/**
+	* Shared state of one open editor. The behaviour modules (`view`, `validation`, `cells`, `reorder`, `table`,
+	* `toolbar`, `keyboard`) read it and attach their functions to it, so none of them imports another one.
+	* @param {{ parameter: any, value: any, readOnly?: boolean }} options
+	*/
+	function createContext(options) {
+		const state = session(options.parameter, options.value);
+		const fields = state.mode === "key_value" ? ["key", "value"] : ["value"];
+		return {
+			options,
+			state,
+			readOnly: Boolean(options.readOnly),
+			fields,
+			rules: constraints(options.parameter, options.value),
+			prefix: "collection-" + ++sequence$4,
+			activeCell: {
+				id: state.rows[0] && state.rows[0].id,
+				field: fields[0]
+			},
+			editing: null,
+			drag: null,
+			scrollFrame: null,
+			dialog: void 0,
+			els: {}
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/translate.js
+	/**
+	* Text from the `collections.*` locale group; `{name}` placeholders are replaced from `values`.
+	* @param {string} key
+	* @param {Record<string, string | number>} [values]
+	*/
+	function tr$6(key, values) {
+		let text = t("collections." + key);
+		Object.keys(values || {}).forEach(function(name) {
+			text = text.replace("{" + name + "}", String(values[name]));
+		});
+		return text;
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/view.js
+	/**
+	* Static markup of the editor: toolbar, validation line, table skeleton, counters. Public hooks:
+	* `[data-collection-add]`, `[data-collection-remove]`, `[data-collection-mode]`, `[data-collection-row]`,
+	* `[data-collection-field]`, `[data-collection-input]`.
+	* @param {any} ctx
+	*/
+	function buildView(ctx) {
+		const { options, state, readOnly, prefix } = ctx;
+		const keyValue = state.mode === "key_value";
+		const add = h("button", {
+			class: "button",
+			type: "button",
+			"data-collection-add": true
+		}, tr$6("add"));
+		const remove = h("button", {
+			class: "button",
+			type: "button",
+			"data-collection-remove": true
+		}, tr$6("remove"));
+		const search = h("input", {
+			type: "search",
+			placeholder: tr$6("search"),
+			"aria-label": tr$6("search")
+		});
+		[add, remove].forEach(function(button) {
+			button.addEventListener("mousedown", function(event) {
+				if (event.button === 0) event.preventDefault();
+			});
+		});
+		const toolbar = h("div", { class: "gpo-collection-editor__toolbar" }, !readOnly && add, !readOnly && remove, search);
+		const errors = h("div", {
+			class: "gpo-collection-editor__validation",
+			role: "alert"
+		});
+		const count = h("div", { class: "gpo-collection-editor__count" });
+		const live = h("div", {
+			class: "gpo-collection-editor__live",
+			role: "status",
+			"aria-live": "polite",
+			"aria-atomic": "true"
+		});
+		const body = h("tbody");
+		const table = h("table", {
+			class: "preference__table gpo-collection-table",
+			"aria-label": options.parameter.label || options.parameter.id,
+			tabindex: "0",
+			"data-collection-mode": state.mode
+		}, h("colgroup", {}, !readOnly && h("col", { class: "gpo-collection-table__handle-column" }), h("col", { class: keyValue ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }), h("col")), h("thead", {}, h("tr", {}, !readOnly && h("th", { scope: "col" }, h("span", { class: "gpo-editor-visually-hidden" }, tr$6("reorder"))), h("th", { scope: "col" }, keyValue ? tr$6("key") : tr$6("index")), h("th", { scope: "col" }, tr$6("value")))), body);
+		const scroll = h("div", { class: "gpo-collection-editor__table-scroll" }, table);
+		const content = h("div", { class: "gpo-collection-editor" }, toolbar, errors, scroll, count, live, h("span", {
+			id: prefix + "-reorder-help",
+			class: "gpo-collection-editor__live"
+		}, tr$6("reorderHelp")));
+		Object.assign(ctx.els, {
+			add,
+			remove,
+			search,
+			errors,
+			count,
+			live,
+			body,
+			table,
+			scroll,
+			content
+		});
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/validation.js
+	/**
+	* Validation line, per-cell errors, counters and the pending (not yet committed) cell edit.
+	* Attaches `pending`, `busy`, `announce`, `updateValidation` to the context.
+	* @param {any} ctx
+	*/
+	function installValidation(ctx) {
+		const { state, readOnly, prefix, els } = ctx;
+		ctx.pending = function() {
+			const editing = ctx.editing;
+			return editing ? {
+				id: editing.id,
+				field: editing.field,
+				value: editing.input.value
+			} : null;
+		};
+		ctx.busy = function() {
+			const dialog = ctx.dialog;
+			return Boolean(dialog && (dialog.isBusy() || dialog.root.getElement().inert));
+		};
+		ctx.announce = function(text) {
+			els.live.textContent = text;
+		};
+		ctx.updateValidation = function() {
+			const problems = readOnly ? [] : state.errors(ctx.pending());
+			els.errors.textContent = problems.filter(function(problem) {
+				return !problem.id;
+			}).map(function(problem) {
+				return tr$6("errors." + problem.code);
+			}).join(" ");
+			Array.from(els.body.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
+				const id = cell.parentElement.getAttribute("data-collection-row");
+				const field = cell.getAttribute("data-collection-field");
+				const problem = problems.find(function(error) {
+					return error.id === id && error.field === field;
+				});
+				const prior = cell.querySelector(".gpo-collection-cell__error");
+				if (prior) prior.remove();
+				cell.classList.toggle("gpo-collection-cell--invalid", Boolean(problem));
+				const input = cell.querySelector("[data-collection-input]");
+				if (problem) {
+					const errorId = prefix + "-" + id + "-" + field + "-error";
+					cell.appendChild(h("span", {
+						id: errorId,
+						class: "gpo-collection-cell__error"
+					}, tr$6("errors." + problem.code)));
+					if (input) {
+						input.setAttribute("aria-invalid", "true");
+						input.setAttribute("aria-describedby", errorId);
+					}
+				} else if (input) {
+					input.removeAttribute("aria-invalid");
+					input.removeAttribute("aria-describedby");
+				}
+			});
+			const size = state.read(ctx.pending()).value.length;
+			els.count.textContent = els.search.value ? tr$6("shownCount", {
+				shown: state.visible(els.search.value).length,
+				total: state.rows.length
+			}) : tr$6(state.mode === "key_value" ? "pairsCount" : "itemsCount", { count: size });
+			if (ctx.dialog) ctx.dialog.setApplyDisabled(problems.length !== 0);
+			return problems;
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/cells.js
+	/**
+	* Cell selection, focus and in-place editing. Attaches `cellFor`, `updateSelection`, `showCell`, `finishEdit`,
+	* `focusCell`, `editCell`, `selectCell` to the context.
+	* @param {any} ctx
+	*/
+	function installCells(ctx) {
+		const { state, readOnly, fields, rules, els } = ctx;
+		ctx.cellFor = function(id, field) {
+			return els.body.querySelector("[data-collection-row=\"" + id + "\"] [data-collection-field=\"" + field + "\"]");
+		};
+		ctx.updateSelection = function() {
+			const activeCell = ctx.activeCell;
+			Array.from(els.body.querySelectorAll("[data-collection-row]")).forEach(function(row) {
+				const id = row.getAttribute("data-collection-row");
+				row.classList.toggle("active", state.selectedId === id);
+				row.setAttribute("aria-selected", String(state.selectedId === id));
+				const handle = row.querySelector(".gpo-collection-table__handle");
+				if (handle) handle.tabIndex = -1;
+				/** @type {HTMLElement[]} */ Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
+					cell.tabIndex = id === activeCell.id && cell.getAttribute("data-collection-field") === activeCell.field ? 0 : -1;
+				});
+			});
+			els.table.tabIndex = els.body.querySelector("[data-collection-row]") ? -1 : 0;
+			els.remove.disabled = readOnly || ctx.busy() || !state.selectedId;
+		};
+		ctx.showCell = function(cell, row, field) {
+			cell.classList.remove("gpo-collection-cell--editing");
+			cell.replaceChildren(h("span", { class: "gpo-collection-cell__text" }, row[field] || "\xA0"));
+		};
+		ctx.finishEdit = function(commit) {
+			if (!ctx.editing) return;
+			const current = ctx.editing;
+			ctx.editing = null;
+			if (commit) state.edit(current.id, current.field, current.input.value);
+			const row = state.find(current.id);
+			if (row) ctx.showCell(current.cell, row, current.field);
+			ctx.updateValidation();
+		};
+		ctx.focusCell = function(id, field) {
+			ctx.activeCell = {
+				id,
+				field
+			};
+			ctx.updateSelection();
+			const cell = ctx.cellFor(id, field);
+			if (cell) {
+				cell.focus({ preventScroll: true });
+				cell.scrollIntoView({
+					block: "nearest",
+					inline: "nearest"
+				});
+			}
+		};
+		ctx.selectCell = function(id, field) {
+			if (ctx.busy()) return;
+			ctx.finishEdit(true);
+			state.select(id);
+			ctx.focusCell(id, field);
+		};
+		ctx.editCell = function(id, field) {
+			if (readOnly || ctx.drag || ctx.busy()) return;
+			ctx.finishEdit(true);
+			const cell = ctx.cellFor(id, field);
+			const row = state.find(id);
+			if (!cell || !row) return;
+			ctx.activeCell = {
+				id,
+				field
+			};
+			ctx.updateSelection();
+			const singleLine = field === "key" || state.mode === "list" && rules.unique_keys;
+			const attrs = {
+				spellcheck: "false",
+				"aria-label": tr$6("cellLabel", {
+					column: tr$6(field),
+					index: state.rows.indexOf(row)
+				}),
+				"data-collection-input": field
+			};
+			/** @type {HTMLInputElement} */
+			const input = singleLine ? h("input", {
+				type: "text",
+				...attrs
+			}) : h("textarea", {
+				rows: "1",
+				...attrs
+			});
+			input.value = row[field];
+			cell.replaceChildren(input);
+			cell.classList.add("gpo-collection-cell--editing");
+			ctx.editing = {
+				id,
+				field,
+				input,
+				cell
+			};
+			input.addEventListener("click", function(event) {
+				event.stopPropagation();
+			});
+			input.addEventListener("dblclick", function(event) {
+				event.stopPropagation();
+			});
+			function resizeEditor() {
+				if (singleLine) return;
+				input.style.height = "auto";
+				input.style.height = Math.min(128, Math.max(28, input.scrollHeight)) + "px";
+			}
+			input.addEventListener("input", function() {
+				resizeEditor();
+				ctx.updateValidation();
+			});
+			input.addEventListener("blur", function() {
+				if (ctx.editing && ctx.editing.input === input) ctx.finishEdit(true);
+			});
+			input.addEventListener("keydown", function(event) {
+				if (event.key === "Escape") {
+					event.preventDefault();
+					event.stopPropagation();
+					ctx.finishEdit(false);
+					ctx.focusCell(id, field);
+				} else if (event.key === "Enter" && !event.shiftKey) {
+					event.preventDefault();
+					event.stopPropagation();
+					ctx.finishEdit(true);
+					ctx.focusCell(id, field);
+				} else if (event.key === "Tab") {
+					const visible = state.visible(els.search.value);
+					const position = visible.findIndex(function(item) {
+						return item.id === id;
+					}) * fields.length + fields.indexOf(field) + (event.shiftKey ? -1 : 1);
+					ctx.finishEdit(true);
+					event.preventDefault();
+					event.stopPropagation();
+					if (position >= 0 && position < visible.length * fields.length) ctx.editCell(visible[Math.floor(position / fields.length)].id, fields[position % fields.length]);
+					else (event.shiftKey ? !els.search.hidden ? els.search : els.add : ctx.dialog.root.getElement().querySelector(".btn-cancel")).focus();
+				}
+			});
+			input.focus();
+			input.setSelectionRange(0, input.value.length);
+			resizeEditor();
+			cell.scrollIntoView({
+				block: "nearest",
+				inline: "nearest"
+			});
+			ctx.updateValidation();
+		};
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/reorder.js
+	var DRAG_CLASSES = [
+		"gpo-collection-row--dragging",
+		"gpo-collection-row--before",
+		"gpo-collection-row--after"
+	];
+	/**
+	* Reordering: drag-and-drop of rows by their handle (with auto-scroll) and Ctrl+Arrow moves.
+	* Attaches `clearDrag`, `focusHandle`, `moveByKeyboard` and `startDrag` to the context.
+	* @param {any} ctx
+	*/
+	function installReorder(ctx) {
+		const { state, els } = ctx;
+		function indexOf(id) {
+			return state.rows.findIndex(function(row) {
+				return row.id === id;
+			});
+		}
+		ctx.clearDrag = function() {
+			if (ctx.scrollFrame !== null) {
+				cancelAnimationFrame(ctx.scrollFrame);
+				ctx.scrollFrame = null;
+			}
+			ctx.drag = null;
+			Array.from(els.body.querySelectorAll("tr")).forEach(function(row) {
+				row.classList.remove(...DRAG_CLASSES);
+			});
+		};
+		ctx.focusHandle = function(id) {
+			ctx.activeCell.id = id;
+			ctx.updateSelection();
+			const row = els.body.querySelector("[data-collection-row=\"" + id + "\"]");
+			if (row && row.querySelector(".gpo-collection-table__handle")) ctx.focusCell(id, ctx.activeCell.field);
+		};
+		function autoScroll() {
+			if (!ctx.drag) {
+				ctx.scrollFrame = null;
+				return;
+			}
+			const rect = els.scroll.getBoundingClientRect();
+			if (ctx.drag.y >= rect.top && ctx.drag.y <= rect.bottom) {
+				if (ctx.drag.y < rect.top + 28) els.scroll.scrollTop -= 8;
+				else if (ctx.drag.y > rect.bottom - 28) els.scroll.scrollTop += 8;
+			}
+			ctx.scrollFrame = requestAnimationFrame(autoScroll);
+		}
+		/** Starts dragging `row` (a state row) whose `<tr>` is `record`. */
+		ctx.startDrag = function(event, row, record) {
+			if (els.search.value) {
+				event.preventDefault();
+				return;
+			}
+			ctx.finishEdit(true);
+			state.select(row.id);
+			ctx.activeCell.id = row.id;
+			ctx.updateSelection();
+			ctx.drag = {
+				id: row.id,
+				targetId: row.id,
+				after: false,
+				y: event.clientY
+			};
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text/plain", row.id);
+			record.classList.add("gpo-collection-row--dragging");
+			ctx.scrollFrame = requestAnimationFrame(autoScroll);
+		};
+		/** Ctrl+Arrow on a row handle. */
+		ctx.moveByKeyboard = function(event, row) {
+			if (!ctx.busy() && !els.search.value && event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+				event.preventDefault();
+				event.stopPropagation();
+				ctx.finishEdit(true);
+				state.move(row.id, state.rows.indexOf(row) + (event.key === "ArrowUp" ? -1 : 1));
+				ctx.render();
+				ctx.focusHandle(row.id);
+				ctx.announce(tr$6("moved", { index: state.rows.indexOf(row) }));
+			}
+		};
+		els.scroll.addEventListener("dragover", function(event) {
+			if (!ctx.drag) return;
+			event.preventDefault();
+			event.dataTransfer.dropEffect = "move";
+			ctx.drag.y = event.clientY;
+			let target = event.target.closest("[data-collection-row]");
+			Array.from(els.body.querySelectorAll("tr")).forEach(function(row) {
+				row.classList.remove("gpo-collection-row--before", "gpo-collection-row--after");
+			});
+			if (!target) target = els.body.lastElementChild;
+			if (!target || !target.hasAttribute("data-collection-row")) return;
+			ctx.drag.targetId = target.getAttribute("data-collection-row");
+			const rect = target.getBoundingClientRect();
+			ctx.drag.after = event.clientY > rect.top + rect.height / 2;
+			if (ctx.drag.targetId !== ctx.drag.id) target.classList.add(ctx.drag.after ? "gpo-collection-row--after" : "gpo-collection-row--before");
+		});
+		els.scroll.addEventListener("drop", function(event) {
+			const drag = ctx.drag;
+			if (!drag) return;
+			event.preventDefault();
+			event.stopPropagation();
+			const from = indexOf(drag.id);
+			let to = indexOf(drag.targetId) + (drag.after ? 1 : 0);
+			if (from < to) to -= 1;
+			const id = drag.id;
+			state.move(id, to);
+			ctx.clearDrag();
+			ctx.render();
+			ctx.focusHandle(id);
+			ctx.announce(tr$6("moved", { index: indexOf(id) }));
+		});
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/table.js
+	/**
+	* Renders the visible rows into the table body. Attaches `render` to the context.
+	* Public hooks: `[data-collection-row]`, `[data-collection-field]`.
+	* @param {any} ctx
+	*/
+	function installTable(ctx) {
+		const { state, readOnly, fields, prefix, els } = ctx;
+		function createHandle(row, record) {
+			const searching = Boolean(els.search.value);
+			const handle = h("button", {
+				class: "gpo-collection-table__handle",
+				type: "button",
+				draggable: searching ? "false" : "true",
+				"aria-label": tr$6("reorderRow", { index: state.rows.indexOf(row) }),
+				"aria-describedby": prefix + "-reorder-help",
+				tabindex: "-1",
+				title: tr$6(searching ? "clearSearchToReorder" : "reorderHelp")
+			}, "⋮");
+			handle.disabled = searching;
+			handle.addEventListener("click", function() {
+				ctx.finishEdit(true);
+				state.select(row.id);
+				ctx.activeCell.id = row.id;
+				ctx.updateSelection();
+			});
+			handle.addEventListener("dragstart", function(event) {
+				ctx.startDrag(event, row, record);
+			});
+			handle.addEventListener("dragend", ctx.clearDrag);
+			handle.addEventListener("keydown", function(event) {
+				ctx.moveByKeyboard(event, row);
+			});
+			return handle;
+		}
+		function createCell(row, field) {
+			const cell = h("td", {
+				class: cx("gpo-collection-cell", "field__element"),
+				"data-collection-field": field,
+				tabindex: "-1"
+			});
+			ctx.showCell(cell, row, field);
+			cell.addEventListener("click", function() {
+				ctx.selectCell(row.id, field);
+			});
+			cell.addEventListener("dblclick", function(event) {
+				event.preventDefault();
+				ctx.editCell(row.id, field);
+			});
+			return cell;
+		}
+		function createRecord(row) {
+			const index = state.rows.indexOf(row);
+			const record = h("tr", { "data-collection-row": row.id });
+			if (!readOnly) record.append(h("td", { class: "gpo-collection-table__handle-cell" }, createHandle(row, record)));
+			if (state.mode === "list") record.append(h("td", { class: "gpo-collection-table__index" }, String(index)));
+			fields.forEach(function(field) {
+				record.append(createCell(row, field));
+			});
+			record.addEventListener("click", function(event) {
+				if (!event.target.closest("[data-collection-field], button, input, textarea")) ctx.selectCell(row.id, fields[0]);
+			});
+			return record;
+		}
+		ctx.render = function() {
+			ctx.finishEdit(true);
+			els.body.replaceChildren();
+			const visible = state.visible(els.search.value);
+			if (!visible.some(function(row) {
+				return row.id === ctx.activeCell.id;
+			})) ctx.activeCell.id = visible[0] && visible[0].id;
+			els.search.hidden = state.rows.length < 20 && !els.search.value;
+			if (!visible.length) els.body.append(h("tr", { class: "gpo-collection-table__empty" }, h("td", { colspan: String(readOnly ? 2 : 3) }, tr$6(state.rows.length ? "noMatches" : "empty"))));
+			visible.forEach(function(row) {
+				els.body.append(createRecord(row));
+			});
+			ctx.updateSelection();
+			ctx.updateValidation();
+		};
+	}
+	//#endregion
+	//#region src/components/list-navigation.js
+	var sequence$3 = 0;
 	function neighbor(beforeIds, removedIds, afterIds) {
 		const removed = new Set(removedIds || []);
 		const remaining = new Set(afterIds || []);
@@ -4227,7 +4745,7 @@
 		let disposed = false;
 		let observer;
 		let pointerSelecting = false;
-		const owner = String(++sequence$4);
+		const owner = String(++sequence$3);
 		container.setAttribute("data-list-navigation", owner);
 		function rows() {
 			return Array.from(options.rows() || []);
@@ -4379,542 +4897,129 @@
 		};
 	}
 	//#endregion
-	//#region src/components/collection-dialog.js
-	var sequence$3 = 0;
-	function tr$6(key, values) {
-		let text = t("collections." + key);
-		Object.keys(values || {}).forEach(function(name) {
-			text = text.replace("{" + name + "}", values[name]);
-		});
-		return text;
-	}
-	function open$1(host, options) {
-		const state = session(options.parameter, options.value);
-		const readOnly = Boolean(options.readOnly);
-		const fields = state.mode === "key_value" ? ["key", "value"] : ["value"];
-		const rules = constraints(options.parameter, options.value);
-		const prefix = "collection-" + ++sequence$3;
-		let activeCell = {
-			id: state.rows[0] && state.rows[0].id,
-			field: fields[0]
-		};
-		let editing = null;
-		let drag = null;
-		let scrollFrame = null;
-		let dialog;
-		const add = createElement("button", {
-			className: "button",
-			attrs: {
-				type: "button",
-				"data-collection-add": ""
-			},
-			text: tr$6("add")
-		});
-		const remove = createElement("button", {
-			className: "button",
-			attrs: {
-				type: "button",
-				"data-collection-remove": ""
-			},
-			text: tr$6("remove")
-		});
-		const search = createElement("input", { attrs: {
-			type: "search",
-			placeholder: tr$6("search"),
-			"aria-label": tr$6("search")
-		} });
-		const toolbar = createElement("div", {
-			className: "gpo-collection-editor__toolbar",
-			children: [
-				readOnly ? null : add,
-				readOnly ? null : remove,
-				search
-			]
-		});
-		const errors = createElement("div", {
-			className: "gpo-collection-editor__validation",
-			attrs: { role: "alert" }
-		});
-		const count = createElement("div", { className: "gpo-collection-editor__count" });
-		const live = createElement("div", {
-			className: "gpo-collection-editor__live",
-			attrs: {
-				role: "status",
-				"aria-live": "polite",
-				"aria-atomic": "true"
-			}
-		});
-		const body = createElement("tbody");
-		const table = createElement("table", {
-			className: ["preference__table", "gpo-collection-table"],
-			attrs: {
-				"aria-label": options.parameter.label || options.parameter.id,
-				tabindex: "0",
-				"data-collection-mode": state.mode
-			},
-			children: [
-				createElement("colgroup", { children: [
-					readOnly ? null : createElement("col", { className: "gpo-collection-table__handle-column" }),
-					createElement("col", { className: state.mode === "key_value" ? "gpo-collection-table__key-column" : "gpo-collection-table__index-column" }),
-					createElement("col")
-				] }),
-				createElement("thead", { children: [createElement("tr", { children: [
-					readOnly ? null : createElement("th", {
-						attrs: { scope: "col" },
-						children: [createElement("span", {
-							className: "gpo-editor-visually-hidden",
-							text: tr$6("reorder")
-						})]
-					}),
-					createElement("th", {
-						attrs: { scope: "col" },
-						text: state.mode === "key_value" ? tr$6("key") : tr$6("index")
-					}),
-					createElement("th", {
-						attrs: { scope: "col" },
-						text: tr$6("value")
-					})
-				] })] }),
-				body
-			]
-		});
-		const scroll = createElement("div", {
-			className: "gpo-collection-editor__table-scroll",
-			children: [table]
-		});
-		const content = createElement("div", {
-			className: "gpo-collection-editor",
-			children: [
-				toolbar,
-				errors,
-				scroll,
-				count,
-				live
-			]
-		});
-		[add, remove].forEach(function(button) {
-			button.on("mousedown", function(event) {
-				if (event.button === 0) event.preventDefault();
-			});
-		});
-		function pending() {
-			return editing ? {
-				id: editing.id,
-				field: editing.field,
-				value: editing.input.value
-			} : null;
-		}
-		function busy() {
-			return Boolean(dialog && (dialog.isBusy() || dialog.root.getElement().inert));
-		}
-		function cellFor(id, field) {
-			return body.getElement().querySelector("[data-collection-row=\"" + id + "\"] [data-collection-field=\"" + field + "\"]");
-		}
-		function announce(text) {
-			live.getElement().textContent = text;
-		}
-		function updateSelection() {
-			Array.from(body.getElement().querySelectorAll("[data-collection-row]")).forEach(function(row) {
-				const id = row.getAttribute("data-collection-row");
-				row.classList.toggle("active", state.selectedId === id);
-				row.setAttribute("aria-selected", String(state.selectedId === id));
-				const handle = row.querySelector(".gpo-collection-table__handle");
-				if (handle) handle.tabIndex = -1;
-				/** @type {HTMLElement[]} */ Array.from(row.querySelectorAll("[data-collection-field]")).forEach(function(cell) {
-					cell.tabIndex = id === activeCell.id && cell.getAttribute("data-collection-field") === activeCell.field ? 0 : -1;
-				});
-			});
-			table.getElement().tabIndex = body.getElement().querySelector("[data-collection-row]") ? -1 : 0;
-			remove.getElement().disabled = readOnly || busy() || !state.selectedId;
-		}
-		function updateValidation() {
-			const problems = readOnly ? [] : state.errors(pending());
-			errors.getElement().textContent = problems.filter(function(problem) {
-				return !problem.id;
-			}).map(function(problem) {
-				return tr$6("errors." + problem.code);
-			}).join(" ");
-			Array.from(body.getElement().querySelectorAll("[data-collection-field]")).forEach(function(cell) {
-				const id = cell.parentElement.getAttribute("data-collection-row");
-				const field = cell.getAttribute("data-collection-field");
-				const problem = problems.find(function(error) {
-					return error.id === id && error.field === field;
-				});
-				const prior = cell.querySelector(".gpo-collection-cell__error");
-				if (prior) prior.remove();
-				cell.classList.toggle("gpo-collection-cell--invalid", Boolean(problem));
-				const input = cell.querySelector("[data-collection-input]");
-				if (problem) {
-					const errorId = prefix + "-" + id + "-" + field + "-error";
-					cell.appendChild(createElement("span", {
-						id: errorId,
-						className: "gpo-collection-cell__error",
-						text: tr$6("errors." + problem.code)
-					}).getElement());
-					if (input) {
-						input.setAttribute("aria-invalid", "true");
-						input.setAttribute("aria-describedby", errorId);
-					}
-				} else if (input) {
-					input.removeAttribute("aria-invalid");
-					input.removeAttribute("aria-describedby");
-				}
-			});
-			const size = state.read(pending()).value.length;
-			count.getElement().textContent = search.getElement().value ? tr$6("shownCount", {
-				shown: state.visible(search.getElement().value).length,
-				total: state.rows.length
-			}) : tr$6(state.mode === "key_value" ? "pairsCount" : "itemsCount", { count: size });
-			if (dialog) dialog.setApplyDisabled(problems.length !== 0);
-			return problems;
-		}
-		function showCell(cell, row, field) {
-			cell.classList.remove("gpo-collection-cell--editing");
-			cell.replaceChildren(createElement("span", {
-				className: "gpo-collection-cell__text",
-				text: row[field] || "\xA0"
-			}).getElement());
-		}
-		function finishEdit(commit) {
-			if (!editing) return;
-			const current = editing;
-			editing = null;
-			if (commit) state.edit(current.id, current.field, current.input.value);
-			const row = state.find(current.id);
-			if (row) showCell(current.cell, row, current.field);
-			updateValidation();
-		}
-		function focusCell(id, field) {
-			activeCell = {
-				id,
-				field
-			};
-			updateSelection();
-			const cell = cellFor(id, field);
-			if (cell) {
-				cell.focus({ preventScroll: true });
-				cell.scrollIntoView({
-					block: "nearest",
-					inline: "nearest"
-				});
-			}
-		}
-		function editCell(id, field) {
-			if (readOnly || drag || busy()) return;
-			finishEdit(true);
-			const cell = cellFor(id, field);
-			const row = state.find(id);
-			if (!cell || !row) return;
-			activeCell = {
-				id,
-				field
-			};
-			updateSelection();
-			const singleLine = field === "key" || state.mode === "list" && rules.unique_keys;
-			const input = createElement(singleLine ? "input" : "textarea", { attrs: {
-				type: singleLine ? "text" : null,
-				rows: singleLine ? null : "1",
-				spellcheck: "false",
-				"aria-label": tr$6("cellLabel", {
-					column: tr$6(field),
-					index: state.rows.indexOf(row)
-				}),
-				"data-collection-input": field
-			} }).getElement();
-			input.value = row[field];
-			cell.replaceChildren(input);
-			cell.classList.add("gpo-collection-cell--editing");
-			editing = {
-				id,
-				field,
-				input,
-				cell
-			};
-			input.addEventListener("click", function(event) {
-				event.stopPropagation();
-			});
-			input.addEventListener("dblclick", function(event) {
-				event.stopPropagation();
-			});
-			function resizeEditor() {
-				if (singleLine) return;
-				input.style.height = "auto";
-				input.style.height = Math.min(128, Math.max(28, input.scrollHeight)) + "px";
-			}
-			input.addEventListener("input", function() {
-				resizeEditor();
-				updateValidation();
-			});
-			input.addEventListener("blur", function() {
-				if (editing && editing.input === input) finishEdit(true);
-			});
-			input.addEventListener("keydown", function(event) {
-				if (event.key === "Escape") {
-					event.preventDefault();
-					event.stopPropagation();
-					finishEdit(false);
-					focusCell(id, field);
-				} else if (event.key === "Enter" && !event.shiftKey) {
-					event.preventDefault();
-					event.stopPropagation();
-					finishEdit(true);
-					focusCell(id, field);
-				} else if (event.key === "Tab") {
-					const visible = state.visible(search.getElement().value);
-					const position = visible.findIndex(function(item) {
-						return item.id === id;
-					}) * fields.length + fields.indexOf(field) + (event.shiftKey ? -1 : 1);
-					finishEdit(true);
-					if (position >= 0 && position < visible.length * fields.length) {
-						event.preventDefault();
-						event.stopPropagation();
-						editCell(visible[Math.floor(position / fields.length)].id, fields[position % fields.length]);
-					} else {
-						event.preventDefault();
-						event.stopPropagation();
-						(event.shiftKey ? !search.getElement().hidden ? search.getElement() : add.getElement() : dialog.root.getElement().querySelector(".btn-cancel")).focus();
-					}
-				}
-			});
-			input.focus();
-			input.setSelectionRange(0, input.value.length);
-			resizeEditor();
-			cell.scrollIntoView({
-				block: "nearest",
-				inline: "nearest"
-			});
-			updateValidation();
-		}
-		function selectCell(id, field) {
-			if (busy()) return;
-			finishEdit(true);
-			state.select(id);
-			focusCell(id, field);
-		}
-		function clearDrag() {
-			if (scrollFrame !== null) {
-				cancelAnimationFrame(scrollFrame);
-				scrollFrame = null;
-			}
-			drag = null;
-			Array.from(body.getElement().querySelectorAll("tr")).forEach(function(row) {
-				row.classList.remove("gpo-collection-row--dragging", "gpo-collection-row--before", "gpo-collection-row--after");
-			});
-		}
-		function focusHandle(id) {
-			activeCell.id = id;
-			updateSelection();
-			const row = body.getElement().querySelector("[data-collection-row=\"" + id + "\"]");
-			if (row && row.querySelector(".gpo-collection-table__handle")) focusCell(id, activeCell.field);
-		}
-		function autoScroll() {
-			if (!drag) {
-				scrollFrame = null;
-				return;
-			}
-			const rect = scroll.getElement().getBoundingClientRect();
-			if (drag.y >= rect.top && drag.y <= rect.bottom) {
-				if (drag.y < rect.top + 28) scroll.getElement().scrollTop -= 8;
-				else if (drag.y > rect.bottom - 28) scroll.getElement().scrollTop += 8;
-			}
-			scrollFrame = requestAnimationFrame(autoScroll);
-		}
-		function render() {
-			finishEdit(true);
-			body.getElement().replaceChildren();
-			const visible = state.visible(search.getElement().value);
-			if (!visible.some(function(row) {
-				return row.id === activeCell.id;
-			})) activeCell.id = visible[0] && visible[0].id;
-			search.getElement().hidden = state.rows.length < 20 && !search.getElement().value;
-			if (!visible.length) body.append(createElement("tr", {
-				className: "gpo-collection-table__empty",
-				children: [createElement("td", {
-					attrs: { colspan: readOnly ? 2 : 3 },
-					text: tr$6(state.rows.length ? "noMatches" : "empty")
-				})]
-			}));
-			visible.forEach(function(row) {
-				const index = state.rows.indexOf(row);
-				const record = createElement("tr", { attrs: { "data-collection-row": row.id } });
-				if (!readOnly) {
-					const handle = createElement("button", {
-						className: "gpo-collection-table__handle",
-						attrs: {
-							type: "button",
-							draggable: search.getElement().value ? "false" : "true",
-							"aria-label": tr$6("reorderRow", { index }),
-							"aria-describedby": prefix + "-reorder-help",
-							tabindex: "-1",
-							title: tr$6(search.getElement().value ? "clearSearchToReorder" : "reorderHelp")
-						},
-						text: "⋮"
-					});
-					handle.getElement().disabled = Boolean(search.getElement().value);
-					handle.on("click", function() {
-						finishEdit(true);
-						state.select(row.id);
-						activeCell.id = row.id;
-						updateSelection();
-					});
-					handle.on("dragstart", function(event) {
-						if (search.getElement().value) {
-							event.preventDefault();
-							return;
-						}
-						finishEdit(true);
-						state.select(row.id);
-						activeCell.id = row.id;
-						updateSelection();
-						drag = {
-							id: row.id,
-							targetId: row.id,
-							after: false,
-							y: event.clientY
-						};
-						event.dataTransfer.effectAllowed = "move";
-						event.dataTransfer.setData("text/plain", row.id);
-						record.getElement().classList.add("gpo-collection-row--dragging");
-						scrollFrame = requestAnimationFrame(autoScroll);
-					});
-					handle.on("dragend", clearDrag);
-					handle.on("keydown", function(event) {
-						if (!busy() && !search.getElement().value && event.ctrlKey && !event.altKey && !event.metaKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-							event.preventDefault();
-							event.stopPropagation();
-							finishEdit(true);
-							state.move(row.id, state.rows.indexOf(row) + (event.key === "ArrowUp" ? -1 : 1));
-							render();
-							focusHandle(row.id);
-							announce(tr$6("moved", { index: state.rows.indexOf(row) }));
-						}
-					});
-					record.append(createElement("td", {
-						className: "gpo-collection-table__handle-cell",
-						children: [handle]
-					}));
-				}
-				if (state.mode === "list") record.append(createElement("td", {
-					className: "gpo-collection-table__index",
-					text: index
-				}));
-				fields.forEach(function(field) {
-					const cell = createElement("td", {
-						className: ["gpo-collection-cell", "field__element"],
-						attrs: {
-							"data-collection-field": field,
-							tabindex: "-1"
-						}
-					});
-					showCell(cell.getElement(), row, field);
-					cell.on("click", function() {
-						selectCell(row.id, field);
-					});
-					cell.on("dblclick", function(event) {
-						event.preventDefault();
-						editCell(row.id, field);
-					});
-					record.append(cell);
-				});
-				record.on("click", function(event) {
-					if (!event.target.closest("[data-collection-field], button, input, textarea")) selectCell(row.id, fields[0]);
-				});
-				body.append(record);
-			});
-			updateSelection();
-			updateValidation();
-		}
-		add.on("click", function() {
-			if (readOnly || busy()) return;
-			finishEdit(true);
-			search.getElement().value = "";
+	//#region src/components/CollectionEditor/toolbar.js
+	/**
+	* Toolbar actions: add, remove the selected row, search. Attaches `removeSelected` to the context.
+	* @param {any} ctx
+	*/
+	function installToolbar(ctx) {
+		const { state, readOnly, fields, els } = ctx;
+		els.add.addEventListener("click", function() {
+			if (readOnly || ctx.busy()) return;
+			ctx.finishEdit(true);
+			els.search.value = "";
 			const id = state.add();
-			activeCell = {
+			ctx.activeCell = {
 				id,
 				field: fields[0]
 			};
-			render();
-			editCell(id, fields[0]);
-			announce(tr$6("added"));
+			ctx.render();
+			ctx.editCell(id, fields[0]);
+			ctx.announce(tr$6("added"));
 		});
-		function removeSelected() {
-			if (readOnly || busy() || !state.selectedId) return;
-			finishEdit(true);
-			const before = Array.from(body.getElement().querySelectorAll("[data-collection-row]")).map(function(row) {
+		ctx.removeSelected = function() {
+			if (readOnly || ctx.busy() || !state.selectedId) return;
+			ctx.finishEdit(true);
+			const before = Array.from(els.body.querySelectorAll("[data-collection-row]")).map(function(row) {
 				return row.getAttribute("data-collection-row");
 			});
 			const removedId = state.selectedId;
 			if (!state.removeSelected()) return;
-			const after = state.visible(search.getElement().value).map(function(row) {
+			const after = state.visible(els.search.value).map(function(row) {
 				return row.id;
 			});
 			const nextId = neighbor(before, [removedId], after);
 			state.select(nextId);
-			activeCell.id = nextId;
-			render();
-			if (nextId) focusCell(nextId, activeCell.field);
-			else table.getElement().focus({ preventScroll: true });
-			announce(tr$6("removed"));
-		}
-		remove.on("click", removeSelected);
-		search.on("input", function() {
-			finishEdit(true);
+			ctx.activeCell.id = nextId;
+			ctx.render();
+			if (nextId) ctx.focusCell(nextId, ctx.activeCell.field);
+			else els.table.focus({ preventScroll: true });
+			ctx.announce(tr$6("removed"));
+		};
+		els.remove.addEventListener("click", ctx.removeSelected);
+		els.search.addEventListener("input", function() {
+			ctx.finishEdit(true);
 			state.select(null);
-			render();
+			ctx.render();
 		});
-		table.on("focusin", function(event) {
-			if (busy() || event.target.closest("input,select,textarea,button,a,[contenteditable]:not([contenteditable=\"false\"])")) return;
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/keyboard.js
+	/**
+	* Keyboard navigation of the table (arrows, Home/End, PageUp/PageDown, Space, Enter/F2, Delete, Ctrl+Arrow,
+	* Escape during a drag) and focus tracking.
+	* @param {any} ctx
+	*/
+	function installKeyboard(ctx) {
+		const { state, readOnly, els } = ctx;
+		function rowIndex(id) {
+			return state.rows.findIndex(function(row) {
+				return row.id === id;
+			});
+		}
+		els.table.addEventListener("focusin", function(event) {
+			if (ctx.busy() || event.target.closest("input,select,textarea,button,a,[contenteditable]:not([contenteditable=\"false\"])")) return;
 			const cell = event.target.closest("[data-collection-field]");
 			if (!cell) return;
-			activeCell = {
+			ctx.activeCell = {
 				id: cell.parentElement.getAttribute("data-collection-row"),
 				field: cell.getAttribute("data-collection-field")
 			};
-			state.select(activeCell.id);
-			updateSelection();
+			state.select(ctx.activeCell.id);
+			ctx.updateSelection();
 		});
-		content.on("keydown", function(event) {
-			if (event.defaultPrevented || busy() || !table.getElement().contains(event.target) || event.target.closest("input,select,textarea,button,a,summary,[contenteditable]:not([contenteditable=\"false\"])")) return;
-			if (drag && event.key === "Escape") {
+		function moveActiveRow(event) {
+			event.preventDefault();
+			event.stopPropagation();
+			ctx.finishEdit(true);
+			state.select(ctx.activeCell.id);
+			state.move(ctx.activeCell.id, rowIndex(ctx.activeCell.id) + (event.key === "ArrowUp" ? -1 : 1));
+			ctx.render();
+			ctx.focusCell(ctx.activeCell.id, ctx.activeCell.field);
+			ctx.announce(tr$6("moved", { index: rowIndex(ctx.activeCell.id) }));
+		}
+		function moveActiveCell(event, visible, index) {
+			event.preventDefault();
+			const row = els.body.querySelector("[data-collection-row=\"" + ctx.activeCell.id + "\"]");
+			const pageSize = Math.max(1, Math.floor(els.scroll.clientHeight / Math.max(1, row.getBoundingClientRect().height)) - 1);
+			let position = index;
+			if (event.key === "Home") position = 0;
+			else if (event.key === "End") position = visible.length - 1;
+			else position += (event.key === "ArrowUp" || event.key === "PageUp" ? -1 : 1) * (event.key === "PageUp" || event.key === "PageDown" ? pageSize : 1);
+			const next = visible[Math.max(0, Math.min(visible.length - 1, position))];
+			ctx.selectCell(next.id, ctx.activeCell.field);
+		}
+		els.content.addEventListener("keydown", function(event) {
+			if (event.defaultPrevented || ctx.busy() || !els.table.contains(event.target) || event.target.closest("input,select,textarea,button,a,summary,[contenteditable]:not([contenteditable=\"false\"])")) return;
+			if (ctx.drag && event.key === "Escape") {
 				event.preventDefault();
 				event.stopPropagation();
-				clearDrag();
+				ctx.clearDrag();
 				return;
 			}
-			if (event.ctrlKey && !event.altKey && !event.metaKey && !readOnly && !search.getElement().value && (event.key === "ArrowUp" || event.key === "ArrowDown") && activeCell.id) {
-				event.preventDefault();
-				event.stopPropagation();
-				finishEdit(true);
-				state.select(activeCell.id);
-				state.move(activeCell.id, state.rows.findIndex(function(row) {
-					return row.id === activeCell.id;
-				}) + (event.key === "ArrowUp" ? -1 : 1));
-				render();
-				focusCell(activeCell.id, activeCell.field);
-				announce(tr$6("moved", { index: state.rows.findIndex(function(row) {
-					return row.id === activeCell.id;
-				}) }));
+			if (event.ctrlKey && !event.altKey && !event.metaKey && !readOnly && !els.search.value && (event.key === "ArrowUp" || event.key === "ArrowDown") && ctx.activeCell.id) {
+				moveActiveRow(event);
 				return;
 			}
 			if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
 			if (event.key === "Delete" && !readOnly) {
 				event.preventDefault();
-				removeSelected();
+				ctx.removeSelected();
 				return;
 			}
-			if ((event.key === "Enter" || event.key === "F2") && activeCell.id && !readOnly && !event.target.matches("button")) {
+			if ((event.key === "Enter" || event.key === "F2") && ctx.activeCell.id && !readOnly && !event.target.matches("button")) {
 				event.preventDefault();
-				editCell(activeCell.id, activeCell.field);
+				ctx.editCell(ctx.activeCell.id, ctx.activeCell.field);
 				return;
 			}
-			const visible = state.visible(search.getElement().value);
+			const visible = state.visible(els.search.value);
 			const index = visible.findIndex(function(row) {
-				return row.id === activeCell.id;
+				return row.id === ctx.activeCell.id;
 			});
 			if (index < 0) return;
 			if (event.key === " " || event.key === "Spacebar") {
 				event.preventDefault();
-				selectCell(activeCell.id, activeCell.field);
+				ctx.selectCell(ctx.activeCell.id, ctx.activeCell.field);
 			} else if ([
 				"ArrowUp",
 				"ArrowDown",
@@ -4922,96 +5027,74 @@
 				"End",
 				"PageUp",
 				"PageDown"
-			].indexOf(event.key) !== -1) {
+			].indexOf(event.key) !== -1) moveActiveCell(event, visible, index);
+			else if (state.mode === "key_value" && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
 				event.preventDefault();
-				let position = index;
-				const row = body.getElement().querySelector("[data-collection-row=\"" + activeCell.id + "\"]");
-				const pageSize = Math.max(1, Math.floor(scroll.getElement().clientHeight / Math.max(1, row.getBoundingClientRect().height)) - 1);
-				if (event.key === "Home") position = 0;
-				else if (event.key === "End") position = visible.length - 1;
-				else position += (event.key === "ArrowUp" || event.key === "PageUp" ? -1 : 1) * (event.key === "PageUp" || event.key === "PageDown" ? pageSize : 1);
-				const next = visible[Math.max(0, Math.min(visible.length - 1, position))];
-				selectCell(next.id, activeCell.field);
-			} else if (state.mode === "key_value" && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-				event.preventDefault();
-				selectCell(activeCell.id, event.key === "ArrowLeft" ? "key" : "value");
+				ctx.selectCell(ctx.activeCell.id, event.key === "ArrowLeft" ? "key" : "value");
 			}
 		});
-		scroll.on("dragover", function(event) {
-			if (!drag) return;
-			event.preventDefault();
-			event.dataTransfer.dropEffect = "move";
-			drag.y = event.clientY;
-			let target = event.target.closest("[data-collection-row]");
-			Array.from(body.getElement().querySelectorAll("tr")).forEach(function(row) {
-				row.classList.remove("gpo-collection-row--before", "gpo-collection-row--after");
-			});
-			if (!target) target = body.getElement().lastElementChild;
-			if (!target || !target.hasAttribute("data-collection-row")) return;
-			drag.targetId = target.getAttribute("data-collection-row");
-			const rect = target.getBoundingClientRect();
-			drag.after = event.clientY > rect.top + rect.height / 2;
-			if (drag.targetId !== drag.id) target.classList.add(drag.after ? "gpo-collection-row--after" : "gpo-collection-row--before");
-		});
-		scroll.on("drop", function(event) {
-			if (!drag) return;
-			event.preventDefault();
-			event.stopPropagation();
-			const from = state.rows.findIndex(function(row) {
-				return row.id === drag.id;
-			});
-			let to = state.rows.findIndex(function(row) {
-				return row.id === drag.targetId;
-			}) + (drag.after ? 1 : 0);
-			if (from < to) to -= 1;
-			const id = drag.id;
-			state.move(id, to);
-			clearDrag();
-			render();
-			focusHandle(id);
-			announce(tr$6("moved", { index: state.rows.findIndex(function(row) {
-				return row.id === id;
-			}) }));
-		});
-		content.append(createElement("span", {
-			id: prefix + "-reorder-help",
-			className: "gpo-collection-editor__live",
-			text: tr$6("reorderHelp")
-		}));
-		render();
-		dialog = open$2(host, {
+	}
+	//#endregion
+	//#region src/components/CollectionEditor/CollectionEditor.js
+	/**
+	* Modal editor of a list or key/value collection parameter. Assembles the focused modules around one shared context
+	* (state in `context.js`, markup in `view.js`, behaviour in the `install*` modules) and opens it in an editor dialog.
+	* Public hooks: `.gpo-collection-dialog`, `[data-collection-add]`, `[data-collection-remove]`, `[data-collection-row]`,
+	* `[data-collection-field]`, `[data-collection-input]`, `[data-collection-mode]`.
+	* @param {HTMLElement} host
+	* @param {{ parameter: any, value: any, readOnly?: boolean, onAccept: (value: any) => void, onClose?: () => void }} options
+	*/
+	function openCollectionEditor(host, options) {
+		const ctx = createContext(options);
+		const { state, readOnly, els } = ctx;
+		buildView(ctx);
+		installValidation(ctx);
+		installCells(ctx);
+		installReorder(ctx);
+		installTable(ctx);
+		installToolbar(ctx);
+		installKeyboard(ctx);
+		ctx.render();
+		const dialog = open$2(host, {
 			title: options.parameter.label || options.parameter.id,
 			className: ["gpo-collection-dialog"],
 			width: "640px",
 			fill: true,
-			content,
+			content: els.content,
 			readOnly,
 			cancelLabel: tr$6(readOnly ? "close" : "cancel"),
 			isDirty: function() {
-				return !readOnly && state.isDirty(pending());
+				return !readOnly && state.isDirty(ctx.pending());
 			},
 			onApply: function() {
-				finishEdit(true);
-				const problems = updateValidation();
+				ctx.finishEdit(true);
+				const problems = ctx.updateValidation();
 				if (problems.length) {
-					if (problems[0].id) focusCell(problems[0].id, problems[0].field);
-					else add.getElement().focus();
+					if (problems[0].id) ctx.focusCell(problems[0].id, problems[0].field);
+					else els.add.focus();
 					return false;
 				}
 				options.onAccept(state.read());
 				return true;
 			},
 			onClose: function() {
-				clearDrag();
-				editing = null;
+				ctx.clearDrag();
+				ctx.editing = null;
 				if (options.onClose) options.onClose();
 			}
 		});
-		updateValidation();
+		ctx.dialog = dialog;
+		ctx.updateValidation();
 		dialog.isDirty = function() {
-			return !readOnly && state.isDirty(pending());
+			return !readOnly && state.isDirty(ctx.pending());
 		};
 		return dialog;
+	}
+	//#endregion
+	//#region src/components/collection-dialog.js
+	/** Adapter kept for `collection-control.js` and the AMD test tree; the editor lives in `CollectionEditor/`. */
+	function open$1(host, options) {
+		return openCollectionEditor(host, options);
 	}
 	//#endregion
 	//#region src/components/collection-control.js
